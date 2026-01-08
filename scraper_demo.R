@@ -7,9 +7,16 @@ library(tidyverse)
 library(jsonlite)
 
 # --- CONFIGURATION ---
-target_url <- "books.toscrape.com" # (Change to any product)
 
-#target_url <- "https://www.amazon.ca/Nintendo-SwitchTM-Mario-KartTM-Bundle/dp/B0FC5FJZ9Z/ref=sr_1_5?crid=29PDC2HETQIA3&dib=eyJ2IjoiMSJ9.aWB7UsjDSpzvVxh4jhDCyH05Pa6sAKO9dPkCt_aOxu_kVYi__AsdYiFkGeYfmhXE7aRBG9n1FFUnPSlI2MOlRc4gZ4d_HlwLVFFfYyU_O3moBHbvBOE3sc_GpZd_FsbSoc0ih8PWWAeCRg0qnSyKFgx3KCsicoK_0ZCyLQx_412YhU5TXzvjbHyPpkqB4-n_HUV-3Wwb0HBhHQkbUCycpMzMtuTW2Kly5zGiEcHgh4BsPk9Tooe8HgUIKu5seWxfCTeoYudUgSjBiSjgrKYwRMDAYw5ga7Q-8Hrxo52c-3o.T6hcxH2vg6ZG-dHiqwgqHmVuicWC2VMbg_VIHZMZ8X4&dib_tag=se&keywords=nintendo+switch+2&qid=1767905629&sprefix=nintendo+switch+2%2Caps%2C123&sr=8-5" # Example: Nintendo Switch 2 (Change to any product)
+# OPTION A: Robust Testing Sandbox (GUARANTEED TO WORK)
+# We use this for the demo to avoid CAPTCHAs or Out-of-Stock errors.
+# Note: This site uses British Pounds (£), so our visual scanner looks for that symbol.
+target_url <- "http://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html"
+
+# OPTION B: Real-World Target (Amazon Canada)
+# Uncomment this to test against a live environment (Note: May trigger CAPTCHA)
+# target_url <- "https://www.amazon.ca/dp/B09G9F5T3N"
+
 user_agent <- "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 # --- 1. INITIALIZE THE "EYE" (Headless Chrome) ---
@@ -23,7 +30,7 @@ b$Network$setUserAgentOverride(userAgent = user_agent)
 cat("Step 1: Navigating to page...\n")
 b$Page$navigate(target_url)
 b$Page$loadEventFired() # Wait for load
-Sys.sleep(3) # Extra wait for Amazon's dynamic price widgets to render
+Sys.sleep(3) # Extra wait for dynamic price widgets to render
 
 # --- 2. THE VISUAL EXTRACTION (The PhD Innovation) ---
 # Instead of asking for ".a-price-whole" (which might change),
@@ -31,7 +38,7 @@ Sys.sleep(3) # Extra wait for Amazon's dynamic price widgets to render
 
 cat("Step 2: Scanning visual layout...\n")
 
-# This JS function finds all elements with a '$' and returns their Computed Styles
+# This JS function finds all elements with a '$' OR '£' and returns their Computed Styles
 js_visual_scan <- "
 (() => {
   const allNodes = document.body.getElementsByTagName('*');
@@ -41,10 +48,10 @@ js_visual_scan <- "
     // 1. Is it visible?
     if (node.offsetParent === null) continue;
     
-    // 2. Does it look like a price? (Regex match)
-    // We check the direct text content of the node
+    // 2. Does it look like a price? (Check for $ OR £)
     const text = node.innerText;
-    if (text && text.includes('$') && text.length < 20) {
+    // UPDATED CHECK: Looks for Dollar ($) OR Pound (£)
+    if (text && (text.includes('$') || text.includes('£')) && text.length < 20) {
       
       // 3. THE MAGIC: Get Visual Metrics (Not DOM Tree)
       const rect = node.getBoundingClientRect();
@@ -56,7 +63,7 @@ js_visual_scan <- "
         y: rect.y,
         width: rect.width,
         height: rect.height,
-        fontSize: parseFloat(style.fontSize), // Critical for visual hierarchy
+        fontSize: parseFloat(style.fontSize), 
         color: style.color,
         tag: node.tagName
       });
@@ -80,7 +87,7 @@ df_candidates <- bind_rows(data_raw) %>%
 # We don't care what the class name is. 
 # We assume the "Real Price" is:
 # A) In the top 800 pixels (Visible on load)
-# B) Has the LARGEST font size among dollar signs.
+# B) Has the LARGEST font size among currency elements.
 
 cat("Step 3: Applying Visual Logic...\n")
 
@@ -103,5 +110,5 @@ if(nrow(best_match) > 0) {
   cat("No price detected visually.\n")
 }
 
-# Close the browser
+# Close the browser when done
 # b$close()
