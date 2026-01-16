@@ -14,7 +14,7 @@ Unlike traditional scrapers that rely on brittle CSS/XPath selectors, this proje
 ## 📄 Abstract
 National Statistical Offices (NSOs) increasingly rely on web-scraped data to monitor inflation. However, traditional pipelines are brittle, leading to "data blackouts" when source websites update their code. 
 
-This research proposes a **Resilient Reproducible Analytical Pipeline (RAP)**. Grounded in the software reliability principles of **Pareto analysis (Gittens et al., 2005)** and **tamper-evident processing (Suh & Clarke, 2003)**, this framework replaces static selectors with a vision-based agent. The agent employs decision-tree heuristics—inspired by gaming NPCs—to "perceive" pricing data based on visual affordances (font size, proximity to currency symbols) rather than code structure.
+This research proposes a **Resilient Reproducible Analytical Pipeline (RAP)**. Grounded in the software reliability principles of **Pareto analysis (Gittens et al., 2005)** and **tamper-evident processing (Suh & Clarke, 2003)**, this framework replaces static selectors with a vision-based agent. The agent employs decision-tree heuristics inspired by gaming NPCs to "perceive" pricing data based on visual affordances (font size, proximity to currency symbols) rather than code structure.
 
 ## 🛠️ Technical Architecture
 
