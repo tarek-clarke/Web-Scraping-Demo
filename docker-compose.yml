@@ -1,0 +1,40 @@
+services:
+  scraper:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    
+    container_name: rocm_scraper
+    restart: unless-stopped
+    shm_size: '8gb'
+
+    environment:
+      # Driver & ROCm paths
+      - LD_LIBRARY_PATH=/opt/rocm-6.1.3/lib:/opt/rocm/lib:/usr/local/lib
+      - HSA_OVERRIDE_GFX_VERSION=11.0.0
+      - HSA_ENABLE_SDMA=0
+
+    devices:
+      - /dev/dxg:/dev/dxg
+      - /dev/dxg:/dev/kfd
+
+    volumes:
+      # --- THE G: DRIVE SYNC ---
+      # Maps "G:\Docker\scraping project" (Host) -> "/root/Web-Scraping-Demo" (Container)
+      # This allows the container to see your scripts and save screenshots directly to your drive.
+      - "/mnt/g/Docker/scraping project:/root/Web-Scraping-Demo"
+
+      # Windows Driver Bridge
+      - /usr/lib/wsl/lib/libdxcore.so:/usr/lib/libdxcore.so
+      - /usr/lib/wsl/lib/libd3d12.so:/usr/lib/libd3d12.so
+
+    # Sets the default folder to your project root
+    working_dir: /root/Web-Scraping-Demo
+    
+    security_opt:
+      - seccomp:unconfined
+    group_add:
+      - video
+      - render
+
+    command: ["sleep", "infinity"]

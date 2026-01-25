@@ -1,0 +1,8 @@
+user_data/
+__pycache__/
+*.png
+*.html
+scraped_data.csv
+_targets/
+*.tar
+*.vhdx
