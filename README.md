@@ -176,7 +176,7 @@ See [CITATION.cff](CITATION.cff) for additional formats.
 
 - Academic use: Fully permitted
 - Commercial use: Requires separate licensing agreement
-- Contact: tclarke91@proton.me
+- Contact: research@tarek.systems
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
