@@ -68,7 +68,7 @@ def main():
         for col in df.columns[:8]:  # Show first 8 columns
             table.add_column(col, style="cyan")
         
-        for _, row in df.head(args.limit).iterrows():
+        for row in df.head(args.limit).iter_rows(named=True):
             table.add_row(*[str(row[col])[:20] for col in df.columns[:8]])
         
         console.print(table)
