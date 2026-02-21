@@ -97,10 +97,15 @@ class ClinicalIngestor(BaseIngestor):
     def parse(self, raw):
         parsed_data = []
 
-        if isinstance(raw, list) and raw and isinstance(raw[0], str):
-            for packet in raw:
-                parsed_data.append(json.loads(packet))
-            return parsed_data
+        if isinstance(raw, list):
+            if not raw:
+                return parsed_data
+            if isinstance(raw[0], str):
+                for packet in raw:
+                    parsed_data.append(json.loads(packet))
+                return parsed_data
+            if isinstance(raw[0], dict):
+                return raw
         
         # Get Patient ID from the loaded JSON (or default)
         p_id = raw.get("patient_id", "ANON")

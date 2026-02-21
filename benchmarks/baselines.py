@@ -256,3 +256,64 @@ def _compute_metrics(results: List[ComparisonResult]) -> Dict[str, float]:
                 metrics[f"{method}_{entropy_type}_accuracy"] = accuracy
     
     return metrics
+
+
+def compare_models(
+    standard_schema: List[str],
+    drift_batch_size: int = 200,
+    intensity: float = 0.6,
+    confidence_threshold: float = 0.5,
+) -> Dict[str, float]:
+    """
+    Compare baselines vs. semantic layer on a drift simulation.
+
+    Args:
+        standard_schema: List of standard field names.
+        drift_batch_size: Number of drift samples to evaluate.
+        intensity: Drift intensity (0.0-1.0), skews entropy distribution.
+        confidence_threshold: Minimum confidence to accept a semantic match.
+
+    Returns:
+        Dict of aggregate accuracy/confidence metrics.
+    """
+    try:
+        from tests.chaos_engine import DriftSimulator, EntropyType
+    except Exception:
+        DriftSimulator = None
+        EntropyType = None
+
+    # Build a semantic resolver
+    from modules.translator import SemanticTranslator
+
+    translator = SemanticTranslator(standard_schema)
+    semantic_resolver = translator.resolve
+
+    # Build chaos stream
+    if DriftSimulator is not None:
+        # Skew entropy distribution based on intensity
+        base = {
+            EntropyType.SYNONYMS: 0.4,
+            EntropyType.NOISE: 0.35,
+            EntropyType.TRUNCATION: 0.25,
+        }
+        base[EntropyType.NOISE] += 0.15 * intensity
+        base[EntropyType.TRUNCATION] += 0.15 * intensity
+        base[EntropyType.SYNONYMS] = max(0.1, 1.0 - (base[EntropyType.NOISE] + base[EntropyType.TRUNCATION]))
+        total = sum(base.values())
+        entropy_distribution = {k: v / total for k, v in base.items()}
+
+        simulator = DriftSimulator(clean_names=standard_schema, entropy_distribution=entropy_distribution)
+        chaos_stream = list(simulator.stream_chaos(num_samples=drift_batch_size))
+    else:
+        chaos_stream = []
+        for name in standard_schema[:drift_batch_size]:
+            chaos_stream.append((name, f"x_{name}_v2", "noise"))
+
+    _, metrics = run_comparison(
+        semantic_resolver=semantic_resolver,
+        chaos_stream=chaos_stream,
+        standard_schema=standard_schema,
+        confidence_threshold=confidence_threshold,
+    )
+
+    return metrics
