@@ -51,6 +51,8 @@ htmlcov/
 # Keep essential demo data (if needed)
 !data/f1_synthetic/
 !data/f1_synthetic/**
+!data/generators/
+!data/generators/**
 
 # Development/temporary
 *.log
