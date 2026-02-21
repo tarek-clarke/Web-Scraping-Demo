@@ -33,7 +33,7 @@ Verify environment:
 
 ```bash
 PYTHONPATH="." pytest tests/ -v
-# Expected: 41 passed
+# Expected: 46 passed
 ```
 
 ---
@@ -157,7 +157,7 @@ Generate a formatted PDF report for any pipeline run, suitable for submission or
 PYTHONPATH="." python tools/demo_pdf_report.py
 ```
 
-Output: `data/reports/pipeline_report.pdf`
+Output: `data/reports/demo_report.pdf`
 
 ---
 
