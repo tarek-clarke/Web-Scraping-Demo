@@ -49,10 +49,15 @@ htmlcov/
 !config/schema.json
 
 # Keep essential demo data (if needed)
+!data/
+data/**
 !data/f1_synthetic/
 !data/f1_synthetic/**
 !data/generators/
 !data/generators/**
+!data/reports/
+!data/reports/**
+!data/**/*.csv
 
 # Development/temporary
 *.log

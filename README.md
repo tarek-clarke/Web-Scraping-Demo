@@ -177,6 +177,13 @@ PYTHONPATH="." python tools/benchmark_semantic_layer.py
 PYTHONPATH="." python tools/demo_pdf_report.py
 ```
 
+Or run the same suite and auto-publish generated reports/CSVs:
+
+```bash
+source .venv/bin/activate
+bash tools/run_showcase_and_publish.sh
+```
+
 ---
 
 ## Research Contributions Summary
