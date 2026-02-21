@@ -119,7 +119,16 @@ class BaseIngestor(ABC):
         # Record into formal lineage for reproducibility
         if resolutions:
             self.record_lineage("semantic_alignment", metadata=resolutions)
-            
+
+        # Deduplicate: if multiple source cols map to the same target, keep only first
+        seen_targets: set = set()
+        dedup_mapping: dict = {}
+        for source, target in mapping.items():
+            if target not in seen_targets:
+                seen_targets.add(target)
+                dedup_mapping[source] = target
+        mapping = dedup_mapping
+
         healed_df = df.rename(mapping)
 
         if self.provenance_logger:

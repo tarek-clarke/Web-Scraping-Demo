@@ -1,142 +1,223 @@
 # Resilient RAP Framework
 
-![Status](https://img.shields.io/badge/Status-Production-green)
+[![Status](https://img.shields.io/badge/Status-Prototype-blue)](https://img.shields.io/badge/Status-Prototype-blue)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-red.svg)
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![Python](https://img.shields.io/badge/Python-3.10%2B-yellow)
+[![Analytics](https://img.shields.io/badge/Analytics-Tracked_via_Scarf-blue)](https://about.scarf.sh)
 
-**A production-grade framework for Reproducible Analytical Pipelines (RAPs) with autonomous schema drift resolution.** Built for PhD research in data engineering and trustworthy analytics.
+A production-oriented framework for autonomous schema drift resolution in high-velocity sports telemetry (F1, NHL) and health telemetry (ICU).
 
-Designed for high-velocity data streams (sports telemetry, clinical data) with built-in semantic reconciliation, tamper-evident audit trails, and human-in-the-loop validation.
+## Production Capabilities
 
-## Production-Ready Features
+- Semantic reconciliation for schema drift using a BERT-based translator.
+- Tamper-evident lineage and audit logging (SHA-256 linked records).
+- HITL analytics for intervention cost and learning curves.
+- Adapter-based ingestion for F1 telemetry, NHL play-by-play, and ICU streams.
+- Deterministic, reproducible runs with run IDs and lineage checkpoints.
 
-- **Semantic Schema Reconciliation**: BERT-based drift detection and field mapping for evolving data schemas
-- **Tamper-Evident Lineage**: SHA-256 linked audit records with full provenance tracking
-- **Reproducible Ingestion**: Deterministic pipeline execution with run IDs and checkpointing
-- **Multi-Domain Adapters**: Pre-built connectors for F1 telemetry, NHL play-by-play, and clinical streams
-- **HITL Analytics**: Human-in-the-loop feedback integration with learning curve analysis
-- **Production Logging**: Structured audit trails for regulatory compliance and forensic analysis
+---
 
-## Quick Start
+## Showcase Suite
 
-### Prerequisites
+A complete end-to-end demonstration sequence. Run each step in order for a full walkthrough of the framework's research contributions.
 
-- Python 3.10 or higher
-- macOS, Linux, or Windows with WSL2
-
-### Installation
+### Step 0 — Setup
 
 ```bash
-# Clone repository
-git clone https://github.com/tarek-clarke/resilient-rap-framework
-cd resilient-rap-framework
-
-# Create virtual environment
 python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install dependencies
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Basic Usage
+Verify environment:
 
-#### Example 1: OpenF1 Telemetry Pipeline
+```bash
+PYTHONPATH="." pytest tests/ -v
+# Expected: 41 passed
+```
+
+---
+
+### Step 1 — F1 Telemetry Pipeline (Schema Drift + Semantic Reconciliation)
+
+Ingests live Formula 1 telemetry from the OpenF1 API. Demonstrates BERT-based autonomous field mapping when sensor tag names change between sessions.
 
 ```bash
 PYTHONPATH="." python tools/demo_openf1.py --session 9158 --driver 1
 ```
 
-#### Example 2: Clinical Data Stream Processing
+**What to observe:**
+- Incoming field names (`spd_kph_gps`, `eng_rpm_log`, etc.) are automatically mapped to the gold-standard schema using cosine similarity over BERT embeddings.
+- Each mapping is recorded in the lineage trail with confidence scores.
+- No manual field renaming required.
 
-```python
-from adapters.clinical.ingestion_clinical import ClinicalIngestor
+---
 
-# Initialize ingestor with synthetic stream
-ingestor = ClinicalIngestor(
-    use_stream_generator=True,
-    stream_vendor="GE",
-    stream_batch_size=25,
-)
+### Step 2 — NHL Play-by-Play Pipeline
 
-# Execute pipeline
-ingestor.connect()
-df = ingestor.run()
-
-# Export audit trail
-ingestor.export_audit_log("data/clinical_audit.json")
-print(df.head())
-```
-
-#### Example 3: Hockey Play-by-Play Analytics
+Ingests structured game event data and reconciles schema variance across league data feeds.
 
 ```bash
 PYTHONPATH="." python tools/demo_nhl.py --game 2024020001
 ```
 
-## Key Directories
+**What to observe:**
+- Same reconciliation pipeline applied to a completely different domain.
+- Demonstrates domain-agnostic generalisation — a core research claim.
 
-```
-resilient-rap-framework/
-├── adapters/           # Domain-specific data ingestion (F1, NHL, Clinical)
-├── modules/            # Core framework (ingestion, reconciliation, lineage)
-├── src/                # Provenance tracking and analytics utilities
-├── tools/              # Production pipelines and utilities
-├── tests/              # Test suite (unit and integration)
-├── data/               # Audit logs, reports, and synthetic datasets
-├── reporting/          # PDF report generation
-└── docs/               # Extended documentation
-```
+---
 
-## Configuration & Output
+### Step 3 — Clinical ICU Stream (Health Telemetry)
 
-**Audit & Provenance Logs** (Automatic)
-- `data/reproducibility_audit.json` - Full execution audit trail
-- `data/provenance_log.jsonl` - Lineage records (input → output hashing)
-- `data/reports/` - Generated analysis reports
-
-**Environment Setup**
-No external environment variables required for baseline operation. Network access needed for upstream API calls (OpenF1, NHL).
-
-## Testing
-
-Run the full test suite:
+Generates a synthetic multi-vendor ICU stream (GE, Philips, Dräger sensor naming conventions) and heals schema variance automatically.
 
 ```bash
-pytest tests/ -v
+PYTHONPATH="." python main.py --adapter clinical --export-audit --audit-path data/clinical_audit.json
 ```
 
-Run specific test module:
+**What to observe:**
+- Vendor-specific tags (`hr_watch_01`, `spo2_philips_02`, `bp_sys_art_line`) are reconciled to standardised clinical labels.
+- Demonstrates applicability to regulated, safety-critical domains.
+
+---
+
+### Step 4 — Engine Temperature Stress Test (Chaos / Resilience)
+
+Injects 10 deliberate anomalies into 100 rows of telemetry (NaN, string values, physically impossible readings). Validates self-healing and graceful degradation.
 
 ```bash
-pytest tests/test_semantic_reconciliation.py -v
+PYTHONPATH="." python tools/stress_test_engine_temp.py
 ```
 
-## Core Concepts for PhD Research
+**What to observe:**
+- Anomalies are detected and flagged without crashing the pipeline.
+- Invalid rows are nullified and logged; valid rows pass through untouched.
+- Pipeline resilience score is reported at the end.
 
-### Schema Drift Resolution
+---
 
-The framework detects and resolves schema changes in real-time:
+### Step 5 — Tamper-Evident Audit Trail
 
-1. **Detection**: Field addition, deletion, type changes captured via semantic hashing
-2. **Reconciliation**: BERT embeddings map old schema to new schema
-3. **Validation**: HITL feedback refines mappings for future runs
-4. **Audit**: Full lineage maintained for publication and reproduction
+Inspect the SHA-256 linked provenance chain produced by any run.
 
-### Reproducibility & Auditability
+```bash
+cat data/nhl_game_2024020001_audit.json | python -m json.tool | head -60
+```
 
-Every ingestion step is logged:
+Or for a pipeline run with export:
+
+```bash
+PYTHONPATH="." python tools/demo_openf1.py --session 9158 --driver 1
+cat data/openf1_audit.json | python -m json.tool
+```
+
+**What to observe:**
+- Each record contains `input_hash`, `output_hash`, `previous_hash`, and `record_hash`.
+- Hashes form a tamper-evident chain: altering any record breaks downstream hashes.
+- Enables full reproducibility verification for peer review.
+
+---
+
+### Step 6 — HITL Retraining Loop (Active Learning)
+
+Demonstrates the Human-in-the-Loop feedback pipeline. A reviewer corrects low-confidence mappings; the translator retrains incrementally.
+
+```bash
+PYTHONPATH="." python tools/demo_hitl_retraining.py
+```
+
+**What to observe:**
+- Low-confidence resolutions are surfaced for human review.
+- Accepted corrections are written to a feedback store and used to retrain the translator.
+- Learning curves show confidence improving across iterations.
+- This is the primary novel research contribution.
+
+---
+
+### Step 7 — Semantic Layer Benchmark
+
+Quantitative evaluation of the BERT semantic reconciliation layer against a baseline (exact-match and edit-distance comparators).
+
+```bash
+PYTHONPATH="." python tools/benchmark_semantic_layer.py
+```
+
+**What to observe:**
+- Precision, recall, and F1 reported for each domain (F1, NHL, Clinical).
+- BERT cosine similarity outperforms baselines on ambiguous/abbreviated field names.
+- Results written to `data/reports/` as PDF.
+
+---
+
+### Step 8 — PDF Audit Report
+
+Generate a formatted PDF report for any pipeline run, suitable for submission or review.
+
+```bash
+PYTHONPATH="." python tools/demo_pdf_report.py
+```
+
+Output: `data/reports/pipeline_report.pdf`
+
+---
+
+### Full Showcase — Single Script
+
+Run all stages in sequence:
+
+```bash
+source .venv/bin/activate
+
+PYTHONPATH="." python tools/demo_openf1.py --session 9158 --driver 1
+PYTHONPATH="." python tools/demo_nhl.py --game 2024020001
+PYTHONPATH="." python main.py --adapter clinical --export-audit --audit-path data/clinical_audit.json
+PYTHONPATH="." python tools/stress_test_engine_temp.py
+PYTHONPATH="." python tools/demo_hitl_retraining.py
+PYTHONPATH="." python tools/benchmark_semantic_layer.py
+PYTHONPATH="." python tools/demo_pdf_report.py
+```
+
+---
+
+## Research Contributions Summary
+
+| Contribution | Demonstrated by |
+|---|---|
+| Autonomous schema drift resolution | Steps 1–3 |
+| Domain-agnostic generalisation (F1, NHL, ICU) | Steps 1–3 |
+| Chaos resilience without pipeline crash | Step 4 |
+| Tamper-evident, reproducible audit trail | Step 5 |
+| HITL active learning feedback loop | Step 6 |
+| Quantitative benchmark vs. baselines | Step 7 |
+| Structured reporting for peer review | Step 8 |
+
+---
+
+## Requirements
+
+- Python 3.10+
+- Dependencies in `requirements.txt`
+
+Optional:
+- Docker (for containerised deployment)
+
+## Configuration
+
+- Audit logs: `data/reproducibility_audit.json`
+- Provenance log: `data/provenance_log.jsonl`
+- Reports: `data/reports/`
+
+Environment variables are not required for core operation. External API calls rely on network access.
+
+## Provenance and Auditability
+
+Every semantic alignment writes a tamper-evident record (input hash → output hash) to `data/provenance_log.jsonl`. Audit logs can be exported from any adapter:
 
 ```python
-# Access audit trail programmatically
-audit_log = ingestor.export_audit_log()
-for record in audit_log:
-    print(f"Input: {record['input_hash']} → Output: {record['output_hash']}")
+adapter.export_audit_log("data/openf1_audit.json")
 ```
 
-### Human-in-the-Loop Integration
-
-Validate semantic mappings interactively:
+## HITL Analytics
 
 ```python
 from modules.hitl_orchestrator import HumanInTheLoopOrchestrator
@@ -145,55 +226,31 @@ orchestrator = HumanInTheLoopOrchestrator()
 orchestrator.display_feedback_summary()
 ```
 
-## Running Benchmarks
-
-Evaluate performance against synthetic data with known drift:
+## Testing
 
 ```bash
-PYTHONPATH="." python tools/benchmark_semantic_layer.py
+PYTHONPATH="." pytest tests/ -v
 ```
 
-## Documentation
+## Repository Structure
 
-- [LEARN.md](LEARN.md) - Detailed system architecture and concepts
-- [QUICK_REFERENCE.md](QUICK_REFERENCE.md) - Common operations
-- [HITL_RETRAINING_GUIDE.md](HITL_RETRAINING_GUIDE.md) - Human feedback integration
-- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) - Implementation details
-
-## Publication & Citation
-
-If you use this framework in published research, please cite:
-
-```bibtex
-Clarke, T. (2026). Engineering Resilient RAP Frameworks. engrXiv. https://doi.org/10.31224/6466
+```
+resilient-rap-framework/
+├── modules/          # Core ingestion and semantic reconciliation
+├── adapters/         # Domain adapters (OpenF1, NHL, Clinical, Sports)
+├── tools/            # Demo and benchmark utilities
+├── tests/            # Test suite (41 tests)
+├── data/             # Audit logs, reports, synthetic data
+├── reporting/        # PDF reporting
+└── src/              # Provenance and analytics
 ```
 
-See [CITATION.cff](CITATION.cff) for additional formats.
+## Licensing
 
-## Licensing & Contact
+This project is licensed under the PolyForm Noncommercial License 1.0.0. Commercial use requires a separate license.
 
-**License**: PolyForm Noncommercial 1.0.0 (see [LICENSE](LICENSE))
+Contact: tclarke91@proton.me
 
-- Academic use: Fully permitted
-- Commercial use: Requires separate licensing agreement
-- Contact: research@tarek.systems
+See LICENSE and CONTRIBUTING.md for details.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
-
----
-
-**Maintained for the PhD program in Reproducible Data Engineering**
-
-<!-- EXPERIMENT_RESULTS_START -->
-## Experimental Results (Auto-Generated)
-
-| Method | Low Drift Accuracy | High Drift Accuracy |
-|---|---|---|
-| Semantic Layer | 98% | >85% |
-| Levenshtein Baseline | 95% | <15% |
-| RegEx Baseline | 100% | 0% |
-
-
-![Resilience Curve](results/figures/resilience_curve_high_dpi.png)
-
-<!-- EXPERIMENT_RESULTS_END -->
+<img src="https://static.scarf.sh/a.png?x-pxid=a8f24add-7f46-4868-90bb-4c804a75e3fd&source=launch_Feb05" referrerpolicy="no-referrer-when-downgrade" />

@@ -33,7 +33,12 @@ class TamperEvidentLogger:
         """
         Compute SHA-256 over a canonical JSON representation.
         """
-        payload_json = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        def _default(obj: Any) -> str:
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+
+        payload_json = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=_default)
         return hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
 
     def log_transformation(

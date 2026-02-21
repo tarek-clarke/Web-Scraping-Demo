@@ -178,8 +178,8 @@ class EngineTemperatureStressIngestor(SportsIngestor):
                 self.record_error("validation", 
                     f"Row {record.get('row_number')}: Non-numeric engine temp '{temp_val}'")
             elif isinstance(temp_val, (int, float)):
-                # Check physical plausibility (F1 engines: -50°C to 150°C safe range)
-                if temp_val < -50 or temp_val > 150:
+                # Check physical plausibility (F1 engines: 0°C to 150°C safe range)
+                if temp_val < 0 or temp_val > 150:
                     anomalous_records += 1
                     self.record_error("validation",
                         f"Row {record.get('row_number')}: Impossible engine temp {temp_val}°C")
@@ -205,13 +205,13 @@ class EngineTemperatureStressIngestor(SportsIngestor):
             if 'eng_temp_sensor' in norm_record:
                 temp_val = norm_record['eng_temp_sensor']
                 
-                # Convert problematic values to NaN
+                # Convert problematic values to None (polars null)
                 if temp_val is None or isinstance(temp_val, str):
-                    norm_record['eng_temp_sensor'] = np.nan
+                    norm_record['eng_temp_sensor'] = None
                 elif isinstance(temp_val, (int, float)):
-                    # Flag impossible values as NaN
-                    if temp_val < -50 or temp_val > 150:
-                        norm_record['eng_temp_sensor'] = np.nan
+                    # Flag impossible values as None
+                    if temp_val < 0 or temp_val > 150:
+                        norm_record['eng_temp_sensor'] = None
             
             normalized.append(norm_record)
         

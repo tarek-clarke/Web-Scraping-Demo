@@ -63,8 +63,8 @@ def create_telemetry_table(df, title):
             table.add_column(display_name, justify="right")
     
     # Show all 20 drivers (full grid)
-    for index, row in df.tail(20).iterrows():
-        table.add_row(*[str(x) for x in row.values])
+    for row in df.tail(20).iter_rows(named=True):
+        table.add_row(*[str(x) for x in row.values()])
     return table
 
 def create_resilience_panel(ingestor):

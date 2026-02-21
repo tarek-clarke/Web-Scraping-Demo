@@ -334,7 +334,7 @@ class TestEngineTemperatureIntegration:
         parsed = ingestor.parse(raw)
         ingestor.validate(parsed)
         normalized = ingestor.normalize(parsed)
-        df = pd.DataFrame(normalized)
+        df = pl.DataFrame(normalized)
         df_healed = ingestor.apply_semantic_layer(df)
         
         # Resilience metric: % of data successfully processed despite anomalies
