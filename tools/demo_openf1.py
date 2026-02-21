@@ -108,7 +108,10 @@ def main():
             stats_table.add_row("Max RPM", f"{df['engine_rpm'].max():.0f}")
         
         stats_table.add_row("Total Records", str(len(df)))
-        stats_table.add_row("Unique Drivers", str(df['driver_num'].nunique()) if 'driver_num' in df.columns else "N/A")
+        stats_table.add_row(
+            "Unique Drivers",
+            str(df["driver_num"].n_unique()) if "driver_num" in df.columns else "N/A",
+        )
         
         console.print(stats_table)
         
