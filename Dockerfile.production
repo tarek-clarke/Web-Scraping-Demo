@@ -40,8 +40,14 @@ COPY --from=builder /install /usr/local
 WORKDIR /app
 COPY --chown=appuser:appgroup . .
 
-# Create writable data directory (mounted as volume in production)
-RUN mkdir -p /app/data/reports && chown -R appuser:appgroup /app/data
+# Create writable data and outputs directories (mounted as volumes in production)
+RUN mkdir -p /app/data && \
+    mkdir -p /app/outputs/csvs && \
+    mkdir -p /app/outputs/jsons && \
+    mkdir -p /app/outputs/pdfs && \
+    mkdir -p /app/outputs/logs && \
+    chown -R appuser:appgroup /app/data && \
+    chown -R appuser:appgroup /app/outputs
 
 # Security: drop to non-root
 USER appuser

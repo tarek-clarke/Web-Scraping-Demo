@@ -32,6 +32,8 @@ services:
     volumes:
       # Persistent data volume — survives container restarts
       - telemetry-data:/app/data
+      # Outputs volume — reports, CSVs, logs
+      - telemetry-outputs:/app/outputs
       # Read-only code mount (optional, for prod use the baked-in image)
       # - ./:/app:ro
 
@@ -80,6 +82,7 @@ services:
 
     volumes:
       - telemetry-data:/app/data:ro
+      - telemetry-outputs:/app/outputs:ro
 
     networks:
       - cadillac-internal
@@ -113,6 +116,7 @@ services:
 
     volumes:
       - telemetry-data:/app/data
+      - telemetry-outputs:/app/outputs
 
     networks:
       - cadillac-internal
@@ -136,6 +140,11 @@ volumes:
     driver: local
     labels:
       com.cadillacf1.purpose: "telemetry-persistence"
+  
+  telemetry-outputs:
+    driver: local
+    labels:
+      com.cadillacf1.purpose: "telemetry-outputs-reports"
 
 networks:
   cadillac-internal:
