@@ -13,11 +13,14 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 import polars as pl
 import json
+import logging
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from pathlib import Path
 from modules.translator import SemanticTranslator
 from src.provenance import TamperEvidentLogger
+
+logger = logging.getLogger(__name__)
 
 class BaseIngestor(ABC):
     """
@@ -33,6 +36,14 @@ class BaseIngestor(ABC):
         enable_provenance: bool = True,
         provenance_log_path: str = "data/provenance_log.jsonl",
         provenance_sample_size: int = 5,
+        enable_circuit_breaker: bool = False,
+        circuit_breaker_threshold: int = 5,
+        circuit_breaker_recovery: float = 30.0,
+        dlq_path: str = "data/dlq.sqlite",
+        enable_edge_buffer: bool = False,
+        edge_buffer_path: str = "data/edge_buffer.sqlite",
+        enable_geo_fence: bool = False,
+        circuit_name: Optional[str] = None,
     ):
         self.source_name = source_name
         self.lineage = []
@@ -51,6 +62,30 @@ class BaseIngestor(ABC):
         
         # Initialize the Semantic Translator (ML Engine)
         self.translator = SemanticTranslator(target_schema)
+
+        # --- Cadillac F1 Production Layers (opt-in) ---
+        self.circuit_breaker = None
+        if enable_circuit_breaker:
+            from src.circuit_breaker import TelemetryCircuitBreaker
+            self.circuit_breaker = TelemetryCircuitBreaker(
+                failure_threshold=circuit_breaker_threshold,
+                recovery_timeout=circuit_breaker_recovery,
+                dlq_path=dlq_path,
+            )
+            logger.info("Circuit-Breaker enabled (threshold=%d)", circuit_breaker_threshold)
+
+        self.edge_buffer = None
+        if enable_edge_buffer:
+            from src.local_persistence import TracksideEdgeBuffer
+            self.edge_buffer = TracksideEdgeBuffer(db_path=edge_buffer_path)
+            logger.info("Edge Buffer enabled (%s)", edge_buffer_path)
+
+        self.geo_fence = None
+        self.circuit_name = circuit_name
+        if enable_geo_fence:
+            from src.geo_fence import GeoFence
+            self.geo_fence = GeoFence()
+            logger.info("Geo-Fence enabled (circuit=%s)", circuit_name)
 
     # --- Abstract Methods (To be implemented by adapters) ---
     @abstractmethod

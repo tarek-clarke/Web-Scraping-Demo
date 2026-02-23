@@ -465,8 +465,9 @@ class CadillacStressTest:
             writer = csv.DictWriter(f, fieldnames=[
                 "session_name", "circuit", "packets_sent", "packets_accepted",
                 "packets_rejected", "chaos_injected", "breaker_trips",
-                "breaker_final_state", "dlq_depth", "latency_p50_ms",
-                "latency_p95_ms", "latency_p99_ms", "geo_scrubbed",
+                "breaker_final_state", "dlq_depth", "buffer_pending",
+                "latency_p50_ms", "latency_p95_ms", "latency_p99_ms",
+                "geo_scrubbed", "duration_s",
             ])
             writer.writeheader()
             for s in self.report.sessions:
