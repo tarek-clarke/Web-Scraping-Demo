@@ -36,36 +36,34 @@ import argparse
 import csv
 import json
 import math
-import os
 import random
+import statistics
 import sys
 import time
-import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field, asdict
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 # Add parent to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
-from rich import box
+from rich.console import Console  # noqa: E402
+from rich.table import Table  # noqa: E402
+from rich.panel import Panel  # noqa: E402
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn  # noqa: E402
+from rich import box  # noqa: E402
 
-from src.circuit_breaker import (
+from src.circuit_breaker import (  # noqa: E402
     TelemetryCircuitBreaker,
     TelemetryPacket,
-    SchemaValidator,
     CircuitState,
 )
-from src.local_persistence import TracksideEdgeBuffer, BufferedPacket
-from src.geo_fence import GeoFence
-from src.audit_log import ComplianceAuditLog
-from src.middleware.tracing import RequestContext
+from src.local_persistence import TracksideEdgeBuffer, BufferedPacket  # noqa: E402
+from src.geo_fence import GeoFence  # noqa: E402
+from src.audit_log import ComplianceAuditLog  # noqa: E402
+from src.middleware.tracing import RequestContext  # noqa: E402
 
 
 console = Console()
@@ -180,6 +178,58 @@ class SessionResult:
 
 
 @dataclass
+class DetectionEvent:
+    """Timing record for a single anomaly detection."""
+    packet_id: str = ""
+    session: str = ""
+    sensor: str = ""
+    chaos_type: str = ""
+    detection_latency_ms: float = 0.0  # Time to detect (reject) the packet
+    detected: bool = True
+
+
+@dataclass
+class RepairEvent:
+    """Timing record for a single DLQ repair attempt."""
+    packet_id: str = ""
+    repair_latency_ms: float = 0.0
+    recovered: bool = False
+
+
+@dataclass
+class ResilienceTimingSummary:
+    """Aggregate timing metrics with confidence intervals."""
+    # Detection
+    detection_count: int = 0
+    detection_mean_ms: float = 0.0
+    detection_std_ms: float = 0.0
+    detection_p50_ms: float = 0.0
+    detection_p95_ms: float = 0.0
+    detection_p99_ms: float = 0.0
+    detection_min_ms: float = 0.0
+    detection_max_ms: float = 0.0
+    detection_ci95_lower_ms: float = 0.0
+    detection_ci95_upper_ms: float = 0.0
+    detection_rate: float = 0.0
+    # Repair
+    repair_count: int = 0
+    repair_recovered: int = 0
+    repair_mean_ms: float = 0.0
+    repair_std_ms: float = 0.0
+    repair_p50_ms: float = 0.0
+    repair_p95_ms: float = 0.0
+    repair_min_ms: float = 0.0
+    repair_max_ms: float = 0.0
+    repair_ci95_lower_ms: float = 0.0
+    repair_ci95_upper_ms: float = 0.0
+    repair_rate: float = 0.0
+    # Confidence
+    confidence_level: float = 0.95
+    sample_size: int = 0
+    verdict: str = ""
+
+
+@dataclass
 class StressTestReport:
     started_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
     ended_at: str = ""
@@ -236,6 +286,11 @@ class CadillacStressTest:
         self._latencies: List[float] = []
         self._breaker_trip_count = 0
         self._drain_results: List[Dict[str, Any]] = []
+
+        # Resilience timing instrumentation
+        self._detection_events: List[DetectionEvent] = []
+        self._repair_events: List[RepairEvent] = []
+        self.timing_summary: Optional[ResilienceTimingSummary] = None
 
     @staticmethod
     def _mock_cloud_sync(payloads: list) -> bool:
@@ -325,7 +380,11 @@ class CadillacStressTest:
                 request_id=ctx.request_id,
             )
 
-            # Circuit Breaker
+            # Circuit Breaker — measure validation separately from DLQ I/O
+            t_val = time.monotonic()
+            _is_valid, _val_reason = self.breaker.validator.validate_packet(pkt)
+            detection_latency_ms = (time.monotonic() - t_val) * 1000
+
             t0 = time.monotonic()
             accepted, reason = self.breaker.process(pkt)
             latency_ms = (time.monotonic() - t0) * 1000
@@ -333,6 +392,17 @@ class CadillacStressTest:
             self._latencies.append(latency_ms)
 
             ctx.add_stage("circuit_breaker", status="PASSED" if accepted else "REJECTED")
+
+            # Track detection timing for chaos-injected packets
+            if chaos_type:
+                self._detection_events.append(DetectionEvent(
+                    packet_id=pkt.packet_id,
+                    session=result.session_name,
+                    sensor=sensor_out,
+                    chaos_type=chaos_type,
+                    detection_latency_ms=detection_latency_ms,
+                    detected=not accepted,
+                ))
 
             result.packets_sent += 1
             if accepted:
@@ -389,9 +459,50 @@ class CadillacStressTest:
 
     # -----------------------------------------------------------------
     def _finalise_report(self) -> None:
-        # Run DLQ reprocessing pass before final tally
-        dlq_result = self.breaker.reprocess_dlq(limit=200)
-        self._dlq_reprocess_result = dlq_result
+        # Run DLQ reprocessing pass with per-packet repair timing
+        candidates = self.breaker.dlq.fetch_reprocessable(limit=200)
+        repaired = 0
+        still_bad = 0
+        max_retries = 0
+
+        for rec in candidates:
+            pkt = TelemetryPacket(
+                packet_id=rec["packet_id"],
+                timestamp=rec["timestamp"],
+                sensor=rec["sensor"] or "",
+                value=json.loads(rec["value"]) if isinstance(rec["value"], str) else rec["value"],
+                metadata=json.loads(rec["metadata"]) if isinstance(rec["metadata"], str) else (rec["metadata"] or {}),
+            )
+            t0 = time.monotonic()
+            is_valid, reason = self.breaker.validator.validate_packet(pkt)
+            repair_ms = (time.monotonic() - t0) * 1000
+
+            if is_valid:
+                self.breaker.dlq.mark_reprocessed(rec["packet_id"])
+                repaired += 1
+                self._repair_events.append(RepairEvent(
+                    packet_id=rec["packet_id"],
+                    repair_latency_ms=repair_ms,
+                    recovered=True,
+                ))
+            else:
+                self.breaker.dlq.increment_retry(rec["packet_id"])
+                retry_count = rec.get("retry_count", 0) + 1
+                if retry_count >= 3:
+                    max_retries += 1
+                else:
+                    still_bad += 1
+                self._repair_events.append(RepairEvent(
+                    packet_id=rec["packet_id"],
+                    repair_latency_ms=repair_ms,
+                    recovered=False,
+                ))
+
+        self._dlq_reprocess_result = {
+            "recovered": repaired,
+            "still_invalid": still_bad,
+            "max_retries": max_retries,
+        }
 
         # Final drain pass
         final_drain = self.buffer.drain_pending()
@@ -453,6 +564,73 @@ class CadillacStressTest:
             self.report.verdict = "CONDITIONAL — Review Required ⚠️"
         else:
             self.report.verdict = "NOT READY — Engineering Review ❌"
+
+        # Build resilience timing summary
+        self.timing_summary = self._build_timing_summary()
+
+    # -----------------------------------------------------------------
+    def _build_timing_summary(self) -> ResilienceTimingSummary:
+        """Compute detection/repair timing statistics with 95% confidence intervals."""
+        summary = ResilienceTimingSummary()
+
+        # --- Detection stats ---
+        det = self._detection_events
+        summary.detection_count = len(det)
+        detected = [e for e in det if e.detected]
+        summary.detection_rate = len(detected) / max(1, len(det))
+
+        if detected:
+            lats = [e.detection_latency_ms for e in detected]
+            sl = sorted(lats)
+            n = len(sl)
+            summary.detection_mean_ms = round(statistics.mean(sl), 4)
+            summary.detection_std_ms = round(statistics.stdev(sl), 4) if n > 1 else 0.0
+            summary.detection_p50_ms = round(sl[n // 2], 4)
+            summary.detection_p95_ms = round(sl[int(n * 0.95)], 4)
+            summary.detection_p99_ms = round(sl[int(n * 0.99)], 4)
+            summary.detection_min_ms = round(sl[0], 4)
+            summary.detection_max_ms = round(sl[-1], 4)
+            # 95% CI for the mean: mean ± 1.96 * (std / sqrt(n))
+            if n > 1:
+                margin = 1.96 * (summary.detection_std_ms / math.sqrt(n))
+                summary.detection_ci95_lower_ms = round(summary.detection_mean_ms - margin, 4)
+                summary.detection_ci95_upper_ms = round(summary.detection_mean_ms + margin, 4)
+
+        # --- Repair stats ---
+        rep = self._repair_events
+        summary.repair_count = len(rep)
+        summary.repair_recovered = sum(1 for e in rep if e.recovered)
+        summary.repair_rate = summary.repair_recovered / max(1, len(rep))
+
+        if rep:
+            rlats = [e.repair_latency_ms for e in rep]
+            sr = sorted(rlats)
+            m = len(sr)
+            summary.repair_mean_ms = round(statistics.mean(sr), 4)
+            summary.repair_std_ms = round(statistics.stdev(sr), 4) if m > 1 else 0.0
+            summary.repair_p50_ms = round(sr[m // 2], 4)
+            summary.repair_p95_ms = round(sr[int(m * 0.95)], 4)
+            summary.repair_min_ms = round(sr[0], 4)
+            summary.repair_max_ms = round(sr[-1], 4)
+            if m > 1:
+                margin = 1.96 * (summary.repair_std_ms / math.sqrt(m))
+                summary.repair_ci95_lower_ms = round(summary.repair_mean_ms - margin, 4)
+                summary.repair_ci95_upper_ms = round(summary.repair_mean_ms + margin, 4)
+
+        summary.confidence_level = 0.95
+        summary.sample_size = summary.detection_count + summary.repair_count
+
+        # Timing verdict
+        if summary.detection_count > 0 and summary.detection_p95_ms < 1.0:
+            summary.verdict = "SUB-MILLISECOND DETECTION ✅"
+        elif summary.detection_count > 0 and summary.detection_p95_ms < 5.0:
+            summary.verdict = "FAST DETECTION (<5ms) ✅"
+        elif summary.detection_count > 0 and summary.detection_p95_ms < 50.0:
+            summary.verdict = "ACCEPTABLE DETECTION (<50ms) ⚠️"
+        else:
+            summary.verdict = "SLOW DETECTION — REVIEW REQUIRED ❌"
+
+        return summary
 
     # -----------------------------------------------------------------
     def _print_report(self) -> None:
@@ -532,6 +710,59 @@ class CadillacStressTest:
             border_style="bright_white",
         ))
 
+        # --- Resilience Timing Report ---
+        if self.timing_summary:
+            ts = self.timing_summary
+            timing_verdict_style = (
+                "bold green" if "✅" in ts.verdict
+                else ("bold yellow" if "⚠️" in ts.verdict else "bold red")
+            )
+
+            timing_table = Table(
+                title="Resilience Timing Report",
+                box=box.DOUBLE_EDGE,
+                show_lines=True,
+            )
+            timing_table.add_column("Metric", style="bold cyan", width=30)
+            timing_table.add_column("Detection", justify="right", style="green", width=20)
+            timing_table.add_column("Repair", justify="right", style="yellow", width=20)
+
+            timing_table.add_row("Events", str(ts.detection_count), str(ts.repair_count))
+            timing_table.add_row("Success Rate", f"{ts.detection_rate:.2%}", f"{ts.repair_rate:.2%}")
+            timing_table.add_row("Mean Latency", f"{ts.detection_mean_ms:.4f} ms", f"{ts.repair_mean_ms:.4f} ms")
+            timing_table.add_row("Std Deviation", f"{ts.detection_std_ms:.4f} ms", f"{ts.repair_std_ms:.4f} ms")
+            timing_table.add_row("Min", f"{ts.detection_min_ms:.4f} ms", f"{ts.repair_min_ms:.4f} ms")
+            timing_table.add_row("p50 (Median)", f"{ts.detection_p50_ms:.4f} ms", f"{ts.repair_p50_ms:.4f} ms")
+            timing_table.add_row("p95", f"{ts.detection_p95_ms:.4f} ms", f"{ts.repair_p95_ms:.4f} ms")
+            timing_table.add_row("p99", f"{ts.detection_p99_ms:.4f} ms", "—")
+            timing_table.add_row("Max", f"{ts.detection_max_ms:.4f} ms", f"{ts.repair_max_ms:.4f} ms")
+            timing_table.add_row(
+                "95% CI (Mean)",
+                f"[{ts.detection_ci95_lower_ms:.4f}, {ts.detection_ci95_upper_ms:.4f}] ms",
+                f"[{ts.repair_ci95_lower_ms:.4f}, {ts.repair_ci95_upper_ms:.4f}] ms",
+            )
+
+            console.print(timing_table)
+
+            console.print(Panel(
+                f"[bold]Anomalies Injected:[/bold]      {ts.detection_count}\n"
+                f"[bold]Anomalies Caught:[/bold]        {sum(1 for e in self._detection_events if e.detected)}\n"
+                f"[bold]Detection Rate:[/bold]          {ts.detection_rate:.2%}\n"
+                f"[bold]Mean Detection Speed:[/bold]    {ts.detection_mean_ms:.4f} ms\n"
+                f"[bold]p95 Detection Speed:[/bold]     {ts.detection_p95_ms:.4f} ms\n"
+                f"[bold]95% CI (Detection):[/bold]      "
+                f"[{ts.detection_ci95_lower_ms:.4f}, {ts.detection_ci95_upper_ms:.4f}] ms\n"
+                f"[bold]DLQ Repairs Attempted:[/bold]   {ts.repair_count}\n"
+                f"[bold]DLQ Repairs Recovered:[/bold]   {ts.repair_recovered}\n"
+                f"[bold]Repair Rate:[/bold]             {ts.repair_rate:.2%}\n"
+                f"[bold]Mean Repair Speed:[/bold]       {ts.repair_mean_ms:.4f} ms\n"
+                f"[bold]Confidence Level:[/bold]        {ts.confidence_level:.0%}\n"
+                f"[bold]Sample Size:[/bold]             {ts.sample_size}\n\n"
+                f"[{timing_verdict_style}]TIMING VERDICT: {ts.verdict}[/{timing_verdict_style}]",
+                title="[bold bright_white on blue]  RESILIENCE TIMING ASSESSMENT  [/bold bright_white on blue]",
+                border_style="bright_cyan",
+            ))
+
     # -----------------------------------------------------------------
     def _export_results(self) -> None:
         """Write results to CSV and JSON for downstream consumption."""
@@ -555,6 +786,43 @@ class CadillacStressTest:
         with open(json_path, "w") as f:
             json.dump(asdict(self.report), f, indent=2, default=str)
         console.print(f"[dim]JSON exported → {json_path}[/dim]")
+
+        # --- Resilience Timing CSV ---
+        timing_csv_path = self.output_dir / "resilience_timing_report.csv"
+        with open(timing_csv_path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=[
+                "packet_id", "session", "sensor", "chaos_type",
+                "event_type", "latency_ms", "detected_or_recovered",
+            ])
+            writer.writeheader()
+            for ev in self._detection_events:
+                writer.writerow({
+                    "packet_id": ev.packet_id,
+                    "session": ev.session,
+                    "sensor": ev.sensor,
+                    "chaos_type": ev.chaos_type,
+                    "event_type": "detection",
+                    "latency_ms": round(ev.detection_latency_ms, 4),
+                    "detected_or_recovered": ev.detected,
+                })
+            for ev in self._repair_events:
+                writer.writerow({
+                    "packet_id": ev.packet_id,
+                    "session": "",
+                    "sensor": "",
+                    "chaos_type": "dlq_repair",
+                    "event_type": "repair",
+                    "latency_ms": round(ev.repair_latency_ms, 4),
+                    "detected_or_recovered": ev.recovered,
+                })
+        console.print(f"[dim]Timing CSV exported → {timing_csv_path}[/dim]")
+
+        # --- Resilience Timing JSON ---
+        if self.timing_summary:
+            timing_json_path = self.output_dir / "resilience_timing_report.json"
+            with open(timing_json_path, "w") as f:
+                json.dump(asdict(self.timing_summary), f, indent=2, default=str)
+            console.print(f"[dim]Timing JSON exported → {timing_json_path}[/dim]")
 
 
 # ---------------------------------------------------------------------------
