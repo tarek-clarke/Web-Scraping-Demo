@@ -8,11 +8,11 @@
 
 Developed for the 2026 Cadillac F1 Initiative.
 
-Background: 10+ years as a Senior Data Engineer at Statistics Canada, shipping production pipelines that handle the country's most sensitive data at scale. That same discipline - tamper-evident lineage, automated reconciliation, zero-tolerance for data corruption - is exactly what the F1 Budget Cap era demands.
+Background: 10+ years as a Senior Data Analyst at Statistics Canada, shipping production pipelines that handle the country's most sensitive data at scale. That same discipline: tamper-evident lineage, automated reconciliation, zero-tolerance for data corruption is exactly what the F1 Budget Cap era demands.
 
 The Academic Edge: This is the production-ready implementation of my upcoming PhD research at TalTech (Tallinn University of Technology) on Reproducible Analytical Pipelines (RAP) for high-velocity sensor telemetry. Every module in this repository traces back to a peer-reviewed methodology for autonomous schema drift resolution.
 
-The Value Proposition: Self-healing code reduces the headcount needed for trackside IT support. Instead of flying a team of data engineers to every race, the pit wall gets a pipeline that detects corruption, isolates bad packets, and recovers - all without human intervention. In the Budget Cap era, that's not just engineering, it's a competitive advantage.
+The Value Proposition: Self-healing code reduces the headcount needed for trackside IT support. Instead of flying a team of data engineers to every race, the pit wall gets a pipeline that detects corruption, isolates bad packets, and recovers, all without human intervention. In the Budget Cap era, that's not just engineering, it's a competitive advantage.
 
 ## Architecture
 
