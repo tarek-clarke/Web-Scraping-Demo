@@ -21,8 +21,6 @@ Compliance Zones
 - **US**: Standard processing — full telemetry forwarded to the War Room.
 - **ME** (Middle East): Similar to US with additional export-control markers.
 - **APAC** (Asia-Pacific): Local retention + metadata sync.
-
-Stakeholder: Chris Green — Infrastructure & Sovereignty.
 """
 
 from __future__ import annotations

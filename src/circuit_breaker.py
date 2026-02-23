@@ -24,8 +24,6 @@ Architecture
                    └──────►│ HALF_OPEN │◄─────────────────┘
                            │  (probe)  │  after cooldown
                            └───────────┘
-
-Stakeholder: Mandar Hazare — Data Fidelity for Simulation.
 """
 
 from __future__ import annotations

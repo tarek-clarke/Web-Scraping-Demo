@@ -18,8 +18,6 @@ Architecture
     Car RF  ──►  Edge Buffer (SQLite WAL)  ──►  Cloud Sink (async drain)
                       │
                  Local replay always available
-
-Stakeholder: Wilfredo Crespo — System Integration & Reliability.
 """
 
 from __future__ import annotations

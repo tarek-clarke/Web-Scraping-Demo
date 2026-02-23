@@ -97,14 +97,22 @@ Developed for the **2026 Cadillac F1 Initiative**.
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# 2. Stress test (validates all subsystems)
-PYTHONPATH="." python tools/cadillac_stress_test.py --packets 2000 --chaos 0.15
+# 2. One-click showcase (runs everything — tests, stress test, health monitor, demos)
+./tools/run_cadillac_showcase.sh
 
-# 3. Health Monitor (live pit wall dashboard)
-PYTHONPATH="." python tools/health_monitor.py --duration 60
+# 3. Or run individual subsystems:
 
-# 4. Full test suite
-PYTHONPATH="." pytest tests/ -v
+# Stress test — showcase mode (1000 pkt × 15 sessions, 10% chaos)
+PYTHONPATH="." python3 tools/cadillac_stress_test.py --showcase
+
+# Stress test — full load (custom packets and chaos rate)
+PYTHONPATH="." python3 tools/cadillac_stress_test.py --packets 5000 --chaos 0.20
+
+# Health Monitor (live pit wall dashboard, 30s demo)
+PYTHONPATH="." python3 tools/health_monitor.py --duration 30
+
+# Test suite
+PYTHONPATH="." pytest tests/test_cadillac_modules.py -v
 ```
 
 ### Docker (Production)
@@ -127,10 +135,11 @@ docker compose -f docker-compose.production.yml up telemetry-spine
 ### Circuit-Breaker + Dead Letter Queue
 
 ```bash
-PYTHONPATH="." python tools/cadillac_stress_test.py --packets 2000 --chaos 0.15
+PYTHONPATH="." python3 tools/cadillac_stress_test.py --showcase
 ```
 
-Triple-Header simulation: 3 race weekends × 5 sessions × 2000 packets with 15% chaos injection.
+Triple-Header simulation: 3 race weekends × 5 sessions × 1000 packets with 10% chaos injection (showcase mode).  
+For heavier load testing, use `--packets 5000 --chaos 0.20`.
 
 **Validates:**
 - Circuit-breaker trips when consecutive failures exceed threshold
@@ -180,7 +189,7 @@ print(result_us.sync_payload)  # All fields intact
 ### Health Monitor (Pit Wall Dashboard)
 
 ```bash
-PYTHONPATH="." python tools/health_monitor.py
+PYTHONPATH="." python3 tools/health_monitor.py
 ```
 
 Live terminal UI showing:
@@ -194,57 +203,33 @@ Live terminal UI showing:
 
 ## The Full Showcase Suite (Original RAP Research)
 
-Also included: the original Resilient RAP Framework demonstrations.
+Run everything with one command:
+
+```bash
+./tools/run_cadillac_showcase.sh
+```
+
+Or execute individual stages:
 
 ### Step 1 — F1 Telemetry (OpenF1 API)
 ```bash
-PYTHONPATH="." python tools/demo_openf1.py --session 9158 --driver 1
+PYTHONPATH="." python3 tools/demo_openf1.py --session 9158 --driver 1
 ```
 
-### Step 2 — NHL Play-by-Play
+### Step 2 — Engine Temperature Stress Test
 ```bash
-PYTHONPATH="." python tools/demo_nhl.py --game 2024020001
+PYTHONPATH="." python3 tools/stress_test_engine_temp.py
 ```
 
-### Step 3 — Clinical ICU Stream
+### Step 3 — Semantic Layer Benchmark
 ```bash
-PYTHONPATH="." python main.py --adapter clinical --export-audit
+PYTHONPATH="." python3 tools/benchmark_semantic_layer.py
 ```
 
-### Step 4 — Engine Temperature Stress Test
+### Step 4 — PDF Audit Report
 ```bash
-PYTHONPATH="." python tools/stress_test_engine_temp.py
+PYTHONPATH="." python3 tools/demo_pdf_report.py
 ```
-
-### Step 5 — HITL Retraining Loop
-```bash
-PYTHONPATH="." python tools/demo_hitl_retraining.py
-```
-
-### Step 6 — Semantic Layer Benchmark
-```bash
-PYTHONPATH="." python tools/benchmark_semantic_layer.py
-```
-
-### Step 7 — PDF Audit Report
-```bash
-PYTHONPATH="." python tools/demo_pdf_report.py
-```
-
----
-
-## Research Contributions
-
-| Contribution | Module | Novel Element |
-|---|---|---|
-| Autonomous schema drift resolution (BERT) | `SemanticTranslator` | Self-healing without human intervention |
-| Circuit-Breaker + Dead Letter Queue | `src/circuit_breaker.py` | Production isolation for telemetry corruption |
-| Zero-data-loss edge persistence | `src/local_persistence.py` | Local-first SQLite WAL buffer with background drain |
-| Data Sovereignty & Geo-Fencing | `src/geo_fence.py` | Jurisdiction-aware GDPR / PII compliance |
-| Chaos resilience validation | `tools/cadillac_stress_test.py` | 30,000-packet Triple-Header with randomised failures |
-| Pit Wall health monitoring | `tools/health_monitor.py` | Live CLI dashboard for infrastructure visibility |
-| Tamper-evident provenance | `src/provenance.py` | SHA-256 linked audit trail |
-| HITL active learning | `modules/enhanced_translator.py` | Incremental translator retraining |
 
 ---
 
@@ -266,14 +251,11 @@ resilient-rap-framework/
 │   └── ...
 ├── adapters/
 │   ├── openf1/                      # Live F1 API adapter
-│   ├── nhl/                         # NHL play-by-play adapter
-│   ├── clinical/                    # ICU telemetry adapter
 │   └── ...
 ├── tools/
 │   ├── cadillac_stress_test.py      # ⭐ Triple-Header Stress Test
 │   ├── health_monitor.py            # ⭐ Pit Wall CLI Dashboard
 │   ├── demo_openf1.py               # F1 telemetry demo
-│   ├── demo_nhl.py                  # NHL demo
 │   └── ...
 ├── tests/                           # Automated test suite
 ├── data/reports/                    # Generated reports & CSVs

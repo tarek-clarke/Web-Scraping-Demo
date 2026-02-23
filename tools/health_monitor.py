@@ -380,8 +380,21 @@ def _run_demo(duration: int = 30) -> None:
             circuit = random.choice(circuits)
             sensor = random.choice(sensors)
 
-            # ~15% chance of injecting a bad packet
-            if random.random() < 0.15:
+            # Dynamic chaos: ramp up mid-demo to trigger breaker trip,
+            # then settle back so the audience sees recovery in real-time.
+            elapsed = time.time() - monitor.start_time
+            demo_frac = elapsed / max(duration, 1)
+            if 0.30 < demo_frac < 0.50:
+                # Burst phase — high corruption to trip the breaker
+                chaos_chance = 0.45
+            elif 0.50 <= demo_frac < 0.65:
+                # Recovery phase — moderate
+                chaos_chance = 0.08
+            else:
+                # Normal operations
+                chaos_chance = 0.12
+
+            if random.random() < chaos_chance:
                 value: Any = random.choice([None, "CORRUPT", -9999, 99999])
                 severity = "CRITICAL" if value is None else "WARNING"
             else:
@@ -424,6 +437,9 @@ def _run_demo(duration: int = 30) -> None:
     gen_thread = threading.Thread(target=_generate, daemon=True)
     gen_thread.start()
 
+    # Give the generator a moment to warm up before rendering
+    time.sleep(0.3)
+
     # --- Launch dashboard ---
     try:
         monitor.start(duration=duration)
@@ -431,15 +447,17 @@ def _run_demo(duration: int = 30) -> None:
         pass
     finally:
         monitor.stop()
-        breaker.dlq.close()
-        buffer.close()
 
-    # Print final summary
+    # Print final summary (before closing DB handles)
+    dlq_depth = breaker.dlq.depth()
     console.print("\n[bold green]✓ Demo complete[/bold green]")
     console.print(f"  Packets processed: {monitor.packets_total}")
     console.print(f"  Accepted: {monitor.packets_accepted}  Rejected: {monitor.packets_rejected}")
-    console.print(f"  DLQ Depth: {breaker.dlq.depth()}")
+    console.print(f"  DLQ Depth: {dlq_depth}")
     console.print(f"  Latency p50={monitor.latency.p50}ms  p95={monitor.latency.p95}ms  p99={monitor.latency.p99}ms\n")
+
+    breaker.dlq.close()
+    buffer.close()
 
 
 # ---------------------------------------------------------------------------
