@@ -61,8 +61,8 @@ The Value Proposition: Self-healing code reduces the headcount needed for tracks
 
 ## Key Capabilities
 
-|  |
-|  |
+| Capability | Module | Evidence |
+|---|---|---|
 | Zero data loss during trackside connectivity drops | src/local_persistence.py | SQLite WAL edge buffer persists every packet locally before cloud sync |
 | Local-first architecture - pit wall always has full telemetry | TracksideEdgeBuffer | Full local replay available even when uplink is severed |
 | Automatic background drain when connectivity is restored | start_background_drain() | Daemon thread syncs pending packets in configurable batches |
@@ -82,6 +82,7 @@ The Value Proposition: Self-healing code reduces the headcount needed for tracks
 
 ### Local Development
 
+```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
@@ -93,12 +94,15 @@ PYTHONPATH="." python tools/health_monitor.py --duration 60
 
 # 4. Full test suite
 PYTHONPATH="." pytest tests/ -v
+```
 
 ### Docker (Production)
 
+```bash
 docker compose -f docker-compose.production.yml up --build stress-test
 docker compose -f docker-compose.production.yml up --build health-monitor
 docker compose -f docker-compose.production.yml up telemetry-spine
+```
 
 ## Core Demonstrations
 
