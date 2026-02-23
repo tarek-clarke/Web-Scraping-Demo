@@ -22,15 +22,16 @@ import matplotlib.pyplot as plt
 # CONFIGURATION (Edit these paths for your environment)
 # ============================================================================
 
-NVME_DB_DIR = r"C:\path\to\your\repo\data_nvme"  # Windows NVMe path
-HDD_DB_DIR = r"G:\path\to\your\repo\data_hdd"   # Windows HDD path
+NVME_DB_DIR = "/tmp/data_nvme"  # Linux NVMe path
+HDD_DB_DIR = "/tmp/data_hdd"   # Linux HDD path
 STRESS_TEST_SCRIPT = "tools/cadillac_stress_test.py"
-REPORTS_DIR = Path("data/reports")
-NVME_OUTPUT_CSV = REPORTS_DIR / "cadillac_stress_test_results_NVME.csv"
-HDD_OUTPUT_CSV = REPORTS_DIR / "cadillac_stress_test_results_HDD.csv"
-TEMP_OUTPUT_CSV = REPORTS_DIR / "cadillac_stress_test_results.csv"
-REPORT_MD = REPORTS_DIR / "hardware_profiling_report.md"
-CHART_PNG = REPORTS_DIR / "hardware_latency_comparison.png"
+TEMP_REPORTS_DIR = Path("data/reports")
+FINAL_REPORTS_DIR = Path("outputs/jsons")
+NVME_OUTPUT_CSV = FINAL_REPORTS_DIR / "cadillac_stress_test_results_NVME.csv"
+HDD_OUTPUT_CSV = FINAL_REPORTS_DIR / "cadillac_stress_test_results_HDD.csv"
+TEMP_OUTPUT_CSV = TEMP_REPORTS_DIR / "cadillac_stress_test_results.csv"
+REPORT_MD = FINAL_REPORTS_DIR / "hardware_profiling_report_comparison.md"
+CHART_PNG = FINAL_REPORTS_DIR / "hardware_latency_comparison.png"
 
 # ============================================================================
 # UTILITIES
@@ -51,15 +52,18 @@ def print_step(step_num, description):
 
 
 def ensure_reports_dir():
-    """Ensure data/reports directory exists."""
-    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    print(f"✓ Reports directory ready: {REPORTS_DIR.absolute()}")
+    """Ensure output directories exist."""
+    TEMP_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    FINAL_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"✓ Temp reports directory: {TEMP_REPORTS_DIR.absolute()}")
+    print(f"✓ Final reports directory: {FINAL_REPORTS_DIR.absolute()}")
 
 
 def run_stress_test(drive_name, db_dir):
     """Run the stress test with a specific DB directory."""
     print(f"\n>>> Running stress test on {drive_name} drive...")
     print(f"    Database directory: {db_dir}")
+    print(f"    This may take 3-5 minutes...")
     
     env = os.environ.copy()
     env["DB_DIR"] = db_dir
@@ -71,7 +75,7 @@ def run_stress_test(drive_name, db_dir):
             cwd=Path.cwd(),
             capture_output=True,
             text=True,
-            timeout=600  # 10 minute timeout
+            timeout=600  # 10 minute timeout per test
         )
         
         if result.returncode == 0:
@@ -81,8 +85,10 @@ def run_stress_test(drive_name, db_dir):
         else:
             print(f"✗ {drive_name} stress test failed")
             print(f"  Return code: {result.returncode}")
-            print(f"  Stdout: {result.stdout[:500]}")
-            print(f"  Stderr: {result.stderr[:500]}")
+            if result.stdout:
+                print(f"  Last stdout: {result.stdout[-1000:]}")
+            if result.stderr:
+                print(f"  Stderr: {result.stderr[-500:]}")
             return False
             
     except subprocess.TimeoutExpired:
@@ -99,11 +105,18 @@ def copy_and_rename_output(drive_name, target_csv):
     
     if not TEMP_OUTPUT_CSV.exists():
         print(f"✗ Temp output CSV not found: {TEMP_OUTPUT_CSV}")
+        print(f"  Expected at: {TEMP_OUTPUT_CSV.absolute()}")
+        print(f"  Checking {TEMP_REPORTS_DIR}:")
+        if TEMP_REPORTS_DIR.exists():
+            import os
+            for f in os.listdir(TEMP_REPORTS_DIR):
+                print(f"    - {f}")
         return False
     
     try:
         shutil.copy(TEMP_OUTPUT_CSV, target_csv)
-        print(f"✓ Renamed: {TEMP_OUTPUT_CSV.name} → {target_csv.name}")
+        print(f"✓ Copied: {TEMP_OUTPUT_CSV.name} → {target_csv.name}")
+        print(f"  Size: {target_csv.stat().st_size / 1024:.1f} KB")
         return True
     except Exception as e:
         print(f"✗ Failed to copy output: {e}")
@@ -115,9 +128,9 @@ def load_and_analyze_results():
     print_step(6, "Loading and Analyzing Results")
     
     if not NVME_OUTPUT_CSV.exists() or not HDD_OUTPUT_CSV.exists():
-        print(f"✗ Missing output CSVs")
-        print(f"  NVME: {NVME_OUTPUT_CSV} ({'exists' if NVME_OUTPUT_CSV.exists() else 'NOT FOUND'})")
-        print(f"  HDD: {HDD_OUTPUT_CSV} ({'exists' if HDD_OUTPUT_CSV.exists() else 'NOT FOUND'})")
+        print(f"✗ Missing output CSVs in {FINAL_REPORTS_DIR}")
+        print(f"  NVME: {NVME_OUTPUT_CSV.name} ({'exists' if NVME_OUTPUT_CSV.exists() else 'NOT FOUND'})")
+        print(f"  HDD: {HDD_OUTPUT_CSV.name} ({'exists' if HDD_OUTPUT_CSV.exists() else 'NOT FOUND'})")
         return None, None
     
     try:
@@ -284,7 +297,7 @@ def generate_comparison_chart(nvme_df, hdd_df):
         
         # Create figure with subplots
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-        fig.suptitle('Hardware Latency Comparison: NVMe vs HDD", fontsize=16, fontweight='bold')
+        fig.suptitle('Hardware Latency Comparison: NVMe vs HDD', fontsize=16, fontweight='bold')
         
         # NVME chart
         nvme_session_idx = range(len(nvme_df))
