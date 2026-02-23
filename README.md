@@ -18,15 +18,15 @@ The Value Proposition: Self-healing code reduces the headcount needed for tracks
 
 ```
                          ┌──────────────────────────────────┐
-                         │        CAR RF DOWNLINK            │
+                         │        CAR RF DOWNLINK           │
                          └───────────────┬──────────────────┘
                                          │
                          ┌───────────────▼──────────────────┐
-                         │     CIRCUIT BREAKER (Schema Guard)│
+                         │    CIRCUIT BREAKER (Schema Guard)│
                          │  ┌─────────┐    ┌─────────────┐  │
-                         │  │ CLOSED  │---►│ Validator    │  │
-                         │  │ (relay) │    │ (bit-flip,   │  │
-                         │  └────┬────┘    │  drift, NaN) │  │
+                         │  │ CLOSED  │---►│ Validator   │  │
+                         │  │ (relay) │    │ (bit-flip,  │  │
+                         │  └────┬────┘    │ drift, NaN) │  │
                          │       │         └──────┬──────┘  │
                          │       │ ◄--OPEN--┐     │         │
                          │       │          │     │         │
@@ -38,24 +38,24 @@ The Value Proposition: Self-healing code reduces the headcount needed for tracks
                          └───────────────┬──────────────────┘
                                          │ clean packets
                          ┌───────────────▼──────────────────┐
-                         │   TRACKSIDE EDGE BUFFER (SQLite)  │
-                         │   Local-First • Zero Data Loss    │
+                         │  TRACKSIDE EDGE BUFFER (SQLite)  │
+                         │  Local-First • Zero Data Loss    │
                          └───────────────┬──────────────────┘
                                          │
                     ┌────────────────────▼────────────────────┐
-                    │          GEO-FENCE (GDPR / Sovereignty)  │
-                    │  EU rounds: PII scrubbed, local retain   │
-                    │  US rounds: full telemetry to War Room   │
+                    │         GEO-FENCE (GDPR / Sovereignty)  │
+                    │ EU rounds: PII scrubbed, local retain   │
+                    │ US rounds: full telemetry to War Room   │
                     └────────────────────┬────────────────────┘
                                          │
                ┌─────────────────────────▼──────────────────────┐
-               │        SEMANTIC RECONCILIATION (BERT)           │
-               │   Schema-on-Read • Autonomous Field Mapping     │
+               │       SEMANTIC RECONCILIATION (BERT)           │
+               │  Schema-on-Read • Autonomous Field Mapping     │
                └─────────────────────────┬──────────────────────┘
                                          │
                          ┌───────────────▼──────────────────┐
-                         │     GLOBAL SINK (War Room)        │
-                         │  Tamper-Evident Provenance Chain   │
+                         │    GLOBAL SINK (War Room)        │
+                         │  Tamper-Evident Provenance Chain │
                          └──────────────────────────────────┘
 ```
 
