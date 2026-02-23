@@ -434,6 +434,8 @@ def _run_demo(duration: int = 30) -> None:
             pkt_count += 1
             time.sleep(random.uniform(0.01, 0.05))
 
+    # Ensure the generator starts with the monitor in a running state.
+    monitor._running = True
     gen_thread = threading.Thread(target=_generate, daemon=True)
     gen_thread.start()
 
