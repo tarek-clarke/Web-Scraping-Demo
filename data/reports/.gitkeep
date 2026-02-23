@@ -1,0 +1,2 @@
+# This directory stores generated PDF reports
+# Reports are auto-generated when export_pdf_report=True

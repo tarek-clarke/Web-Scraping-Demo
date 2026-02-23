@@ -1,0 +1,144 @@
+# =============================================================================
+#  Cadillac F1 Telemetry Spine — Docker Compose (Production)
+# =============================================================================
+#  Developed for the 2026 Cadillac F1 Initiative.
+#  Enterprise deployment configuration per Chris Green's review.
+#
+#  Services:
+#    telemetry-spine  — Core pipeline (circuit breaker, edge buffer, geo-fence)
+#    health-monitor   — Pit Wall CLI dashboard
+#    stress-test      — Triple-header validation runner
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Core Telemetry Pipeline
+  # ---------------------------------------------------------------------------
+  telemetry-spine:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    container_name: cadillac_telemetry_spine
+    restart: unless-stopped
+
+    environment:
+      - PYTHONPATH=/app
+      - CADILLAC_ENV=production
+      - LOG_LEVEL=INFO
+      # Data sovereignty: set the deployment region
+      - DEPLOYMENT_REGION=US
+      - WAR_ROOM_SYNC_ENABLED=true
+
+    volumes:
+      # Persistent data volume — survives container restarts
+      - telemetry-data:/app/data
+      # Read-only code mount (optional, for prod use the baked-in image)
+      # - ./:/app:ro
+
+    networks:
+      - cadillac-internal
+
+    # Resource limits — budget cap discipline
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=100M
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "from modules.base_ingestor import BaseIngestor; print('OK')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+    command: ["main.py", "--adapter", "openf1", "--session", "9158", "--driver", "1"]
+
+  # ---------------------------------------------------------------------------
+  # Health Monitor (Pit Wall Dashboard)
+  # ---------------------------------------------------------------------------
+  health-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    container_name: cadillac_health_monitor
+    restart: "no"
+
+    environment:
+      - PYTHONPATH=/app
+      - TERM=xterm-256color
+
+    volumes:
+      - telemetry-data:/app/data:ro
+
+    networks:
+      - cadillac-internal
+
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+    security_opt:
+      - no-new-privileges:true
+
+    command: ["tools/health_monitor.py", "--duration", "60"]
+    depends_on:
+      telemetry-spine:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Triple-Header Stress Test
+  # ---------------------------------------------------------------------------
+  stress-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    container_name: cadillac_stress_test
+    restart: "no"
+
+    environment:
+      - PYTHONPATH=/app
+
+    volumes:
+      - telemetry-data:/app/data
+
+    networks:
+      - cadillac-internal
+
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+
+    security_opt:
+      - no-new-privileges:true
+
+    command: ["tools/cadillac_stress_test.py", "--packets", "2000", "--chaos", "0.15"]
+
+# =============================================================================
+# Shared Infrastructure
+# =============================================================================
+volumes:
+  telemetry-data:
+    driver: local
+    labels:
+      com.cadillacf1.purpose: "telemetry-persistence"
+
+networks:
+  cadillac-internal:
+    driver: bridge
+    labels:
+      com.cadillacf1.purpose: "internal-pipeline-network"
