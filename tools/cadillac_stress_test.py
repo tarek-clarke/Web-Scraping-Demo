@@ -64,6 +64,7 @@ from src.local_persistence import TracksideEdgeBuffer, BufferedPacket  # noqa: E
 from src.geo_fence import GeoFence  # noqa: E402
 from src.audit_log import ComplianceAuditLog  # noqa: E402
 from src.middleware.tracing import RequestContext  # noqa: E402
+from src.slo import SLOTracker  # noqa: E402
 
 
 console = Console()
@@ -334,6 +335,7 @@ class CadillacStressTest:
 
         self._finalise_report()
         self._print_report()
+        self._evaluate_slos()
         self._export_results()
 
         # Cleanup (audit closed last to allow post-run queries)
@@ -458,23 +460,69 @@ class CadillacStressTest:
         return result
 
     # -----------------------------------------------------------------
+    # Schema-drift recovery: strip known firmware-version suffixes
+    # so packets with a drifted sensor name can be re-validated against
+    # the canonical sensor definition.
+    _SCHEMA_DRIFT_SUFFIXES = (
+        "_v2", "_v3", "_new", "_alt", "_canbus", "_raw", "_temp",
+    )
+
+    def _normalize_sensor(self, sensor: str) -> str:
+        """Strip known schema-drift suffixes to recover the canonical name."""
+        for suffix in self._SCHEMA_DRIFT_SUFFIXES:
+            if sensor.endswith(suffix):
+                return sensor[: -len(suffix)]
+        return sensor
+
+    # -----------------------------------------------------------------
     def _finalise_report(self) -> None:
-        # Run DLQ reprocessing pass with per-packet repair timing
+        # Run DLQ reprocessing pass with per-packet repair timing.
+        # Strategy:
+        #   1. Try direct re-validation (unchanged data may now be valid
+        #      if validator ranges were updated).
+        #   2. For schema_drift failures, normalize the sensor name and retry.
         candidates = self.breaker.dlq.fetch_reprocessable(limit=200)
         repaired = 0
         still_bad = 0
         max_retries = 0
 
         for rec in candidates:
+            raw_sensor = rec["sensor"] or ""
+            raw_value = (
+                json.loads(rec["value"])
+                if isinstance(rec["value"], str)
+                else rec["value"]
+            )
+            raw_meta = (
+                json.loads(rec["metadata"])
+                if isinstance(rec["metadata"], str)
+                else (rec["metadata"] or {})
+            )
+
+            # --- Pass 1: direct re-validation ---
             pkt = TelemetryPacket(
                 packet_id=rec["packet_id"],
                 timestamp=rec["timestamp"],
-                sensor=rec["sensor"] or "",
-                value=json.loads(rec["value"]) if isinstance(rec["value"], str) else rec["value"],
-                metadata=json.loads(rec["metadata"]) if isinstance(rec["metadata"], str) else (rec["metadata"] or {}),
+                sensor=raw_sensor,
+                value=raw_value,
+                metadata=raw_meta,
             )
             t0 = time.monotonic()
             is_valid, reason = self.breaker.validator.validate_packet(pkt)
+
+            # --- Pass 2: schema-drift normalization ---
+            if not is_valid and "schema_drift" in rec.get("reason", ""):
+                normalized = self._normalize_sensor(raw_sensor)
+                if normalized != raw_sensor:
+                    pkt_norm = TelemetryPacket(
+                        packet_id=rec["packet_id"],
+                        timestamp=rec["timestamp"],
+                        sensor=normalized,
+                        value=raw_value,
+                        metadata=raw_meta,
+                    )
+                    is_valid, reason = self.breaker.validator.validate_packet(pkt_norm)
+
             repair_ms = (time.monotonic() - t0) * 1000
 
             if is_valid:
@@ -762,6 +810,37 @@ class CadillacStressTest:
                 title="[bold bright_white on blue]  RESILIENCE TIMING ASSESSMENT  [/bold bright_white on blue]",
                 border_style="bright_cyan",
             ))
+
+    # -----------------------------------------------------------------
+    def _evaluate_slos(self) -> None:
+        """Evaluate all SLO budgets and print a compliance report."""
+        report = self.report
+
+        # Detection rate: fraction of injected chaos packets that were rejected
+        if report.total_chaos > 0:
+            detection_rate = min(1.0, report.total_rejected / report.total_chaos)
+        else:
+            detection_rate = 1.0
+
+        # Audit chain integrity
+        try:
+            audit_intact = self.audit.verify_chain()
+        except Exception:
+            audit_intact = False
+
+        total_sessions = len(report.sessions)
+
+        tracker = SLOTracker()
+        slo_report = tracker.evaluate(
+            latency_p95_ms=report.overall_latency_p95,
+            acceptance_rate=report.overall_acceptance_rate,
+            dlq_depth=report.total_dlq,
+            audit_intact=audit_intact,
+            detection_rate=detection_rate,
+            breaker_trips=report.total_breaker_trips,
+            num_sessions=total_sessions,
+        )
+        tracker.print_report(slo_report)
 
     # -----------------------------------------------------------------
     def _export_results(self) -> None:

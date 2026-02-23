@@ -33,7 +33,7 @@ MESSY_TAGS = [
 def create_telemetry_table(df, title):
     """Creates the main data table."""
     table = Table(title=f"📡 {title}", expand=True)
-    
+
     # Column name mapping (in case semantic layer didn't catch everything)
     clean_names = {
         # F1 Headers
@@ -51,17 +51,17 @@ def create_telemetry_table(df, title):
         'bp_dia_cuff': 'Diastolic BP (mmHg)',
         'breaths_pm_vent': 'Resp Rate (/min)'
     }
-    
+
     for col in df.columns:
         # Use clean name if available, otherwise use original
         display_name = clean_names.get(col, col)
-        
+
         # Highlight originally-messy columns in CYAN to show what the AI fixed
         if col in MESSY_TAGS:
             table.add_column(display_name, justify="right", style="cyan")
         else:
             table.add_column(display_name, justify="right")
-    
+
     # Show all 20 drivers (full grid)
     for row in df.tail(20).iter_rows(named=True):
         table.add_row(*[str(x) for x in row.values()])
@@ -77,19 +77,19 @@ def create_resilience_panel(ingestor):
     if hasattr(ingestor, 'last_resolutions') and ingestor.last_resolutions:
         for res in ingestor.last_resolutions:
             table.add_row(
-                str(res['raw_field']), 
-                str(res['target_field']), 
+                str(res['raw_field']),
+                str(res['target_field']),
                 str(res['confidence'])
             )
     else:
         table.add_row("Scanning for drift...", "-", "-")
-    
+
     return Panel(table, title="Autonomous Repair", expand=False)
 
 def create_high_freq_telemetry_table(telemetry_data):
     """Creates table for high-frequency F1 telemetry logger."""
     table = Table(title="🏎️ High-Frequency Telemetry (50Hz IMU + GPS)", expand=True)
-    
+
     # IMU columns
     table.add_column("Sample", justify="right", style="dim")
     table.add_column("Time (s)", justify="right")
@@ -98,19 +98,19 @@ def create_high_freq_telemetry_table(telemetry_data):
     table.add_column("G-Vert", justify="right", style="yellow")
     table.add_column("Speed (kph)", justify="right", style="cyan")
     table.add_column("Heading", justify="right", style="cyan")
-    
+
     # Show last 12 samples
     for sample in telemetry_data[-12:]:
         imu = sample['imu']
         gps = sample['gps']
-        
+
         # Extract values handling chaos-injected field names
         gx = imu.get('gx') or imu.get('g_force_lateral', 0.0)
         gy = imu.get('gy') or imu.get('g_force_longitudinal', 0.0)
         gz = imu.get('gz') or imu.get('g_force_vertical', 0.0)
         speed = gps.get('speed', 0.0)
         heading = gps.get('heading', 0.0)
-        
+
         table.add_row(
             f"{sample['sample_id']:05d}",
             f"{sample['elapsed_time_s']:.2f}",
@@ -120,7 +120,7 @@ def create_high_freq_telemetry_table(telemetry_data):
             f"{speed:.0f}",
             f"{heading:.0f}°"
         )
-    
+
     return table
 
 def create_chaos_panel(logger):
@@ -128,38 +128,38 @@ def create_chaos_panel(logger):
     table = Table(title="⚡ Chaos Engineering Panel", border_style="red", expand=True)
     table.add_column("Metric", style="white")
     table.add_column("Value", justify="right", style="magenta")
-    
+
     chaos_status = "🔴 ACTIVE" if logger.chaos_active else "🟢 NORMAL"
     table.add_row("Chaos State", chaos_status)
     table.add_row("Schema Drift Events", str(len(logger.drift_events)))
     table.add_row("Auto-Repairs", str(logger.auto_repairs))
     table.add_row("Learned Mappings", str(len(logger.schema_map)))
-    
+
     # Show recent mappings
     if logger.schema_map:
         table.add_row("", "")  # Spacer
         table.add_row("[bold]Recent Mappings:[/bold]", "")
         for messy, gold in list(logger.schema_map.items())[-3:]:
             table.add_row(f"  '{messy}'", f"→ '{gold}'")
-    
+
     return Panel(table, title="🛡️ Self-Healing System", expand=False)
 
 def run_tui():
     console.clear()
     console.rule("[bold blue]Resilient RAP Framework[/bold blue]")
-    
+
     # --- SELECT MODE ---
     console.print("\n[bold]Available Simulation Modes:[/bold]")
     console.print("  [1] F1 Sports Telemetry (Static Chaos)")
     console.print("  [2] ICU Clinical Monitor (FHIR/HL7)")
     console.print("  [3] F1 High-Frequency Logger (Dynamic Chaos + Self-Healing) [bold green]← NEW![/bold green]")
-    
+
     mode = Prompt.ask(
-        "\nSelect Mode", 
-        choices=["1", "2", "3"], 
+        "\nSelect Mode",
+        choices=["1", "2", "3"],
         default="3"
     )
-    
+
     if mode == "1":
         ingestor = SportsIngestor(source_name="F1_Session_Live")
         title = "Live F1 Telemetry Stream"
@@ -182,35 +182,35 @@ def run_tui():
         )
         use_high_freq_logger = True
         telemetry_buffer = []
-    
+
     time.sleep(1)
 
     # --- LAYOUT ---
     layout = Layout()
     layout.split_column(
-        Layout(name="telemetry"), 
-        Layout(name="resilience", size=14) 
+        Layout(name="telemetry"),
+        Layout(name="resilience", size=14)
     )
 
     with Live(layout, refresh_per_second=4, screen=True) as live:
         if use_high_freq_logger:
             # High-frequency logger mode
             telemetry_stream = logger.generate_telemetry_stream()
-            
+
             while True:
                 try:
                     # Get next telemetry packet
                     packet = next(telemetry_stream)
                     telemetry_buffer.append(packet)
-                    
+
                     # Keep only last 100 samples
                     if len(telemetry_buffer) > 100:
                         telemetry_buffer.pop(0)
-                    
+
                     # Update TUI
                     layout["telemetry"].update(create_high_freq_telemetry_table(telemetry_buffer))
                     layout["resilience"].update(create_chaos_panel(logger))
-                    
+
                 except StopIteration:
                     console.print("[yellow]Telemetry stream ended[/yellow]")
                     break
@@ -225,18 +225,19 @@ def run_tui():
                 try:
                     # Run the pipeline
                     df = ingestor.run()
-                    
+
                     # Update TUI
                     layout["telemetry"].update(create_telemetry_table(df, title))
                     layout["resilience"].update(create_resilience_panel(ingestor))
-                    
+
                     time.sleep(0.8)
-                    
+
                 except KeyboardInterrupt:
                     break
                 except Exception as e:
                     console.print(f"[red]Pipeline Error: {e}[/red]")
                     break
+
 
 if __name__ == "__main__":
     run_tui()
