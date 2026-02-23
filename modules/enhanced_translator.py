@@ -210,7 +210,7 @@ class EnhancedSemanticTranslator(SemanticTranslator):
             "feedback_records": len(self.feedback_manager)
         }
     
-    def export_learned_mappings(self, output_path: str = "data/learned_mappings.json") -> str:
+    def export_learned_mappings(self, output_path: str = "outputs/jsons/f1_learned_mappings.json") -> str:
         """
         Export current learned mappings for backup or analysis.
         

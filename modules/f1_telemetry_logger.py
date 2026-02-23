@@ -559,7 +559,7 @@ if __name__ == "__main__":
     )
     
     # Setup output
-    output_path = Path(args.output) if args.output else None
+    output_path = Path(args.output) if args.output else Path("outputs/jsons/f1_telemetry_log.jsonl")
     callback_fn = None if args.silent else print_telemetry
     
     # Run telemetry stream
