@@ -12,7 +12,7 @@ supports measurement of operator fatigue and model improvement dynamics.
 
 from __future__ import annotations
 
-from typing import Iterable, List
+from typing import Iterable
 import numpy as np
 
 

@@ -38,7 +38,7 @@ import logging
 import sqlite3
 import threading
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -108,8 +108,9 @@ class ComplianceAuditLog:
         self._conn.executescript(self.DDL)
         self._lock = threading.Lock()
         self._last_hash = self._load_last_hash()
-        logger.info("ComplianceAuditLog online | db=%s | chain_tip=%s…",
-                     self.db_path, self._last_hash[:12])
+        logger.info(
+            "ComplianceAuditLog online | db=%s | chain_tip=%s…",
+            self.db_path, self._last_hash[:12])
 
     # -----------------------------------------------------------------
     # Core API

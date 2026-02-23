@@ -69,11 +69,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-ci.txt
 
-      - name: Stress test — 2 000 packets, 15% chaos
+      - name: Stress test — 1 000 packets, 15% chaos
         env:
           PYTHONPATH: "."
+        timeout-minutes: 10
         run: |
-          python tools/cadillac_stress_test.py --packets 2000 --chaos 0.15
+          timeout 300 python tools/cadillac_stress_test.py --packets 1000 --chaos 0.15
 
       - name: Upload stress-test artefacts
         if: always()

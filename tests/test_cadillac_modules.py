@@ -5,17 +5,14 @@ Tests for Cadillac F1 Production Modules
 Validates: Circuit-Breaker, Edge Buffer, Geo-Fence, and Health Monitor.
 """
 
-import os
 import sys
-import json
 import time
-import tempfile
 import pytest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.circuit_breaker import (
+from src.circuit_breaker import (  # noqa: E402
     TelemetryCircuitBreaker,
     TelemetryPacket,
     SchemaValidator,
@@ -23,18 +20,16 @@ from src.circuit_breaker import (
     CircuitState,
     DLQRecord,
 )
-from src.local_persistence import (
+from src.local_persistence import (  # noqa: E402
     TracksideEdgeBuffer,
     BufferedPacket,
-    SyncStatus,
 )
-from src.geo_fence import (
+from src.geo_fence import (  # noqa: E402
     GeoFence,
-    Jurisdiction,
     CIRCUIT_JURISDICTION,
 )
-from src.audit_log import ComplianceAuditLog, GENESIS_HASH
-from src.middleware.tracing import RequestContext
+from src.audit_log import ComplianceAuditLog, GENESIS_HASH  # noqa: E402
+from src.middleware.tracing import RequestContext  # noqa: E402
 
 
 # ===================================================================
@@ -621,6 +616,7 @@ class TestDLQReprocessing:
 class TestExactlyOnceDrain:
     def test_drain_returns_batch_id(self, tmp_path):
         synced = []
+
         def mock_sync(payloads):
             synced.extend(payloads)
             return True
@@ -670,6 +666,7 @@ class TestExactlyOnceDrain:
 
     def test_drain_history(self, tmp_path):
         synced = []
+
         def mock_sync(payloads):
             synced.extend(payloads)
             return True
@@ -689,6 +686,7 @@ class TestExactlyOnceDrain:
 
     def test_batch_payload_includes_batch_id(self, tmp_path):
         received = []
+
         def capture_sync(payloads):
             received.extend(payloads)
             return True

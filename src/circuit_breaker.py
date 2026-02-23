@@ -35,8 +35,8 @@ import sqlite3
 import threading
 import time
 import uuid
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timedelta
+from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -120,7 +120,7 @@ class SchemaValidator:
         "aero_load":           (-500.0, 3000.0),    # N
         "heart_rate":          (30.0, 250.0),       # bpm (driver biometrics)
         "g_force_lateral":     (-8.0, 8.0),         # G
-        "g_force_longitudinal":(-8.0, 8.0),
+        "g_force_longitudinal": (-8.0, 8.0),
         "g_force_vertical":    (-5.0, 5.0),
     }
 
@@ -355,7 +355,6 @@ class TelemetryCircuitBreaker:
 
     @property
     def metrics(self) -> CircuitBreakerMetrics:
-        elapsed = max(time.time() - self._start_time, 1)
         total = self._total_passed + self._total_rejected
         uptime = self._total_passed / total if total > 0 else 1.0
         return CircuitBreakerMetrics(

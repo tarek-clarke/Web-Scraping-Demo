@@ -29,10 +29,10 @@ import hashlib
 import json
 import logging
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from src.audit_log import ComplianceAuditLog
 
@@ -193,8 +193,9 @@ class GeoFence:
         self.circuits = {**CIRCUIT_JURISDICTION, **(custom_circuits or {})}
         self._processing_log: List[GeoFenceResult] = []
         self.audit = audit_log
-        logger.info("GeoFence initialised | %d circuits mapped | audit=%s",
-                     len(self.circuits), "ON" if self.audit else "OFF")
+        logger.info(
+            "GeoFence initialised | %d circuits mapped | audit=%s",
+            len(self.circuits), "ON" if self.audit else "OFF")
 
     # -----------------------------------------------------------------
     # Core Processing
