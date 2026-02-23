@@ -16,6 +16,49 @@ The Value Proposition: Self-healing code reduces the headcount needed for tracks
 
 ## Architecture
 
+```mermaid
+flowchart TD
+    RF["🏎️ Car RF Downlink<br/><i>50 Hz telemetry</i>"]
+
+    subgraph CB["Circuit Breaker  (src/circuit_breaker.py)"]
+        direction TB
+        CLOSED["CLOSED<br/><i>relay clean packets</i>"]
+        VALIDATOR["Schema Validator<br/><i>bit-flip · drift · NaN</i>"]
+        OPEN["OPEN<br/><i>block &amp; quarantine</i>"]
+        HALF["HALF_OPEN<br/><i>single probe</i>"]
+        DLQ[("DLQ<br/>SQLite")]
+        CLOSED --> VALIDATOR
+        VALIDATOR -- "failures ≥ threshold" --> OPEN
+        OPEN -- "cooldown elapsed" --> HALF
+        HALF -- "probe passes" --> CLOSED
+        VALIDATOR -- "bad packet" --> DLQ
+    end
+
+    EDGE[("Trackside Edge Buffer<br/>SQLite WAL<br/><i>zero data loss</i><br/>(src/local_persistence.py)")]
+    DRAIN["Background Drain<br/><i>exactly-once batch</i>"]
+
+    subgraph GEO["Geo-Fence  (src/geo_fence.py)"]
+        direction LR
+        EU["🇪🇺 EU Rounds<br/><i>PII scrubbed · local retain</i>"]
+        US["🇺🇸 US Rounds<br/><i>full telemetry</i>"]
+    end
+
+    BERT["Semantic Reconciliation<br/><i>BERT cosine similarity</i><br/>(modules/translator.py)"]
+    AUDIT[("Audit Log<br/>SHA-256 hash chain<br/>(src/audit_log.py)")]
+    SINK["🖥️ Global Sink — War Room<br/><i>tamper-evident provenance</i>"]
+
+    RF --> CB
+    CB -- "clean packets" --> EDGE
+    EDGE --> DRAIN
+    DRAIN --> GEO
+    GEO --> BERT
+    BERT --> AUDIT
+    AUDIT --> SINK
+```
+
+<details>
+<summary>ASCII fallback (for terminals)</summary>
+
 ```
                          ┌──────────────────────────────────┐
                          │        CAR RF DOWNLINK           │
@@ -58,6 +101,7 @@ The Value Proposition: Self-healing code reduces the headcount needed for tracks
                          │  Tamper-Evident Provenance Chain │
                          └──────────────────────────────────┘
 ```
+</details>
 
 ## Key Capabilities
 
@@ -182,10 +226,12 @@ PYTHONPATH="." python tools/demo_pdf_report.py
 
 ```
 resilient-rap-framework/
+├── .github/workflows/ci.yml        # CI — Tests, Stress, Docker
 ├── src/
 │   ├── circuit_breaker.py           # Circuit-Breaker + DLQ
 │   ├── local_persistence.py         # Trackside Edge Buffer
-│   ├── geo_fence.py                 #  Data Sovereignty / Geo-Fence
+│   ├── geo_fence.py                 # Data Sovereignty / Geo-Fence
+│   ├── audit_log.py                 # SHA-256 Hash-Chain Audit
 │   ├── provenance.py                # Tamper-Evident Logger
 │   └── analytics/
 ├── modules/
@@ -202,6 +248,7 @@ resilient-rap-framework/
 │   ├── health_monitor.py            # Pit Wall CLI Dashboard
 │   ├── demo_openf1.py               # F1 telemetry demo
 │   └── ...
+├── docs/adr/                        # Architecture Decision Records
 ├── tests/                           # Automated test suite
 ├── data/reports/                    # Generated reports & CSVs
 ├── Dockerfile.production            # Enterprise-hardened image
@@ -219,6 +266,16 @@ replace manual trackside IT triage with autonomous, self-healing code:
 - Sensor corruption? The circuit breaker isolates it to the DLQ.
 - Connectivity drop? The edge buffer holds everything.
 - EU data laws? The geo-fence scrubs and retains.
+
+## Architecture Decision Records
+
+Key design decisions are documented in [`docs/adr/`](docs/adr/):
+
+| ADR | Decision | Rationale |
+|-----|----------|-----------|
+| [001](docs/adr/001-sqlite-wal-over-redis.md) | SQLite WAL over Redis for edge buffer | Zero-dependency trackside deployment; crash-safe WAL; portable post-race archive |
+| [002](docs/adr/002-circuit-breaker-over-retry-loop.md) | Circuit breaker over retry loop | Sub-second latency under corruption bursts; self-healing HALF_OPEN probe |
+| [003](docs/adr/003-hash-chain-audit-over-append-only-log.md) | SHA-256 hash chain over append-only log | Cryptographic tamper evidence for FIA audits; SQL-queryable forensics |
 
 ## Testing
 
