@@ -87,6 +87,8 @@ flowchart TD
                                          │
                     ┌────────────────────▼────────────────────┐
                     │         GEO-FENCE (GDPR / Sovereignty)  │
+                    |                                         |
+                    |                                         |
                     │ EU rounds: PII scrubbed, local retain   │
                     │ US rounds: full telemetry to War Room   │
                     └────────────────────┬────────────────────┘
