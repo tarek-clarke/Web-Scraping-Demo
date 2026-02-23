@@ -64,6 +64,7 @@ class TelemetryPacket:
     sensor: str = ""
     value: Any = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+    request_id: str = ""  # Correlation ID for end-to-end tracing
 
 
 @dataclass
@@ -250,6 +251,32 @@ class DeadLetterQueue:
             )
             self._conn.commit()
 
+    def fetch_reprocessable(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        Fetch DLQ records eligible for reprocessing.
+
+        Returns packets that have NOT yet been reprocessed and whose
+        retry_count is below the max (default 3).
+        """
+        cur = self._conn.execute(
+            "SELECT id, packet_id, timestamp, sensor, value, metadata, reason, "
+            "retry_count FROM dead_letters "
+            "WHERE reprocessed = 0 AND retry_count < 3 "
+            "ORDER BY id LIMIT ?",
+            (limit,),
+        )
+        cols = [d[0] for d in cur.description]
+        return [dict(zip(cols, row)) for row in cur.fetchall()]
+
+    def increment_retry(self, packet_id: str) -> None:
+        """Bump the retry count for a DLQ record."""
+        with self._lock:
+            self._conn.execute(
+                "UPDATE dead_letters SET retry_count = retry_count + 1 WHERE packet_id = ?",
+                (packet_id,),
+            )
+            self._conn.commit()
+
     def close(self) -> None:
         self._conn.close()
 
@@ -396,6 +423,63 @@ class TelemetryCircuitBreaker:
             self._half_open_successes = 0
             self._record_state_change(old, CircuitState.CLOSED)
         logger.info("CircuitBreaker manually RESET → CLOSED")
+
+    def reprocess_dlq(self, limit: int = 50) -> Dict[str, int]:
+        """
+        Re-validate quarantined packets from the Dead Letter Queue.
+
+        Packets whose sensor data now falls within acceptable ranges (e.g.
+        after a validator range update or a firmware correction) are
+        re-admitted to the pipeline.  Packets that still fail validation
+        have their retry_count incremented.
+
+        Parameters
+        ----------
+        limit : int
+            Maximum number of DLQ records to attempt in one pass.
+
+        Returns
+        -------
+        dict with keys ``recovered``, ``still_invalid``, ``max_retries``.
+        """
+        candidates = self.dlq.fetch_reprocessable(limit=limit)
+        recovered = 0
+        still_invalid = 0
+        max_retries = 0
+
+        for rec in candidates:
+            packet = TelemetryPacket(
+                packet_id=rec["packet_id"],
+                timestamp=rec["timestamp"],
+                sensor=rec["sensor"] or "",
+                value=json.loads(rec["value"]) if isinstance(rec["value"], str) else rec["value"],
+                metadata=json.loads(rec["metadata"]) if isinstance(rec["metadata"], str) else (rec["metadata"] or {}),
+            )
+
+            is_valid, reason = self.validator.validate_packet(packet)
+
+            if is_valid:
+                self.dlq.mark_reprocessed(rec["packet_id"])
+                self._total_passed += 1
+                recovered += 1
+                logger.info("DLQ packet %s recovered via reprocessing", rec["packet_id"])
+            else:
+                self.dlq.increment_retry(rec["packet_id"])
+                retry_count = rec.get("retry_count", 0) + 1
+                if retry_count >= 3:
+                    max_retries += 1
+                else:
+                    still_invalid += 1
+
+        logger.info(
+            "DLQ reprocessing complete: recovered=%d still_invalid=%d max_retries=%d",
+            recovered, still_invalid, max_retries,
+        )
+        return {
+            "recovered": recovered,
+            "still_invalid": still_invalid,
+            "max_retries": max_retries,
+        }
 
     # ------------------------------------------------------------------
     # Internal state machine

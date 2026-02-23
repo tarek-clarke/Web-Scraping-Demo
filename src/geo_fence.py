@@ -28,10 +28,13 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import uuid
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
+
+from src.audit_log import ComplianceAuditLog
 
 logger = logging.getLogger(__name__)
 
@@ -184,11 +187,14 @@ class GeoFence:
         self,
         custom_policies: Optional[Dict[Jurisdiction, JurisdictionPolicy]] = None,
         custom_circuits: Optional[Dict[str, Jurisdiction]] = None,
+        audit_log: Optional[ComplianceAuditLog] = None,
     ):
         self.policies = {**POLICIES, **(custom_policies or {})}
         self.circuits = {**CIRCUIT_JURISDICTION, **(custom_circuits or {})}
         self._processing_log: List[GeoFenceResult] = []
-        logger.info("GeoFence initialised | %d circuits mapped", len(self.circuits))
+        self.audit = audit_log
+        logger.info("GeoFence initialised | %d circuits mapped | audit=%s",
+                     len(self.circuits), "ON" if self.audit else "OFF")
 
     # -----------------------------------------------------------------
     # Core Processing
@@ -206,6 +212,7 @@ class GeoFence:
         circuit: str,
         payload: Dict[str, Any],
         session_id: str = "",
+        request_id: str = "",
     ) -> GeoFenceResult:
         """
         Process a telemetry payload through the jurisdiction fence.
@@ -218,11 +225,16 @@ class GeoFence:
             Raw telemetry key-value pairs.
         session_id : str
             Optional session identifier for traceability.
+        request_id : str
+            Correlation ID for end-to-end packet tracing.
 
         Returns
         -------
         GeoFenceResult with separate local and sync payloads.
         """
+        if not request_id:
+            request_id = uuid.uuid4().hex[:12]
+
         jurisdiction = self.resolve_jurisdiction(circuit)
         policy = self.policies.get(jurisdiction, self.policies[Jurisdiction.US])
 
@@ -239,6 +251,15 @@ class GeoFence:
                 if key.lower() in PII_FIELDS:
                     sync_payload[key] = "[REDACTED]"
                     fields_scrubbed.append(key)
+            if fields_scrubbed and self.audit:
+                self.audit.record(
+                    action="PII_SCRUBBED",
+                    circuit=circuit,
+                    jurisdiction=jurisdiction.value,
+                    session_id=session_id,
+                    request_id=request_id,
+                    details={"fields": fields_scrubbed, "policy": "scrub_pii"},
+                )
 
         # --- Biometric Anonymisation ---------------------------------
         if policy.anonymise_biometrics:
@@ -247,15 +268,56 @@ class GeoFence:
                     raw = str(sync_payload[key])
                     sync_payload[key] = self._anonymise(raw)
                     fields_anonymised.append(key)
+            if fields_anonymised and self.audit:
+                self.audit.record(
+                    action="BIOMETRIC_ANONYMISED",
+                    circuit=circuit,
+                    jurisdiction=jurisdiction.value,
+                    session_id=session_id,
+                    request_id=request_id,
+                    details={"fields": fields_anonymised, "policy": "anonymise_biometrics"},
+                )
 
         # --- Metadata-only sync (strip raw telemetry values) ---------
         if policy.metadata_only_sync:
             sync_payload = self._extract_metadata(sync_payload, session_id, circuit)
+            if self.audit:
+                self.audit.record(
+                    action="METADATA_ONLY_SYNC",
+                    circuit=circuit,
+                    jurisdiction=jurisdiction.value,
+                    session_id=session_id,
+                    request_id=request_id,
+                    details={"policy": "metadata_only_sync", "field_count": len(payload)},
+                )
 
         # --- Export-control marker ------------------------------------
         if policy.export_control_marker:
             sync_payload["_export_control"] = True
             sync_payload["_jurisdiction"] = jurisdiction.value
+            if self.audit:
+                self.audit.record(
+                    action="EXPORT_CONTROL_APPLIED",
+                    circuit=circuit,
+                    jurisdiction=jurisdiction.value,
+                    session_id=session_id,
+                    request_id=request_id,
+                    details={"policy": "export_control_marker"},
+                )
+
+        # --- Local retention audit -----------------------------------
+        if policy.local_retention_required and self.audit:
+            self.audit.record(
+                action="LOCAL_RETENTION",
+                circuit=circuit,
+                jurisdiction=jurisdiction.value,
+                session_id=session_id,
+                request_id=request_id,
+                details={
+                    "retention_days": policy.retention_days,
+                    "encryption_at_rest": policy.encryption_at_rest,
+                },
+            )
 
         # --- Compliance hash (proves this was processed) -------------
         compliance_hash = self._compute_compliance_hash(

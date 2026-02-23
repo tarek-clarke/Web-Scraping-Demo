@@ -107,10 +107,20 @@ class TracksideEdgeBuffer:
         metadata    TEXT,
         sync_status TEXT    DEFAULT 'PENDING',
         created_at  TEXT    DEFAULT (datetime('now')),
-        synced_at   TEXT
+        synced_at   TEXT,
+        drain_batch_id TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_buf_sync ON telemetry_buffer(sync_status);
     CREATE INDEX IF NOT EXISTS idx_buf_session ON telemetry_buffer(session_id);
+    CREATE INDEX IF NOT EXISTS idx_buf_drain ON telemetry_buffer(drain_batch_id);
+
+    CREATE TABLE IF NOT EXISTS drain_batches (
+        batch_id    TEXT    PRIMARY KEY,
+        created_at  TEXT    NOT NULL,
+        packet_count INTEGER NOT NULL,
+        status      TEXT    DEFAULT 'DRAINING',
+        acked_at    TEXT
+    );
     """
 
     def __init__(
@@ -198,27 +208,52 @@ class TracksideEdgeBuffer:
     # -----------------------------------------------------------------
     # Sync / Drain Path — best-effort cloud push
     # -----------------------------------------------------------------
-    def drain_pending(self) -> Dict[str, int]:
+    def drain_pending(self) -> Dict[str, Any]:
         """
-        Attempt to sync pending packets to the global sink.
+        Attempt to sync pending packets to the global sink with exactly-once
+        semantics.
 
-        Returns summary: ``{"synced": n, "failed": m}``.
+        Each drain cycle is assigned a unique ``batch_id``.  Packets are
+        marked as DRAINING *before* the sync callback fires.  The batch is
+        only promoted to SYNCED after the cloud sink ACKs.  On failure the
+        batch is rolled back to PENDING so it can be retried.
+
+        Returns summary: ``{"synced": n, "failed": m, "batch_id": ...}``.
         """
         if not self.sync_callback:
             return {"synced": 0, "failed": 0, "reason": "no_sync_callback"}
 
-        cur = self._conn.execute(
-            "SELECT id, packet_id, session_id, timestamp, sensor, value, metadata "
-            "FROM telemetry_buffer WHERE sync_status = 'PENDING' "
-            "ORDER BY id LIMIT ?",
-            (self.batch_size,),
-        )
-        rows = cur.fetchall()
-        if not rows:
-            return {"synced": 0, "failed": 0}
+        batch_id = uuid.uuid4().hex[:16]
+        now = datetime.utcnow().isoformat()
 
+        # Phase 1 — claim a batch of PENDING rows
+        with self._lock:
+            cur = self._conn.execute(
+                "SELECT id, packet_id, session_id, timestamp, sensor, value, metadata "
+                "FROM telemetry_buffer WHERE sync_status = 'PENDING' "
+                "ORDER BY id LIMIT ?",
+                (self.batch_size,),
+            )
+            rows = cur.fetchall()
+            if not rows:
+                return {"synced": 0, "failed": 0, "batch_id": batch_id}
+
+            row_ids = [r[0] for r in rows]
+
+            # Mark as DRAINING + tag with batch_id (atomically)
+            self._conn.executemany(
+                "UPDATE telemetry_buffer SET sync_status = 'DRAINING', drain_batch_id = ? WHERE id = ?",
+                [(batch_id, rid) for rid in row_ids],
+            )
+            self._conn.execute(
+                "INSERT INTO drain_batches (batch_id, created_at, packet_count, status) "
+                "VALUES (?, ?, ?, 'DRAINING')",
+                (batch_id, now, len(row_ids)),
+            )
+            self._conn.commit()
+
+        # Phase 2 — call the sync callback (outside lock to avoid blocking writes)
         payloads = []
-        row_ids = []
         for row in rows:
             payloads.append({
                 "packet_id": row[1],
@@ -227,8 +262,8 @@ class TracksideEdgeBuffer:
                 "sensor": row[4],
                 "value": json.loads(row[5]) if row[5] else None,
                 "metadata": json.loads(row[6]) if row[6] else {},
+                "_batch_id": batch_id,
             })
-            row_ids.append(row[0])
 
         try:
             success = self.sync_callback(payloads)
@@ -236,23 +271,40 @@ class TracksideEdgeBuffer:
             logger.warning("Sync callback raised: %s", exc)
             success = False
 
-        now = datetime.utcnow().isoformat()
-        new_status = SyncStatus.SYNCED.value if success else SyncStatus.FAILED.value
+        # Phase 3 — finalise the batch
+        ack_time = datetime.utcnow().isoformat()
 
         with self._lock:
-            self._conn.executemany(
-                "UPDATE telemetry_buffer SET sync_status = ?, synced_at = ? WHERE id = ?",
-                [(new_status, now if success else None, rid) for rid in row_ids],
-            )
+            if success:
+                new_status = SyncStatus.SYNCED.value
+                self._conn.executemany(
+                    "UPDATE telemetry_buffer SET sync_status = ?, synced_at = ? WHERE id = ?",
+                    [(new_status, ack_time, rid) for rid in row_ids],
+                )
+                self._conn.execute(
+                    "UPDATE drain_batches SET status = 'ACKED', acked_at = ? WHERE batch_id = ?",
+                    (ack_time, batch_id),
+                )
+            else:
+                # Roll back to PENDING so the next drain cycle retries
+                self._conn.executemany(
+                    "UPDATE telemetry_buffer SET sync_status = 'PENDING', drain_batch_id = NULL WHERE id = ?",
+                    [(rid,) for rid in row_ids],
+                )
+                self._conn.execute(
+                    "UPDATE drain_batches SET status = 'FAILED' WHERE batch_id = ?",
+                    (batch_id,),
+                )
             self._conn.commit()
 
         self._connectivity = success
         if success:
-            self._last_sync_time = now
+            self._last_sync_time = ack_time
 
         return {
             "synced": len(row_ids) if success else 0,
             "failed": 0 if success else len(row_ids),
+            "batch_id": batch_id,
         }
 
     def start_background_drain(self, interval: float = 5.0) -> None:
@@ -277,6 +329,40 @@ class TracksideEdgeBuffer:
         self._drain_active = False
         if self._drain_thread and self._drain_thread.is_alive():
             self._drain_thread.join(timeout=10)
+
+    def recover_incomplete_batches(self) -> int:
+        """
+        On startup, recover any batches left in DRAINING state (crash recovery).
+
+        Rolls them back to PENDING so they will be retried on the next drain cycle.
+        Returns the number of packets recovered.
+        """
+        with self._lock:
+            cur = self._conn.execute(
+                "SELECT COUNT(*) FROM telemetry_buffer WHERE sync_status = 'DRAINING'"
+            )
+            stuck = cur.fetchone()[0]
+            if stuck > 0:
+                self._conn.execute(
+                    "UPDATE telemetry_buffer SET sync_status = 'PENDING', drain_batch_id = NULL "
+                    "WHERE sync_status = 'DRAINING'"
+                )
+                self._conn.execute(
+                    "UPDATE drain_batches SET status = 'RECOVERED' WHERE status = 'DRAINING'"
+                )
+                self._conn.commit()
+                logger.warning("Recovered %d packets from incomplete drain batches", stuck)
+            return stuck
+
+    @property
+    def drain_history(self) -> List[Dict[str, Any]]:
+        """Recent drain batch history for observability."""
+        cur = self._conn.execute(
+            "SELECT batch_id, created_at, packet_count, status, acked_at "
+            "FROM drain_batches ORDER BY rowid DESC LIMIT 20"
+        )
+        cols = [d[0] for d in cur.description]
+        return [dict(zip(cols, row)) for row in cur.fetchall()]
 
     # -----------------------------------------------------------------
     # Health metrics

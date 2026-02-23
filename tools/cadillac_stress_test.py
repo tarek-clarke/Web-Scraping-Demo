@@ -64,6 +64,8 @@ from src.circuit_breaker import (
 )
 from src.local_persistence import TracksideEdgeBuffer, BufferedPacket
 from src.geo_fence import GeoFence
+from src.audit_log import ComplianceAuditLog
+from src.middleware.tracing import RequestContext
 
 
 console = Console()
@@ -223,12 +225,22 @@ class CadillacStressTest:
             recovery_timeout=breaker_recovery,
             dlq_path="data/stress_dlq.sqlite",
         )
-        self.buffer = TracksideEdgeBuffer(db_path="data/stress_edge_buffer.sqlite")
-        self.geo = GeoFence()
+        self.buffer = TracksideEdgeBuffer(
+            db_path="data/stress_edge_buffer.sqlite",
+            sync_callback=self._mock_cloud_sync,
+        )
+        self.audit = ComplianceAuditLog(db_path="data/stress_audit.sqlite")
+        self.geo = GeoFence(audit_log=self.audit)
 
         self.report = StressTestReport()
         self._latencies: List[float] = []
         self._breaker_trip_count = 0
+        self._drain_results: List[Dict[str, Any]] = []
+
+    @staticmethod
+    def _mock_cloud_sync(payloads: list) -> bool:
+        """Simulated cloud sink. Succeeds 95% of the time for realism."""
+        return random.random() < 0.95
 
     # -----------------------------------------------------------------
     def run(self) -> StressTestReport:
@@ -269,9 +281,11 @@ class CadillacStressTest:
         self._print_report()
         self._export_results()
 
-        # Cleanup
+        # Cleanup (audit closed last to allow post-run queries)
         self.breaker.dlq.close()
         self.buffer.close()
+        # Note: self.audit is NOT closed here to allow post-run queries.
+        # The caller is responsible for calling self.audit.close().
 
         return self.report
 
@@ -300,7 +314,16 @@ class CadillacStressTest:
             if chaos_type:
                 result.chaos_injected += 1
 
-            pkt = TelemetryPacket(sensor=sensor_out, value=value_out)
+            # Create packet with request-ID for end-to-end tracing
+            ctx = RequestContext.new(
+                session_id=result.session_name,
+                source="stress_test",
+            )
+            pkt = TelemetryPacket(
+                sensor=sensor_out,
+                value=value_out,
+                request_id=ctx.request_id,
+            )
 
             # Circuit Breaker
             t0 = time.monotonic()
@@ -308,6 +331,8 @@ class CadillacStressTest:
             latency_ms = (time.monotonic() - t0) * 1000
             session_latencies.append(latency_ms)
             self._latencies.append(latency_ms)
+
+            ctx.add_stage("circuit_breaker", status="PASSED" if accepted else "REJECTED")
 
             result.packets_sent += 1
             if accepted:
@@ -320,6 +345,7 @@ class CadillacStressTest:
                     value=value_out,
                 )
                 self.buffer.write(bp)
+                ctx.add_stage("edge_buffer", status="BUFFERED")
             else:
                 result.packets_rejected += 1
 
@@ -330,11 +356,21 @@ class CadillacStressTest:
                 self._breaker_trip_count += 1
             prev_state = cur_state
 
-            # Geo-fence every 50th packet
+            # Geo-fence every 50th packet (with request-ID propagation)
             if i % 50 == 0:
                 payload = {"sensor": sensor_out, "value": value_out, "heart_rate": 155}
-                gf_result = self.geo.process(weekend.circuit, payload)
+                gf_result = self.geo.process(
+                    weekend.circuit, payload,
+                    session_id=result.session_name,
+                    request_id=ctx.request_id,
+                )
                 result.geo_scrubbed += len(gf_result.fields_scrubbed)
+                ctx.add_stage("geo_fence", status="PROCESSED")
+
+            # Drain buffer every 200 packets to exercise exactly-once semantics
+            if i > 0 and i % 200 == 0:
+                drain = self.buffer.drain_pending()
+                self._drain_results.append(drain)
 
             progress.advance(task)
 
@@ -353,6 +389,14 @@ class CadillacStressTest:
 
     # -----------------------------------------------------------------
     def _finalise_report(self) -> None:
+        # Run DLQ reprocessing pass before final tally
+        dlq_result = self.breaker.reprocess_dlq(limit=200)
+        self._dlq_reprocess_result = dlq_result
+
+        # Final drain pass
+        final_drain = self.buffer.drain_pending()
+        self._drain_results.append(final_drain)
+
         self.report.ended_at = datetime.utcnow().isoformat()
         self.report.total_packets = sum(s.packets_sent for s in self.report.sessions)
         self.report.total_accepted = sum(s.packets_accepted for s in self.report.sessions)
@@ -478,6 +522,10 @@ class CadillacStressTest:
             f"[bold]Corruption Detection:[/bold]     {det_rate:.2%}\n"
             f"[bold]Breaker Trips:[/bold]            {self.report.total_breaker_trips}\n"
             f"[bold]DLQ Quarantined:[/bold]          {self.report.total_dlq}\n"
+            f"[bold]DLQ Reprocessed:[/bold]          {self._dlq_reprocess_result.get('recovered', 0)} recovered\n"
+            f"[bold]Drain Batches:[/bold]            {len(self._drain_results)} cycles\n"
+            f"[bold]Audit Log Entries:[/bold]        {self.audit.count()}\n"
+            f"[bold]Audit Chain Intact:[/bold]       {self.audit.verify_chain()}\n"
             f"[bold]p95 Latency:[/bold]              {self.report.overall_latency_p95:.2f} ms\n\n"
             f"[{verdict_style}]VERDICT: {self.report.verdict}[/{verdict_style}]",
             title="[bold bright_white on dark_red]  FINAL ASSESSMENT  [/bold bright_white on dark_red]",

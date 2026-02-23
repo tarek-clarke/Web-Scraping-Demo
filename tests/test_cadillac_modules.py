@@ -33,6 +33,8 @@ from src.geo_fence import (
     Jurisdiction,
     CIRCUIT_JURISDICTION,
 )
+from src.audit_log import ComplianceAuditLog, GENESIS_HASH
+from src.middleware.tracing import RequestContext
 
 
 # ===================================================================
@@ -284,7 +286,9 @@ class TestTracksideEdgeBuffer:
         buf.write(BufferedPacket(packet_id="pkt_001", sensor="speed", value=300.0))
         result = buf.drain_pending()
         assert result["failed"] == 1
-        assert buf.health.failed == 1
+        # Exactly-once semantics: failed packets roll back to PENDING for retry
+        assert buf.health.pending_sync == 1
+        assert buf.health.failed == 0
         buf.close()
 
     def test_health_metrics(self, tmp_path):
@@ -385,3 +389,358 @@ class TestGeoFence:
         ]
         for circuit in key_circuits:
             assert circuit in CIRCUIT_JURISDICTION
+
+
+# ===================================================================
+# Compliance Audit Log Tests
+# ===================================================================
+class TestComplianceAuditLog:
+    def test_record_and_count(self, tmp_path):
+        log = ComplianceAuditLog(db_path=str(tmp_path / "audit.sqlite"))
+        assert log.count() == 0
+        log.record(action="PII_SCRUBBED", circuit="barcelona", jurisdiction="EU")
+        assert log.count() == 1
+        log.close()
+
+    def test_hash_chain_integrity(self, tmp_path):
+        log = ComplianceAuditLog(db_path=str(tmp_path / "audit.sqlite"))
+        for i in range(10):
+            log.record(
+                action="TEST_ACTION",
+                circuit=f"circuit_{i}",
+                jurisdiction="EU",
+                details={"index": i},
+            )
+        assert log.verify_chain() is True
+        log.close()
+
+    def test_tamper_detection(self, tmp_path):
+        log = ComplianceAuditLog(db_path=str(tmp_path / "audit.sqlite"))
+        log.record(action="LEGIT", circuit="monza", jurisdiction="EU")
+        log.record(action="LEGIT", circuit="spa", jurisdiction="EU")
+
+        # Tamper with a record directly
+        log._conn.execute(
+            "UPDATE audit_log SET action = 'TAMPERED' WHERE id = 1"
+        )
+        log._conn.commit()
+
+        assert log.verify_chain() is False
+        log.close()
+
+    def test_query_by_jurisdiction(self, tmp_path):
+        log = ComplianceAuditLog(db_path=str(tmp_path / "audit.sqlite"))
+        log.record(action="PII_SCRUBBED", circuit="barcelona", jurisdiction="EU")
+        log.record(action="FULL_SYNC", circuit="austin", jurisdiction="US")
+        log.record(action="PII_SCRUBBED", circuit="monza", jurisdiction="EU")
+
+        eu = log.query_by_jurisdiction("EU")
+        assert len(eu) == 2
+        assert all(e["jurisdiction"] == "EU" for e in eu)
+        log.close()
+
+    def test_query_by_request_id(self, tmp_path):
+        log = ComplianceAuditLog(db_path=str(tmp_path / "audit.sqlite"))
+        log.record(action="STAGE_1", request_id="req_abc123")
+        log.record(action="STAGE_2", request_id="req_abc123")
+        log.record(action="OTHER", request_id="req_other")
+
+        trace = log.query_by_request_id("req_abc123")
+        assert len(trace) == 2
+        assert all(t["request_id"] == "req_abc123" for t in trace)
+        log.close()
+
+    def test_summary(self, tmp_path):
+        log = ComplianceAuditLog(db_path=str(tmp_path / "audit.sqlite"))
+        log.record(action="PII_SCRUBBED", jurisdiction="EU")
+        log.record(action="PII_SCRUBBED", jurisdiction="EU")
+        log.record(action="FULL_SYNC", jurisdiction="US")
+        s = log.summary()
+        assert s["total_entries"] == 3
+        assert s["by_action"]["PII_SCRUBBED"] == 2
+        assert s["chain_intact"] is True
+        log.close()
+
+    def test_genesis_hash_on_empty_db(self, tmp_path):
+        log = ComplianceAuditLog(db_path=str(tmp_path / "audit.sqlite"))
+        assert log._last_hash == GENESIS_HASH
+        log.close()
+
+    def test_chain_resumes_after_reopen(self, tmp_path):
+        db = str(tmp_path / "audit.sqlite")
+        log1 = ComplianceAuditLog(db_path=db)
+        log1.record(action="FIRST")
+        hash_after_first = log1._last_hash
+        log1.close()
+
+        log2 = ComplianceAuditLog(db_path=db)
+        assert log2._last_hash == hash_after_first
+        log2.record(action="SECOND")
+        assert log2.verify_chain() is True
+        assert log2.count() == 2
+        log2.close()
+
+
+# ===================================================================
+# Geo-Fence + Audit Integration Tests
+# ===================================================================
+class TestGeoFenceAuditIntegration:
+    def test_eu_processing_creates_audit_entries(self, tmp_path):
+        audit = ComplianceAuditLog(db_path=str(tmp_path / "audit.sqlite"))
+        geo = GeoFence(audit_log=audit)
+        geo.process(
+            circuit="barcelona",
+            payload={"driver_name": "Max", "speed": 320, "heart_rate": 165},
+            session_id="barcelona_fp1",
+        )
+        # EU should generate: PII_SCRUBBED, BIOMETRIC_ANONYMISED, METADATA_ONLY_SYNC, LOCAL_RETENTION
+        assert audit.count() >= 3
+        assert audit.verify_chain() is True
+        audit.close()
+
+    def test_us_processing_no_audit_entries(self, tmp_path):
+        audit = ComplianceAuditLog(db_path=str(tmp_path / "audit.sqlite"))
+        geo = GeoFence(audit_log=audit)
+        geo.process(circuit="austin", payload={"speed": 320})
+        # US has no scrubbing, no metadata-only, no retention
+        assert audit.count() == 0
+        audit.close()
+
+    def test_me_processing_export_control_audited(self, tmp_path):
+        audit = ComplianceAuditLog(db_path=str(tmp_path / "audit.sqlite"))
+        geo = GeoFence(audit_log=audit)
+        geo.process(circuit="yas_marina", payload={"speed": 310})
+        entries = audit.recent()
+        actions = [e["action"] for e in entries]
+        assert "EXPORT_CONTROL_APPLIED" in actions
+        audit.close()
+
+    def test_request_id_propagated_to_audit(self, tmp_path):
+        audit = ComplianceAuditLog(db_path=str(tmp_path / "audit.sqlite"))
+        geo = GeoFence(audit_log=audit)
+        geo.process(
+            circuit="monza",
+            payload={"driver_name": "Test", "heart_rate": 150},
+            request_id="trace_001",
+        )
+        entries = audit.query_by_request_id("trace_001")
+        assert len(entries) >= 1
+        assert all(e["request_id"] == "trace_001" for e in entries)
+        audit.close()
+
+    def test_no_audit_when_disabled(self):
+        """GeoFence works without audit log (backward compatible)."""
+        geo = GeoFence()  # No audit_log passed
+        result = geo.process(circuit="barcelona", payload={"driver_name": "Test"})
+        assert result.jurisdiction == "EU"
+
+
+# ===================================================================
+# DLQ Reprocessing Tests
+# ===================================================================
+class TestDLQReprocessing:
+    def test_reprocess_recovers_updated_range(self, tmp_path):
+        """Packet rejected for out-of-range can be recovered after range update."""
+        cb = TelemetryCircuitBreaker(
+            failure_threshold=10, dlq_path=str(tmp_path / "dlq.sqlite")
+        )
+        # Submit a packet that will be rejected (engine_temp > 1000)
+        pkt = TelemetryPacket(sensor="engine_temp", value=1050.0)
+        accepted, reason = cb.process(pkt)
+        assert accepted is False
+        assert cb.dlq.depth() == 1
+
+        # Update validator ranges to accept higher temps
+        cb.validator.value_ranges["engine_temp"] = (-40.0, 1200.0)
+
+        # Reprocess
+        result = cb.reprocess_dlq()
+        assert result["recovered"] == 1
+        assert cb.dlq.depth() == 0
+        cb.dlq.close()
+
+    def test_reprocess_still_invalid_increments_retry(self, tmp_path):
+        cb = TelemetryCircuitBreaker(
+            failure_threshold=10, dlq_path=str(tmp_path / "dlq.sqlite")
+        )
+        cb.process(TelemetryPacket(sensor="speed", value=None))
+        assert cb.dlq.depth() == 1
+
+        # Reprocess - null value is still invalid
+        result = cb.reprocess_dlq()
+        assert result["recovered"] == 0
+        assert result["still_invalid"] == 1
+        cb.dlq.close()
+
+    def test_max_retries_stops_reprocessing(self, tmp_path):
+        cb = TelemetryCircuitBreaker(
+            failure_threshold=10, dlq_path=str(tmp_path / "dlq.sqlite")
+        )
+        pkt = TelemetryPacket(sensor="speed", value=None)
+        cb.process(pkt)
+
+        # Reprocess 3 times to hit max
+        for _ in range(3):
+            cb.reprocess_dlq()
+
+        # 4th attempt should report max_retries
+        result = cb.reprocess_dlq()
+        assert result["recovered"] == 0
+        assert result["still_invalid"] == 0
+        assert result["max_retries"] == 0  # No candidates left (all at max)
+        cb.dlq.close()
+
+    def test_fetch_reprocessable(self, tmp_path):
+        dlq = DeadLetterQueue(db_path=str(tmp_path / "dlq.sqlite"))
+        for i in range(5):
+            pkt = TelemetryPacket(packet_id=f"pkt_{i}", sensor="speed", value=None)
+            dlq.enqueue(DLQRecord(packet=pkt, reason="test", circuit_state="CLOSED"))
+
+        candidates = dlq.fetch_reprocessable(limit=3)
+        assert len(candidates) == 3
+        dlq.close()
+
+    def test_increment_retry(self, tmp_path):
+        dlq = DeadLetterQueue(db_path=str(tmp_path / "dlq.sqlite"))
+        pkt = TelemetryPacket(packet_id="retry_test", sensor="speed", value=None)
+        dlq.enqueue(DLQRecord(packet=pkt, reason="test", circuit_state="CLOSED"))
+
+        dlq.increment_retry("retry_test")
+        dlq.increment_retry("retry_test")
+        dlq.increment_retry("retry_test")
+
+        # Should no longer be reprocessable (retry_count >= 3)
+        candidates = dlq.fetch_reprocessable()
+        assert len(candidates) == 0
+        dlq.close()
+
+
+# ===================================================================
+# Edge Buffer Exactly-Once Drain Tests
+# ===================================================================
+class TestExactlyOnceDrain:
+    def test_drain_returns_batch_id(self, tmp_path):
+        synced = []
+        def mock_sync(payloads):
+            synced.extend(payloads)
+            return True
+
+        buf = TracksideEdgeBuffer(
+            db_path=str(tmp_path / "buf.sqlite"),
+            sync_callback=mock_sync,
+        )
+        buf.write(BufferedPacket(packet_id="pkt_001", sensor="speed", value=300.0))
+        result = buf.drain_pending()
+        assert "batch_id" in result
+        assert result["synced"] == 1
+        buf.close()
+
+    def test_drain_failure_rolls_back_to_pending(self, tmp_path):
+        def fail_sync(payloads):
+            return False
+
+        buf = TracksideEdgeBuffer(
+            db_path=str(tmp_path / "buf.sqlite"),
+            sync_callback=fail_sync,
+        )
+        buf.write(BufferedPacket(packet_id="pkt_001", sensor="speed", value=300.0))
+        result = buf.drain_pending()
+        assert result["failed"] == 1
+
+        # Packet should be back to PENDING (not FAILED)
+        h = buf.health
+        assert h.pending_sync == 1
+        assert h.failed == 0
+        buf.close()
+
+    def test_recover_incomplete_batches(self, tmp_path):
+        buf = TracksideEdgeBuffer(db_path=str(tmp_path / "buf.sqlite"))
+        buf.write(BufferedPacket(packet_id="pkt_001", sensor="speed", value=300.0))
+
+        # Simulate a crash during drain by manually setting DRAINING state
+        buf._conn.execute(
+            "UPDATE telemetry_buffer SET sync_status = 'DRAINING', drain_batch_id = 'crash_batch'"
+        )
+        buf._conn.commit()
+
+        recovered = buf.recover_incomplete_batches()
+        assert recovered == 1
+        assert buf.health.pending_sync == 1
+        buf.close()
+
+    def test_drain_history(self, tmp_path):
+        synced = []
+        def mock_sync(payloads):
+            synced.extend(payloads)
+            return True
+
+        buf = TracksideEdgeBuffer(
+            db_path=str(tmp_path / "buf.sqlite"),
+            sync_callback=mock_sync,
+        )
+        for i in range(3):
+            buf.write(BufferedPacket(packet_id=f"pkt_{i}", sensor="speed", value=float(i)))
+            buf.drain_pending()
+
+        history = buf.drain_history
+        assert len(history) == 3
+        assert all(h["status"] == "ACKED" for h in history)
+        buf.close()
+
+    def test_batch_payload_includes_batch_id(self, tmp_path):
+        received = []
+        def capture_sync(payloads):
+            received.extend(payloads)
+            return True
+
+        buf = TracksideEdgeBuffer(
+            db_path=str(tmp_path / "buf.sqlite"),
+            sync_callback=capture_sync,
+        )
+        buf.write(BufferedPacket(packet_id="pkt_001", sensor="speed", value=300.0))
+        buf.drain_pending()
+        assert len(received) == 1
+        assert "_batch_id" in received[0]
+        buf.close()
+
+
+# ===================================================================
+# Request-ID Tracing Tests
+# ===================================================================
+class TestRequestTracing:
+    def test_new_context_has_request_id(self):
+        ctx = RequestContext.new(session_id="fp1", source="rf_downlink")
+        assert len(ctx.request_id) == 16
+        assert ctx.session_id == "fp1"
+        assert ctx.source == "rf_downlink"
+
+    def test_add_stages(self):
+        ctx = RequestContext.new()
+        ctx.add_stage("circuit_breaker", status="PASSED")
+        ctx.add_stage("edge_buffer", status="BUFFERED")
+        ctx.add_stage("geo_fence", status="PII_SCRUBBED")
+        assert len(ctx.stages) == 3
+        assert ctx.last_stage == "geo_fence"
+
+    def test_trace_summary(self):
+        ctx = RequestContext.new(session_id="race")
+        ctx.add_stage("cb", status="OK")
+        ctx.add_stage("buf", status="OK")
+        summary = ctx.trace_summary()
+        assert summary["request_id"] == ctx.request_id
+        assert summary["stage_count"] == 2
+        assert len(summary["stages"]) == 2
+
+    def test_is_failed(self):
+        ctx = RequestContext.new()
+        ctx.add_stage("cb", status="PASSED")
+        assert ctx.is_failed is False
+
+        ctx.add_stage("geo_fence", status="REJECTED")
+        assert ctx.is_failed is True
+
+    def test_latency_tracking(self):
+        ctx = RequestContext.new()
+        time.sleep(0.01)
+        ctx.add_stage("stage_1", status="OK")
+        assert ctx.stages[0].latency_ms > 0
