@@ -157,7 +157,9 @@ print(result_us.sync_payload)  # All fields intact
 
 ### Health Monitor (Pit Wall Dashboard)
 
+```bash
 PYTHONPATH="." python tools/health_monitor.py
+```
 
 Live terminal UI showing:
 
@@ -169,13 +171,16 @@ Live terminal UI showing:
 
 ## The Full Showcase Suite (Original RAP Research)
 
+```bash
 PYTHONPATH="." python tools/demo_openf1.py --session 9158 --driver 1
 PYTHONPATH="." python tools/stress_test_engine_temp.py
 PYTHONPATH="." python tools/benchmark_semantic_layer.py
 PYTHONPATH="." python tools/demo_pdf_report.py
+```
 
 ## Repository Structure
 
+```
 resilient-rap-framework/
 ├── src/
 │   ├── circuit_breaker.py           # Circuit-Breaker + DLQ
@@ -202,6 +207,7 @@ resilient-rap-framework/
 ├── Dockerfile.production            # Enterprise-hardened image
 ├── docker-compose.production.yml    # Production deployment
 └── README.md                        # ← You are here
+```
 
 ## The Budget Cap Argument
 
@@ -216,7 +222,9 @@ replace manual trackside IT triage with autonomous, self-healing code:
 
 ## Testing
 
+```bash
 PYTHONPATH="." pytest tests/ -v
+```
 
 ## Licensing
 
