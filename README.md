@@ -17,43 +17,28 @@ The Value Proposition: Self-healing code reduces the headcount needed for tracks
 ## Architecture
 
 ```mermaid
-flowchart TD
-    RF["🏎️ Car RF Downlink<br/><i>50 Hz telemetry</i>"]
+flowchart LR
+    RF["🏎️ Car RF Downlink<br/>(50 Hz telemetry)"]
+    CB["Circuit Breaker<br/>Schema Validator<br/>bit-flip · drift · NaN<br/>(src/circuit_breaker.py)"]
+    DLQ[("Dead Letter Queue<br/>SQLite")]
+    EDGE[("Trackside Edge Buffer<br/>SQLite WAL<br/>zero data loss<br/>(src/local_persistence.py)")]
+    GEO["Geo-Fence<br/>GDPR / Sovereignty<br/>(src/geo_fence.py)"]
+    BERT["Semantic Reconciliation<br/>BERT cosine similarity<br/>(modules/translator.py)"]
+    AUDIT[("Audit Log<br/>SHA-256 hash chain<br/>tamper-evident<br/>(src/audit_log.py)")]
+    SINK["🖥️ War Room<br/>Global Sink"]
 
-    subgraph CB["Circuit Breaker  (src/circuit_breaker.py)"]
-        direction TB
-        CLOSED["CLOSED<br/><i>relay clean packets</i>"]
-        VALIDATOR["Schema Validator<br/><i>bit-flip · drift · NaN</i>"]
-        OPEN["OPEN<br/><i>block &amp; quarantine</i>"]
-        HALF["HALF_OPEN<br/><i>single probe</i>"]
-        DLQ[("DLQ<br/>SQLite")]
-        CLOSED --> VALIDATOR
-        VALIDATOR -- "failures ≥ threshold" --> OPEN
-        OPEN -- "cooldown elapsed" --> HALF
-        HALF -- "probe passes" --> CLOSED
-        VALIDATOR -- "bad packet" --> DLQ
-    end
+    RF -->|clean packets| CB
+    CB -->|bad packets| DLQ
+    CB -->|valid data| EDGE
+    EDGE -->|exactly-once drain| GEO
+    GEO -->|jurisdiction-aware| BERT
+    BERT -->|field reconciliation| AUDIT
+    AUDIT -->|provenance chain| SINK
 
-    EDGE[("Trackside Edge Buffer<br/>SQLite WAL<br/><i>zero data loss</i><br/>(src/local_persistence.py)")]
-    DRAIN["Background Drain<br/><i>exactly-once batch</i>"]
-
-    subgraph GEO["Geo-Fence  (src/geo_fence.py)"]
-        direction LR
-        EU["🇪🇺 EU Rounds<br/><i>PII scrubbed · local retain</i>"]
-        US["🇺🇸 US Rounds<br/><i>full telemetry</i>"]
-    end
-
-    BERT["Semantic Reconciliation<br/><i>BERT cosine similarity</i><br/>(modules/translator.py)"]
-    AUDIT[("Audit Log<br/>SHA-256 hash chain<br/>(src/audit_log.py)")]
-    SINK["🖥️ Global Sink — War Room<br/><i>tamper-evident provenance</i>"]
-
-    RF --> CB
-    CB -- "clean packets" --> EDGE
-    EDGE --> DRAIN
-    DRAIN --> GEO
-    GEO --> BERT
-    BERT --> AUDIT
-    AUDIT --> SINK
+    style CB fill:#ff6b6b
+    style DLQ fill:#ffe066
+    style EDGE fill:#51cf66
+    style AUDIT fill:#4dabf7
 ```
 
 <details>
