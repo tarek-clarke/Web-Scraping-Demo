@@ -12,7 +12,10 @@ Validates that the framework:
 
 import pytest
 import numpy as np
-import polars as pl
+
+# polars is an optional dependency — skip entire module if unavailable
+pl = pytest.importorskip("polars", reason="polars not installed")
+
 import sys
 import os
 

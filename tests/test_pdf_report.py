@@ -103,6 +103,10 @@ class TestReportValidation:
         assert validate_report_data(report) is False
 
 
+# reportlab is an optional heavy dependency — skip PDF rendering tests if absent
+_has_reportlab = pytest.importorskip("reportlab", reason="reportlab not installed")
+
+
 class TestPDFGeneration:
     """Test PDF generation functionality."""
     
