@@ -8,9 +8,9 @@
 
 > **"I build the protection so the Race Engineers can build the speed."**
 
-Developed for the **2026 Cadillac F1 Initiative**.  
-Referred by **Eric Warren** to **Charlie Russell** and **Wilfredo Crespo**.  
-Under review by **Mandar Hazare** (Data Fidelity) and **Chris Green** (Infrastructure & Sovereignty).
+
+
+Developed for the **2026 Cadillac F1 Initiative**.
 
 ---
 
@@ -73,9 +73,8 @@ In football, the offensive line never makes the highlight reel — but nothing h
 
 ---
 
-## Stakeholder-Specific Capabilities
 
-### For Wilfredo Crespo — System Integration & Reliability
+## Key Capabilities
 
 | Capability | Module | Evidence |
 |---|---|---|
@@ -83,21 +82,11 @@ In football, the offensive line never makes the highlight reel — but nothing h
 | **Local-first** architecture — pit wall always has full telemetry | `TracksideEdgeBuffer` | Full local replay available even when uplink is severed |
 | **Automatic background drain** when connectivity is restored | `start_background_drain()` | Daemon thread syncs pending packets in configurable batches |
 | **Production health checks** in Docker | `docker-compose.production.yml` | `HEALTHCHECK` ensures pipeline is import-ready before traffic flows |
-
-### For Mandar Hazare — Data Fidelity for Simulation
-
-| Capability | Module | Evidence |
-|---|---|---|
 | **Circuit-Breaker pattern** isolates bad telemetry to DLQ | `src/circuit_breaker.py` | Three-state FSM (CLOSED → OPEN → HALF_OPEN) with configurable thresholds |
 | **Schema-on-Read guarantee** — simulation models never fed garbage | `SchemaValidator` | Validates sensor types, value ranges, and physically plausible bounds |
 | **Dead Letter Queue** — quarantined packets available for post-race forensics | `DeadLetterQueue` (SQLite) | Thread-safe, indexed by sensor and timestamp |
 | **Bit-flip detection** on `ecu_canbus` and `aero_load` sensors | `DEFAULT_RANGES` config | Catches impossible values (e.g. 5000°C engine temp, negative tyre pressure) |
 | **BERT semantic reconciliation** handles firmware-level schema drift | `SemanticTranslator` | Cosine similarity mapping from corrupted field names to gold standard |
-
-### For Chris Green — Infrastructure & Sovereignty
-
-| Capability | Module | Evidence |
-|---|---|---|
 | **Geo-Fencing / Data Sovereignty** for EU ↔ US compliance | `src/geo_fence.py` | Per-circuit jurisdiction mapping (2026 calendar), GDPR PII scrubbing |
 | **Multi-stage Docker** — build deps never reach runtime | `Dockerfile.production` | Non-root user (UID 1000), read-only FS, no-new-privileges |
 | **Resource limits** — Budget Cap discipline in infrastructure | `docker-compose.production.yml` | CPU/memory caps, tmpfs for ephemeral writes |
