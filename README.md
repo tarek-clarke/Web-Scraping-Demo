@@ -1,4 +1,4 @@
-# The Defensive D for Cadillac F1: A Research-to-Production Spine
+# A Resilient Pipeline for Cadillac F1: A Research-to-Production Spine
 
 [![Status](https://img.shields.io/badge/Status-Production--Ready-brightgreen)](.)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-red.svg)
@@ -6,23 +6,16 @@
 ![Docker](https://img.shields.io/badge/Docker-Enterprise--Hardened-blue)
 [![PhD Research](https://img.shields.io/badge/PhD-TalTech%20RAP%20Research-purple)](.)
 
-> **"I build the protection so the Race Engineers can build the speed."**
-
-
 
 Developed for the **2026 Cadillac F1 Initiative**.
 
 ---
 
-## The O-Line Philosophy
-
-In football, the offensive line never makes the highlight reel — but nothing happens without them.  This framework is built on the same principle: **a self-healing, zero-data-loss telemetry spine** that protects the Race Engineers from infrastructure noise so they can focus on building speed.
-
 **Background:** 10+ years as a Senior Data Engineer at Statistics Canada, shipping production pipelines that handle the country's most sensitive data at scale.  That same discipline — tamper-evident lineage, automated reconciliation, zero-tolerance for data corruption — is exactly what the F1 Budget Cap era demands.
 
-**The Academic Edge:** This is the production-ready implementation of my PhD research at TalTech (Tallinn University of Technology) on **Reproducible Analytical Pipelines (RAP)** for high-velocity sensor telemetry.  Every module in this repository traces back to a peer-reviewed methodology for autonomous schema drift resolution.
+**The Academic Edge:** This is the production-ready implementation of my upcoming PhD research at TalTech (Tallinn University of Technology) on **Reproducible Analytical Pipelines (RAP)** for high-velocity sensor telemetry.  Every module in this repository traces back to a peer-reviewed methodology for autonomous schema drift resolution.
 
-**The Value Proposition:** Self-healing code **reduces the headcount** needed for trackside IT support.  Instead of flying a team of data engineers to every race, the pit wall gets a pipeline that detects corruption, isolates bad packets, and recovers — all without human intervention.  In the Budget Cap era, that's not just engineering — it's a competitive advantage.
+**The Value Proposition:** Self-healing code reduces the headcount needed for trackside IT support.  Instead of flying a team of data engineers to every race, the pit wall gets a pipeline that detects corruption, isolates bad packets, and recovers — all without human intervention.  In the Budget Cap era, that's not just engineering, it's a competitive advantage.
 
 ---
 
@@ -260,9 +253,9 @@ PYTHONPATH="." python tools/demo_pdf_report.py
 ```
 resilient-rap-framework/
 ├── src/
-│   ├── circuit_breaker.py           # ⭐ Circuit-Breaker + DLQ
-│   ├── local_persistence.py         # ⭐ Trackside Edge Buffer
-│   ├── geo_fence.py                 # ⭐ Data Sovereignty / Geo-Fence
+│   ├── circuit_breaker.py           # Circuit-Breaker + DLQ
+│   ├── local_persistence.py         # Trackside Edge Buffer
+│   ├── geo_fence.py                 #  Data Sovereignty / Geo-Fence
 │   ├── provenance.py                # Tamper-Evident Logger
 │   └── analytics/
 ├── modules/
@@ -293,14 +286,14 @@ resilient-rap-framework/
 
 ## The Budget Cap Argument
 
-The 2026 F1 regulations impose strict budget caps.  Every person you fly to a race costs money.  Every manual data fix costs time.  This framework is designed to **replace manual trackside IT triage with autonomous, self-healing code**:
+The 2026 F1 regulations impose strict budget caps.  Every person you fly to a race costs money.  Every manual data fix costs time.  This framework is designed to replace manual trackside IT triage with autonomous, self-healing code:
 
 - **Schema drift?** The BERT translator handles it.
 - **Sensor corruption?** The circuit breaker isolates it to the DLQ.
 - **Connectivity drop?** The edge buffer holds everything.
 - **EU data laws?** The geo-fence scrubs and retains.
 
-One framework.  One deployment.  Every race.
+
 
 ---
 
@@ -321,7 +314,6 @@ PolyForm Noncommercial License 1.0.0.  Commercial use requires separate agreemen
 ---
 
 <p align="center">
-<em>"The O-Line never makes the highlight reel — but nothing happens without them."</em><br/>
-<strong>Tarek Clarke</strong> · Senior Data Engineer (StatCan) · PhD Candidate (TalTech)<br/>
+<strong>Tarek Clarke</strong> · Senior Data Analyst (StatCan) · Incoming PhD Candidate (TalTech)<br/>
 Developed for the 2026 Cadillac F1 Initiative
 </p>
