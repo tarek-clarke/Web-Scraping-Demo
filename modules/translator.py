@@ -129,7 +129,21 @@ class TelemetryIngestor:
         hi: Sequence[float] = SENSOR_HI,
     ) -> None:
         if device is None:
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            import os
+            # Allow env var override for debugging/forcing (gpu/cuda/cpu)
+            force_device = os.environ.get("FORCE_DEVICE", "").strip().lower()
+            if force_device == "gpu":
+                try:
+                    device = torch.device("cuda", 0)
+                    # Verify device works
+                    torch.cuda.get_device_name(0)
+                except Exception:
+                    device = torch.device("cpu")
+            elif force_device == "cpu":
+                device = torch.device("cpu")
+            else:
+                # Auto-detect: works with CUDA, ROCm/HIP, or any torch.cuda backend
+                device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.device: torch.device = torch.device(device)
         self.lo: List[float] = list(lo)
         self.hi: List[float] = list(hi)

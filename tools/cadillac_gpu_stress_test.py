@@ -90,9 +90,36 @@ console = Console()
 # GPU helpers
 # ---------------------------------------------------------------------------
 def get_gpu_device() -> torch.device:
-    """Return a CUDA/HIP device if available, else CPU."""
+    """Return an available GPU device (CUDA/ROCm/HIP), else CPU.
+    
+    Automatically detects and uses any available GPU backend:
+    - NVIDIA CUDA
+    - AMD ROCm/HIP
+    - Falls back to CPU if no GPU is available
+    
+    Can be overridden with FORCE_DEVICE environment variable (gpu/cuda/cpu).
+    Backend-agnostic: works with any PyTorch-supported compute platform.
+    """
+    import os
+    
+    # Allow env var override for debugging/forcing
+    force_device = os.environ.get("FORCE_DEVICE", "").strip().lower()
+    if force_device in ["gpu", "cuda", "hip"]:
+        try:
+            device = torch.device("cuda", 0)
+            # Verify device works by querying name
+            torch.cuda.get_device_name(0)
+            return device
+        except Exception as e:
+            console.print(f"[yellow]Warning: FORCE_DEVICE={force_device} but GPU unavailable: {e}[/yellow]")
+    elif force_device == "cpu":
+        return torch.device("cpu")
+    
+    # Auto-detect: NVIDIA CUDA, AMD ROCm/HIP, or any torch.cuda backend
     if torch.cuda.is_available():
         return torch.device("cuda", 0)
+    
+    # Fallback to CPU
     return torch.device("cpu")
 
 

@@ -26,7 +26,51 @@ PYTHONPATH="." python main.py --adapter openf1 --session 9158 --driver 1 --expor
 cat data/audit.json | python -m json.tool
 ```
 
-## 🎯 Common Tasks
+## � GPU Support (Backend-Agnostic)
+
+The framework automatically detects and uses any available GPU:
+- **NVIDIA CUDA** (NVIDIA GPUs)
+- **AMD ROCm/HIP** (AMD Radeon GPUs)
+- **CPU** (fallback if no GPU available)
+
+### Auto-Detection (Default)
+```bash
+# Uses GPU if available, CPU otherwise
+PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
+```
+
+### Force Specific Backend
+```bash
+# Force GPU (CUDA/ROCm)
+FORCE_DEVICE=gpu PYTHONPATH="." python tools/cadillac_gpu_stress_test.py
+
+# Force CPU only
+FORCE_DEVICE=cpu PYTHONPATH="." python tools/cadillac_gpu_stress_test.py
+```
+
+### Install for Specific Backend
+
+**For NVIDIA CUDA:**
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+
+**For AMD ROCm (5.7+):**
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7
+```
+
+**For CPU-only (smaller download):**
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+```
+
+### Check GPU Availability
+```bash
+python -c "import torch; print('GPU:', torch.cuda.is_available(), 'Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
+```
+
+## �🎯 Common Tasks
 
 ### Run a Production Pipeline
 ```bash
