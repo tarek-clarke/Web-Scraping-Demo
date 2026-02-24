@@ -357,7 +357,7 @@ diff data/reports/cadillac_stress_test_results.csv data/reports/cadillac_gpu_str
 
 | Ingestion Path         | Device                | Mean Speed (µs/packet) | Notes                          |
 |------------------------|-----------------------|------------------------|-------------------------------|
-| CPU (Python)           | Intel u5 12600k  | 35,000                 | torch.tensor(), Python loop    |
+| CPU (Python)           | Intel i5 12600k  | 35,000                 | torch.tensor(), Python loop    |
 | GPU (Python)           | AMD RX 7900 XT        | 35                     | torch.tensor(), HIP, Python    |
 | GPU (C++ Extension)    | AMD RX 7900 XT        | 9.54                   | fast_ingest.cpp, zero-copy, GIL-free |
 | GPU (C++ Streaming)    | AMD RX 7900 XT        | **1.33**               | StreamingIngestor, zero-alloc ring buffer |
