@@ -34,7 +34,8 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 # 4. Build the C++ extension for fastest ingest
 python setup.py build_ext --inplace
 
-# 5. Run GPU-accelerated stress test (auto-detects backend: CUDA/ROCm/CPU)
+# 5. Run the GPU-accelerated ingest and stress test (auto-detects CUDA/ROCm/CPU)
+python setup.py build_ext --inplace
 PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
 ```
 
