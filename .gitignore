@@ -68,3 +68,9 @@ node_modules/
 data/*.sqlite
 data/*.sqlite-wal
 data/*.sqlite-shm
+
+# fast_ingest C++ extension build artifacts
+*.so
+*.so.*
+fast_ingest_hip.cpp
+build/
