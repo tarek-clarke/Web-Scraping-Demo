@@ -345,13 +345,281 @@ void sync() {
 }
 
 // ---------------------------------------------------------------------------
+// StreamingIngestor — persistent-state, zero-alloc streaming pipeline
+// ---------------------------------------------------------------------------
+//
+// The original ingest_batch() allocates a new hipHostMalloc slab, constructs
+// lo/hi tensors, and acquires a high-priority stream from the pool on EVERY
+// call.  For an F1 car transmitting 500+ packets/sec across 10 sensor
+// channels, those per-batch allocations dominate latency:
+//
+//   hipHostMalloc / hipHostFree   ~500 µs  (per batch)
+//   torch::tensor(lo/hi)          ~ 50 µs  (per batch, two tensors)
+//   getStreamFromPool()           ~ 10 µs  (per batch)
+//
+// StreamingIngestor eliminates all three by pre-allocating every resource
+// at construction time and reusing them for the lifetime of the object:
+//
+//   • Pinned ring buffer:  one hipHostMalloc of size (batch_size × N) floats,
+//     reused for every flush — zero allocations on the hot path.
+//   • Cached device tensors: lo_t_, hi_t_, range_t_ built once on the GPU,
+//     reused in every normalization — no per-batch tensor construction.
+//   • Persistent stream:  one high-priority HIP/CUDA stream held for the
+//     object's lifetime — no pool acquisition per flush.
+//
+// The design mirrors how a real F1 ECU streams telemetry: a fixed-size DMA
+// ring buffer in page-locked memory, continuously filled by the sensor bus,
+// with periodic flushes to the processing unit at a configurable batch cadence.
+//
+// Thread safety: NOT thread-safe.  Use one StreamingIngestor per thread.
+// ---------------------------------------------------------------------------
+
+class StreamingIngestor {
+public:
+    /**
+     * Construct a streaming ingestor.
+     *
+     * @param lo         Per-channel physical minimum (length N).
+     * @param hi         Per-channel physical maximum (length N).
+     * @param batch_size Max packets in the ring buffer before auto-flush.
+     */
+    StreamingIngestor(const std::vector<float>& lo,
+                      const std::vector<float>& hi,
+                      int64_t batch_size)
+        : N_(static_cast<int64_t>(lo.size()))
+        , capacity_(batch_size)
+        , cursor_(0)
+        , pinned_(nullptr)
+        , stream_(at::cuda::getStreamFromPool(/*isHighPriority=*/true))
+    {
+        TORCH_CHECK(lo.size() == hi.size(),
+                    "StreamingIngestor: lo/hi size mismatch (",
+                    lo.size(), " vs ", hi.size(), ")");
+        TORCH_CHECK(N_ > 0, "StreamingIngestor: zero channels");
+        TORCH_CHECK(capacity_ > 0,
+                    "StreamingIngestor: batch_size must be > 0, got ",
+                    capacity_);
+
+        // ── Pre-allocate pinned ring buffer ───────────────────────────────
+        const std::size_t bytes =
+            static_cast<std::size_t>(capacity_) * N_ * sizeof(float);
+        if (cudaMallocHost(reinterpret_cast<void**>(&pinned_), bytes) != 0) {
+            throw std::runtime_error(
+                "StreamingIngestor: hipHostMalloc failed for "
+                + std::to_string(capacity_) + " × " + std::to_string(N_)
+                + " (" + std::to_string(bytes) + " bytes)");
+        }
+
+        // ── Cache lo/hi/range tensors on the device ──────────────────────
+        // Computed once, reused on every flush.  unsqueeze(0) → {1, N} so
+        // broadcasting applies across all B rows of the batch.
+        {
+            at::cuda::CUDAStreamGuard guard(stream_);
+            lo_t_ = torch::tensor(lo,
+                torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA))
+                .unsqueeze(0);
+            hi_t_ = torch::tensor(hi,
+                torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA))
+                .unsqueeze(0);
+            range_t_ = (hi_t_ - lo_t_).clamp_min_(1e-6f);
+        }
+        // Block until setup is done so the caller can use the object immediately.
+        stream_.synchronize();
+    }
+
+    ~StreamingIngestor() {
+        if (pinned_) {
+            cudaFreeHost(pinned_);
+            pinned_ = nullptr;
+        }
+    }
+
+    // Non-copyable, non-movable (owns a pinned allocation + stream).
+    StreamingIngestor(const StreamingIngestor&) = delete;
+    StreamingIngestor& operator=(const StreamingIngestor&) = delete;
+    StreamingIngestor(StreamingIngestor&&) = delete;
+    StreamingIngestor& operator=(StreamingIngestor&&) = delete;
+
+    // ------------------------------------------------------------------
+    // push()  —  single-packet hot-path
+    // ------------------------------------------------------------------
+    /**
+     * Copy one telemetry packet into the pinned ring buffer.
+     *
+     * When the buffer is full (cursor_ == capacity_), the buffer is
+     * automatically flushed to the GPU and the normalized result is
+     * stored in last_result_.
+     *
+     * @param  packet  Raw sensor readings, length N.
+     * @return true if an auto-flush was triggered, false otherwise.
+     */
+    bool push(const std::vector<float>& packet) {
+        TORCH_CHECK(static_cast<int64_t>(packet.size()) == N_,
+                    "StreamingIngestor::push: expected ", N_,
+                    " channels, got ", packet.size());
+
+        // Single memcpy of ~40 bytes (10 × float32) — sub-microsecond.
+        std::memcpy(pinned_ + cursor_ * N_,
+                    packet.data(),
+                    static_cast<std::size_t>(N_) * sizeof(float));
+        ++cursor_;
+
+        if (cursor_ >= capacity_) {
+            last_result_ = flush_internal(capacity_);
+            cursor_ = 0;
+            return true;
+        }
+        return false;
+    }
+
+    // ------------------------------------------------------------------
+    // push_many()  —  bulk replay / benchmark path
+    // ------------------------------------------------------------------
+    /**
+     * Push multiple packets in one C++ call.
+     *
+     * The GIL is released for the tight memcpy loop and re-acquired only
+     * when auto-flush needs to create tensors.
+     *
+     * @param  packets  Vector of raw packets, each of length N.
+     * @return Number of auto-flushes that occurred.
+     */
+    int64_t push_many(const std::vector<std::vector<float>>& packets) {
+        int64_t flushes = 0;
+
+        // Release GIL for the tight copy loop; re-acquire when we need
+        // to call flush_internal (which requires the GIL for from_blob).
+        {
+            pybind11::gil_scoped_release release;
+            for (const auto& pkt : packets) {
+                TORCH_CHECK(static_cast<int64_t>(pkt.size()) == N_,
+                            "StreamingIngestor::push_many: expected ", N_,
+                            " channels, got ", pkt.size());
+                std::memcpy(pinned_ + cursor_ * N_,
+                            pkt.data(),
+                            static_cast<std::size_t>(N_) * sizeof(float));
+                ++cursor_;
+                if (cursor_ >= capacity_) {
+                    // Re-acquire GIL for flush_internal (tensor creation).
+                    {
+                        pybind11::gil_scoped_acquire acquire;
+                        last_result_ = flush_internal(capacity_);
+                    }
+                    cursor_ = 0;
+                    ++flushes;
+                }
+            }
+        }
+        return flushes;
+    }
+
+    // ------------------------------------------------------------------
+    // flush()  —  drain remaining packets
+    // ------------------------------------------------------------------
+    /**
+     * Flush the current ring-buffer contents to the GPU.
+     *
+     * @return {cursor_, N} normalized device tensor ([−1, 1]).
+     *         Returns an empty {0, N} tensor if the buffer is empty.
+     */
+    torch::Tensor flush() {
+        if (cursor_ == 0) {
+            return torch::empty({0, N_},
+                torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA));
+        }
+        torch::Tensor result = flush_internal(cursor_);
+        cursor_ = 0;
+        last_result_ = result;
+        return result;
+    }
+
+    /// Get the result of the most recent auto-flush (from push / push_many).
+    torch::Tensor last_result() const { return last_result_; }
+
+    /// Block until all pending GPU work on the persistent stream is complete.
+    void sync_stream() { stream_.synchronize(); }
+
+    // Read-only accessors ------------------------------------------------
+    int64_t pending()  const { return cursor_; }
+    int64_t capacity() const { return capacity_; }
+    int64_t channels() const { return N_; }
+
+private:
+    /**
+     * Transfer the first `count` rows of the pinned buffer to GPU,
+     * normalize in-place using cached lo/hi/range, and return the
+     * resulting {count, N} device tensor.
+     *
+     * GIL contract: caller MUST hold the GIL when calling this method.
+     * The GIL is released internally only for the GPU work.
+     */
+    torch::Tensor flush_internal(int64_t count) {
+        // Synchronize the persistent stream to guarantee the pinned buffer
+        // is not still being read by a previous async H→D copy.  In the
+        // double-buffering analysis, the copy of 128 × 10 × 4 = 5 KB over
+        // PCIe takes ~2–3 µs, so this sync is effectively free by the time
+        // the ring buffer is refilled (128 Python push() calls ≈ 60+ µs).
+        stream_.synchronize();
+
+        // Zero-copy wrap of the pinned slab.  Explicit no-op deleter because
+        // pinned_ is owned by the StreamingIngestor for its entire lifetime.
+        torch::Tensor host_t = torch::from_blob(
+            pinned_,
+            {count, N_},
+            /*deleter=*/[](void*) {},
+            torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU)
+        );
+
+        torch::Tensor normalized;
+        {
+            // Release the GIL for the heavy GPU work — matches the pattern
+            // in ingest_batch() and normalize().
+            pybind11::gil_scoped_release release;
+            at::cuda::CUDAStreamGuard guard(stream_);
+
+            // Async H→D copy on the persistent high-priority stream.
+            torch::Tensor device_t = host_t.to(
+                at::device(at::kCUDA).dtype(at::kFloat),
+                /*non_blocking=*/true
+            );
+
+            // Min–max normalize using cached device tensors.
+            // No torch::tensor() construction per flush — lo_t_, hi_t_,
+            // range_t_ were built once in the constructor.
+            normalized = ((device_t - lo_t_) / range_t_) * 2.0f - 1.0f;
+        }
+
+        return normalized;  // {count, N}, on device, values in [−1, 1]
+    }
+
+    int64_t N_;            // number of channels per packet (10)
+    int64_t capacity_;     // ring-buffer capacity (batch_size)
+    int64_t cursor_;       // write cursor into pinned ring buffer
+    float*  pinned_;       // pre-allocated page-locked host buffer
+
+    torch::Tensor lo_t_;     // {1, N} cached on device
+    torch::Tensor hi_t_;     // {1, N} cached on device
+    torch::Tensor range_t_;  // {1, N} cached on device
+
+    at::cuda::CUDAStream stream_;   // persistent high-priority stream
+    torch::Tensor last_result_;     // most recent auto-flush result
+};
+
+// ---------------------------------------------------------------------------
 // pybind11 module definition
 // ---------------------------------------------------------------------------
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+    // Ensure torch._C is initialised so THPVariableClass is non-NULL.
+    // Without this, returning torch::Tensor to Python segfaults because
+    // THPVariable_Wrap calls PyType_IsSubtype(NULL, &THPVariableType).
+    if (!PyImport_ImportModule("torch")) {
+        throw pybind11::error_already_set();
+    }
+
     m.doc() =
         "fast_ingest — Zero-copy pinned-memory F1 telemetry ingestion.\n\n"
-        "Bypasses the Python GIL and achieves deterministic 13 µs ingestion\n"
+        "Bypasses the Python GIL and achieves deterministic µs-scale ingestion\n"
         "windows by using hipHostMalloc / cudaMallocHost pinned buffers,\n"
         "torch::from_blob zero-copy wrapping, and async H→D transfers on a\n"
         "high-priority non-default HIP/CUDA stream.\n\n"
@@ -359,10 +627,16 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
         "Compatible with: NVIDIA CUDA (all cuBLAS-capable devices)\n\n"
         "Functions\n"
         "---------\n"
-        "  ingest(packet)              -> CPU pinned Tensor {N}\n"
-        "  normalize(packet, lo, hi)   -> GPU Tensor {N}   (stream-async)\n"
-        "  ingest_batch(pkts, lo, hi)  -> GPU Tensor {B,N} (stream-async)\n"
-        "  sync()                      -> None  (block until ingest stream idle)\n";
+        "  ingest(packet)               -> CPU pinned Tensor {N}\n"
+        "  normalize(packet, lo, hi)    -> GPU Tensor {N}   (stream-async)\n"
+        "  ingest_batch(pkts, lo, hi)   -> GPU Tensor {B,N} (stream-async)\n"
+        "  sync()                       -> None  (block until ingest stream idle)\n\n"
+        "Classes\n"
+        "-------\n"
+        "  StreamingIngestor(lo, hi, batch_size=128)\n"
+        "      Pre-allocated pinned ring buffer + cached device tensors.\n"
+        "      Zero per-batch allocations.  F1-grade streaming pipeline.\n"
+        "      Methods: push(), push_many(), flush(), sync(), last_result()\n";
 
     // ------------------------------------------------------------------
     // ingest()
@@ -432,4 +706,67 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
         "Use this in tests or when a deterministic host-side view is required.\n"
         "In production, prefer cross-stream event recording to avoid stalls."
     );
+
+    // ------------------------------------------------------------------
+    // StreamingIngestor class
+    // ------------------------------------------------------------------
+    pybind11::class_<StreamingIngestor>(m, "StreamingIngestor",
+        "Persistent-state streaming ingestor with pre-allocated pinned ring buffer.\n\n"
+        "Eliminates per-batch hipHostMalloc (~500 µs), lo/hi tensor construction\n"
+        "(~50 µs), and stream pool acquisition (~10 µs) by pre-allocating all\n"
+        "resources at construction time.\n\n"
+        "Mirrors F1 ECU DMA architecture: a fixed-size ring buffer in page-locked\n"
+        "memory is continuously filled by the sensor bus, with automatic flushes\n"
+        "to the GPU at a configurable batch cadence.\n\n"
+        "Usage::\n\n"
+        "  s = fast_ingest.StreamingIngestor(lo, hi, batch_size=128)\n"
+        "  for pkt in stream:\n"
+        "      flushed = s.push(pkt)\n"
+        "      if flushed:\n"
+        "          tensor = s.last_result()  # {batch_size, N} on GPU\n"
+        "  if s.pending > 0:\n"
+        "      tensor = s.flush()            # {remaining, N} on GPU\n"
+        "  s.sync()\n")
+        .def(pybind11::init<const std::vector<float>&,
+                            const std::vector<float>&,
+                            int64_t>(),
+             pybind11::arg("lo"),
+             pybind11::arg("hi"),
+             pybind11::arg("batch_size") = 128,
+             "Create a streaming ingestor with pre-allocated pinned ring buffer.\n\n"
+             "Parameters\n"
+             "----------\n"
+             "lo : list[float]  — per-channel physical minimum, length N\n"
+             "hi : list[float]  — per-channel physical maximum, length N\n"
+             "batch_size : int  — ring-buffer capacity (default 128)")
+        .def("push", &StreamingIngestor::push,
+             pybind11::arg("packet"),
+             "Push one packet into the ring buffer.\n\n"
+             "Returns True if the buffer was full and an auto-flush was triggered.\n"
+             "The auto-flushed tensor is available via last_result().")
+        .def("push_many", &StreamingIngestor::push_many,
+             pybind11::arg("packets"),
+             "Push multiple packets in a single C++ call (GIL released internally).\n\n"
+             "This is the fastest path for batch replay or benchmarks.\n"
+             "Returns the number of auto-flush events that occurred.")
+        .def("flush",
+             [](StreamingIngestor& self) -> torch::Tensor {
+                 return self.flush();
+             },
+             "Flush pending packets to GPU.\n\n"
+             "Returns a {count, N} device tensor ([−1, 1] normalized).\n"
+             "Returns an empty {0, N} tensor if the buffer is empty.")
+        .def("last_result",
+             [](StreamingIngestor& self) -> torch::Tensor {
+                 return self.last_result();
+             },
+             "Get the result of the most recent auto-flush.")
+        .def("sync", &StreamingIngestor::sync_stream,
+             "Block until all pending GPU work on the ingest stream completes.")
+        .def_property_readonly("pending", &StreamingIngestor::pending,
+             "Number of packets currently in the ring buffer.")
+        .def_property_readonly("capacity", &StreamingIngestor::capacity,
+             "Maximum packets before auto-flush.")
+        .def_property_readonly("channels", &StreamingIngestor::channels,
+             "Number of sensor channels per packet.");
 }

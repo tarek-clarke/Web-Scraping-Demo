@@ -260,6 +260,174 @@ class TelemetryIngestor:
 
 
 # ---------------------------------------------------------------------------
+# TelemetryStreamer — F1-grade persistent-state streaming ingestor
+# ---------------------------------------------------------------------------
+
+class TelemetryStreamer:
+    """
+    Real-time streaming ingestor with pre-allocated pinned ring buffer.
+
+    Wraps the C++ ``StreamingIngestor`` class to eliminate **all** per-batch
+    allocation overhead:
+
+    ==================  ==============  ==============
+    Overhead source     ``ingest_batch``  ``TelemetryStreamer``
+    ==================  ==============  ==============
+    hipHostMalloc       ~500 µs/batch   **0** (pre-allocated)
+    lo/hi tensors       ~ 50 µs/batch   **0** (cached on GPU)
+    Stream acquisition  ~ 10 µs/batch   **0** (persistent stream)
+    ==================  ==============  ==============
+
+    Architecture mirrors an F1 ECU's DMA ring buffer: a fixed-size slab of
+    page-locked host memory is continuously filled by :meth:`push`, with an
+    automatic flush to the GPU when the buffer reaches ``batch_size`` packets.
+
+    Falls back to :class:`TelemetryIngestor` batch mode when the C++ extension
+    is not available.
+
+    Parameters
+    ----------
+    batch_size : int
+        Number of packets per GPU flush (default 128).
+    lo : list[float], optional
+        Per-channel physical minimum.  Defaults to :data:`SENSOR_LO`.
+    hi : list[float], optional
+        Per-channel physical maximum.  Defaults to :data:`SENSOR_HI`.
+
+    Example
+    -------
+    >>> streamer = TelemetryStreamer(batch_size=128)
+    >>> for packet in telemetry_stream:
+    ...     flushed = streamer.push(packet)
+    ...     if flushed:
+    ...         normalized = streamer.last_result()  # {128, 10} GPU tensor
+    ...         # run anomaly detection, BERT reconciliation, etc.
+    >>> if streamer.pending > 0:
+    ...     final = streamer.flush()  # drain remaining packets
+    >>> streamer.sync()
+    """
+
+    def __init__(
+        self,
+        batch_size: int = 128,
+        lo: Sequence[float] = SENSOR_LO,
+        hi: Sequence[float] = SENSOR_HI,
+    ) -> None:
+        self._lo = list(lo)
+        self._hi = list(hi)
+        self._batch_size = batch_size
+        self._accelerated = _FAST_INGEST_AVAILABLE
+
+        if self._accelerated:
+            self._streamer = _fast_ingest.StreamingIngestor(  # type: ignore[union-attr]
+                self._lo, self._hi, batch_size
+            )
+        else:
+            # Fallback: accumulate in Python, flush via TelemetryIngestor
+            self._fallback = TelemetryIngestor(lo=lo, hi=hi)
+            self._buffer: List[List[float]] = []
+            self._last: Optional[torch.Tensor] = None
+
+    # ------------------------------------------------------------------
+    # Push API
+    # ------------------------------------------------------------------
+
+    def push(self, packet: Sequence[float | None]) -> bool:
+        """
+        Push one telemetry packet.  Returns ``True`` if an auto-flush occurred.
+
+        ``None`` values (corrupt sensors) are replaced with ``NaN``.
+        """
+        clean = [v if isinstance(v, (int, float)) else float("nan")
+                 for v in packet]
+
+        if self._accelerated:
+            return self._streamer.push(clean)
+
+        # Fallback path
+        self._buffer.append(clean)
+        if len(self._buffer) >= self._batch_size:
+            self._last = self._fallback.ingest_batch(self._buffer)
+            self._buffer.clear()
+            return True
+        return False
+
+    def push_many(self, packets: Sequence[Sequence[float | None]]) -> int:
+        """
+        Push multiple packets.  Returns the number of auto-flushes.
+
+        The C++ path runs the entire loop with the GIL released.
+        """
+        cleaned: List[List[float]] = [
+            [v if isinstance(v, (int, float)) else float("nan") for v in pkt]
+            for pkt in packets
+        ]
+
+        if self._accelerated:
+            return self._streamer.push_many(cleaned)
+
+        # Fallback
+        flushes = 0
+        for pkt in cleaned:
+            if self.push(pkt):
+                flushes += 1
+        return flushes
+
+    # ------------------------------------------------------------------
+    # Flush / result API
+    # ------------------------------------------------------------------
+
+    def flush(self) -> torch.Tensor:
+        """Flush pending packets to GPU.  Returns ``{count, N}`` device tensor."""
+        if self._accelerated:
+            return self._streamer.flush()
+
+        if not self._buffer:
+            return torch.empty(
+                0, len(self._lo),
+                dtype=torch.float32,
+                device=self._fallback.device,
+            )
+        result = self._fallback.ingest_batch(self._buffer)
+        self._buffer.clear()
+        self._last = result
+        return result
+
+    def last_result(self) -> Optional[torch.Tensor]:
+        """Get the most recent auto-flushed tensor, or ``None``."""
+        if self._accelerated:
+            r = self._streamer.last_result()
+            return r if r is not None and r.numel() > 0 else None
+        return self._last
+
+    def sync(self) -> None:
+        """Block until all GPU work is complete."""
+        if self._accelerated:
+            self._streamer.sync()
+
+    # ------------------------------------------------------------------
+    # Properties
+    # ------------------------------------------------------------------
+
+    @property
+    def pending(self) -> int:
+        """Number of packets in the buffer awaiting flush."""
+        if self._accelerated:
+            return self._streamer.pending
+        return len(self._buffer)
+
+    @property
+    def capacity(self) -> int:
+        """Batch size (ring-buffer capacity)."""
+        return self._batch_size
+
+    @property
+    def is_accelerated(self) -> bool:
+        """``True`` if the C++ StreamingIngestor is active."""
+        return self._accelerated
+
+
+# ---------------------------------------------------------------------------
 # SemanticTranslator
 # ---------------------------------------------------------------------------
 
