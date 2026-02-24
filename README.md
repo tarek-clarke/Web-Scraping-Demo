@@ -4,7 +4,6 @@
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-red.svg)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-yellow)
 ![Docker](https://img.shields.io/badge/Docker-Enterprise--Hardened-blue)
-[![PhD Research](https://img.shields.io/badge/PhD-TalTech%20RAP%20Research-purple)](.)
 
 Developed for the 2026 Cadillac F1 Initiative.
 
