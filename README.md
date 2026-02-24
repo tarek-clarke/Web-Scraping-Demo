@@ -236,14 +236,9 @@ PY
 #### StreamingIngestor — F1-grade zero-alloc pipeline
 
 `StreamingIngestor` goes further: a **pre-allocated pinned ring buffer**, cached
-device tensors, and a persistent HIP stream eliminate **all** per-batch overhead:
+device tensors, and a persistent HIP stream eliminate **all** per-batch overhead.
 
-| Path | µs / pkt | Speedup |
-|---|---|---|
-| CPU baseline (torch.tensor loop) | 35,000 | 0.0× |
-| `ingest_batch` (allocs per batch) | 10.13 | 1.0× |
-| `StreamingIngestor.push` (Python loop) | 1.36 | **7.4×** |
-| `StreamingIngestor.push_many` (GIL-free) | 1.33 | **7.6×** |
+Performance figures are summarized in Operational Metrics above.
 
 ```bash
 # Reproduce: StreamingIngestor benchmark (100K packets, batch_size=128)
@@ -297,8 +292,6 @@ docker compose -f docker-compose.production.yml up telemetry-spine
 
 ### Circuit-Breaker + Dead Letter Queue
 
-PYTHONPATH="." python tools/cadillac_stress_test.py --packets 2000 --chaos 0.15
-
 Triple-Header simulation: 3 race weekends × 5 sessions × 2000 packets with 15%
 chaos injection.
 
@@ -315,40 +308,7 @@ Validates:
 
 Runs the core infrastructure: circuit breaker, edge buffer, geo-fence, audit log under high chaos injection.
 
-**Usage:**
-
-```bash
-# Run CPU test
-PYTHONPATH="." python tools/cadillac_stress_test.py --packets 5000 --chaos 0.15
-
-# Showcase mode (tuned demo)
-PYTHONPATH="." python tools/cadillac_stress_test.py --showcase
-```
-
-**Sample output (100 packets, 15% chaos):**
-
-```
-Device: CPU only  |  15 sessions × 100 packets = 1,500 total
-
-Session Results:
-- Total Packets Sent: 1,500
-- Total Accepted: 1,431 (95.39%)
-- Total Rejected: 237 (100% detection rate)
-- Circuit Breaker State: CLOSED (no trips)
-- DLQ Quarantined: 6,621 packets
-
-Resilience Score: 78.39%  CONDITIONAL ⚠️
-Clean-Data Throughput: 95.39%
-Corruption Detection: 100.00%
-p95 Latency: 130.11 ms
-
-Timing Verdict: SUB-MILLISECOND DETECTION ✅
-- Mean Detection Speed: 0.0043 ms
-- p95 Detection Speed: 0.0138 ms
-- Detection Rate: 73.06%
-
-Audit Chain Intact: True ✅
-```
+Run via the Quickstart or Expanded Workflows commands above.
 
 **CPU output files:**
 - `data/reports/cadillac_stress_test_results.csv` — session-level results
@@ -369,35 +329,7 @@ Runs all CPU subsystems (circuit breaker, edge buffer, geo-fence, audit log) **p
 | **Tensor Anomaly Detection** | HIP/ROCm | Stacks sensor values into GPU tensors, flags z-score > 3σ outliers in one vectorised pass |
 | **GPU Hash-Chain Verification** | HIP/ROCm | FNV-1a hashes computed in parallel on GPU tensors for audit provenance |
 
-**Usage:**
-
-```bash
-# Run GPU test (detects NVIDIA/AMD GPU automatically)
-PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --packets 5000 --chaos 0.15
-
-# Showcase mode (tuned demo)
-PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --showcase
-
-# Compare CPU vs GPU results
-diff data/reports/cadillac_stress_test_results.csv data/reports/cadillac_gpu_stress_test_results.csv
-```
-
-**Sample output (100 packets, 15% chaos):**
-
-#### Ingestion Speed Comparison
-
-| Ingestion Path         | Device                | Mean Speed (µs/packet) | Notes                          |
-|------------------------|-----------------------|------------------------|-------------------------------|
-| CPU (Python)           | Intel i5 12600k  | 35,000                 | torch.tensor(), Python loop    |
-| GPU (Python)           | AMD RX 7900 XT        | 35                     | torch.tensor(), HIP, Python    |
-| GPU (C++ Extension)    | AMD RX 7900 XT        | 9.54                   | fast_ingest.cpp, zero-copy, GIL-free |
-| GPU (C++ Streaming)    | AMD RX 7900 XT        | **1.33**               | StreamingIngestor, zero-alloc ring buffer |
-
-**Key:**
-- CPU (Python): Baseline, pure Python tensor creation, no GPU
-- GPU (Python): Python torch.tensor() on HIP, Python overhead
-- GPU (C++): C++ PyTorch extension, zero-copy pinned memory, async HIP stream
-- GPU (C++ Streaming): Pre-allocated ring buffer, cached device tensors, persistent stream — F1-grade
+Run via the Quickstart or Expanded Workflows commands above.
 
 **Sample output (100 packets, 15% chaos):**
 
