@@ -117,8 +117,11 @@ flowchart LR
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# 2. Stress test (validates all subsystems)
+# 1. CPU Stress test (validates all subsystems)
 PYTHONPATH="." python tools/cadillac_stress_test.py --packets 2000 --chaos 0.15
+
+# 2. GPU Stress test (with BERT semantic reconciliation + tensor anomaly detection)
+PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
 
 # 3. Health Monitor (live pit wall dashboard)
 PYTHONPATH="." python tools/health_monitor.py --duration 60
@@ -150,6 +153,61 @@ Validates:
 - Breaker recovers after cooldown (HALF_OPEN probe)
 - Bad packets routed to SQLite DLQ
 - Pit wall feed remains clean
+
+### GPU-Accelerated Stress Test (AMD Radeon 7900 XT)
+
+**New:** `tools/cadillac_gpu_stress_test.py` — Triple-Header benchmark with GPU workload acceleration.
+
+Runs all CPU subsystems (circuit breaker, edge buffer, geo-fence, audit log) **plus** three GPU-parallel workloads:
+
+| GPU Workload | Device | What it does |
+|---|---|---|
+| **Batch Semantic Reconciliation** | HIP/ROCm | BERT (all-MiniLM-L6-v2) encodes sensor names on GPU, resolves schema-drift via cosine similarity |
+| **Tensor Anomaly Detection** | HIP/ROCm | Stacks sensor values into GPU tensors, flags z-score > 3σ outliers in one vectorised pass |
+| **GPU Hash-Chain Verification** | HIP/ROCm | FNV-1a hashes computed in parallel on GPU tensors for audit provenance |
+
+**Usage:**
+
+```bash
+# Run GPU test (detects NVIDIA/AMD GPU automatically)
+PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --packets 5000 --chaos 0.15
+
+# Showcase mode (tuned demo)
+PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --showcase
+
+# Compare CPU vs GPU results
+diff data/reports/cadillac_stress_test_results.csv data/reports/cadillac_gpu_stress_test_results.csv
+```
+
+**Sample output (100 packets, 15% chaos):**
+
+```
+Device: AMD Radeon RX 7900 XT  |  VRAM: 19.94 GB  |  HIP: 6.2.41133
+
+GPU Workload Summary:
+- Total Embeddings Computed: 1,500
+- Semantic Resolutions: 1,500
+- Schema-Drift Recovered (GPU): 39
+- Tensor Anomalies Detected: 139
+- Total Embedding Time: 911.8 ms
+- Total Anomaly Detection Time: 693.2 ms
+- Total Hash Verification Time: 319.4 ms
+
+Resilience Score: 80.90%  CONDITIONAL ⚠️
+ALL SLOs MET ✅
+```
+
+**GPU output files:**
+- `data/reports/cadillac_gpu_stress_test_results.csv` — session-level results with GPU columns
+- `data/reports/cadillac_gpu_metrics.json` — standalone GPU workload summary
+- `data/reports/gpu_resilience_timing_report.csv` — per-packet detection/repair timing
+
+**Verified on:**
+- ✅ AMD Radeon RX 7900 XT (gfx1100)
+- ✅ ROCm 6.2 + PyTorch 2.3 HIP runtime
+- ✅ Ubuntu 22.04 LTS
+
+---
 
 ### Trackside Edge Buffer (Zero Data Loss)
 
@@ -231,9 +289,10 @@ resilient-rap-framework/
 │   ├── openf1/                      # Live F1 API adapter
 │   └── ...
 ├── tools/
-│   ├── cadillac_stress_test.py      # Triple-Header Stress Test
-│   ├── health_monitor.py            # Pit Wall CLI Dashboard
-│   ├── demo_openf1.py               # F1 telemetry demo
+│   ├── cadillac_stress_test.py              # CPU Triple-Header Stress Test
+│   ├── cadillac_gpu_stress_test.py          # GPU-Accelerated Triple-Header Stress Test
+│   ├── health_monitor.py                    # Pit Wall CLI Dashboard
+│   ├── demo_openf1.py                       # F1 telemetry demo
 │   └── ...
 ├── docs/adr/                        # Architecture Decision Records
 ├── tests/                           # Automated test suite
