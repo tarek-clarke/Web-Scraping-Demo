@@ -101,8 +101,11 @@ if IS_ROCM:
     NVCC_FLAGS = [
         "--offload-arch=gfx1100",   # AMD Radeon RX 7900 XT (RDNA3 / gfx1100)
         "--offload-arch=gfx90a",    # MI250X (optional, no-op if absent)
+        "-D__HIP_PLATFORM_AMD__",
         "-O3",
         "--use_fast_math",
+        # Enable HIP stream priority for p99 latency reduction
+        "-DHIP_STREAM_PRIORITY_ENABLED",
         # Verbose compilation helps diagnose HIP kernel registration issues.
         # Comment out in CI to reduce noise.
         # "-v",
