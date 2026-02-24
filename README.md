@@ -177,6 +177,10 @@ flowchart LR
 | Detection latency | **sub-millisecond** | Corruption isolated before it reaches models |
 | Audit integrity | **hash-chain verified** | FIA-grade provenance for investigations |
 
+## Dead Letter Queue (DLQ) Design Philosophy
+
+Ambiguous or unresolvable telemetry packets are intentionally routed to the Dead Letter Queue (DLQ) rather than forcing real-time resolution. This approach is by design: the DLQ feeds a post-session analysis dashboard for review during race debrief, mirroring the operational reality of F1 engineering teams. Unresolvable data mid-session is a distraction from real-time decision making. The pipeline prioritizes continuity and reliability during the session, ensuring that all data—including problematic packets—is preserved for full forensic analysis after the checkered flag.
+
 ## Background
 
 10+ years as a Senior Data Analyst at Statistics Canada, shipping production pipelines that handle the country's most sensitive data at scale. That same discipline: tamper-evident lineage, automated reconciliation, zero-tolerance for data corruption is exactly what the F1 Budget Cap era demands.
