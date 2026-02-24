@@ -154,6 +154,54 @@ Validates:
 - Bad packets routed to SQLite DLQ
 - Pit wall feed remains clean
 
+### CPU Stress Test Benchmark
+
+**`tools/cadillac_stress_test.py`** — Pure CPU Triple-Header validation sans GPU.
+
+Runs the core infrastructure: circuit breaker, edge buffer, geo-fence, audit log under high chaos injection.
+
+**Usage:**
+
+```bash
+# Run CPU test
+PYTHONPATH="." python tools/cadillac_stress_test.py --packets 5000 --chaos 0.15
+
+# Showcase mode (tuned demo)
+PYTHONPATH="." python tools/cadillac_stress_test.py --showcase
+```
+
+**Sample output (100 packets, 15% chaos):**
+
+```
+Device: CPU only  |  15 sessions × 100 packets = 1,500 total
+
+Session Results:
+- Total Packets Sent: 1,500
+- Total Accepted: 1,431 (95.39%)
+- Total Rejected: 237 (100% detection rate)
+- Circuit Breaker State: CLOSED (no trips)
+- DLQ Quarantined: 6,621 packets
+
+Resilience Score: 78.39%  CONDITIONAL ⚠️
+Clean-Data Throughput: 95.39%
+Corruption Detection: 100.00%
+p95 Latency: 130.11 ms
+
+Timing Verdict: SUB-MILLISECOND DETECTION ✅
+- Mean Detection Speed: 0.0043 ms
+- p95 Detection Speed: 0.0138 ms
+- Detection Rate: 73.06%
+
+Audit Chain Intact: True ✅
+```
+
+**CPU output files:**
+- `data/reports/cadillac_stress_test_results.csv` — session-level results
+- `data/reports/cadillac_stress_test_report.json` — full report
+- `data/reports/resilience_timing_report.csv` — per-packet detection/repair timing
+
+---
+
 ### GPU-Accelerated Stress Test (AMD Radeon 7900 XT)
 
 **New:** `tools/cadillac_gpu_stress_test.py` — Triple-Header benchmark with GPU workload acceleration.
