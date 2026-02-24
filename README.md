@@ -17,16 +17,57 @@ Developed for the 2026 Cadillac F1 Initiative.
 ## 90-Second Quickstart
 
 ```bash
+# 1. Create environment
 python3 -m venv .venv && source .venv/bin/activate
+
+# 2. Install base dependencies
 pip install -r requirements.txt
 
-# Build the C++ extension for fastest ingest
+# 3. Install PyTorch with GPU backend (choose one):
+#    For NVIDIA CUDA:
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+#    OR for AMD ROCm:
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7
+#    OR for CPU-only:
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# 4. Build the C++ extension for fastest ingest
 python setup.py build_ext --inplace
 
-# GPU-accelerated stress test (fastest pipeline)
+# 5. Run GPU-accelerated stress test (auto-detects backend: CUDA/ROCm/CPU)
 PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
+```
 
-# Optional: Live pit wall dashboard
+## GPU Backend-Agnostic Installation
+
+The framework auto-detects and uses any available GPU backend:
+- **NVIDIA CUDA** (NVIDIA GPUs)
+- **AMD ROCm/HIP** (AMD Radeon GPUs)
+- **CPU** (fallback if no GPU available)
+
+**AMD ROCm/HIP:**
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7
+```
+
+**CPU-only:**
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+```
+
+**Force backend (optional):**
+```bash
+FORCE_DEVICE=gpu PYTHONPATH="." python tools/cadillac_gpu_stress_test.py
+FORCE_DEVICE=cpu PYTHONPATH="." python tools/cadillac_gpu_stress_test.py
+```
+
+**Check device:**
+```bash
+python -c "import torch; print('GPU:', torch.cuda.is_available(), 'Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
+```
+
+**Optional: Live pit wall dashboard**
+```bash
 PYTHONPATH="." python tools/health_monitor.py --duration 60
 ```
 
@@ -318,15 +359,16 @@ Run via the Quickstart or Expanded Workflows commands above.
 
 ### GPU-Accelerated Stress Test (AMD Radeon 7900 XT)
 
+
 **New:** `tools/cadillac_gpu_stress_test.py` — Triple-Header benchmark with GPU workload acceleration.
 
 Runs all CPU subsystems (circuit breaker, edge buffer, geo-fence, audit log) **plus** three GPU-parallel workloads:
 
 | GPU Workload | Device | What it does |
 |---|---|---|
-| **Batch Semantic Reconciliation** | HIP/ROCm | BERT (all-MiniLM-L6-v2) encodes sensor names on GPU, resolves schema-drift via cosine similarity |
-| **Tensor Anomaly Detection** | HIP/ROCm | Stacks sensor values into GPU tensors, flags z-score > 3σ outliers in one vectorised pass |
-| **GPU Hash-Chain Verification** | HIP/ROCm | FNV-1a hashes computed in parallel on GPU tensors for audit provenance |
+| **Batch Semantic Reconciliation** | CUDA/ROCm/HIP | BERT (all-MiniLM-L6-v2) encodes sensor names on GPU, resolves schema-drift via cosine similarity |
+| **Tensor Anomaly Detection** | CUDA/ROCm/HIP | Stacks sensor values into GPU tensors, flags z-score > 3σ outliers in one vectorised pass |
+| **GPU Hash-Chain Verification** | CUDA/ROCm/HIP | FNV-1a hashes computed in parallel on GPU tensors for audit provenance |
 
 Run via the Quickstart or Expanded Workflows commands above.
 
@@ -334,6 +376,8 @@ Run via the Quickstart or Expanded Workflows commands above.
 
 ```
 Device: AMD Radeon RX 7900 XT  |  VRAM: 19.94 GB  |  HIP: 6.2.41133
+Device: cuda:0
+Schema embeddings shape: torch.Size([10, 384]) on cuda:0
 
 GPU Workload Summary:
 - Total Embeddings Computed: 1,500
@@ -355,7 +399,8 @@ ALL SLOs MET ✅
 
 **Verified on:**
 - ✅ AMD Radeon RX 7900 XT (gfx1100)
-- ✅ ROCm 6.2 + PyTorch 2.3 HIP runtime
+- ✅ NVIDIA RTX (CUDA)
+- ✅ ROCm 6.2 + PyTorch HIP runtime
 - ✅ Ubuntu 22.04 LTS
 
 ---
