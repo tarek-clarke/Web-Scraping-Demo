@@ -8,11 +8,28 @@
 
 Developed for the 2026 Cadillac F1 Initiative.
 
-Background: 10+ years as a Senior Data Analyst at Statistics Canada, shipping production pipelines that handle the country's most sensitive data at scale. That same discipline: tamper-evident lineage, automated reconciliation, zero-tolerance for data corruption is exactly what the F1 Budget Cap era demands.
+## Cadillac Engineering Snapshot
 
-The Academic Edge: This is the production-ready implementation of my upcoming PhD research at TalTech (Tallinn University of Technology) on Reproducible Analytical Pipelines (RAP) for high-velocity sensor telemetry. Every module in this repository traces back to a peer-reviewed methodology for autonomous schema drift resolution.
+- Production-grade telemetry spine built for budget-cap constraints and zero downtime.
+- Self-healing ingestion: schema drift, bit-flips, and NaN bursts isolated without human intervention.
+- Trackside-first architecture: local replay and jurisdiction-aware geo-fencing.
+- Audit-ready provenance: tamper-evident hash chains on every transformation.
 
-The Value Proposition: Self-healing code reduces the headcount needed for trackside IT support. Instead of flying a team of data engineers to every race, the pit wall gets a pipeline that detects corruption, isolates bad packets, and recovers, all without human intervention. In the Budget Cap era, that's not just engineering, it's a competitive advantage.
+## 90-Second Quickstart
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+# 1) CPU stress test (core subsystems)
+PYTHONPATH="." python tools/cadillac_stress_test.py --packets 2000 --chaos 0.15
+
+# 2) GPU stress test (semantic reconciliation + tensor anomaly detection)
+PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
+
+# 3) Live pit wall dashboard
+PYTHONPATH="." python tools/health_monitor.py --duration 60
+```
 
 ## Architecture
 
@@ -109,25 +126,39 @@ flowchart LR
 | Network isolation - internal bridge network for pipeline services | cadillac-internal network | No external exposure; secrets never in image layers |
 | Tamper-evident audit - SHA-256 hash chains for every transformation | src/provenance.py | Linked input_hash -> output_hash -> previous_hash records |
 
-## Quick Start — Cadillac F1 Production
+## Operational Metrics
 
-### Local Development
+| Signal | Result | Why it matters |
+|---|---|---|
+| C++ streaming ingest | **1.33 us / packet** on AMD RX 7900 XT | Sustains high-rate telemetry with headroom |
+| C++ batch ingest | **9.54 us / packet** | Zero-copy pinned memory, GIL-free |
+| Python GPU ingest | **35 us / packet** | Baseline GPU pipeline overhead |
+| CPU baseline | **35,000 us / packet** | Demonstrates acceleration delta |
+| Detection latency | **sub-millisecond** | Corruption isolated before it reaches models |
+| Audit integrity | **hash-chain verified** | FIA-grade provenance for investigations |
+
+## Background
+
+10+ years as a Senior Data Analyst at Statistics Canada, shipping production pipelines that handle the country's most sensitive data at scale. That same discipline: tamper-evident lineage, automated reconciliation, zero-tolerance for data corruption is exactly what the F1 Budget Cap era demands.
+
+This is the production-ready implementation of my upcoming PhD research at TalTech (Tallinn University of Technology) on Reproducible Analytical Pipelines (RAP) for high-velocity sensor telemetry. Every module in this repository traces back to a peer-reviewed methodology for autonomous schema drift resolution.
+
+Self-healing code reduces the headcount needed for trackside IT support. Instead of flying a team of data engineers to every race, the pit wall gets a pipeline that detects corruption, isolates bad packets, and recovers, all without human intervention. In the Budget Cap era, that's not just engineering, it's a competitive advantage.
+
+## Expanded Workflows
+
+### Local Development (full suite)
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# 1. CPU Stress test (validates all subsystems)
-PYTHONPATH="." python tools/cadillac_stress_test.py --packets 2000 --chaos 0.15
-
-# 2. GPU Stress test (with BERT semantic reconciliation + tensor anomaly detection)
-PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
-
-# 3. Health Monitor (live pit wall dashboard)
-PYTHONPATH="." python tools/health_monitor.py --duration 60
-
-# 4. Full test suite
+# Full test suite
 PYTHONPATH="." pytest tests/ -v
+
+# Showcase mode (tuned demo)
+PYTHONPATH="." python tools/cadillac_stress_test.py --showcase
+PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --showcase
 ```
 
 ### Quick Start — fast_ingest (C++ zero-copy)
@@ -397,6 +428,8 @@ ALL SLOs MET ✅
 - ✅ Ubuntu 22.04 LTS
 
 ---
+
+## Focused Examples
 
 ### Trackside Edge Buffer (Zero Data Loss)
 
