@@ -229,6 +229,21 @@ diff data/reports/cadillac_stress_test_results.csv data/reports/cadillac_gpu_str
 
 **Sample output (100 packets, 15% chaos):**
 
+#### Ingestion Speed Comparison
+
+| Ingestion Path         | Device                | Mean Speed (µs/packet) | Notes                          |
+|------------------------|-----------------------|------------------------|-------------------------------|
+| CPU (Python)           | Intel Xeon Gold 6338  | 35,000                 | torch.tensor(), Python loop    |
+| GPU (Python)           | AMD RX 7900 XT        | 35                     | torch.tensor(), HIP, Python    |
+| GPU (C++ Extension)    | AMD RX 7900 XT        | 9.54                   | fast_ingest.cpp, zero-copy, GIL-free |
+
+**Key:**
+- CPU (Python): Baseline, pure Python tensor creation, no GPU
+- GPU (Python): Python torch.tensor() on HIP, Python overhead
+- GPU (C++): C++ PyTorch extension, zero-copy pinned memory, async HIP stream
+
+**Sample output (100 packets, 15% chaos):**
+
 ```
 Device: AMD Radeon RX 7900 XT  |  VRAM: 19.94 GB  |  HIP: 6.2.41133
 
