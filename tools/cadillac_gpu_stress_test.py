@@ -51,6 +51,7 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -348,7 +349,7 @@ class GPUSemanticReconciler:
 
         console.print(f"[dim]Loading BERT model on {device} with FP16 precision…[/dim]")
         self.model = SentenceTransformer("all-MiniLM-L6-v2", device=str(device))
-        
+
         # Enable FP16 mixed precision inference for 2-3x speedup
         self.model.enable_amp = True
         self.model.to(self.device)
@@ -361,6 +362,12 @@ class GPUSemanticReconciler:
         
         console.print(f"[dim]Schema embeddings shape: {self.schema_embeddings.shape} "
                        f"on {self.schema_embeddings.device}[/dim]")
+        
+        # Cache for seen sensor names → (resolved, confidence)
+        # Avoids re-encoding repeated sensor names (common in telemetry)
+        self._cache: Dict[str, Tuple[Optional[str], float]] = {}
+        self._cache_hits = 0
+        self._cache_misses = 0
         
         # GPU warmup: pre-compile operations with dummy batch
         self._warmup_gpu()
@@ -385,17 +392,41 @@ class GPUSemanticReconciler:
         """
         Resolve a batch of sensor names against the canonical schema.
         
-        Optimized: Vectorized argmax, no Python loop, batched GPU operations.
+        Optimized: LRU cache for seen names, batch deduplication, vectorized ops.
 
         Returns list of (original, resolved_or_None, confidence).
         """
         if not sensor_names:
             return []
 
+        # Build results list (preserves input order)
+        results: List[Tuple[str, Optional[str], float]] = [None] * len(sensor_names)  # type: ignore
+        
+        # Separate cached vs uncached
+        uncached_indices: List[int] = []
+        uncached_names: List[str] = []
+        
+        for i, name in enumerate(sensor_names):
+            if name in self._cache:
+                self._cache_hits += 1
+                results[i] = (name, *self._cache[name])
+            else:
+                self._cache_misses += 1
+                uncached_indices.append(i)
+                uncached_names.append(name)
+        
+        # If everything was cached, return early
+        if not uncached_names:
+            return results
+        
+        # Deduplicate uncached names to minimize GPU work
+        unique_names = list(dict.fromkeys(uncached_names))  # preserves order, removes dups
+        name_to_result: Dict[str, Tuple[Optional[str], float]] = {}
+        
         with torch.no_grad():
-            # Encode all sensor names in one batch (FP16 for speed)
+            # Encode only unique unseen sensor names
             embeddings = self.model.encode(
-                sensor_names,
+                unique_names,
                 convert_to_tensor=True,
                 device=str(self.device),
                 convert_to_numpy=False,
@@ -410,26 +441,32 @@ class GPUSemanticReconciler:
             best_indices = torch.argmax(scores, dim=1)  # shape: (N,)
             
             # Vectorized confidence extraction: gather best scores
-            confidences = scores[torch.arange(len(sensor_names)), best_indices]
-            
-            # Build results: keep on GPU as long as possible
-            results: List[Tuple[str, Optional[str], float]] = []
+            confidences = scores[torch.arange(len(unique_names)), best_indices]
             
             # Only convert to CPU at the end for result assembly
             best_indices_cpu = best_indices.cpu().numpy()
             confidences_cpu = confidences.cpu().numpy()
             
-            for i, name in enumerate(sensor_names):
+            # Build unique results and populate cache
+            for i, name in enumerate(unique_names):
                 best_idx = int(best_indices_cpu[i])
                 confidence = float(confidences_cpu[i])
                 if confidence >= self.threshold:
-                    results.append((name, self.schema[best_idx], confidence))
+                    resolved = self.schema[best_idx]
                 else:
-                    results.append((name, None, confidence))
+                    resolved = None
+                
+                name_to_result[name] = (resolved, confidence)
+                self._cache[name] = (resolved, confidence)
             
             # Ensure GPU work is flushed
             if self.device.type == "cuda":
                 torch.cuda.synchronize()
+        
+        # Fill in uncached results
+        for i, name in zip(uncached_indices, uncached_names):
+            resolved, confidence = name_to_result[name]
+            results[i] = (name, resolved, confidence)
         
         return results
 
@@ -1013,6 +1050,13 @@ class CadillacGPUStressTest:
             mean_anomaly_batch_ms=round(self._total_anomaly_ms / n_anom_batches, 4),
             gpu_utilisation_estimate="active" if self.device.type == "cuda" else "cpu-fallback",
         )
+
+        # Log embedding cache stats
+        if hasattr(self.reconciler, '_cache_hits'):
+            total_lookups = self.reconciler._cache_hits + self.reconciler._cache_misses
+            hit_rate = (self.reconciler._cache_hits / max(1, total_lookups)) * 100
+            console.print(f"\n[dim]Embedding Cache: {self.reconciler._cache_hits:,} hits / "
+                         f"{total_lookups:,} lookups ({hit_rate:.1f}% hit rate)[/dim]")
 
         self.timing_summary = self._build_timing_summary()
 
