@@ -21,13 +21,13 @@ Developed for the 2026 Cadillac F1 Initiative.
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# 1) CPU stress test (core subsystems)
-PYTHONPATH="." python tools/cadillac_stress_test.py --packets 2000 --chaos 0.15
+# Build the C++ extension for fastest ingest
+python setup.py build_ext --inplace
 
-# 2) GPU stress test (semantic reconciliation + tensor anomaly detection)
+# GPU-accelerated stress test (fastest pipeline)
 PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
 
-# 3) Live pit wall dashboard
+# Optional: Live pit wall dashboard
 PYTHONPATH="." python tools/health_monitor.py --duration 60
 ```
 
