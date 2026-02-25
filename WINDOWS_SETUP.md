@@ -35,23 +35,20 @@ Verify:
 where cl.exe   # Should show C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\LLVM\bin\cl.exe
 ```
 
-### 2. Install HIP for Windows
+### 2. Install HIP SDK for Windows
 
-Download from: **https://github.com/ROCm/HIP-windows/releases**
+Download from: **https://rocm.docs.amd.com/projects/install-on-windows/en/latest/install/install.html**
 
-Example: `HIP-6.2.windows-installer.exe` (latest)
+Or get the installer directly from GitHub: https://github.com/ROCm/rocm-install-on-windows/releases
 
-1. Run the installer
-2. Accept defaults (installs to `C:\Program Files\AMD\ROCm`)
-3. **Important**: Check "Add ROCm to PATH" during installation
+1. Run the HIP SDK installer (e.g., `HIP-SDK-6.x.x-Windows.exe`)
+2. Accept defaults (installs to `C:\Program Files\AMD\HIP-SDK`)
+3. **Important**: Make sure PATH is updated during installation
 
 Verify:
 ```powershell
 # Restart PowerShell so PATH updates
-hipinfo
-# Should show:
-#   gfx1100 (your 7900 XT)
-#   Memory: [full GPU memory size]
+hipinfo  # Should show your GPU (gfx1100 for 7900 XT)
 ```
 
 ### 3. Install/Upgrade Python PyTorch for HIP

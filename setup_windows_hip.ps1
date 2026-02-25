@@ -42,41 +42,46 @@ function Test-CompilerExists {
 function Test-HIPInstalled {
     Write-Status "Checking for HIP installation..." "INFO"
     
-    $hipPath = "C:\Program Files\AMD\Rocm"
-    if ((Test-Path $hipPath) -and (Test-Path "$hipPath\bin\hipinfo.exe")) {
-        Write-Status "Found HIP at: $hipPath" "SUCCESS"
-        return $true
-    }
-    
-    $hipPath = "C:\Program Files\AMD\ROCm"
-    if ((Test-Path $hipPath) -and (Test-Path "$hipPath\bin\hipinfo.exe")) {
+    # Check ROCm 7.1 (latest)
+    $hipPath = "C:\Program Files\AMD\ROCm\7.1"
+    if ((Test-Path $hipPath) -and (Test-Path "$hipPath\bin\hipInfo.exe")) {
         Write-Status "Found HIP at: $hipPath" "SUCCESS"
         $env:PATH += ";$hipPath\bin;$hipPath\lib"
         return $true
     }
     
-    Write-Status "HIP for Windows not found!" "ERROR"
-    Write-Status "Download from: https://github.com/ROCm/HIP-windows/releases" "ERROR"
-    Write-Status "Install HIP-6.2.windows-installer.exe (or latest)" "ERROR"
+    # Check ROCm 6.4
+    $hipPath = "C:\Program Files\AMD\ROCm\6.4"
+    if ((Test-Path $hipPath) -and (Test-Path "$hipPath\bin\hipInfo.exe")) {
+        Write-Status "Found HIP at: $hipPath" "SUCCESS"
+        $env:PATH += ";$hipPath\bin;$hipPath\lib"
+        return $true
+    }
+    
+    Write-Status "HIP SDK for Windows not found!" "ERROR"
+    Write-Status "Download from:" "ERROR"
+    Write-Status "  https://rocm.docs.amd.com/projects/install-on-windows/en/latest/install/install.html" "ERROR"
+    Write-Status "OR from GitHub:" "ERROR"
+    Write-Status "  https://github.com/ROCm/rocm-install-on-windows/releases" "ERROR"
     return $false
 }
 
 function Test-GPUDetection {
-    Write-Status "Testing GPU detection with hipinfo..." "INFO"
+    Write-Status "Testing GPU detection with hipInfo..." "INFO"
     
     try {
-        $hipinfo = hipinfo 2>&1
-        if ($hipinfo -match "gfx110") {
-            Write-Status "✓ GPU detected: AMD RDNA3 (7900 XT compatible)" "SUCCESS"
-            $hipinfo | grep -E "gfx|Memory" | ForEach-Object { Write-Status "  $_" }
+        $hipinfo = &"C:\Program Files\AMD\ROCm\7.1\bin\hipInfo.exe" 2>&1
+        if ($hipinfo -match "gfx1100|AMD Radeon RX 7900") {
+            Write-Status "[OK] GPU detected: AMD RDNA3 (7900 XT)" "SUCCESS"
+            $hipinfo | Where-Object { $_ -match "Name:|memInfo" } | ForEach-Object { Write-Status "  $_" }
             return $true
         } else {
             Write-Status "GPU detection unclear. Output:" "WARNING"
-            $hipinfo | head -20 | ForEach-Object { Write-Status "  $_" }
+            $hipinfo | Select-Object -First 20 | ForEach-Object { Write-Status "  $_" }
             return $true  # Don't fail, user might have different GPU
         }
     } catch {
-        Write-Status "hipinfo failed: $_" "ERROR"
+        Write-Status "hipInfo failed: $_" "ERROR"
         return $false
     }
 }
@@ -86,7 +91,9 @@ function Install-PyTorchHIP {
     pip install --upgrade pip setuptools wheel
     
     Write-Status "Uninstalling old PyTorch versions..." "INFO"
-    pip uninstall torch torchvision torchaudio -y 2>$null | out-null
+    $ErrorActionPreference = "Continue"
+    pip uninstall torch torchvision torchaudio -y 2>&1 | out-null
+    $ErrorActionPreference = "Stop"
     
     Write-Status "Installing PyTorch for HIP (Windows)..." "INFO"
     Write-Status "This may take 2-3 minutes..." "INFO"
@@ -152,7 +159,7 @@ function Build-FastIngest {
     # Check if .pyd was created
     $pyd = Get-ChildItem "fast_ingest*.pyd" -ErrorAction SilentlyContinue
     if ($pyd) {
-        Write-Status "✓ Extension built: $($pyd.Name)" "SUCCESS"
+        Write-Status "[OK] Extension built: $($pyd.Name)" "SUCCESS"
         return $true
     } else {
         Write-Status "Extension file not found after build!" "ERROR"
@@ -171,7 +178,7 @@ import fast_ingest
 try:
     # Test 1: CPU ingest
     result = fast_ingest.ingest([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
-    print(f"✓ CPU ingest: shape={result.shape}, device={result.device}")
+    print(f"[OK] CPU ingest: shape={result.shape}, device={result.device}")
     
     # Test 2: GPU normalize
     lo = [80.0, 4000.0, 0.0, 100.0, 70.0, 150.0, 19.0, 0.0, 55.0, -6.0]
@@ -180,12 +187,12 @@ try:
     
     result = fast_ingest.normalize(packet, lo, hi)
     on_gpu = 'cuda' in str(result.device)
-    print(f"✓ GPU normalize: device={result.device}, on_gpu={on_gpu}")
+    print(f"[OK] GPU normalize: device={result.device}, on_gpu={on_gpu}")
     
     # Test 3: Batch
     batch = [packet] * 10
     result = fast_ingest.ingest_batch(batch, lo, hi)
-    print(f"✓ Batch GPU: shape={result.shape}, device={result.device}")
+    print(f"[OK] Batch GPU: shape={result.shape}, device={result.device}")
     
     if on_gpu:
         print("SUCCESS: All tests passed, GPU acceleration active!")
@@ -207,10 +214,10 @@ except Exception as e:
 
 function Main {
     Write-Host ""
-    Write-Status "========================================" "INFO"
-    Write-Status "Windows HIP Setup for Resilient RAP     " "INFO"
-    Write-Status "AMD 7900 XT GPU Acceleration            " "INFO"
-    Write-Status "========================================" "INFO"
+    Write-Status "======================================" "INFO"
+    Write-Status "Windows HIP Setup - Resilient RAP" "INFO"
+    Write-Status "AMD 7900 XT GPU Acceleration" "INFO"
+    Write-Status "======================================" "INFO"
     Write-Host ""
     
     Write-Status "System: Windows" "INFO"
@@ -264,9 +271,9 @@ function Main {
     if (-not $TestOnly) {
         if (Test-FastIngest) {
             Write-Host ""
-            Write-Status "========================================" "SUCCESS"
-            Write-Status "✓ Setup complete! GPU is ready." "SUCCESS"
-            Write-Status "========================================" "SUCCESS"
+            Write-Status "======================================" "SUCCESS"
+            Write-Status "[OK] Setup complete! GPU is ready." "SUCCESS"
+            Write-Status "======================================" "SUCCESS"
             Write-Host ""
             Write-Status "Next: Run the pipeline:" "INFO"
             Write-Status "  python examples/demo_hitl_retraining.py" "INFO"
@@ -283,4 +290,9 @@ function Main {
     }
 }
 
-Main
+if ($?) {
+    Main
+} else {
+    Write-Status "Script execution failed." "ERROR"
+    exit 1
+}

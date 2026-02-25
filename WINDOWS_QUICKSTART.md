@@ -1,13 +1,14 @@
 # Quick Start: Windows AMD 7900 XT Setup
 
-This directory contains automated scripts to set up the Resilient RAP Framework with AMD HIP for Windows GPU acceleration.
+This directory contains automated scripts to set up the Resilient RAP Framework with HIP SDK for Windows GPU acceleration.
 
 ## TL;DR (5 minutes)
 
 ```powershell
 # 1. Install prerequisites (one-time)
 #    - Visual Studio Build Tools 2022 from https://visualstudio.microsoft.com/downloads/
-#    - HIP for Windows from https://github.com/ROCm/HIP-windows/releases
+#    - HIP SDK for Windows from https://rocm.docs.amd.com/projects/install-on-windows/en/latest/install/install.html
+#    - OR from GitHub: https://github.com/ROCm/rocm-install-on-windows/releases
 
 # 2. Run setup script
 cd G:\Docker\resilient-rap-framework
