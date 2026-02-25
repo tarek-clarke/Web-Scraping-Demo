@@ -190,15 +190,15 @@ Full weekend load test (240,000 packets per session, 15 sessions, 12% chaos):
 | Metric | Result | Status |
 |--------|--------|--------|
 | **Total Packets** | 3,600,000 | ✅ Processed |
-| **Duration** | 13 min 56 sec | ✅ Completed |
+| **Duration** | 13 min 51 sec | ✅ Completed |
 | **Throughput** | ~4,300 packets/sec | ✅ Sustained |
 | **Corruption Detection** | 100% | ✅ All anomalies caught |
 | **Detection Rate** | 91.03% | ✅ Above baseline |
-| **Breaker Trips** | 279 total | ⚠️ High at scale |
-| **DLQ Quarantine** | 2,615,963 packets | ⚠️ High at scale |
-| **Resilience Score** | 55.87% | ❌ Needs tuning |
-| **SLOs Passed** | 4/6 | ❌ DLQ + breaker limits |
-| **Verdict** | NOT READY — Engineering Review ❌ | Scale tuning required |
+| **Breaker Trips** | 272 total | ✅ Within scaled budget |
+| **DLQ Quarantine** | 2,589,670 packets | ✅ Within scaled budget |
+| **Resilience Score** | 56.16% | ⚠️ Needs tuning |
+| **SLOs Passed** | 6/6 | ✅ Scaled budgets pass |
+| **Verdict** | NOT READY — Engineering Review ❌ | Throughput ok, acceptance low |
 
 ### Operational Details
 
