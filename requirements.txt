@@ -45,10 +45,14 @@ typing_extensions==4.15.0
 tzdata==2025.3
 pytest==8.0.0
 
-# Backend-agnostic GPU support
-# PyTorch auto-detects GPU at runtime: CUDA, ROCm/HIP, or CPU
-# For specific backend installation, see GETTING_STARTED.md
-torch==2.10.0
-torchvision==0.15.0
-torchaudio==2.10.0
+
+# Default: ROCm (AMD GPU)
+torch==2.3.1+rocm5.7
+torchvision==0.18.1+rocm5.7
+torchaudio==2.3.1+rocm5.7
 triton==3.6.0
+
+# For NVIDIA CUDA users, comment out ROCm lines above and uncomment below:
+# torch==2.10.0
+# torchvision==0.15.0
+# torchaudio==2.10.0

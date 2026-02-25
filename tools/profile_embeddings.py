@@ -25,9 +25,23 @@ base = CANONICAL_SENSORS
 variants = [s for s in base]
 variants += [s + "_v2" for s in base]
 variants += [s.replace("_", "") for s in base]
-batch = [variants[i % len(variants)] for i in range(BATCH_SIZE)]
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Device selection logic: honor FORCE_DEVICE env var, else auto-detect
+import os
+force_device = os.environ.get("FORCE_DEVICE", "").strip().lower()
+if force_device in ["gpu", "cuda", "hip"]:
+    try:
+        device = torch.device("cuda", 0)
+        # Verify device works
+        torch.cuda.get_device_name(0)
+    except Exception as e:
+        print(f"[Warning] FORCE_DEVICE={force_device} but GPU unavailable: {e}")
+        device = torch.device("cpu")
+elif force_device == "cpu":
+    device = torch.device("cpu")
+else:
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Device for profiling:", device)
 
 print("Initializing GPUSemanticReconciler (loads model) — this may take a moment...")

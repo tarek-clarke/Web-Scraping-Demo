@@ -63,6 +63,7 @@
 #endif
 
 #include <cstring>       // std::memcpy
+#include <cstdlib>       // std::malloc, std::free (for CPU fallback)
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -86,23 +87,47 @@ namespace {
 /**
  * Allocate a pinned (page-locked) CPU tensor of shape {n} float32.
  *
- * The returned tensor owns a cudaMallocHost / hipHostMalloc allocation.
- * A custom deleter on the tensor's storage ensures the pinned buffer is
- * freed when the last reference is dropped — no manual memory management
- * required from the caller.
+ * Attempts hipHostMalloc / cudaMallocHost first (fastest on GPU systems).
+ * If GPU is unavailable (no /dev/kfd, WSL2, etc), falls back to regular malloc.
+ * A custom deleter ensures the buffer is freed appropriately.
  */
 torch::Tensor alloc_pinned(int64_t n) {
     float* ptr = nullptr;
-    if (cudaMallocHost(reinterpret_cast<void**>(&ptr), n * sizeof(float)) != 0) {
-        throw std::runtime_error(
-            "fast_ingest: cudaMallocHost / hipHostMalloc failed ("
-            + std::to_string(n) + " floats)");
+    bool is_pinned = false;
+    
+    // Try GPU pinned allocation first (preferred for H→D transfers)
+    if (cudaMallocHost(reinterpret_cast<void**>(&ptr), n * sizeof(float)) == 0) {
+        is_pinned = true;
+    } else {
+        // GPU unavailable (no /dev/kfd, WSL2, etc) → fall back to regular malloc
+        // This branch is taken on:
+        //   • Windows (without HIP device)
+        //   • WSL2 (no native AMD GPU passthrough)
+        //   • CPU-only test environments
+        ptr = reinterpret_cast<float*>(std::malloc(n * sizeof(float)));
+        if (!ptr) {
+            throw std::runtime_error(
+                "fast_ingest: malloc failed for "
+                + std::to_string(n) + " floats");
+        }
+        is_pinned = false;
     }
+    
     float* captured = ptr;
+    
+    // Custom deleter: use hipHostFree or free depending on allocation type
+    auto deleter = [captured, is_pinned](void* /*p*/) {
+        if (is_pinned) {
+            cudaFreeHost(captured);
+        } else {
+            std::free(captured);
+        }
+    };
+    
     return torch::from_blob(
         ptr,
         {n},
-        /*deleter=*/[captured](void* /*p*/) { cudaFreeHost(captured); },
+        std::move(deleter),
         torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU)
     );
 }
@@ -274,11 +299,20 @@ torch::Tensor ingest_batch(const std::vector<std::vector<float>>& packets,
 
     // ── Allocate a single pinned slab for the whole batch {B × N} with padding ──
     float* pinned_ptr = nullptr;
+    bool batch_is_pinned = false;
     const std::size_t bytes = static_cast<std::size_t>(B) * N * sizeof(float);
-    if (cudaMallocHost(reinterpret_cast<void**>(&pinned_ptr), bytes) != 0) {
-        throw std::runtime_error(
-            "fast_ingest.ingest_batch: cudaMallocHost failed for "
-            + std::to_string(B) + " × " + std::to_string(N) + " tensor");
+    
+    if (cudaMallocHost(reinterpret_cast<void**>(&pinned_ptr), bytes) == 0) {
+        batch_is_pinned = true;
+    } else {
+        // Fallback: GPU unavailable → use regular malloc
+        pinned_ptr = reinterpret_cast<float*>(std::malloc(bytes));
+        if (!pinned_ptr) {
+            throw std::runtime_error(
+                "fast_ingest.ingest_batch: malloc failed for "
+                + std::to_string(B) + " × " + std::to_string(N) + " tensor");
+        }
+        batch_is_pinned = false;
     }
 
     // ── Row-major flatten with STATIC PADDING (zero allocations) ──────────
@@ -308,7 +342,13 @@ torch::Tensor ingest_batch(const std::vector<std::vector<float>>& packets,
     torch::Tensor host_t = torch::from_blob(
         pinned_ptr,
         {B, N},
-        /*deleter=*/[captured](void* /*p*/) { cudaFreeHost(captured); },
+        /*deleter=*/[captured, batch_is_pinned](void* /*p*/) {
+            if (batch_is_pinned) {
+                cudaFreeHost(captured);
+            } else {
+                std::free(captured);
+            }
+        },
         torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU)
     );
 
@@ -419,6 +459,7 @@ public:
         , capacity_(batch_size)
         , cursor_(0)
         , pinned_(nullptr)
+        , pinned_is_gpu_(false)
         , stream_(ingest_stream_high_priority())
     {
         TORCH_CHECK(static_cast<int64_t>(lo.size()) <= N_,
@@ -432,11 +473,19 @@ public:
         // ── Pre-allocate pinned ring buffer with STATIC padding ──────────
         const std::size_t bytes =
             static_cast<std::size_t>(capacity_) * N_ * sizeof(float);
-        if (cudaMallocHost(reinterpret_cast<void**>(&pinned_), bytes) != 0) {
-            throw std::runtime_error(
-                "StreamingIngestor: hipHostMalloc failed for "
-                + std::to_string(capacity_) + " × " + std::to_string(N_)
-                + " (" + std::to_string(bytes) + " bytes)");
+        
+        if (cudaMallocHost(reinterpret_cast<void**>(&pinned_), bytes) == 0) {
+            pinned_is_gpu_ = true;
+        } else {
+            // Fallback: GPU unavailable → use regular malloc
+            pinned_ = reinterpret_cast<float*>(std::malloc(bytes));
+            if (!pinned_) {
+                throw std::runtime_error(
+                    "StreamingIngestor: malloc failed for "
+                    + std::to_string(capacity_) + " × " + std::to_string(N_)
+                    + " (" + std::to_string(bytes) + " bytes)");
+            }
+            pinned_is_gpu_ = false;
         }
 
         // ── Cache lo/hi/range tensors on the device (cached forever) ─────
@@ -470,7 +519,11 @@ public:
 
     ~StreamingIngestor() {
         if (pinned_) {
-            cudaFreeHost(pinned_);
+            if (pinned_is_gpu_) {
+                cudaFreeHost(pinned_);
+            } else {
+                std::free(pinned_);
+            }
             pinned_ = nullptr;
         }
     }
@@ -640,6 +693,7 @@ private:
     int64_t capacity_;     // ring-buffer capacity (batch_size)
     int64_t cursor_;       // write cursor into pinned ring buffer
     float*  pinned_;       // pre-allocated page-locked host buffer
+    bool    pinned_is_gpu_; // whether buffer is GPU-pinned or CPU malloc
 
     torch::Tensor lo_t_;     // {1, N} cached on device
     torch::Tensor hi_t_;     // {1, N} cached on device

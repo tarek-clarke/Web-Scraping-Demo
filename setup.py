@@ -46,8 +46,13 @@ from setuptools import setup
 # Environment detection
 # ---------------------------------------------------------------------------
 
-IS_ROCM: bool = getattr(torch.version, "hip", None) is not None
-IS_CUDA: bool = (not IS_ROCM) and (CUDA_HOME is not None or
+# Allow FORCE_CPU=1 to build a CPU-only extension even when ROCm/CUDA headers
+# are detected.  Useful inside containers where the SDK is incomplete or the
+# GPU hardware is not accessible (e.g. WSL2 with AMD ROCm).
+FORCE_CPU: bool = os.environ.get("FORCE_CPU", "0") == "1"
+
+IS_ROCM: bool = (not FORCE_CPU) and getattr(torch.version, "hip", None) is not None
+IS_CUDA: bool = (not FORCE_CPU) and (not IS_ROCM) and (CUDA_HOME is not None or
                                     torch.cuda.is_available())
 
 ROCM_PATH: str = os.environ.get("ROCM_PATH", "/opt/rocm")
