@@ -839,6 +839,7 @@ class CadillacStressTest:
             detection_rate=detection_rate,
             breaker_trips=report.total_breaker_trips,
             num_sessions=total_sessions,
+            packets_per_session=self.packets_per_session,
         )
         tracker.print_report(slo_report)
 

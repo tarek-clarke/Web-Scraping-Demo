@@ -86,6 +86,9 @@ class SLOTracker:
     margin, and actionable alerts for any violation.
     """
 
+    BASE_PACKETS_PER_SESSION: int = 1000
+    BASE_SESSIONS: int = 15
+
     BUDGETS: List[SLOBudget] = [
         SLOBudget(
             name="LATENCY_P95",
@@ -131,6 +134,32 @@ class SLOTracker:
         ),
     ]
 
+    def _scaled_threshold(
+        self,
+        budget: SLOBudget,
+        packets_per_session: int | None,
+        num_sessions: int,
+        baseline_packets_per_session: int,
+        baseline_sessions: int,
+    ) -> float:
+        if not packets_per_session:
+            return budget.threshold
+
+        per_session_scale = max(
+            1.0, packets_per_session / max(1, baseline_packets_per_session)
+        )
+        total_scale = max(
+            1.0,
+            (packets_per_session * max(1, num_sessions))
+            / max(1, baseline_packets_per_session * baseline_sessions),
+        )
+
+        if budget.name == "DLQ_DEPTH":
+            return budget.threshold * total_scale
+        if budget.name == "BREAKER_TRIPS_PER_SESSION":
+            return budget.threshold * per_session_scale
+        return budget.threshold
+
     def evaluate(
         self,
         latency_p95_ms: float,
@@ -140,6 +169,9 @@ class SLOTracker:
         detection_rate: float,
         breaker_trips: int = 0,
         num_sessions: int = 1,
+        packets_per_session: int | None = None,
+        baseline_packets_per_session: int = BASE_PACKETS_PER_SESSION,
+        baseline_sessions: int = BASE_SESSIONS,
     ) -> SLOReport:
         """
         Evaluate all SLO budgets against observed metrics.
@@ -160,6 +192,12 @@ class SLOTracker:
             Total circuit breaker trips across all sessions.
         num_sessions : int
             Number of sessions run (for per-session normalisation).
+        packets_per_session : int | None
+            Packets per session (used to scale DLQ and breaker budgets).
+        baseline_packets_per_session : int
+            Baseline packets per session used to define budgets.
+        baseline_sessions : int
+            Baseline number of sessions used to define budgets.
         """
         actuals = {
             "LATENCY_P95":               latency_p95_ms,
@@ -174,18 +212,25 @@ class SLOTracker:
 
         report = SLOReport()
         for budget in self.BUDGETS:
+            threshold = self._scaled_threshold(
+                budget,
+                packets_per_session,
+                num_sessions,
+                baseline_packets_per_session,
+                baseline_sessions,
+            )
             actual = actuals[budget.name]
             if budget.direction == "lt":
-                passed = actual < budget.threshold
-                margin = budget.threshold - actual  # positive = headroom
+                passed = actual < threshold
+                margin = threshold - actual  # positive = headroom
             else:
-                passed = actual >= budget.threshold
-                margin = actual - budget.threshold  # positive = headroom
+                passed = actual >= threshold
+                margin = actual - threshold  # positive = headroom
 
             result = SLOResult(
                 name=budget.name,
                 description=budget.description,
-                threshold=budget.threshold,
+                threshold=threshold,
                 unit=budget.unit,
                 actual=round(actual, 4),
                 passed=passed,
@@ -199,7 +244,7 @@ class SLOTracker:
                 report.alerts.append(
                     f"[ALERT] SLO VIOLATED — {budget.name}: "
                     f"actual={actual:.4f} {budget.unit}, "
-                    f"budget={budget.threshold} {budget.unit}"
+                    f"budget={threshold} {budget.unit}"
                 )
 
         if report.failed == 0:
