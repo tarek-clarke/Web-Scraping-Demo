@@ -1,16 +1,16 @@
-session_name,circuit,packets_sent,packets_accepted,packets_rejected,chaos_injected,breaker_trips,breaker_final_state,dlq_depth,buffer_pending,latency_p50_ms,latency_p95_ms,latency_p99_ms,geo_scrubbed,duration_s,gpu_semantic_resolutions,gpu_semantic_recovered,gpu_anomaly_detections,gpu_batch_embedding_ms,gpu_batch_anomaly_ms
-spielberg_FP1,spielberg,1000,339,661,92,1,OPEN,661,0,0.0,0.0,15.0,20,0.0,1000,13,63,63.00000000010186,15.999999999849024
-spielberg_FP2,spielberg,1000,0,1000,107,0,OPEN,1661,0,0.0,0.0,15.0,20,0.0,1000,16,52,31.99999999992542,0.0
-spielberg_FP3,spielberg,1000,0,1000,95,0,OPEN,2661,0,0.0,0.0,15.0,20,0.0,1000,11,74,31.999999999698048,16.000000000076398
-spielberg_QUALI,spielberg,1000,0,1000,94,0,OPEN,3661,0,0.0,0.0,15.0,20,0.0,1000,15,55,63.99999999962347,0.0
-spielberg_RACE,spielberg,1000,0,1000,100,0,OPEN,4661,0,0.0,0.0,15.0,20,0.0,1000,13,57,15.000000000100044,0.0
-silverstone_FP1,silverstone,1000,842,158,104,0,CLOSED,4819,163,0.0,0.0,0.0,20,0.0,1000,11,69,0.0,0.0
-silverstone_FP2,silverstone,1000,287,713,107,1,OPEN,5532,0,0.0,0.0,0.0,20,0.0,1000,13,68,15.999999999849024,16.000000000076398
-silverstone_FP3,silverstone,1000,0,1000,123,0,OPEN,6532,0,0.0,0.0,15.0,20,0.0,1000,21,66,15.999999999849024,0.0
-silverstone_QUALI,silverstone,1000,0,1000,104,0,OPEN,7532,0,0.0,0.0,15.0,20,0.0,1000,19,67,30.00000000020009,0.0
-silverstone_RACE,silverstone,1000,0,1000,93,0,OPEN,8532,0,0.0,0.0,16.0,20,0.0,1000,14,62,15.999999999849024,0.0
-budapest_FP1,budapest,1000,745,255,98,1,OPEN,8787,48,0.0,0.0,0.0,20,0.0,1000,13,50,0.0,0.0
-budapest_FP2,budapest,1000,0,1000,112,0,OPEN,9787,0,0.0,0.0,15.0,20,0.0,1000,15,85,0.0,0.0
-budapest_FP3,budapest,1000,0,1000,105,0,OPEN,10787,0,0.0,0.0,15.0,20,0.0,1000,12,75,0.0,0.0
-budapest_QUALI,budapest,1000,0,1000,108,0,OPEN,11787,0,0.0,0.0,15.0,20,0.0,1000,13,57,0.0,0.0
-budapest_RACE,budapest,1000,0,1000,108,0,OPEN,12787,0,0.0,0.0,15.0,20,0.0,1000,6,67,0.0,0.0
+session_name,circuit,packets_sent,packets_accepted,packets_rejected,chaos_injected,breaker_trips,breaker_final_state,dlq_depth,buffer_pending,latency_p50_ms,latency_p95_ms,latency_p99_ms,geo_scrubbed,duration_s,gpu_semantic_resolutions,gpu_semantic_recovered,gpu_anomaly_detections,gpu_batch_embedding_ms,gpu_batch_anomaly_ms,gpu_device_name,gpu_vram_gb,gpu_hip_version,gpu_utilisation_estimate
+spielberg_FP1,spielberg,1000,864,136,102,0,CLOSED,12808,173,0.0,0.0,0.0,20,0.0,1000,17,61,77.99999999997453,0.0,AMD Radeon RX 7900 XT,19.98,7.1 (Windows),hip-detected (tensor ops on CPU)
+spielberg_FP2,spielberg,1000,867,133,79,0,CLOSED,12941,174,0.0,0.0,0.0,20,0.0,1000,22,50,61.99999999989814,16.000000000076398,AMD Radeon RX 7900 XT,19.98,7.1 (Windows),hip-detected (tensor ops on CPU)
+spielberg_FP3,spielberg,1000,879,121,80,0,CLOSED,13062,346,0.0,0.0,0.0,20,0.0,1000,10,64,0.0,0.0,AMD Radeon RX 7900 XT,19.98,7.1 (Windows),hip-detected (tensor ops on CPU)
+spielberg_QUALI,spielberg,1000,866,134,81,0,CLOSED,13196,340,0.0,0.0,0.0,20,0.0,1000,11,65,30.99999999994907,0.0,AMD Radeon RX 7900 XT,19.98,7.1 (Windows),hip-detected (tensor ops on CPU)
+spielberg_RACE,spielberg,1000,825,175,106,0,CLOSED,13371,173,0.0,0.0,0.0,20,0.0,1000,14,59,30.99999999994907,0.0,AMD Radeon RX 7900 XT,19.98,7.1 (Windows),hip-detected (tensor ops on CPU)
+silverstone_FP1,silverstone,1000,835,165,97,0,CLOSED,13536,168,0.0,0.0,0.0,20,0.0,1000,18,61,32.000000000152795,0.0,AMD Radeon RX 7900 XT,19.98,7.1 (Windows),hip-detected (tensor ops on CPU)
+silverstone_FP2,silverstone,1000,820,180,102,0,CLOSED,13716,160,0.0,0.0,0.0,20,0.0,1000,17,64,0.0,0.0,AMD Radeon RX 7900 XT,19.98,7.1 (Windows),hip-detected (tensor ops on CPU)
+silverstone_FP3,silverstone,1000,840,160,105,0,CLOSED,13876,163,0.0,0.0,0.0,20,0.0,1000,14,60,16.000000000076398,0.0,AMD Radeon RX 7900 XT,19.98,7.1 (Windows),hip-detected (tensor ops on CPU)
+silverstone_QUALI,silverstone,1000,842,158,106,0,CLOSED,14034,170,0.0,0.0,0.0,20,0.0,1000,21,57,16.000000000076398,0.0,AMD Radeon RX 7900 XT,19.98,7.1 (Windows),hip-detected (tensor ops on CPU)
+silverstone_RACE,silverstone,1000,843,157,88,0,CLOSED,14191,160,0.0,0.0,0.0,20,0.0,1000,7,53,0.0,0.0,AMD Radeon RX 7900 XT,19.98,7.1 (Windows),hip-detected (tensor ops on CPU)
+budapest_FP1,budapest,1000,818,182,115,0,CLOSED,14373,167,0.0,0.0,0.0,20,0.0,1000,13,55,0.0,16.000000000076398,AMD Radeon RX 7900 XT,19.98,7.1 (Windows),hip-detected (tensor ops on CPU)
+budapest_FP2,budapest,1000,821,179,116,0,CLOSED,14552,166,0.0,0.0,0.0,20,0.0,1000,11,67,0.0,0.0,AMD Radeon RX 7900 XT,19.98,7.1 (Windows),hip-detected (tensor ops on CPU)
+budapest_FP3,budapest,1000,816,184,107,0,CLOSED,14736,159,0.0,0.0,0.0,20,0.0,1000,12,77,16.000000000076398,0.0,AMD Radeon RX 7900 XT,19.98,7.1 (Windows),hip-detected (tensor ops on CPU)
+budapest_QUALI,budapest,1000,849,151,103,0,CLOSED,14887,170,0.0,0.0,0.0,20,0.0,1000,11,58,0.0,0.0,AMD Radeon RX 7900 XT,19.98,7.1 (Windows),hip-detected (tensor ops on CPU)
+budapest_RACE,budapest,1000,831,169,109,0,CLOSED,15056,165,0.0,0.0,0.0,20,0.0,1000,19,67,0.0,0.0,AMD Radeon RX 7900 XT,19.98,7.1 (Windows),hip-detected (tensor ops on CPU)

@@ -43,6 +43,9 @@
  */
 
 #include <torch/extension.h>
+
+#ifndef FAST_INGEST_CPU_ONLY
+// ── GPU headers (ROCm/HIP or CUDA) ──────────────────────────────────────
 #include <ATen/cuda/CUDAContext.h>      // at::cuda::getCurrentCUDAStream()
 #include <c10/cuda/CUDAStream.h>        // at::cuda::CUDAStream, getStreamFromPool()
 #include <c10/cuda/CUDAGuard.h>         // at::cuda::CUDAStreamGuard
@@ -51,7 +54,6 @@
 // HIP headers; we include hip_runtime.h only if the HIP platform target is set.
 #if defined(__HIP_PLATFORM_AMD__) || defined(__HIP_PLATFORM_HCC__)
 #  include <hip/hip_runtime.h>
-// Provide CUDA-compat aliases so the rest of the file is source-portable.
 #  ifndef cudaMallocHost
 #    define cudaMallocHost(ptr, sz)  hipHostMalloc((ptr), (sz), hipHostMallocDefault)
 #  endif
@@ -61,6 +63,7 @@
 #else
 #  include <cuda_runtime.h>
 #endif
+#endif  // FAST_INGEST_CPU_ONLY
 
 #include <cstring>       // std::memcpy
 #include <cstdlib>       // std::malloc, std::free (for CPU fallback)
@@ -94,16 +97,15 @@ namespace {
 torch::Tensor alloc_pinned(int64_t n) {
     float* ptr = nullptr;
     bool is_pinned = false;
-    
+
+#ifndef FAST_INGEST_CPU_ONLY
     // Try GPU pinned allocation first (preferred for H→D transfers)
     if (cudaMallocHost(reinterpret_cast<void**>(&ptr), n * sizeof(float)) == 0) {
         is_pinned = true;
-    } else {
-        // GPU unavailable (no /dev/kfd, WSL2, etc) → fall back to regular malloc
-        // This branch is taken on:
-        //   • Windows (without HIP device)
-        //   • WSL2 (no native AMD GPU passthrough)
-        //   • CPU-only test environments
+    } else
+#endif
+    {
+        // CPU fallback: regular malloc (Windows, WSL2, CPU-only builds)
         ptr = reinterpret_cast<float*>(std::malloc(n * sizeof(float)));
         if (!ptr) {
             throw std::runtime_error(
@@ -112,18 +114,19 @@ torch::Tensor alloc_pinned(int64_t n) {
         }
         is_pinned = false;
     }
-    
+
     float* captured = ptr;
-    
-    // Custom deleter: use hipHostFree or free depending on allocation type
+
     auto deleter = [captured, is_pinned](void* /*p*/) {
         if (is_pinned) {
+#ifndef FAST_INGEST_CPU_ONLY
             cudaFreeHost(captured);
+#endif
         } else {
             std::free(captured);
         }
     };
-    
+
     return torch::from_blob(
         ptr,
         {n},
@@ -142,9 +145,11 @@ torch::Tensor alloc_pinned(int64_t n) {
  * the hot path.  High-priority scheduling ensures the DMA engine services
  * the H→D copy before lower-priority work queued on default streams.
  */
+#ifndef FAST_INGEST_CPU_ONLY
 inline at::cuda::CUDAStream ingest_stream_high_priority() {
     return at::cuda::getStreamFromPool(/*isHighPriority=*/true);
 }
+#endif
 
 } // anonymous namespace
 
@@ -225,31 +230,35 @@ torch::Tensor normalize(const std::vector<float>& packet,
     // Step 1 — pinned host tensor (one memcpy, GIL-free).
     torch::Tensor host_t = ingest(packet);  // GIL released inside
 
-    // Acquire a non-default high-priority ingest stream.  All subsequent GPU
-    // operations in this function are launched onto this stream.
-    at::cuda::CUDAStream ingest_s = ingest_stream_high_priority();
-
-    torch::Tensor device_t;
     torch::Tensor normalized;
 
     {
         pybind11::gil_scoped_release release;
+
+#ifndef FAST_INGEST_CPU_ONLY
+        // Acquire a non-default high-priority ingest stream.
+        at::cuda::CUDAStream ingest_s = ingest_stream_high_priority();
         at::cuda::CUDAStreamGuard guard(ingest_s);
 
         // Step 2 — async H→D copy (non_blocking=true: no CPU spin-wait).
-        device_t = host_t.to(
+        torch::Tensor device_t = host_t.to(
             at::device(at::kCUDA).dtype(at::kFloat),
-            /*non_blocking=*/true   // DMA on ingest_s, no stall on default stream
+            /*non_blocking=*/true
         );
-
-        // Step 3 — build range tensors directly on the device.
         auto dev = device_t.device();
+#else
+        // CPU-only: operate directly on the host tensor.
+        torch::Tensor device_t = host_t;
+        auto dev = torch::kCPU;
+#endif
+
+        // Step 3 — build range tensors.
         auto lo_t = torch::tensor(lo,
             torch::TensorOptions().dtype(torch::kFloat32).device(dev));
         auto hi_t = torch::tensor(hi,
             torch::TensorOptions().dtype(torch::kFloat32).device(dev));
 
-        // clamp_min prevents div-by-zero for zero-range sensors (e.g. constant ECU).
+        // clamp_min prevents div-by-zero for zero-range sensors.
         torch::Tensor range_t = (hi_t - lo_t).clamp_min_(1e-6f);
 
         // Step 4 — min–max normalization → [−1, 1].

@@ -1409,12 +1409,21 @@ class CadillacGPUStressTest:
             "gpu_semantic_resolutions", "gpu_semantic_recovered",
             "gpu_anomaly_detections", "gpu_batch_embedding_ms",
             "gpu_batch_anomaly_ms",
+            # New GPU info columns
+            "gpu_device_name", "gpu_vram_gb", "gpu_hip_version", "gpu_utilisation_estimate"
         ]
         with open(csv_path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
+            gpu_metrics = asdict(self.report.gpu_metrics)
             for s in self.report.sessions:
-                writer.writerow(asdict(s))
+                row = asdict(s)
+                # Add GPU info to each row
+                row["gpu_device_name"] = gpu_metrics.get("device_name", "")
+                row["gpu_vram_gb"] = gpu_metrics.get("vram_gb", "")
+                row["gpu_hip_version"] = gpu_metrics.get("hip_version", "")
+                row["gpu_utilisation_estimate"] = gpu_metrics.get("gpu_utilisation_estimate", "")
+                writer.writerow(row)
         console.print(f"\n[dim]GPU CSV exported → {csv_path}[/dim]")
 
         # --- Full JSON report ---

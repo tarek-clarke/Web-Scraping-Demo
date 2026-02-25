@@ -80,14 +80,15 @@ else:
 # ---------------------------------------------------------------------------
 
 # ── Host (C++) flags ────────────────────────────────────────────────────────
-CXX_FLAGS = [
-    "-std=c++17",       # required for <string_view>, if-constexpr, structured bindings
-    "-O3",              # full optimisation
-    "-fPIC",            # position-independent code (shared library)
-    "-Wall",
-    "-Wextra",
-    "-Wno-unused-parameter",  # pybind11 stubs trigger this
-]
+import platform
+CXX_FLAGS = ["-std=c++17", "-O3"]
+if platform.system() != "Windows":
+    CXX_FLAGS += [
+        "-fPIC",            # position-independent code (shared library)
+        "-Wall",
+        "-Wextra",
+        "-Wno-unused-parameter",  # pybind11 stubs trigger this
+    ]
 
 if IS_ROCM:
     # ROCm/HIP uses the AMD clang host compiler. These flags are compatible.
@@ -159,10 +160,11 @@ if IS_ROCM or IS_CUDA:
 else:
     # CPU-only fallback: pinned-memory and stream calls are stubbed out in the
     # extension by the conditional compilation macros in fast_ingest.cpp.
+    cpu_flags = CXX_FLAGS + ["-DFAST_INGEST_CPU_ONLY"]
     ext = CppExtension(
         name="fast_ingest",
         sources=SOURCES,
-        extra_compile_args={"cxx": CXX_FLAGS},
+        extra_compile_args={"cxx": cpu_flags},
     )
 
 # ---------------------------------------------------------------------------
