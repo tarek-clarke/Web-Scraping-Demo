@@ -90,6 +90,42 @@ console = Console()
 # ---------------------------------------------------------------------------
 # GPU helpers
 # ---------------------------------------------------------------------------
+
+def _detect_hip_gpu() -> Optional[Dict[str, Any]]:
+    """Detect AMD GPU via HIP on Windows (independent of PyTorch backend).
+
+    PyTorch official wheels for Windows are CPU/CUDA only — no ROCm builds.
+    This function queries hipInfo.exe directly so the banner and reports
+    still reflect the real hardware even when tensor ops fall back to CPU.
+    """
+    import subprocess, os, re
+
+    hip_paths = [
+        os.path.join(os.environ.get("ROCM_HOME", ""), "bin", "hipInfo.exe"),
+        r"C:\Program Files\AMD\ROCm\7.1\bin\hipInfo.exe",
+        r"C:\Program Files\AMD\ROCm\6.4\bin\hipInfo.exe",
+    ]
+    for hip_exe in hip_paths:
+        if os.path.isfile(hip_exe):
+            try:
+                out = subprocess.check_output([hip_exe], timeout=10,
+                                              stderr=subprocess.DEVNULL).decode(errors="replace")
+                name_m = re.search(r"Name:\s+(.+)", out)
+                arch_m = re.search(r"gcnArchName:\s+(\S+)", out)
+                mem_m = re.search(r"memInfo\.total:\s+([\d.]+)\s+GB", out)
+                if name_m:
+                    return {
+                        "name": name_m.group(1).strip(),
+                        "arch": arch_m.group(1) if arch_m else "unknown",
+                        "vram_gb": float(mem_m.group(1)) if mem_m else 0.0,
+                        "hip_version": "7.1 (Windows)",
+                        "hip_exe": hip_exe,
+                    }
+            except Exception:
+                continue
+    return None
+
+
 def get_gpu_device() -> torch.device:
     """Return an available GPU device (CUDA/ROCm/HIP), else CPU.
     
@@ -112,7 +148,11 @@ def get_gpu_device() -> torch.device:
             torch.cuda.get_device_name(0)
             return device
         except Exception as e:
-            console.print(f"[yellow]Warning: FORCE_DEVICE={force_device} but GPU unavailable: {e}[/yellow]")
+            console.print(f"[yellow]Warning: FORCE_DEVICE={force_device} but PyTorch GPU unavailable: {e}[/yellow]")
+            hip = _detect_hip_gpu()
+            if hip:
+                console.print(f"[cyan]HIP GPU detected: {hip['name']} ({hip['arch']}) — "
+                              f"PyTorch ROCm wheels are Linux-only, tensor ops will use CPU.[/cyan]")
     elif force_device == "cpu":
         return torch.device("cpu")
     
@@ -134,6 +174,15 @@ def gpu_info_dict(device: torch.device) -> Dict[str, Any]:
         props = torch.cuda.get_device_properties(device)
         mem = getattr(props, "total_memory", None) or getattr(props, "total_mem", 0)
         info["vram_gb"] = round(mem / (1024 ** 3), 2) if mem else "unknown"
+    else:
+        # On Windows, detect AMD GPU via hipInfo even if PyTorch is CPU-only
+        hip = _detect_hip_gpu()
+        if hip:
+            info["name"] = hip["name"]
+            info["arch"] = hip["arch"]
+            info["vram_gb"] = hip["vram_gb"]
+            info["hip_version"] = hip["hip_version"]
+            info["note"] = "HIP detected; PyTorch tensor ops on CPU (ROCm wheels are Linux-only)"
     return info
 
 
@@ -1048,7 +1097,11 @@ class CadillacGPUStressTest:
             total_hash_verification_time_ms=round(self._total_hash_ms, 2),
             mean_embedding_batch_ms=round(self._total_embedding_ms / n_emb_batches, 4),
             mean_anomaly_batch_ms=round(self._total_anomaly_ms / n_anom_batches, 4),
-            gpu_utilisation_estimate="active" if self.device.type == "cuda" else "cpu-fallback",
+            gpu_utilisation_estimate=(
+                "active" if self.device.type == "cuda"
+                else "hip-detected (tensor ops on CPU)" if self._gpu_info.get("hip_version")
+                else "cpu-fallback"
+            ),
         )
 
         # Log embedding cache stats
