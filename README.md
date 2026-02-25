@@ -14,29 +14,39 @@ Developed for the 2026 Cadillac F1 Initiative.
 - Trackside-first architecture: local replay and jurisdiction-aware geo-fencing.
 - Audit-ready provenance: tamper-evident hash chains on every transformation.
 
-## 90-Second Quickstart
+## Cadillac F1 Telemetry Suite — Quickstart Showcase
 
 ```bash
-# 1. Create environment
+# 1. Create a fresh Python environment
 python3 -m venv .venv && source .venv/bin/activate
 
-# 2. Install base dependencies
+# 2. Install all dependencies
 pip install -r requirements.txt
 
 # 3. Install PyTorch with GPU backend (choose one):
 #    For NVIDIA CUDA:
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-#    OR for AMD ROCm:
+#    For AMD ROCm:
 # pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7
-#    OR for CPU-only:
+#    For CPU-only fallback:
 # pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
 # 4. Build the C++ extension for fastest ingest
 python setup.py build_ext --inplace
 
-# 5. Run the GPU-accelerated ingest and stress test (auto-detects CUDA/ROCm/CPU)
-python setup.py build_ext --inplace
+# 5. Verify GPU-accelerated ingest is available
+PYTHONPATH="." python -c "from modules.translator import TelemetryIngestor; print('fast_ingest available:', TelemetryIngestor.is_accelerated())"
+
+# 6. Run the full GPU-accelerated stress test suite (auto-detects backend)
 PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
+
+# 7. (Optional) Run additional demo scripts for PDF reporting, HITL retraining, and OpenF1 ingest:
+PYTHONPATH="." python examples/demo_pdf_report.py
+PYTHONPATH="." python examples/demo_hitl_retraining.py
+PYTHONPATH="." python examples/demo_openf1.py
+
+# 8. Review results and artefacts in the 'data/reports/' directory
+ls data/reports/
 ```
 
 ## GPU Backend-Agnostic Installation
@@ -296,140 +306,25 @@ pkt = [200.0, 8000.0, 50.0, 400.0, 95.0, 1200.0, 23.0, 1024.0, 120.0, 1.5]
 N = 100_000
 B = 128
 
-# --- CPU baseline ---
-t0 = time.perf_counter()
-for _ in range(N):
-    t = torch.tensor(pkt, dtype=torch.float32)
-t1 = time.perf_counter()
-dt_cpu = (t1 - t0) * 1000
-us_cpu = dt_cpu * 1000 / N
-print(f"CPU (torch.tensor loop): {dt_cpu:.1f} ms total, {us_cpu:.2f} us/pkt")
-
-# --- StreamingIngestor (GIL-free bulk path) ---
-s = fast_ingest.StreamingIngestor(lo, hi, batch_size=B)
-pkts = [pkt] * N
-t0 = time.perf_counter()
-s.push_many(pkts)
-if s.pending > 0: s.flush()
-s.sync()
-t1 = time.perf_counter()
-dt_stream = (t1 - t0) * 1000
-us_stream = dt_stream * 1000 / N
-print(f"StreamingIngestor.push_many: {dt_stream:.1f} ms total, {us_stream:.2f} us/pkt")
-PY
-```
-
-> **Architecture:** mirrors an F1 ECU's DMA ring buffer.  A fixed-size slab of
-> page-locked host memory (`hipHostMalloc`, allocated once) is continuously
-> filled by `push()`, with automatic GPU flushes at the configured batch cadence.
-> Lo/hi normalization tensors are cached on the device — zero tensor construction
-> per flush.  A persistent high-priority HIP stream avoids pool acquisition.
-
-### Docker (Production)
-
-```bash
 docker compose -f docker-compose.production.yml up --build stress-test
-docker compose -f docker-compose.production.yml up --build health-monitor
-docker compose -f docker-compose.production.yml up telemetry-spine
-```
-
-## Core Demonstrations
-
-### Circuit-Breaker + Dead Letter Queue
-
-Triple-Header simulation: 3 race weekends × 5 sessions × 2000 packets with 15%
-chaos injection.
-
-Validates:
-
-- Circuit-breaker trips when consecutive failures exceed threshold
-- Breaker recovers after cooldown (HALF_OPEN probe)
-- Bad packets routed to SQLite DLQ
-- Pit wall feed remains clean
-
-### CPU Stress Test Benchmark
-
-**`tools/cadillac_stress_test.py`** — Pure CPU Triple-Header validation sans GPU.
 
 Runs the core infrastructure: circuit breaker, edge buffer, geo-fence, audit log under high chaos injection.
-
-Run via the Quickstart or Expanded Workflows commands above.
-
-**CPU output files:**
 - `data/reports/cadillac_stress_test_results.csv` — session-level results
-- `data/reports/cadillac_stress_test_report.json` — full report
-- `data/reports/resilience_timing_report.csv` — per-packet detection/repair timing
-
----
-
-### GPU-Accelerated Stress Test (AMD Radeon 7900 XT)
 
 
-**New:** `tools/cadillac_gpu_stress_test.py` — Triple-Header benchmark with GPU workload acceleration.
-
-Runs all CPU subsystems (circuit breaker, edge buffer, geo-fence, audit log) **plus** three GPU-parallel workloads:
-
-| GPU Workload | Device | What it does |
-|---|---|---|
 | **Batch Semantic Reconciliation** | CUDA/ROCm/HIP | BERT (all-MiniLM-L6-v2) encodes sensor names on GPU, resolves schema-drift via cosine similarity |
 | **Tensor Anomaly Detection** | CUDA/ROCm/HIP | Stacks sensor values into GPU tensors, flags z-score > 3σ outliers in one vectorised pass |
-| **GPU Hash-Chain Verification** | CUDA/ROCm/HIP | FNV-1a hashes computed in parallel on GPU tensors for audit provenance |
-
-Run via the Quickstart or Expanded Workflows commands above.
-
-**Sample output (100 packets, 15% chaos):**
-
-```
-Device: AMD Radeon RX 7900 XT  |  VRAM: 19.94 GB  |  HIP: 6.2.41133
-Device: cuda:0
-Schema embeddings shape: torch.Size([10, 384]) on cuda:0
-
-GPU Workload Summary:
-- Total Embeddings Computed: 1,500
-- Semantic Resolutions: 1,500
-- Schema-Drift Recovered (GPU): 39
-- Tensor Anomalies Detected: 139
-- Total Embedding Time: 911.8 ms
-- Total Anomaly Detection Time: 693.2 ms
-- Total Hash Verification Time: 319.4 ms
-
-Resilience Score: 80.90%  CONDITIONAL ⚠️
-ALL SLOs MET ✅
-```
-
-**GPU output files:**
 - `data/reports/cadillac_gpu_stress_test_results.csv` — session-level results with GPU columns
-- `data/reports/cadillac_gpu_metrics.json` — standalone GPU workload summary
-- `data/reports/gpu_resilience_timing_report.csv` — per-packet detection/repair timing
-
-**Verified on:**
 - ✅ AMD Radeon RX 7900 XT (gfx1100)
-- ✅ NVIDIA RTX (CUDA)
-- ✅ ROCm 6.2 + PyTorch HIP runtime
 - ✅ Ubuntu 22.04 LTS
-
----
-
-## Focused Examples
 
 ### Trackside Edge Buffer (Zero Data Loss)
 
 from src.local_persistence import TracksideEdgeBuffer, BufferedPacket
 
-buffer = TracksideEdgeBuffer(db_path="data/edge_buffer.sqlite", max_buffer_size=100_000)
 buffer.start_background_drain(interval=5.0)  # Auto-sync every 5s
 
 # Every packet persists locally first
-packet = BufferedPacket(sensor="speed", value=350.0)
-buffer.write(packet)
-
-# Full replay available even if cloud link is down
-replay = buffer.replay(session_id="silverstone_race", limit=1000)
-
-### Geo-Fencing (Data Sovereignty)
-
-from src.geo_fence import GeoFence
-
 geo = GeoFence()
 
 # Barcelona (EU) -> PII scrubbed, local-retained
