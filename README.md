@@ -37,7 +37,10 @@ python setup.py build_ext --inplace
 # 5. Verify GPU-accelerated ingest is available
 PYTHONPATH="." python -c "from modules.translator import TelemetryIngestor; print('fast_ingest available:', TelemetryIngestor.is_accelerated())"
 
-# 6. Run the full GPU-accelerated stress test suite (auto-detects backend)
+# 6. Check PyTorch GPU device (run in bash, not Python shell):
+python -c "import torch; print('PyTorch version:', torch.__version__); print('CUDA available:', torch.cuda.is_available()); print('CUDA device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"
+
+# 7. Run the full GPU-accelerated stress test suite (auto-detects backend)
 PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
 
 # 7. (Optional) Run additional demo scripts for PDF reporting, HITL retraining, and OpenF1 ingest:
