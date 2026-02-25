@@ -183,6 +183,23 @@ Full triple-header F1 simulation (15,000 packets across 3 race weekends):
 | **SLOs Passed** | 5/6 (minor audit) | ✅ Production-grade |
 | **Verdict** | RACE-READY ✅ | Approved for Cadillac F1 |
 
+### Race-Day Scale Results (3.6M Packets)
+
+Full weekend load test (240,000 packets per session, 15 sessions, 12% chaos):
+
+| Metric | Result | Status |
+|--------|--------|--------|
+| **Total Packets** | 3,600,000 | ✅ Processed |
+| **Duration** | 13 min 56 sec | ✅ Completed |
+| **Throughput** | ~4,300 packets/sec | ✅ Sustained |
+| **Corruption Detection** | 100% | ✅ All anomalies caught |
+| **Detection Rate** | 91.03% | ✅ Above baseline |
+| **Breaker Trips** | 279 total | ⚠️ High at scale |
+| **DLQ Quarantine** | 2,615,963 packets | ⚠️ High at scale |
+| **Resilience Score** | 55.87% | ❌ Needs tuning |
+| **SLOs Passed** | 4/6 | ❌ DLQ + breaker limits |
+| **Verdict** | NOT READY — Engineering Review ❌ | Scale tuning required |
+
 ### Operational Details
 
 - **Semantic Reconciliation:** BERT (all-MiniLM-L6-v2) encodes telemetry fields on GPU, batched cosine-similarity against canonical schema
