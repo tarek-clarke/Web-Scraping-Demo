@@ -27,7 +27,7 @@ pip install -r requirements.txt
 #    For NVIDIA CUDA:
 # pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 #    For AMD ROCm:
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7
 #    For CPU-only fallback:
 # pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
@@ -59,7 +59,7 @@ pip install -r requirements.txt
 
 # 2. Install PyTorch for your GPU backend (choose one):
 # pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121   # NVIDIA CUDA
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7 # AMD ROCm
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7 # AMD ROCm
 # pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu      # CPU fallback
 
 # 3. Build C++ extension for zero-copy ingest
