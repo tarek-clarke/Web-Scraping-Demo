@@ -48,13 +48,38 @@ PYTHONPATH="." python examples/demo_openf1.py
 # 8. Review results and artefacts in the 'data/reports/' directory
 ls data/reports/
 ```
+## Cadillac F1 Telemetry Suite — Interview Showcase
+
+### One-Command Setup & Demo (GPU-Accelerated)
+
+```bash
+# 1. Create environment & install dependencies
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+# 2. Install PyTorch for your GPU backend (choose one):
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121   # NVIDIA CUDA
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7 # AMD ROCm
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu      # CPU fallback
+
+# 3. Build C++ extension for zero-copy ingest
+python setup.py build_ext --inplace
+
+# 4. Run the GPU-accelerated ingest & stress test (auto-detects backend)
+PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
+
+# 5. (Optional) Run demo scripts for PDF reporting, HITL retraining, OpenF1 ingest
+PYTHONPATH="." python examples/demo_pdf_report.py
+PYTHONPATH="." python examples/demo_hitl_retraining.py
+PYTHONPATH="." python examples/demo_openf1.py
+
+# 6. Review artefacts in 'data/reports/'
+ls data/reports/
+```
 
 ## GPU Backend-Agnostic Installation
 
 The framework auto-detects and uses any available GPU backend:
-- **NVIDIA CUDA** (NVIDIA GPUs)
-- **AMD ROCm/HIP** (AMD Radeon GPUs)
-- **CPU** (fallback if no GPU available)
 
 **AMD ROCm/HIP:**
 ```bash
@@ -78,6 +103,12 @@ python -c "import torch; print('GPU:', torch.cuda.is_available(), 'Device:', tor
 ```
 
 **Optional: Live pit wall dashboard**
+```bash
+PYTHONPATH="." python tools/health_monitor.py --duration 60
+```
+The suite auto-detects NVIDIA CUDA, AMD ROCm, or CPU fallback. See PyTorch install command above.
+
+**Live pit wall dashboard:**
 ```bash
 PYTHONPATH="." python tools/health_monitor.py --duration 60
 ```
