@@ -14,45 +14,83 @@ Developed for the 2026 Cadillac F1 Initiative.
 - Trackside-first architecture: local replay and jurisdiction-aware geo-fencing.
 - Audit-ready provenance: tamper-evident hash chains on every transformation.
 
+## Linux Setup (Ubuntu/Debian, Native)
+
+```bash
+# 0. One-time system prerequisite for venv
+sudo apt update && sudo apt install -y python3-venv
+
+# 1. Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 2. Install project dependencies
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+
+# 3. Install PyTorch backend for Linux (ROCm default)
+python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7
+
+# Optional alternatives:
+# NVIDIA CUDA:
+# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# CPU fallback:
+# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# 4. Build C++ ingest extension
+python3 setup.py build_ext --inplace
+
+# 5. Verify acceleration + device
+PYTHONPATH="." python3 -c "from modules.translator import TelemetryIngestor; print('fast_ingest available:', TelemetryIngestor.is_accelerated())"
+python3 -c "import torch; print('CUDA/ROCm available:', torch.cuda.is_available()); print('Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
+
+# 6. Run GPU stress test
+FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
+```
+
 ## Cadillac F1 Telemetry Suite — Quickstart Showcase
 
 ```bash
+# Ubuntu/Debian only (one-time): install venv tooling if missing
+# sudo apt update && sudo apt install -y python3-venv
+
 # 1. Create a fresh Python environment
 python3 -m venv .venv && source .venv/bin/activate
 
 # 2. Install all dependencies
-pip install -r requirements.txt
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
 
 # 3. Install PyTorch with GPU backend (choose one):
 #    For NVIDIA CUDA:
-# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 #    For AMD ROCm:
-# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7
+# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7
 #    For CPU-only fallback:
-# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
 # 4. Build the C++ extension for fastest ingest
-python setup.py build_ext --inplace
+python3 setup.py build_ext --inplace
 
 
 # 5. (Recommended) Force GPU usage for all scripts (set in bash):
 export FORCE_DEVICE=gpu
 
 # 6. Verify GPU-accelerated ingest is available
-PYTHONPATH="." python -c "from modules.translator import TelemetryIngestor; print('fast_ingest available:', TelemetryIngestor.is_accelerated())"
+PYTHONPATH="." python3 -c "from modules.translator import TelemetryIngestor; print('fast_ingest available:', TelemetryIngestor.is_accelerated())"
 
 # 7. Check PyTorch GPU device (run in bash, not Python shell):
-python -c "import torch; print('PyTorch version:', torch.__version__); print('CUDA available:', torch.cuda.is_available()); print('CUDA device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"
+python3 -c "import torch; print('PyTorch version:', torch.__version__); print('CUDA available:', torch.cuda.is_available()); print('CUDA device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"
 
-# 7. Run the full GPU-accelerated stress test suite (auto-detects backend)
-PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
+# 8. Run the full GPU-accelerated stress test suite (auto-detects backend)
+PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
 
-# 7. (Optional) Run additional demo scripts for PDF reporting, HITL retraining, and OpenF1 ingest:
-PYTHONPATH="." python examples/demo_pdf_report.py
-PYTHONPATH="." python examples/demo_hitl_retraining.py
-PYTHONPATH="." python examples/demo_openf1.py
+# 9. (Optional) Run additional demo scripts for PDF reporting, HITL retraining, and OpenF1 ingest:
+PYTHONPATH="." python3 examples/demo_pdf_report.py
+PYTHONPATH="." python3 examples/demo_hitl_retraining.py
+PYTHONPATH="." python3 examples/demo_openf1.py
 
-# 8. Review results and artefacts in the 'data/reports/' directory
+# 10. Review results and artefacts in the 'data/reports/' directory
 ls data/reports/
 ```
 ## Cadillac F1 Telemetry Suite — Interview Showcase
@@ -62,23 +100,24 @@ ls data/reports/
 ```bash
 # 1. Create environment & install dependencies
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
 
 # 2. Install PyTorch for your GPU backend (choose one):
-# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121   # NVIDIA CUDA
-# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7 # AMD ROCm
-# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu      # CPU fallback
+# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121   # NVIDIA CUDA
+# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7 # AMD ROCm
+# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu      # CPU fallback
 
 # 3. Build C++ extension for zero-copy ingest
-python setup.py build_ext --inplace
+python3 setup.py build_ext --inplace
 
 # 4. Run the GPU-accelerated ingest & stress test (auto-detects backend)
-PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
+PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
 
 # 5. (Optional) Run demo scripts for PDF reporting, HITL retraining, OpenF1 ingest
-PYTHONPATH="." python examples/demo_pdf_report.py
-PYTHONPATH="." python examples/demo_hitl_retraining.py
-PYTHONPATH="." python examples/demo_openf1.py
+PYTHONPATH="." python3 examples/demo_pdf_report.py
+PYTHONPATH="." python3 examples/demo_hitl_retraining.py
+PYTHONPATH="." python3 examples/demo_openf1.py
 
 # 6. Review artefacts in 'data/reports/'
 ls data/reports/
@@ -90,34 +129,34 @@ The framework auto-detects and uses any available GPU backend:
 
 **AMD ROCm/HIP:**
 ```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7
+python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7
 ```
 
 **CPU-only:**
 ```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 ```
 
 **Force backend (optional):**
 ```bash
-FORCE_DEVICE=gpu PYTHONPATH="." python tools/cadillac_gpu_stress_test.py
-FORCE_DEVICE=cpu PYTHONPATH="." python tools/cadillac_gpu_stress_test.py
+FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py
+FORCE_DEVICE=cpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py
 ```
 
 **Check device:**
 ```bash
-python -c "import torch; print('GPU:', torch.cuda.is_available(), 'Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
+python3 -c "import torch; print('GPU:', torch.cuda.is_available(), 'Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 ```
 
 **Optional: Live pit wall dashboard**
 ```bash
-PYTHONPATH="." python tools/health_monitor.py --duration 60
+PYTHONPATH="." python3 tools/health_monitor.py --duration 60
 ```
 The suite auto-detects NVIDIA CUDA, AMD ROCm, or CPU fallback. See PyTorch install command above.
 
 **Live pit wall dashboard:**
 ```bash
-PYTHONPATH="." python tools/health_monitor.py --duration 60
+PYTHONPATH="." python3 tools/health_monitor.py --duration 60
 ```
 
 ## GPU Acceleration

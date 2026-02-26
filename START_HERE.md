@@ -44,9 +44,9 @@ resilient-rap-framework/
 | **Quick start (30 sec)** | [GETTING_STARTED.md](GETTING_STARTED.md) |
 | **Production deployment** | [PRODUCTION.md](PRODUCTION.md) |
 | **System architecture** | [docs/LEARN.md](docs/LEARN.md) |
-| **Run a pipeline** | `python main.py --help` |
+| **Run a pipeline** | `python3 main.py --help` |
 | **Running examples** | See [examples/](examples/) folder |
-| **Testing** | `pytest tests/ -v` |
+| **Testing** | `python3 -m pytest tests/ -v` |
 
 ---
 
@@ -56,13 +56,14 @@ resilient-rap-framework/
 # 1. Install
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
 
 # 2. Run a pipeline
-python main.py --adapter openf1 --session 9158 --driver 1 --export-audit
+python3 main.py --adapter openf1 --session 9158 --driver 1 --export-audit
 
 # 3. Check audit trail
-cat data/audit.json | python -m json.tool
+cat data/audit.json | python3 -m json.tool
 ```
 
 **That's it!** You're ready to do production PhD research.
@@ -142,8 +143,8 @@ python main.py --adapter [openf1|nhl|clinical] [args] --export-audit
 ## 🔄 Next Steps
 
 1. **Review** - Read [GETTING_STARTED.md](GETTING_STARTED.md)
-2. **Install** - Run `pip install -r requirements.txt`
-3. **Test** - Try `pytest tests/ -v`
+2. **Install** - Run `python3 -m pip install -r requirements.txt`
+3. **Test** - Try `python3 -m pytest tests/ -v`
 4. **Run** - Execute a pipeline with `main.py`
 5. **Explore** - Check `docs/` for deep dives
 6. **Integrate** - Use adapters for your research data
