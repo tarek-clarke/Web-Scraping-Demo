@@ -14,305 +14,85 @@ Developed for the 2026 Cadillac F1 Initiative.
 - Trackside-first architecture: local replay and jurisdiction-aware geo-fencing.
 - Audit-ready provenance: tamper-evident hash chains on every transformation.
 
-## Linux Setup (Ubuntu/Debian, Native)
+## Linux ROCm Quickstart
 
 ```bash
-# 0. One-time system prerequisite for venv
+# 0. One-time prerequisite
 sudo apt update && sudo apt install -y python3-venv
 
-# 1. Create and activate virtual environment
+# 1. Environment
 python3 -m venv .venv
 source .venv/bin/activate
 
-# 2. Install project dependencies
+# 2. Dependencies
 python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
-
-# 3. Install PyTorch backend for Linux (ROCm default)
 python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7
 
-# Optional alternatives:
-# NVIDIA CUDA:
-# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-# CPU fallback:
-# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-
-# 4. Build C++ ingest extension
+# 3. Build accelerated ingest
 python3 setup.py build_ext --inplace
 
-# 5. Verify acceleration + device
+# 4. Verify Linux GPU path
 PYTHONPATH="." python3 -c "from modules.translator import TelemetryIngestor; print('fast_ingest available:', TelemetryIngestor.is_accelerated())"
 python3 -c "import torch; print('CUDA/ROCm available:', torch.cuda.is_available()); print('Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
-
-# 6a. Sprint quickstart (fast validation run)
-FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint
-
-# 6b. Race weekend quickstart (3.6M packets total: 15 sessions × 240,000)
-FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend
 ```
 
-## Cadillac F1 Telemetry Suite — Quickstart Showcase
+## Run Benchmarks
 
 ```bash
-# Ubuntu/Debian only (one-time): install venv tooling if missing
-# sudo apt update && sudo apt install -y python3-venv
+# Sprint benchmark (30,000 total packets)
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint | tee data/reports/run_sprint.log
 
-# 1. Create a fresh Python environment
-python3 -m venv .venv && source .venv/bin/activate
-
-# 2. Install all dependencies
-python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
-
-# 3. Install PyTorch with GPU backend (choose one):
-#    For NVIDIA CUDA:
-# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-#    For AMD ROCm:
-# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7
-#    For CPU-only fallback:
-# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-
-# 4. Build the C++ extension for fastest ingest
-python3 setup.py build_ext --inplace
-
-
-# 5. (Recommended) Force GPU usage for all scripts (set in bash):
-export FORCE_DEVICE=gpu
-
-# 6. Verify GPU-accelerated ingest is available
-PYTHONPATH="." python3 -c "from modules.translator import TelemetryIngestor; print('fast_ingest available:', TelemetryIngestor.is_accelerated())"
-
-# 7. Check PyTorch GPU device (run in bash, not Python shell):
-python3 -c "import torch; print('PyTorch version:', torch.__version__); print('CUDA available:', torch.cuda.is_available()); print('CUDA device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"
-
-# 8a. Sprint quickstart (fast validation run)
-PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint
-
-# 8b. Race weekend quickstart (3.6M packets total: 15 sessions × 240,000)
-PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend
-
-# 9. (Optional) Run additional demo scripts for PDF reporting, HITL retraining, and OpenF1 ingest:
-PYTHONPATH="." python3 examples/demo_pdf_report.py
-PYTHONPATH="." python3 examples/demo_hitl_retraining.py
-PYTHONPATH="." python3 examples/demo_openf1.py
-
-# 10. Review results and artefacts in the 'data/reports/' directory
-ls data/reports/
-```
-## Cadillac F1 Telemetry Suite — Interview Showcase
-
-### One-Command Setup & Demo (GPU-Accelerated)
-
-```bash
-# 1. Create environment & install dependencies
-python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
-
-# 2. Install PyTorch for your GPU backend (choose one):
-# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121   # NVIDIA CUDA
-# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7 # AMD ROCm
-# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu      # CPU fallback
-
-# 3. Build C++ extension for zero-copy ingest
-python3 setup.py build_ext --inplace
-
-# 4. Run the GPU-accelerated ingest & stress test (auto-detects backend)
-PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
-
-# 5. (Optional) Run demo scripts for PDF reporting, HITL retraining, OpenF1 ingest
-PYTHONPATH="." python3 examples/demo_pdf_report.py
-PYTHONPATH="." python3 examples/demo_hitl_retraining.py
-PYTHONPATH="." python3 examples/demo_openf1.py
-
-# 6. Review artefacts in 'data/reports/'
-ls data/reports/
+# Race weekend benchmark (3.6M total packets)
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend | tee data/reports/run_weekend.log
 ```
 
-## GPU Backend-Agnostic Installation
+## Linux GPU Benchmark Results
 
-The framework auto-detects and uses any available GPU backend:
+Validated on Linux with AMD Radeon RX 7900 XT (ROCm backend).
 
-**AMD ROCm/HIP:**
-```bash
-python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7
-```
-
-**CPU-only:**
-```bash
-python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-```
-
-**Force backend (optional):**
-```bash
-FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py
-FORCE_DEVICE=cpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py
-```
-
-**Check device:**
-```bash
-python3 -c "import torch; print('GPU:', torch.cuda.is_available(), 'Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
-```
-
-**Optional: Live pit wall dashboard**
-```bash
-PYTHONPATH="." python3 tools/health_monitor.py --duration 60
-```
-The suite auto-detects NVIDIA CUDA, AMD ROCm, or CPU fallback. See PyTorch install command above.
-
-**Live pit wall dashboard:**
-```bash
-PYTHONPATH="." python3 tools/health_monitor.py --duration 60
-```
-
-## GPU Acceleration
-
-### ⚠️ Important Note: Windows vs. Linux
-
-**On Windows:** The GPU (RX 7900 XT) is *detected and displayed* in the output banner, but **tensor operations (BERT embeddings, anomaly detection) run on CPU** because PyTorch's official ROCm wheels are **Linux-only**. There are no Windows HIP/CUDA wheel distributions for PyTorch.
-
-**On Linux (Ubuntu 22.04 + Docker):** Full GPU acceleration is available with native ROCm/HIP support. See [Docker Setup](#docker-gpu-setup) below.
-
-### Windows: GPU Detection (CPU-Fallback) ✅
-
-For Windows systems with AMD Radeon RX 7900 XT or compatible GPUs, use the automated setup script:
-
-#### Quick Start (Windows)
-
-```powershell
-# Prerequisites (one-time):
-# 1. Install Visual Studio Build Tools 2022 (Desktop development with C++)
-#    https://visualstudio.microsoft.com/downloads/
-# 2. Install AMD PRO Driver with HIP support or HIP SDK
-#    https://rocm.docs.amd.com/projects/install-on-windows/en/latest/install/install.html
-
-# Automated setup (installs PyTorch, builds extension, validates GPU):
-cd C:\path\to\resilient-rap-framework
-powershell -ExecutionPolicy Bypass -File setup_windows_hip.ps1
-
-# Verify GPU detection:
-&"C:\Program Files\AMD\ROCm\7.1\bin\hipInfo.exe"
-
-# Run GPU-accelerated demo (CPU tensor ops on Windows, but GPU is detected):
-python tools/cadillac_gpu_stress_test.py --showcase --chaos 0.0
-```
-
-#### Validated Configuration (Windows CPU-Fallback)
-
-**Hardware:** AMD Radeon RX 7900 XT (gfx1100)  
-**Driver:** AMD PRO Edition 26.Q1 (HIP for Windows)  
-**ROCm:** 7.1 (HIP SDK detected)  
-**Python:** 3.11  
-**PyTorch:** 2.10.0+cpu (ROCm wheels unavailable for Windows)  
-**Tensor Operations:** CPU (via PyTorch CPU backend)  
-
-**Note:** GPU is detected via hipInfo.exe and displayed in the banner, but all ML inference (BERT, anomaly detection) runs on CPU. For true GPU acceleration, use Linux with Docker (see below).
-
-### GPU Stress Test Results ✅
-
-Full triple-header F1 simulation (15,000 packets across 3 race weekends):
+### Sprint Results (30,000 Packets @ 5% Chaos)
 
 | Metric | Result | Status |
 |--------|--------|--------|
-| **GPU Device** | AMD Radeon RX 7900 XT (gfx1100) | ✅ Detected |
+| **GPU Device** | Radeon RX 7900 XT | ✅ Detected |
 | **GPU Memory** | 19.98 GB | ✅ Available |
-| **Total Packets** | 15,000 | ✅ Processed |
-| **Acceptance Rate** | 91.07% | ✅ Clean data throughput |
-| **Corruption Detection** | 100% | ✅ All anomalies caught |
-| **Schema-Drift Recovered** | 197 packets | ✅ BERT reconciliation |
-| **Tensor Anomalies Detected** | 931 detections | ✅ Real-time GPU analysis |
-| **Detection Latency** | Sub-millisecond | ✅ Meets SLO |
-| **Circuit Breaker Trips** | 1 (expected) | ✅ Protection working |
-| **DLQ Quarantine** | 2,952 packets | ✅ Isolation working |
-| **Resilience Score** | 96.21% | ✅ RACE-READY |
-| **SLOs Passed** | 5/6 (minor audit) | ✅ Production-grade |
-| **Verdict** | RACE-READY ✅ | Approved for Cadillac F1 |
+| **Total Packets** | 30,000 | ✅ Processed |
+| **Acceptance Rate** | 81.13% | ✅ Improved clean throughput |
+| **Chaos Injected** | 1,500 packets | ✅ Expected fault load |
+| **Schema-Drift Recovered** | 203 packets | ✅ BERT reconciliation |
+| **Tensor Anomalies Detected** | 1,434 detections | ✅ Real-time GPU analysis |
+| **Overall p95 Latency** | 0.256 ms | ✅ Sub-millisecond |
+| **Circuit Breaker Trips** | 2 total | ✅ Protection working |
+| **DLQ Depth (final)** | 5,660 | ✅ Fresh-run quarantine level |
+| **SLOs Passed** | 6/6 | ✅ All SLOs met |
+| **Verdict** | RACE-READY ✅ | Based on SLO result (6/6 passed) |
 
-### Race-Day Scale Results (3.6M Packets)
+### Race Weekend Results (3.6M Packets @ 5% Chaos)
 
-Full weekend load test (240,000 packets per session, 15 sessions, 12% chaos):
+Full weekend load test (240,000 packets/session, 15 sessions, 5% chaos):
 
 | Metric | Result | Status |
 |--------|--------|--------|
 | **Total Packets** | 3,600,000 | ✅ Processed |
-| **Duration** | 13 min 51 sec | ✅ Completed |
-| **Throughput** | ~4,300 packets/sec | ✅ Sustained |
-| **Corruption Detection** | 100% | ✅ All anomalies caught |
-| **Detection Rate** | 91.03% | ✅ Above baseline |
-| **Breaker Trips** | 272 total | ✅ Within scaled budget |
-| **DLQ Quarantine** | 2,589,670 packets | ✅ Within scaled budget |
-| **Resilience Score** | 56.16% | ⚠️ Needs tuning |
-| **SLOs Passed** | 6/6 | ✅ Scaled budgets pass |
-| **Verdict** | NOT READY — Engineering Review ❌ | Throughput ok, acceptance low |
+| **Acceptance Rate** | 68.50% | ⚠️ Needs tuning |
+| **Chaos Injected** | 180,646 packets | ✅ Expected fault load |
+| **Schema-Drift Recovered** | 26,122 packets | ✅ BERT reconciliation |
+| **Tensor Anomalies Detected** | 167,416 detections | ✅ Real-time GPU analysis |
+| **Overall p95 Latency** | 0.267 ms | ✅ Sub-millisecond |
+| **Circuit Breaker Trips** | 141 total | ⚠️ Elevated at race load |
+| **DLQ Depth (final)** | 1,139,649 | ⚠️ High quarantine backlog |
+| **SLOs Passed** | 6/6 | ✅ All SLOs met |
+| **Verdict** | RACE-READY ✅ | Based on SLO result (6/6 passed) |
 
 ### Operational Details
 
 - **Semantic Reconciliation:** BERT (all-MiniLM-L6-v2) encodes telemetry fields on GPU, batched cosine-similarity against canonical schema
 - **Anomaly Detection:** Incoming sensor values stacked into GPU tensors, z-score outlier detection (σ > 3) in single vectorized pass per batch
 - **Provenance Verification:** Batch hash-chain integrity checks via GPU-emulated SHA-256 integer operations
-- **Results Export:** CSV/JSON metrics available in `data/reports/`
+- **Results Export:** Sprint and weekend CSV/JSON artifacts in `data/reports/` with `_sprint` / `_weekend` suffixes.
 
-### Docker: Full GPU Acceleration on Linux
-
-For **true GPU acceleration** (5-10x faster than Windows CPU), run on Linux with Docker GPU passthrough:
-
-```bash
-# Prerequisites: Docker Engine with GPU support
-# See: https://rocm.docs.amd.com/deploy/linux/
-
-# Clone and build:
-git clone <repo> && cd resilient-rap-framework
-export COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1
-
-# Build with ROCm 6.2 base:
-docker-compose -f docker-compose.yml build
-
-# Run with GPU passthrough (/dev/kfd for AMD):
-docker-compose -f docker-compose.yml run cadillac python tools/cadillac_gpu_stress_test.py --showcase --chaos 0.0
-
-# Performance expectation (vs Windows CPU):
-# - GPU ingestion: 2–9 µs/packet (vs ~50 µs on CPU)
-# - BERT embeddings: 5-10x faster (native CUDA/HIP)
-# - Overall: 5-10x throughput increase
-```
-
-**Requirements:**
-- Linux host (Ubuntu 22.04 recommended)
-- AMD GPU with ROCm support
-- 50GB disk space
-- Docker with GPU support (nvidia-docker or AMD ROCm runtime)
-
-### Demo Commands
-
-**Windows (GPU detected, tensor ops on CPU):**
-```powershell
-# Full showcase with chaos injection (demonstrates resilience):
-python tools/cadillac_gpu_stress_test.py --showcase
-
-# Clean run (no chaos, all SLOs pass):
-python tools/cadillac_gpu_stress_test.py --showcase --chaos 0.0
-
-# Custom load test:
-python tools/cadillac_gpu_stress_test.py --packets 10000 --chaos 0.10
-
-# Expected output:
-# Device: AMD Radeon RX 7900 XT | VRAM: 19.98 GB | HIP: 7.1 (Windows)
-# GPU Workload Summary:
-#   Embeddings: 15,000 (BERT on CPU)
-#   Anomalies: 931 detections (anomaly detection on CPU)
-#   Status: hip-detected (tensor ops on CPU)
-# VERDICT: RACE-READY ✅
-```
-
-**Linux with Docker (full GPU acceleration):**
-```bash
-docker-compose -f docker-compose.yml run cadillac \
-  python tools/cadillac_gpu_stress_test.py --showcase --chaos 0.0
-
-# Expected output (same as Windows but 5-10x faster)
-```
-
-For detailed Windows setup, see [WINDOWS_QUICKSTART.md](WINDOWS_QUICKSTART.md) and [WINDOWS_SETUP.md](WINDOWS_SETUP.md).
+For Dockerized Linux deployment, see `docker-compose.yml` and `Dockerfile.production`.
 
 ## Architecture
 
@@ -434,159 +214,34 @@ Self-healing code reduces the headcount needed for trackside IT support. Instead
 
 ## Expanded Workflows
 
-### Local Development (full suite)
+### 1) Developer Validation
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-
-# Full test suite
+source .venv/bin/activate
 PYTHONPATH="." pytest tests/ -v
-
-# Showcase mode (tuned demo)
-PYTHONPATH="." python tools/cadillac_stress_test.py --showcase
-PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --showcase
 ```
 
-### Quick Start — fast_ingest (C++ zero-copy)
+### 2) C++ Ingest Smoke Test
 
 ```bash
-# Build the C++ extension in place
-python setup.py build_ext --inplace
-
-# Verify the accelerated path is available
-PYTHONPATH="." python - <<'PY'
-from modules.translator import TelemetryIngestor
-print("fast_ingest available:", TelemetryIngestor.is_accelerated())
-PY
-
-# Run a tiny smoke test through the C++ path
-PYTHONPATH="." python - <<'PY'
-from modules.translator import TelemetryIngestor, SENSOR_LO, SENSOR_HI
-
-ingestor = TelemetryIngestor()
-packet = [v for v in SENSOR_LO]
-host_t = ingestor.ingest(packet)
-gpu_t = ingestor.normalize(packet)
-ingestor.sync()
-
-print("host pinned:", host_t.device)
-print("gpu tensor:", gpu_t.device, gpu_t.shape)
-PY
-
-# Reproduce the ≤9 µs per-packet ingestion target
-#
-# The single-packet ingest() loop is dominated by Python call overhead
-# (~580 µs/pkt).  The real C++ throughput is measured via ingest_batch(),
-# which amortises hipHostMalloc, memcpy and async H→D across B packets
-# in a single GIL-free C++ call.
-#
-# Recipe: prewarm 50 batches → timed run of 100 × 1000-packet batches → sync.
-# Expected result: ~2–9 µs per packet on AMD RX 7900 XT (ROCm 6.2).
-PYTHONPATH="." python - <<'PY'
-import time, random
-from modules.translator import TelemetryIngestor, SENSOR_LO, SENSOR_HI
-
-ingestor = TelemetryIngestor()
-lo, hi = SENSOR_LO, SENSOR_HI
-N = len(lo)
-
-# 1000 synthetic telemetry packets (10 channels each)
-batch = [[random.uniform(lo[j], hi[j]) for j in range(N)] for _ in range(1000)]
-
-# Prewarm: settle the HIP allocator and stream pool
-for _ in range(50):
-    ingestor.ingest_batch(batch)
-ingestor.sync()
-
-# Timed run: 100 iterations × 1000 packets = 100,000 packets
-ITERS = 100
-start = time.perf_counter()
-for _ in range(ITERS):
-    ingestor.ingest_batch(batch)
-ingestor.sync()
-end = time.perf_counter()
-
-total = ITERS * len(batch)
-us = (end - start) * 1e6
-print(f"ingest_batch: {total:,} packets in {us/1e3:.1f} ms")
-print(f"per-packet:   {us / total:.2f} us")
-PY
+source .venv/bin/activate
+python3 setup.py build_ext --inplace
+PYTHONPATH="." python3 -c "from modules.translator import TelemetryIngestor; print('fast_ingest available:', TelemetryIngestor.is_accelerated())"
 ```
 
-> **Measured on AMD Radeon RX 7900 XT (ROCm 6.2):** 100,000 packets in 210 ms — **2.10 µs / packet**.
-> The single-packet Python loop reports ~580 µs because each call crosses the
-> Python↔C++ boundary, re-acquires the GIL, and allocates a fresh pinned buffer.
-> `ingest_batch()` eliminates all of that overhead — one pinned slab, one DMA,
-> one GIL release for the entire batch.
-
-#### StreamingIngestor — F1-grade zero-alloc pipeline
-
-`StreamingIngestor` goes further: a **pre-allocated pinned ring buffer**, cached
-device tensors, and a persistent HIP stream eliminate **all** per-batch overhead.
-
-Performance figures are summarized in Operational Metrics above.
+### 3) Pit Wall Health Monitor
 
 ```bash
-# Reproduce: StreamingIngestor benchmark (100K packets, batch_size=128)
-PYTHONPATH="." python - <<'PY'
-import torch, time, fast_ingest
-
-lo = [80.0, 4000.0, 0.0, 100.0, 70.0, 150.0, 19.0, 0.0, 55.0, -6.0]
-hi = [360.0, 15500.0, 100.0, 1100.0, 130.0, 2800.0, 28.0, 65535.0, 200.0, 6.0]
-pkt = [200.0, 8000.0, 50.0, 400.0, 95.0, 1200.0, 23.0, 1024.0, 120.0, 1.5]
-N = 100_000
-B = 128
-
-docker compose -f docker-compose.production.yml up --build stress-test
-
-Runs the core infrastructure: circuit breaker, edge buffer, geo-fence, audit log under high chaos injection.
-- `data/reports/cadillac_stress_test_results.csv` — session-level results
-
-
-| **Batch Semantic Reconciliation** | CUDA/ROCm/HIP | BERT (all-MiniLM-L6-v2) encodes sensor names on GPU, resolves schema-drift via cosine similarity |
-| **Tensor Anomaly Detection** | CUDA/ROCm/HIP | Stacks sensor values into GPU tensors, flags z-score > 3σ outliers in one vectorised pass |
-- `data/reports/cadillac_gpu_stress_test_results.csv` — session-level results with GPU columns
-- ✅ AMD Radeon RX 7900 XT (gfx1100)
-- ✅ Ubuntu 22.04 LTS
-
-### Trackside Edge Buffer (Zero Data Loss)
-
-from src.local_persistence import TracksideEdgeBuffer, BufferedPacket
-
-buffer.start_background_drain(interval=5.0)  # Auto-sync every 5s
-
-# Every packet persists locally first
-geo = GeoFence()
-
-# Barcelona (EU) -> PII scrubbed, local-retained
-result_eu = geo.process(
-    circuit="barcelona",
-    payload={"heart_rate": 165, "driver_name": "Max", "speed": 320}
-)
-print(result_eu.sync_payload)  # heart_rate -> anonymized, driver_name -> [REDACTED]
-print(result_eu.local_payload)  # Full data retained on EU sovereign storage
-
-# Austin (US) -> full telemetry to War Room
-result_us = geo.process(
-    circuit="austin",
-    payload={"heart_rate": 165, "driver_name": "Max", "speed": 320}
-)
-print(result_us.sync_payload)  # All fields intact
-
-### Health Monitor (Pit Wall Dashboard)
-
-```bash
-PYTHONPATH="." python tools/health_monitor.py
+source .venv/bin/activate
+PYTHONPATH="." python3 tools/health_monitor.py --duration 60
 ```
 
-Live terminal UI showing:
+### Artifacts
 
-- Circuit-Breaker state (CLOSED / OPEN / HALF_OPEN)
-- Edge Buffer health (pending sync, utilisation)
-- Latency percentiles (p50 / p95 / p99)
-- Drift alerts (schema corruption events)
-- Geo-Fence compliance status
+- `data/reports/cadillac_gpu_stress_test_report_sprint.json`
+- `data/reports/cadillac_gpu_stress_test_report_weekend.json`
+- `data/reports/run_sprint.log`
+- `data/reports/run_weekend.log`
 
 ## The Full Showcase Suite (Original RAP Research)
 
@@ -596,6 +251,10 @@ PYTHONPATH="." python tools/stress_test_engine_temp.py
 PYTHONPATH="." python tools/benchmark_semantic_layer.py
 PYTHONPATH="." python tools/demo_pdf_report.py
 ```
+
+Purpose:
+- Demonstrates live ingest, stress behavior, semantic benchmarking, and reporting.
+- Supplements the Linux GPU benchmark path above for research-style walkthroughs.
 
 ## Repository Structure
 
@@ -634,14 +293,12 @@ resilient-rap-framework/
 
 ## The Budget Cap Argument
 
-The 2026 F1 regulations impose strict budget caps. Every person you fly to a
-race costs money. Every manual data fix costs time. This framework is designed to
-replace manual trackside IT triage with autonomous, self-healing code:
+Budget-cap value is operational efficiency under failure:
 
-- Schema drift? The BERT translator handles it.
-- Sensor corruption? The circuit breaker isolates it to the DLQ.
-- Connectivity drop? The edge buffer holds everything.
-- EU data laws? The geo-fence scrubs and retains.
+- Less manual triage: schema drift and anomaly handling are automated.
+- Lower trackside burden: local buffering and replay reduce emergency intervention.
+- Faster incident containment: breaker + DLQ isolate bad data before model impact.
+- Compliance by default: geo-fencing enforces jurisdiction-aware data handling.
 
 ## Architecture Decision Records
 

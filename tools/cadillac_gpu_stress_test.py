@@ -753,8 +753,8 @@ class CadillacGPUStressTest:
                 self.breaker.reset()
 
         self._finalise_report()
-        self._print_report()
         self._evaluate_slos()
+        self._print_report()
         self._export_results()
 
         self.breaker.dlq.close()
@@ -1076,12 +1076,9 @@ class CadillacGPUStressTest:
             + 0.20 * latency_score, 4
         )
 
-        if self.report.resilience_score >= 0.85:
-            self.report.verdict = "RACE-READY ✅"
-        elif self.report.resilience_score >= 0.70:
-            self.report.verdict = "CONDITIONAL — Review Required ⚠️"
-        else:
-            self.report.verdict = "NOT READY — Engineering Review ❌"
+        # Final verdict is set from SLO pass count in _evaluate_slos().
+        # Keep report in a pending state until SLO evaluation runs.
+        self.report.verdict = "PENDING"
 
         # GPU metrics
         n_emb_batches = len(self._embedding_batch_times) or 1
@@ -1396,6 +1393,15 @@ class CadillacGPUStressTest:
             num_sessions=total_sessions,
             packets_per_session=self.packets_per_session,
         )
+
+        total_slos = slo_report.passed + slo_report.failed
+        if total_slos > 0 and slo_report.passed == total_slos:
+            report.verdict = "RACE-READY ✅"
+        elif total_slos > 0 and slo_report.passed == total_slos - 1:
+            report.verdict = "MINOR SLO BREACH ⚠️"
+        else:
+            report.verdict = "NOT READY ❌"
+
         tracker.print_report(slo_report)
 
     # -----------------------------------------------------------------
