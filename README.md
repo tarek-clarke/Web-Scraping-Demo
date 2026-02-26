@@ -304,14 +304,6 @@ Key design decisions documented in [`docs/adr/`](docs/adr/):
 
 ## About
 
-10+ years as a Senior Data Analyst at Statistics Canada, shipping production pipelines that handle the country's most sensitive data at scale. That same discipline: tamper-evident lineage, automated reconciliation, zero-tolerance for data corruption is exactly what the F1 Budget Cap era demands.
-
-This is the production-ready implementation of my upcoming PhD research at TalTech (Tallinn University of Technology) on Reproducible Analytical Pipelines (RAP) for high-velocity sensor telemetry. Every module in this repository traces back to a peer-reviewed methodology for autonomous schema drift resolution.
-
----
-
-## About
-
 **Developer:** Tarek Clarke  
 **Background:** Senior Data Analyst, Statistics Canada (10+ years) | Incoming PhD Candidate, TalTech  
 **Expertise:** Production pipelines for sensitive data at national scale; tamper-evident lineage; zero-tolerance data integrity
