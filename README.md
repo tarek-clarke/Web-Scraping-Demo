@@ -321,6 +321,3 @@ Commercial use requires separate agreement.
 
 **Contact:** tclarke91@proton.me
 
----
-
-**Developed for the 2026 Cadillac F1 Initiative**
