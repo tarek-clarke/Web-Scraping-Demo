@@ -1,0 +1,10 @@
+Loading BERT model on cuda:0 with FP16 precision…
+Schema embeddings shape: torch.Size([10, 384]) on cuda:0
+╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ CADILLAC F1 — GPU-ACCELERATED TRIPLE-HEADER STRESS TEST                                                                                                                               ║
+║ Device: Radeon RX 7900 XT  |  VRAM: 19.98 GB  |  HIP: 5.7.31921-d1770ee1b                                                                                                             ║
+║ Simulating 3 consecutive race weekends with GPU-parallel semantic reconciliation & tensor anomaly detection                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+🏁 Round 10 — Spielberg (Austria)
