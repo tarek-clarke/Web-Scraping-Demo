@@ -1,23 +1,117 @@
-# A Resilient Pipeline for Cadillac F1: A Research-to-Production Spine
+# Cadillac F1 Telemetry Platform
 
 [![Status](https://img.shields.io/badge/Status-Production--Ready-brightgreen)](.)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-red.svg)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-yellow)
 ![Docker](https://img.shields.io/badge/Docker-Enterprise--Hardened-blue)
 
-Developed for the 2026 Cadillac F1 Initiative.
+**GPU-Accelerated Real-Time Telemetry Processing for 2026 F1 Season**
 
-## Cadillac Engineering Snapshot
+## Executive Summary
 
-- Production-grade telemetry spine built for budget-cap constraints and zero downtime.
-- Self-healing ingestion: schema drift, bit-flips, and NaN bursts isolated without human intervention.
-- Trackside-first architecture: local replay and jurisdiction-aware geo-fencing.
-- Audit-ready provenance: tamper-evident hash chains on every transformation.
+A production-ready telemetry spine that processes 3.6M packets per race weekend with sub-millisecond latency on AMD Radeon RX 7900 XT. Built for budget-cap constraints: self-healing ingestion eliminates manual triage, local-first architecture reduces trackside IT headcount, and automated compliance handling (GDPR/sovereignty) minimizes legal risk.
 
-## Linux ROCm Quickstart
+**Key Performance:**
+- **Sub-1ms p95 latency** at full race load (3.6M packets)
+- **68.5% acceptance rate** under 5% chaos injection
+- **26K+ schema-drift packets** autonomously recovered via GPU-accelerated BERT
+- **167K+ anomalies detected** in real-time with tensor-based outlier detection
+- **6/6 SLOs passed** - Race-ready verdict
+
+**Budget Cap Value:**
+- Zero manual intervention for schema drift and anomalies
+- Trackside-first: operates independently during connectivity loss
+- Compliance by default: automated geo-fencing and GDPR handling
+- Post-race forensics via Dead Letter Queue reduces debrief time
+
+## System Architecture
+
+### High-Level Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      GPU STRESS TEST SCRIPT                     │
+│              tools/cadillac_gpu_stress_test.py                  │
+│  • BERT Semantic Reconciliation (GPU-accelerated)               │
+│  • Tensor Anomaly Detection (z-score > 3σ)                      │
+│  • Batch Hash-Chain Provenance (SHA-256)                        │
+│  • Synthetic telemetry generation & chaos injection             │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+                         ├──► src/circuit_breaker.py
+                         │    • Three-state FSM (CLOSED → OPEN → HALF_OPEN)
+                         │    • Schema validation & bit-flip detection
+                         │    • Dead Letter Queue (SQLite)
+                         │
+                         ├──► src/local_persistence.py
+                         │    • Trackside Edge Buffer (SQLite WAL)
+                         │    • Zero data loss during connectivity drops
+                         │    • Background drain to cloud when restored
+                         │
+                         ├──► src/geo_fence.py
+                         │    • Jurisdiction-aware data handling
+                         │    • GDPR PII scrubbing for EU circuits
+                         │    • US/Non-EU: full telemetry passthrough
+                         │
+                         ├──► src/audit_log.py
+                         │    • Tamper-evident SHA-256 hash chains
+                         │    • FIA-grade provenance tracking
+                         │
+                         ├──► src/middleware/tracing.py
+                         │    • Request context propagation
+                         │    • Distributed tracing support
+                         │
+                         └──► src/slo.py
+                              • Service Level Objective tracking
+                              • Latency percentiles (p50, p95, p99)
+                              • 6 SLO gates for race-ready verdict
+```
+
+### Data Flow
+
+```mermaid
+flowchart LR
+    RF["Car RF Downlink<br/>(50 Hz telemetry)"]
+    CB["Circuit Breaker<br/>Schema Validator<br/>bit-flip, drift, NaN"]
+    DLQ[("Dead Letter Queue<br/>SQLite")]
+    EDGE[("Trackside Edge Buffer<br/>SQLite WAL<br/>zero data loss")]
+    GEO["Geo-Fence<br/>GDPR / Sovereignty"]
+    BERT["GPU Semantic<br/>Reconciliation<br/>BERT + cosine similarity"]
+    AUDIT[("Audit Log<br/>SHA-256 hash chain<br/>tamper-evident")]
+    SINK["War Room<br/>Global Sink"]
+
+    RF -->|clean packets| CB
+    CB -->|bad packets| DLQ
+    CB -->|valid data| EDGE
+    EDGE -->|exactly-once drain| GEO
+    GEO -->|jurisdiction-aware| BERT
+    BERT -->|field reconciliation| AUDIT
+    AUDIT -->|provenance chain| SINK
+
+    style CB fill:#ff6b6b
+    style DLQ fill:#ffe066
+    style EDGE fill:#51cf66
+    style AUDIT fill:#4dabf7
+```
+
+### Core Components (7 files)
+
+| Component | Purpose | Lines | Status |
+|-----------|---------|-------|--------|
+| **tools/cadillac_gpu_stress_test.py** | GPU stress test orchestrator | 1,542 | ✅ Active |
+| **src/circuit_breaker.py** | Circuit breaker + DLQ | 532 | ✅ Active |
+| **src/local_persistence.py** | Edge buffer (SQLite WAL) | 403 | ✅ Active |
+| **src/geo_fence.py** | GDPR compliance | 389 | ✅ Active |
+| **src/audit_log.py** | Hash-chain provenance | 283 | ✅ Active |
+| **src/middleware/tracing.py** | Request context | 123 | ✅ Active |
+| **src/slo.py** | SLO tracking | 271 | ✅ Active |
+
+**Total Active Codebase:** 3,543 lines (excluding tests and archived modules)
+
+## Quick Start (Linux + AMD ROCm)
 
 ```bash
-# 0. One-time prerequisite
+# 0. Prerequisites
 sudo apt update && sudo apt install -y python3-venv
 
 # 1. Environment
@@ -37,7 +131,7 @@ PYTHONPATH="." python3 -c "from modules.translator import TelemetryIngestor; pri
 python3 -c "import torch; print('CUDA/ROCm available:', torch.cuda.is_available()); print('Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 ```
 
-## Run Benchmarks
+---
 
 ```bash
 # Sprint benchmark (30,000 total packets)
@@ -47,11 +141,23 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend | tee data/reports/run_weekend.log
 ```
 
-## Linux GPU Benchmark Results
+---
 
-Validated on Linux with AMD Radeon RX 7900 XT (ROCm backend).
+## GPU Benchmark Results (Validated on Linux)
 
-### Sprint Results (30,000 Packets @ 5% Chaos)
+**Hardware:** AMD Radeon RX 7900 XT (20GB VRAM) | ROCm 5.7 | gfx1100 architecture
+
+### Run Commands
+
+```bash
+# Sprint benchmark (30K packets, ~30 seconds)
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint | tee data/reports/run_sprint.log
+
+# Race weekend benchmark (3.6M packets, ~40 minutes)
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend | tee data/reports/run_weekend.log
+```
+
+### Sprint Results (30K Packets @ 5% Chaos)
 
 | Metric | Result | Status |
 |--------|--------|--------|
@@ -70,7 +176,7 @@ Validated on Linux with AMD Radeon RX 7900 XT (ROCm backend).
 
 ### Race Weekend Results (3.6M Packets @ 5% Chaos)
 
-Full weekend load test (240,000 packets/session, 15 sessions, 5% chaos):
+Full weekend simulation (240K packets/session × 15 sessions, 5% chaos injection):
 
 | Metric | Result | Status |
 |--------|--------|--------|
@@ -85,92 +191,20 @@ Full weekend load test (240,000 packets/session, 15 sessions, 5% chaos):
 | **SLOs Passed** | 6/6 | ✅ All SLOs met |
 | **Verdict** | RACE-READY ✅ | Based on SLO result (6/6 passed) |
 
-### Operational Details
+### Technical Details
 
-- **Semantic Reconciliation:** BERT (all-MiniLM-L6-v2) encodes telemetry fields on GPU, batched cosine-similarity against canonical schema
-- **Anomaly Detection:** Incoming sensor values stacked into GPU tensors, z-score outlier detection (σ > 3) in single vectorized pass per batch
+**GPU Capabilities:**
+- **Semantic Reconciliation:** BERT (all-MiniLM-L6-v2) encodes telemetry fields on GPU with batched cosine-similarity against canonical schema
+- **Anomaly Detection:** Sensor values stacked into GPU tensors, z-score outlier detection (σ > 3) in single vectorized pass per batch
 - **Provenance Verification:** Batch hash-chain integrity checks via GPU-emulated SHA-256 integer operations
-- **Results Export:** Sprint and weekend CSV/JSON artifacts in `data/reports/` with `_sprint` / `_weekend` suffixes.
 
-For Dockerized Linux deployment, see `docker-compose.yml` and `Dockerfile.production`.
+**Output Artifacts:**
+- Sprint/weekend CSV & JSON reports in `data/reports/` with `_sprint` / `_weekend` suffixes
+- Full execution logs: `run_sprint.log`, `run_weekend.log`
 
-## Architecture
+---
 
-```mermaid
-flowchart LR
-    RF["🏎️ Car RF Downlink<br/>(50 Hz telemetry)"]
-    CB["Circuit Breaker<br/>Schema Validator<br/>bit-flip · drift · NaN<br/>(src/circuit_breaker.py)"]
-    DLQ[("Dead Letter Queue<br/>SQLite")]
-    EDGE[("Trackside Edge Buffer<br/>SQLite WAL<br/>zero data loss<br/>(src/local_persistence.py)")]
-    GEO["Geo-Fence<br/>GDPR / Sovereignty<br/>(src/geo_fence.py)"]
-    BERT["Semantic Reconciliation<br/>BERT cosine similarity<br/>(modules/translator.py)"]
-    AUDIT[("Audit Log<br/>SHA-256 hash chain<br/>tamper-evident<br/>(src/audit_log.py)")]
-    SINK["🖥️ War Room<br/>Global Sink"]
-
-    RF -->|clean packets| CB
-    CB -->|bad packets| DLQ
-    CB -->|valid data| EDGE
-    EDGE -->|exactly-once drain| GEO
-    GEO -->|jurisdiction-aware| BERT
-    BERT -->|field reconciliation| AUDIT
-    AUDIT -->|provenance chain| SINK
-
-    style CB fill:#ff6b6b
-    style DLQ fill:#ffe066
-    style EDGE fill:#51cf66
-    style AUDIT fill:#4dabf7
-```
-
-<details>
-<summary>ASCII fallback (for terminals)</summary>
-
-```
-                         ┌──────────────────────────────────┐
-                         │        CAR RF DOWNLINK           │
-                         └───────────────┬──────────────────┘
-                                         │
-                         ┌───────────────▼──────────────────┐
-                         │    CIRCUIT BREAKER (Schema Guard)│
-                         │  ┌─────────┐    ┌─────────────┐  │
-                         │  │ CLOSED  │---►│ Validator   │  │
-                         │  │ (relay) │    │ (bit-flip,  │  │
-                         │  └────┬────┘    │ drift, NaN) │  │
-                         │       │         └──────┬──────┘  │
-                         │       │ ◄--OPEN--┐     │         │
-                         │       │          │     │         │
-                         │       ▼        ┌-▼-----▼--┐      │
-                         │  ┌─────────┐   │   DLQ    │      │
-                         │  │HALF_OPEN│   │ (SQLite) │      │
-                         │  │ (probe) │   └──────────┘      │
-                         │  └─────────┘                     │
-                         └───────────────┬──────────────────┘
-                                         │ clean packets
-                         ┌───────────────▼──────────────────┐
-                         │  TRACKSIDE EDGE BUFFER (SQLite)  │
-                         │  Local-First • Zero Data Loss    │
-                         └───────────────┬──────────────────┘
-                                         │
-                    ┌────────────────────▼────────────────────┐
-                    │         GEO-FENCE (GDPR / Sovereignty)  │
-                    |                                         |
-                    |                                         |
-                    │ EU rounds: PII scrubbed, local retain   │
-                    │ US rounds: full telemetry to War Room   │
-                    └────────────────────┬────────────────────┘
-                                         │
-               ┌─────────────────────────▼──────────────────────┐
-               │       SEMANTIC RECONCILIATION (BERT)           │
-               │  Schema-on-Read • Autonomous Field Mapping     │
-               └─────────────────────────┬──────────────────────┘
-                                         │
-                         ┌───────────────▼──────────────────┐
-                         │    GLOBAL SINK (War Room)        │
-                         │  Tamper-Evident Provenance Chain │
-                         └──────────────────────────────────┘
-```
-</details>
-
-## Key Capabilities
+## Operational Capabilities
 
 | Capability | Module | Evidence |
 |---|---|---|
@@ -187,141 +221,114 @@ flowchart LR
 | Multi-stage Docker - build deps never reach runtime | Dockerfile.production | Non-root user (UID 1000), read-only FS, no-new-privileges |
 | Resource limits - Budget Cap discipline in infrastructure | docker-compose.production.yml | CPU/memory caps, tmpfs for ephemeral writes |
 | Network isolation - internal bridge network for pipeline services | cadillac-internal network | No external exposure; secrets never in image layers |
-| Tamper-evident audit - SHA-256 hash chains for every transformation | src/provenance.py | Linked input_hash -> output_hash -> previous_hash records |
+| Tamper-evident audit - SHA-256 hash chains for every transformation | src/audit_log.py | Linked input_hash -> output_hash -> previous_hash records |
 
-## Operational Metrics
+---
 
-| Signal | Result | Why it matters |
+## Performance Metrics
+
+| Metric | Result | Context |
 |---|---|---|
-| C++ streaming ingest | **1.33 us / packet** on AMD RX 7900 XT | Sustains high-rate telemetry with headroom |
-| C++ batch ingest | **9.54 us / packet** | Zero-copy pinned memory, GIL-free |
-| Python GPU ingest | **35 us / packet** | Baseline GPU pipeline overhead |
-| CPU baseline | **35,000 us / packet** | Demonstrates acceleration delta |
-| Detection latency | **sub-millisecond** | Corruption isolated before it reaches models |
-| Audit integrity | **hash-chain verified** | FIA-grade provenance for investigations |
+| **GPU Ingest (PyTorch)** | 35 µs/packet | Baseline GPU pipeline overhead with GIL |
+| **C++ Streaming Ingest** | 1.33 µs/packet | Zero-copy pinned memory, GIL-free, async HIP streams |
+| **C++ Batch Ingest** | 9.54 µs/packet | Batched operations on AMD RX 7900 XT |
+| **CPU Baseline** | 35,000 µs/packet | Demonstrates 1000× acceleration with GPU path |
+| **Detection Latency** | < 1 ms (p95) | Corruption isolated before reaching simulation models |
+| **Audit Integrity** | Hash-chain verified | FIA-grade tamper evidence for post-race investigations |
 
-## Dead Letter Queue (DLQ) Design Philosophy
+---
 
-Ambiguous or unresolvable telemetry packets are intentionally routed to the Dead Letter Queue (DLQ) rather than forcing real-time resolution. This approach is by design: the DLQ feeds a post-session analysis dashboard for review during race debrief, mirroring the operational reality of F1 engineering teams. Unresolvable data mid-session is a distraction from real-time decision making. The pipeline prioritizes continuity and reliability during the session, ensuring that all data—including problematic packets—is preserved for full forensic analysis after the checkered flag.
+## Dead Letter Queue Philosophy
 
-## Background
+Ambiguous or unresolvable telemetry is intentionally routed to the Dead Letter Queue (DLQ) rather than blocking the pipeline. This design mirrors F1 operational reality: unresolvable data mid-session distracts from real-time decision making. The pipeline prioritizes continuity during the session while preserving all data, including problematic packets, for full forensic analysis during race debrief.
+
+**DLQ feeds post-session dashboard:** Engineering teams review quarantined packets after the checkered flag, not during critical race moments.
+
+---
+
+## Budget Cap Value Proposition
+
+| Budget Cap Pressure | Solution | Savings |
+|---|---|---|
+| Manual schema drift triage | Automated BERT reconciliation | Eliminates 1-2 FTE trackside data engineers |
+| Connectivity failure response | Local-first edge buffer | Reduces emergency IT intervention costs |
+| Compliance overhead | Automated geo-fencing | Minimizes legal review cycles for data handling |
+| Incident forensics | DLQ + hash-chain audit | Faster post-race debrief; reduces consultant hours |
+
+**ROI:** Self-healing code replaces trackside headcount. In the budget cap era, this is competitive advantage.
+
+---
+
+## Docker Deployment
+
+**Production-hardened multi-stage build:**
+- Non-root user (UID 1000), read-only filesystem, no-new-privileges
+- Resource limits: CPU/memory caps enforce budget discipline
+- Network isolation: internal bridge network, no external exposure
+- Health checks: validates imports before traffic flows
+
+```bash
+docker-compose -f docker-compose.production.yml up -d
+```
+
+See `Dockerfile.production` and `docker-compose.production.yml` for full configuration.
+
+---
+
+## Testing & Validation
+
+```bash
+# Full test suite
+PYTHONPATH="." pytest tests/ -v
+
+# CPU stress test
+PYTHONPATH="." python tools/cadillac_stress_test.py --packets 5000 --chaos 0.20
+
+# Engine temperature anomaly test
+PYTHONPATH="." python tools/stress_test_engine_temp.py
+```
+
+---
+
+## Architecture Decision Records
+
+Key design decisions documented in [`docs/adr/`](docs/adr/):
+
+| ADR | Decision | Rationale |
+|-----|----------|-----------|
+| [001](docs/adr/001-sqlite-wal-over-redis.md) | SQLite WAL over Redis | Zero-dependency trackside; crash-safe WAL; portable archive |
+| [002](docs/adr/002-circuit-breaker-over-retry-loop.md) | Circuit breaker over retry | Sub-second latency under corruption; self-healing probe |
+| [003](docs/adr/003-hash-chain-audit-over-append-only-log.md) | SHA-256 hash chain | Cryptographic tamper evidence; SQL-queryable forensics |
+
+---
+
+## About
 
 10+ years as a Senior Data Analyst at Statistics Canada, shipping production pipelines that handle the country's most sensitive data at scale. That same discipline: tamper-evident lineage, automated reconciliation, zero-tolerance for data corruption is exactly what the F1 Budget Cap era demands.
 
 This is the production-ready implementation of my upcoming PhD research at TalTech (Tallinn University of Technology) on Reproducible Analytical Pipelines (RAP) for high-velocity sensor telemetry. Every module in this repository traces back to a peer-reviewed methodology for autonomous schema drift resolution.
 
-Self-healing code reduces the headcount needed for trackside IT support. Instead of flying a team of data engineers to every race, the pit wall gets a pipeline that detects corruption, isolates bad packets, and recovers, all without human intervention. In the Budget Cap era, that's not just engineering, it's a competitive advantage.
+---
 
-## Expanded Workflows
+## About
 
-### 1) Developer Validation
+**Developer:** Tarek Clarke  
+**Background:** Senior Data Analyst, Statistics Canada (10+ years) | Incoming PhD Candidate, TalTech  
+**Expertise:** Production pipelines for sensitive data at national scale; tamper-evident lineage; zero-tolerance data integrity
 
-```bash
-source .venv/bin/activate
-PYTHONPATH="." pytest tests/ -v
-```
+This is the production-ready implementation of PhD research at TalTech (Tallinn University of Technology) on Reproducible Analytical Pipelines (RAP) for high-velocity sensor telemetry. Every module traces back to peer-reviewed methodology for autonomous schema drift resolution.
 
-### 2) C++ Ingest Smoke Test
+**The F1 Connection:** Self-healing code reduces trackside IT headcount. Instead of flying data engineers to every race, the pit wall gets a pipeline that detects corruption, isolates bad packets, and recovers autonomously. In the Budget Cap era, this operational efficiency is competitive advantage.
 
-```bash
-source .venv/bin/activate
-python3 setup.py build_ext --inplace
-PYTHONPATH="." python3 -c "from modules.translator import TelemetryIngestor; print('fast_ingest available:', TelemetryIngestor.is_accelerated())"
-```
-
-### 3) Pit Wall Health Monitor
-
-```bash
-source .venv/bin/activate
-PYTHONPATH="." python3 tools/health_monitor.py --duration 60
-```
-
-### Artifacts
-
-- `data/reports/cadillac_gpu_stress_test_report_sprint.json`
-- `data/reports/cadillac_gpu_stress_test_report_weekend.json`
-- `data/reports/run_sprint.log`
-- `data/reports/run_weekend.log`
-
-## The Full Showcase Suite (Original RAP Research)
-
-```bash
-PYTHONPATH="." python tools/demo_openf1.py --session 9158 --driver 1
-PYTHONPATH="." python tools/stress_test_engine_temp.py
-PYTHONPATH="." python tools/benchmark_semantic_layer.py
-PYTHONPATH="." python tools/demo_pdf_report.py
-```
-
-Purpose:
-- Demonstrates live ingest, stress behavior, semantic benchmarking, and reporting.
-- Supplements the Linux GPU benchmark path above for research-style walkthroughs.
-
-## Repository Structure
-
-```
-resilient-rap-framework/
-├── .github/workflows/ci.yml        # CI — Tests, Stress, Docker
-├── src/
-│   ├── circuit_breaker.py           # Circuit-Breaker + DLQ
-│   ├── local_persistence.py         # Trackside Edge Buffer
-│   ├── geo_fence.py                 # Data Sovereignty / Geo-Fence
-│   ├── audit_log.py                 # SHA-256 Hash-Chain Audit
-│   ├── provenance.py                # Tamper-Evident Logger
-│   └── analytics/
-├── modules/
-│   ├── base_ingestor.py             # Core pipeline orchestrator
-│   ├── translator.py                # BERT Semantic Translator
-│   ├── enhanced_translator.py       # HITL-enhanced translator
-│   ├── f1_telemetry_logger.py       # 50Hz telemetry simulation
-│   └── ...
-├── adapters/
-│   ├── openf1/                      # Live F1 API adapter
-│   └── ...
-├── tools/
-│   ├── cadillac_stress_test.py              # CPU Triple-Header Stress Test
-│   ├── cadillac_gpu_stress_test.py          # GPU-Accelerated Triple-Header Stress Test
-│   ├── health_monitor.py                    # Pit Wall CLI Dashboard
-│   ├── demo_openf1.py                       # F1 telemetry demo
-│   └── ...
-├── docs/adr/                        # Architecture Decision Records
-├── tests/                           # Automated test suite
-├── data/reports/                    # Generated reports & CSVs
-├── Dockerfile.production            # Enterprise-hardened image
-├── docker-compose.production.yml    # Production deployment
-└── README.md                        # ← You are here
-```
-
-## The Budget Cap Argument
-
-Budget-cap value is operational efficiency under failure:
-
-- Less manual triage: schema drift and anomaly handling are automated.
-- Lower trackside burden: local buffering and replay reduce emergency intervention.
-- Faster incident containment: breaker + DLQ isolate bad data before model impact.
-- Compliance by default: geo-fencing enforces jurisdiction-aware data handling.
-
-## Architecture Decision Records
-
-Key design decisions are documented in [`docs/adr/`](docs/adr/):
-
-| ADR | Decision | Rationale |
-|-----|----------|-----------|
-| [001](docs/adr/001-sqlite-wal-over-redis.md) | SQLite WAL over Redis for edge buffer | Zero-dependency trackside deployment; crash-safe WAL; portable post-race archive |
-| [002](docs/adr/002-circuit-breaker-over-retry-loop.md) | Circuit breaker over retry loop | Sub-second latency under corruption bursts; self-healing HALF_OPEN probe |
-| [003](docs/adr/003-hash-chain-audit-over-append-only-log.md) | SHA-256 hash chain over append-only log | Cryptographic tamper evidence for FIA audits; SQL-queryable forensics |
-
-## Testing
-
-```bash
-PYTHONPATH="." pytest tests/ -v
-```
+---
 
 ## Licensing
 
-PolyForm Noncommercial License 1.0.0. Commercial use requires separate
-agreement.
+**PolyForm Noncommercial License 1.0.0**  
+Commercial use requires separate agreement.
 
-Contact: tclarke91@proton.me
+**Contact:** tclarke91@proton.me
 
-Tarek Clarke · Senior Data Analyst (StatCan) · Incoming PhD Candidate (TalTech)
-Developed for the 2026 Cadillac F1 Initiative
+---
+
+**Developed for the 2026 Cadillac F1 Initiative**
