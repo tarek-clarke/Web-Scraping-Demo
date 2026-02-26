@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-A production-ready telemetry spine that processes 3.6M packets per race weekend with sub-millisecond latency on AMD Radeon RX 7900 XT. Built for budget-cap constraints: self-healing ingestion eliminates manual triage, local-first architecture reduces trackside IT headcount, and automated compliance handling (GDPR/sovereignty) minimizes legal risk.
+A production-ready telemetry spine that processes 3.6M packets per race weekend with sub-millisecond latency on AMD Radeon RX 7900 XT. Built for budget-cap constraints: self-healing ingestion eliminates manual triage, local-first architecture keeps trackside engineers focused on performance decisions and race strategy, and automated compliance handling (GDPR/sovereignty) minimizes legal risk.
 
 **Key Performance:**
 - **Sub-1ms p95 latency** at full race load (3.6M packets)
@@ -250,12 +250,12 @@ Ambiguous or unresolvable telemetry is intentionally routed to the Dead Letter Q
 
 | Budget Cap Pressure | Solution | Savings |
 |---|---|---|
-| Manual schema drift triage | Automated BERT reconciliation | Eliminates 1-2 FTE trackside data engineers |
+| Manual schema drift triage | Automated BERT reconciliation | Frees trackside engineers for performance decisions and race strategy |
 | Connectivity failure response | Local-first edge buffer | Reduces emergency IT intervention costs |
 | Compliance overhead | Automated geo-fencing | Minimizes legal review cycles for data handling |
 | Incident forensics | DLQ + hash-chain audit | Faster post-race debrief; reduces consultant hours |
 
-**ROI:** Self-healing code replaces trackside headcount. In the budget cap era, this is competitive advantage.
+**ROI:** Self-healing automation frees trackside engineers to focus on performance decisions and race strategy rather than manual data triage. In the budget cap era, engineer time is the scarce resource.
 
 ---
 
@@ -310,7 +310,7 @@ Key design decisions documented in [`docs/adr/`](docs/adr/):
 
 This is the production-ready implementation of PhD research at TalTech (Tallinn University of Technology) on Reproducible Analytical Pipelines (RAP) for high-velocity sensor telemetry. Every module traces back to peer-reviewed methodology for autonomous schema drift resolution.
 
-**The F1 Connection:** Self-healing code reduces trackside IT headcount. Instead of flying data engineers to every race, the pit wall gets a pipeline that detects corruption, isolates bad packets, and recovers autonomously. In the Budget Cap era, this operational efficiency is competitive advantage.
+**The F1 Connection:** Self-healing automation keeps trackside engineers focused on performance decisions and race strategy rather than manual data triage. The pit wall gets a pipeline that detects corruption, isolates bad packets, and recovers autonomously. In the Budget Cap era, this operational efficiency is competitive advantage.
 
 ---
 
