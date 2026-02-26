@@ -44,8 +44,11 @@ python3 setup.py build_ext --inplace
 PYTHONPATH="." python3 -c "from modules.translator import TelemetryIngestor; print('fast_ingest available:', TelemetryIngestor.is_accelerated())"
 python3 -c "import torch; print('CUDA/ROCm available:', torch.cuda.is_available()); print('Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 
-# 6. Run GPU stress test
-FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
+# 6a. Sprint quickstart (fast validation run)
+FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint
+
+# 6b. Race weekend quickstart (3.6M packets total: 15 sessions × 240,000)
+FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend
 ```
 
 ## Cadillac F1 Telemetry Suite — Quickstart Showcase
@@ -82,8 +85,11 @@ PYTHONPATH="." python3 -c "from modules.translator import TelemetryIngestor; pri
 # 7. Check PyTorch GPU device (run in bash, not Python shell):
 python3 -c "import torch; print('PyTorch version:', torch.__version__); print('CUDA available:', torch.cuda.is_available()); print('CUDA device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"
 
-# 8. Run the full GPU-accelerated stress test suite (auto-detects backend)
-PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
+# 8a. Sprint quickstart (fast validation run)
+PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint
+
+# 8b. Race weekend quickstart (3.6M packets total: 15 sessions × 240,000)
+PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend
 
 # 9. (Optional) Run additional demo scripts for PDF reporting, HITL retraining, and OpenF1 ingest:
 PYTHONPATH="." python3 examples/demo_pdf_report.py

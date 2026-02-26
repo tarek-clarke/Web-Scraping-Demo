@@ -655,10 +655,12 @@ class CadillacGPUStressTest:
         breaker_threshold: int = 5,
         breaker_recovery: float = 2.0,
         output_dir: str = "data/reports",
+        output_suffix: str = "",
     ):
         self.packets_per_session = packets_per_session
         self.chaos = ChaosInjector(chaos_rate)
         self.output_dir = Path(output_dir)
+        self.output_suffix = output_suffix
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # GPU setup
@@ -1400,7 +1402,7 @@ class CadillacGPUStressTest:
     def _export_results(self) -> None:
         """Write GPU-specific results to CSV and JSON."""
         # --- Session CSV ---
-        csv_path = self.output_dir / "cadillac_gpu_stress_test_results.csv"
+        csv_path = self.output_dir / f"cadillac_gpu_stress_test_results{self.output_suffix}.csv"
         fieldnames = [
             "session_name", "circuit", "packets_sent", "packets_accepted",
             "packets_rejected", "chaos_injected", "breaker_trips",
@@ -1428,19 +1430,19 @@ class CadillacGPUStressTest:
         console.print(f"\n[dim]GPU CSV exported → {csv_path}[/dim]")
 
         # --- Full JSON report ---
-        json_path = self.output_dir / "cadillac_gpu_stress_test_report.json"
+        json_path = self.output_dir / f"cadillac_gpu_stress_test_report{self.output_suffix}.json"
         with open(json_path, "w") as f:
             json.dump(asdict(self.report), f, indent=2, default=str)
         console.print(f"[dim]GPU JSON exported → {json_path}[/dim]")
 
         # --- GPU metrics standalone JSON ---
-        gpu_json_path = self.output_dir / "cadillac_gpu_metrics.json"
+        gpu_json_path = self.output_dir / f"cadillac_gpu_metrics{self.output_suffix}.json"
         with open(gpu_json_path, "w") as f:
             json.dump(asdict(self.report.gpu_metrics), f, indent=2, default=str)
         console.print(f"[dim]GPU metrics exported → {gpu_json_path}[/dim]")
 
         # --- Resilience Timing CSV ---
-        timing_csv_path = self.output_dir / "gpu_resilience_timing_report.csv"
+        timing_csv_path = self.output_dir / f"gpu_resilience_timing_report{self.output_suffix}.csv"
         with open(timing_csv_path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=[
                 "packet_id", "session", "sensor", "chaos_type",
@@ -1471,7 +1473,7 @@ class CadillacGPUStressTest:
 
         # --- Resilience Timing JSON ---
         if self.timing_summary:
-            timing_json_path = self.output_dir / "gpu_resilience_timing_report.json"
+            timing_json_path = self.output_dir / f"gpu_resilience_timing_report{self.output_suffix}.json"
             with open(timing_json_path, "w") as f:
                 json.dump(asdict(self.timing_summary), f, indent=2, default=str)
             console.print(f"[dim]GPU timing JSON exported → {timing_json_path}[/dim]")
@@ -1500,6 +1502,10 @@ def main():
         "--showcase", action="store_true",
         help="Showcase mode: tuned for live demo (1000 pkt, 10%% chaos, fast)",
     )
+    parser.add_argument(
+        "--output-suffix", type=str, default="",
+        help="Optional suffix for output filenames (e.g. _sprint, _weekend)",
+    )
     args = parser.parse_args()
 
     if args.showcase:
@@ -1519,6 +1525,7 @@ def main():
         packets_per_session=packets,
         chaos_rate=chaos,
         breaker_threshold=threshold,
+        output_suffix=args.output_suffix,
     )
     report = test.run()
     return 0 if "✅" in report.verdict else 1
