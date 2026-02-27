@@ -179,13 +179,13 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 | **GPU Device** | Radeon RX 7900 XT | ✅ Detected |
 | **GPU Memory** | 19.98 GB | ✅ Available |
 | **Total Packets** | 30,000 | ✅ Processed |
-| **Acceptance Rate** | 81.13% | ✅ Improved clean throughput |
-| **Chaos Injected** | 1,500 packets | ✅ Expected fault load |
-| **Schema-Drift Recovered** | 203 packets | ✅ BERT reconciliation |
-| **Tensor Anomalies Detected** | 1,434 detections | ✅ Real-time GPU analysis |
-| **Overall p95 Latency** | 0.256 ms | ✅ Sub-millisecond |
-| **Circuit Breaker Trips** | 2 total | ✅ Protection working |
-| **DLQ Depth (final)** | 5,660 | ✅ Fresh-run quarantine level |
+| **Acceptance Rate** | 71.04% | ⚠️ Needs tuning |
+| **Chaos Injected** | 1,515 packets | ✅ Expected fault load |
+| **Schema-Drift Recovered** | 206 packets | ✅ BERT reconciliation |
+| **Tensor Anomalies Detected** | 1,445 detections | ✅ Real-time GPU analysis |
+| **Overall p95 Latency** | 0.250 ms | ✅ Sub-millisecond |
+| **Circuit Breaker Trips** | 1 total | ✅ Protection working |
+| **DLQ Depth (final)** | 8,880 | ⚠️ Elevated quarantine backlog |
 | **SLOs Passed** | 6/6 | ✅ All SLOs met |
 | **Verdict** | RACE-READY ✅ | Based on SLO result (6/6 passed) |
 
