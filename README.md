@@ -162,16 +162,6 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 
 **Hardware:** AMD Radeon RX 7900 XT (20GB VRAM) | ROCm 5.7 | gfx1100 architecture
 
-### Run Commands
-
-```bash
-# Sprint benchmark (30K packets, ~30 seconds)
-source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint | tee data/reports/run_sprint.log
-
-# Race weekend benchmark (3.6M packets, ~15 minutes)
-source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend | tee data/reports/run_weekend.log
-```
-
 ### Sprint Results (30K Packets @ 5% Chaos)
 
 | Metric | Result | Status |
