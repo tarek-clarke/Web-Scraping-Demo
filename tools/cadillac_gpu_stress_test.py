@@ -44,6 +44,7 @@ import argparse
 import csv
 import json
 import math
+import os
 import random
 import statistics
 import sys
@@ -643,6 +644,11 @@ class CadillacGPUStressTest:
     """
 
     BATCH_SIZE = 128  # Increased from 64 for better GPU utilisation on 7900XT
+    SQLITE_ARTIFACTS = (
+        "data/gpu_stress_dlq.sqlite",
+        "data/gpu_stress_edge_buffer.sqlite",
+        "data/gpu_stress_audit.sqlite",
+    )
 
     _SCHEMA_DRIFT_SUFFIXES = (
         "_v2", "_v3", "_new", "_alt", "_canbus", "_raw", "_temp",
@@ -706,6 +712,17 @@ class CadillacGPUStressTest:
         self._total_hash_ms = 0.0
         self._embedding_batch_times: List[float] = []
         self._anomaly_batch_times: List[float] = []
+
+    @classmethod
+    def clear_sqlite_artifacts(cls) -> int:
+        """Delete stress-test SQLite databases and WAL/SHM sidecar files."""
+        deleted = 0
+        for db_path in cls.SQLITE_ARTIFACTS:
+            for candidate in (db_path, f"{db_path}-wal", f"{db_path}-shm"):
+                if os.path.exists(candidate):
+                    os.remove(candidate)
+                    deleted += 1
+        return deleted
 
     @staticmethod
     def _mock_cloud_sync(payloads: list) -> bool:
@@ -1512,6 +1529,10 @@ def main():
         "--output-suffix", type=str, default="",
         help="Optional suffix for output filenames (e.g. _sprint, _weekend)",
     )
+    parser.add_argument(
+        "--clear-sqlite", action="store_true",
+        help="Delete stress-test SQLite DB/WAL/SHM files before the run starts",
+    )
     args = parser.parse_args()
 
     if args.showcase:
@@ -1533,7 +1554,13 @@ def main():
         breaker_threshold=threshold,
         output_suffix=args.output_suffix,
     )
+
+    if args.clear_sqlite:
+        deleted = CadillacGPUStressTest.clear_sqlite_artifacts()
+        console.print(f"[dim]SQLite pre-run cleanup complete → removed {deleted} file(s)[/dim]")
+
     report = test.run()
+
     return 0 if "✅" in report.verdict else 1
 
 
