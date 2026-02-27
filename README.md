@@ -134,11 +134,26 @@ python3 -c "import torch; print('CUDA/ROCm available:', torch.cuda.is_available(
 ---
 
 ```bash
+# 1. Kill any lingering python processes holding the DB lock
+pkill -f cadillac_gpu_stress_test.py
+
+# 2. Find and obliterate the SQLite files wherever they are
+find . -name "*.db" -type f -delete
+find . -name "*.db-wal" -type f -delete
+find . -name "*.db-shm" -type f -delete
+
+# 3. Run a tiny test just to verify the DLQ starts at 0
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 100 --chaos 0.05
+```
+
+---
+
+```bash
 # Sprint benchmark (30,000 total packets)
-source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint --clear-sqlite | tee data/reports/run_sprint.log
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint | tee data/reports/run_sprint.log
 
 # Race weekend benchmark (3.6M total packets)
-source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend --clear-sqlite | tee data/reports/run_weekend.log
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend | tee data/reports/run_weekend.log
 ```
 
 ---
@@ -151,10 +166,10 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 
 ```bash
 # Sprint benchmark (30K packets, ~30 seconds)
-source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint --clear-sqlite | tee data/reports/run_sprint.log
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint | tee data/reports/run_sprint.log
 
 # Race weekend benchmark (3.6M packets, ~40 minutes)
-source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend --clear-sqlite | tee data/reports/run_weekend.log
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend | tee data/reports/run_weekend.log
 ```
 
 ### Sprint Results (30K Packets @ 5% Chaos)
