@@ -189,6 +189,7 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 | **SLOs Passed** | 6/6 | ✅ All SLOs met |
 | **Verdict** | RACE-READY ✅ | Based on SLO result (6/6 passed) |
 
+The DLQ depth exceeds the amount of tensor anomalies due to the circuit breaker tripping and bypassing every incoming packet to the DLQ.
 ### Race Weekend Results (3.6M Packets @ 5% Chaos)
 
 Full weekend simulation (240K packets/session × 15 sessions, 5% chaos injection):
@@ -205,6 +206,8 @@ Full weekend simulation (240K packets/session × 15 sessions, 5% chaos injection
 | **DLQ Depth (final)** | 1,139,649 | ⚠️ High quarantine backlog |
 | **SLOs Passed** | 6/6 | ✅ All SLOs met |
 | **Verdict** | RACE-READY ✅ | Based on SLO result (6/6 passed) |
+
+The DLQ depth exceeds the amount of tensor anomalies due to the circuit breaker tripping and bypassing every incoming packet to the DLQ.
 
 ### Technical Details
 
