@@ -5,7 +5,11 @@
 ![Python](https://img.shields.io/badge/Python-3.10%2B-yellow)
 ![Docker](https://img.shields.io/badge/Docker-Enterprise--Hardened-blue)
 
-**GPU-Accelerated Real-Time Telemetry Processing for 2026 F1 Season**
+**GPU-Accelerated Real-Time Telemetry Processing for 2026 F1 Season (Ubuntu 24.04 + AMD ROCm)**
+
+**Compatibility:**
+- Primary target: Ubuntu 24.04 LTS + AMD ROCm (validated)
+- Optional fallback: NVIDIA CUDA (commands kept commented in Quick Start)
 
 ## Executive Summary
 
@@ -108,10 +112,11 @@ flowchart LR
 
 **Total Active Codebase:** 3,543 lines (excluding tests and archived modules)
 
-## Quick Start (Linux + AMD ROCm)
+## Quick Start (Ubuntu 24.04 + AMD ROCm)
 
 ```bash
 # 0. Prerequisites
+# Tested on Ubuntu 24.04 LTS (Noble)
 sudo apt update && sudo apt install -y python3-venv
 
 # 1. Environment
@@ -121,13 +126,19 @@ source .venv/bin/activate
 # 2. Dependencies
 python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
-python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.7
+# Force ROCm wheels on AMD (prevents accidental CUDA wheel install)
+python3 -m pip uninstall -y torch torchvision torchaudio
+python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2.4
+
+# NVIDIA/CUDA fallback (keep commented unless running on NVIDIA hardware)
+# python3 -m pip uninstall -y torch torchvision torchaudio
+# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 
 # 3. Build accelerated ingest
 python3 setup.py build_ext --inplace
 
 # 4. Verify Linux GPU path
-PYTHONPATH="." python3 -c "from modules.translator import TelemetryIngestor; print('fast_ingest available:', TelemetryIngestor.is_accelerated())"
+PYTHONPATH="." python3 -c "from archive.modules.translator import TelemetryIngestor; print('fast_ingest available:', TelemetryIngestor.is_accelerated())"
 python3 -c "import torch; print('CUDA/ROCm available:', torch.cuda.is_available()); print('Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 ```
 
@@ -158,7 +169,7 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 
 ---
 
-## GPU Benchmark Results (Validated on Linux)
+## GPU Benchmark Results (Validated on Ubuntu 24.04)
 
 **Hardware:** AMD Radeon RX 7900 XT (20GB VRAM) | ROCm 5.7 | gfx1100 architecture
 
