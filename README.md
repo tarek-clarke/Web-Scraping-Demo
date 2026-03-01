@@ -172,6 +172,7 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 ## GPU Benchmark Results (Validated on Ubuntu 24.04)
 
 **Hardware:** AMD Radeon RX 7900 XT (20GB VRAM) | ROCm 6.2 | gfx1100 architecture
+**Benchmark run date:** 2026-03-01
 
 ### Sprint Results (30K Packets @ 5% Chaos)
 
