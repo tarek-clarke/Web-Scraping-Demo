@@ -171,7 +171,7 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 
 ## GPU Benchmark Results (Validated on Ubuntu 24.04)
 
-**Hardware:** AMD Radeon RX 7900 XT (20GB VRAM) | ROCm 5.7 | gfx1100 architecture
+**Hardware:** AMD Radeon RX 7900 XT (20GB VRAM) | ROCm 6.2 | gfx1100 architecture
 
 ### Sprint Results (30K Packets @ 5% Chaos)
 
@@ -180,17 +180,25 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 | **GPU Device** | Radeon RX 7900 XT | ✅ Detected |
 | **GPU Memory** | 19.98 GB | ✅ Available |
 | **Total Packets** | 30,000 | ✅ Processed |
-| **Acceptance Rate** | 71.04% | ⚠️ Needs tuning |
-| **Chaos Injected** | 1,515 packets | ✅ Expected fault load |
-| **Schema-Drift Recovered** | 206 packets | ✅ BERT reconciliation |
-| **Tensor Anomalies Detected** | 1,445 detections | ✅ Real-time GPU analysis |
-| **Overall p95 Latency** | 0.250 ms | ✅ Sub-millisecond |
-| **Circuit Breaker Trips** | 1 total | ✅ Protection working |
-| **DLQ Depth (final)** | 8,880 | ⚠️ Elevated quarantine backlog |
+| **Acceptance Rate** | 86.61% | ✅ Improved clean-data throughput |
+| **Chaos Injected** | 1,550 packets | ✅ Expected fault load |
+| **Schema-Drift Recovered** | 204 packets | ✅ BERT reconciliation |
+| **Tensor Anomalies Detected** | 1,385 detections | ✅ Real-time GPU analysis |
+| **Overall p95 Latency** | 0.228 ms | ✅ Sub-millisecond |
+| **Circuit Breaker Trips** | 0 total | ✅ Stable at sprint load |
+| **DLQ Depth (final)** | 4,017 | ✅ Reduced quarantine backlog |
 | **SLOs Passed** | 6/6 | ✅ All SLOs met |
 | **Verdict** | RACE-READY ✅ | Based on SLO result (6/6 passed) |
 
-The DLQ depth exceeds the amount of tensor anomalies due to the circuit breaker tripping and bypassing every incoming packet to the DLQ.
+**Ubuntu 24.04 vs Ubuntu 22.04 (Sprint):**
+
+| Metric | Ubuntu 22.04 | Ubuntu 24.04 (current) | Delta |
+|--------|--------------|-------------------------|-------|
+| **Acceptance Rate** | 71.04% | 86.61% | **+15.57 pp** |
+| **Overall p95 Latency** | 0.250 ms | 0.228 ms | **-0.022 ms** |
+| **Circuit Breaker Trips** | 1 | 0 | **-1** |
+| **DLQ Depth (final)** | 8,880 | 4,017 | **-4,863** |
+
 ### Race Weekend Results (3.6M Packets @ 5% Chaos)
 
 Full weekend simulation (240K packets/session × 15 sessions, 5% chaos injection):
@@ -198,17 +206,26 @@ Full weekend simulation (240K packets/session × 15 sessions, 5% chaos injection
 | Metric | Result | Status |
 |--------|--------|--------|
 | **Total Packets** | 3,600,000 | ✅ Processed |
-| **Acceptance Rate** | 68.50% | ⚠️ Needs tuning |
-| **Chaos Injected** | 180,646 packets | ✅ Expected fault load |
-| **Schema-Drift Recovered** | 26,122 packets | ✅ BERT reconciliation |
-| **Tensor Anomalies Detected** | 167,416 detections | ✅ Real-time GPU analysis |
-| **Overall p95 Latency** | 0.267 ms | ✅ Sub-millisecond |
-| **Circuit Breaker Trips** | 141 total | ⚠️ Elevated at race load |
-| **DLQ Depth (final)** | 1,139,649 | ⚠️ High quarantine backlog |
+| **Acceptance Rate** | 70.77% | ⚠️ Needs tuning |
+| **Chaos Injected** | 180,720 packets | ✅ Expected fault load |
+| **Schema-Drift Recovered** | 25,805 packets | ✅ BERT reconciliation |
+| **Tensor Anomalies Detected** | 167,559 detections | ✅ Real-time GPU analysis |
+| **Overall p95 Latency** | 0.252 ms | ✅ Sub-millisecond |
+| **Circuit Breaker Trips** | 119 total | ⚠️ Elevated at race load |
+| **DLQ Depth (final)** | 1,056,207 | ⚠️ High quarantine backlog |
 | **SLOs Passed** | 6/6 | ✅ All SLOs met |
 | **Verdict** | RACE-READY ✅ | Based on SLO result (6/6 passed) |
 
-The DLQ depth exceeds the amount of tensor anomalies due to the circuit breaker tripping and bypassing every incoming packet to the DLQ.
+**Ubuntu 24.04 vs Ubuntu 22.04 (Weekend):**
+
+| Metric | Ubuntu 22.04 | Ubuntu 24.04 (current) | Delta |
+|--------|--------------|-------------------------|-------|
+| **Acceptance Rate** | 68.50% | 70.77% | **+2.27 pp** |
+| **Overall p95 Latency** | 0.267 ms | 0.252 ms | **-0.015 ms** |
+| **Circuit Breaker Trips** | 141 | 119 | **-22** |
+| **DLQ Depth (final)** | 1,139,649 | 1,056,207 | **-83,442** |
+
+The DLQ depth remains higher than anomaly detections at weekend scale because breaker-open intervals still route packets to quarantine under sustained fault load.
 
 ### Technical Details
 
