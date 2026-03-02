@@ -266,6 +266,12 @@ Representative Ubuntu 24.04 results (side-by-side):
 | Sprint (30K packets) | 0.001 | 31 | 18 | 3 | 18 | 15 | 83.33% | 0.00 ms | 0 |
 | Weekend (3.6M packets) | 0.001 | 3,550 | 2,330 | 2,183 | 200 | 147 | 73.50% | 0.00 ms | 0 |
 
+Quick trend readout:
+- Lowering chaos from `0.005` → `0.001` reduces injected anomalies by ~5× at both scales.
+- DLQ quarantine pressure drops sharply (`11,513` → `2,183`) on weekend runs.
+- Repair rate remains stable/high across both levels (`72.50%` to `73.50%` weekend; `83%+` sprint).
+- Breaker stability and latency stay deterministic (`0` trips, `0.00 ms` p95 in all four runs).
+
 Example successful output excerpt:
 
 ```text
