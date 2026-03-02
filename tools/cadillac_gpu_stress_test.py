@@ -1017,10 +1017,23 @@ class CadillacGPUStressTest:
                 return sensor[: -len(suffix)]
         return sensor
 
+    def _is_schema_like_sensor(self, sensor: str) -> bool:
+        """Return True if sensor name carries a known schema-drift suffix."""
+        return any(sensor.endswith(suffix) for suffix in self._SCHEMA_DRIFT_SUFFIXES)
+
     # -----------------------------------------------------------------
     def _finalise_report(self) -> None:
         # DLQ reprocessing (same as CPU version)
-        candidates = self.breaker.dlq.fetch_reprocessable(limit=200)
+        # Pull a wider candidate pool, then prioritize schema-like rows so the
+        # repair loop does not spend all 200 attempts on unrecoverable nulls.
+        candidates = self.breaker.dlq.fetch_reprocessable(limit=5000)
+        candidates.sort(
+            key=lambda rec: (
+                0 if self._is_schema_like_sensor((rec.get("sensor") or "").lower()) else 1,
+                rec.get("id", 0),
+            )
+        )
+        candidates = candidates[:200]
         repaired = 0
         still_bad = 0
         max_retries = 0
@@ -1048,7 +1061,7 @@ class CadillacGPUStressTest:
             t0 = time.monotonic()
             is_valid, reason = self.breaker.validator.validate_packet(pkt)
 
-            if not is_valid and "schema_drift" in rec.get("reason", ""):
+            if not is_valid:
                 normalized = self._normalize_sensor(raw_sensor)
                 if normalized != raw_sensor:
                     pkt_norm = TelemetryPacket(
