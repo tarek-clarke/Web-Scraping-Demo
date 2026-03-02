@@ -231,13 +231,24 @@ CHAOS_MODES = [
     "sensor_dropout",
 ]
 
+CHAOS_PROFILES: Dict[str, List[str]] = {
+    "balanced": CHAOS_MODES,
+    "repair_focus": [
+        "schema_drift",
+        "duplicate_timestamp",
+        "string_in_numeric",
+    ],
+}
+
 
 # ---------------------------------------------------------------------------
 # Chaos Injector (identical to CPU version)
 # ---------------------------------------------------------------------------
 class ChaosInjector:
-    def __init__(self, chaos_rate: float = 0.12):
+    def __init__(self, chaos_rate: float = 0.12, profile: str = "balanced"):
         self.chaos_rate = chaos_rate
+        self.profile = profile if profile in CHAOS_PROFILES else "balanced"
+        self.active_modes = CHAOS_PROFILES[self.profile]
         self.events_injected: Dict[str, int] = defaultdict(int)
 
     def maybe_corrupt(
@@ -246,12 +257,14 @@ class ChaosInjector:
         if random.random() > self.chaos_rate:
             return sensor, value, None
 
-        mode = random.choice(CHAOS_MODES)
+        mode = random.choice(self.active_modes)
         self.events_injected[mode] += 1
 
         if mode == "null_value":
             return sensor, None, mode
         elif mode == "string_in_numeric":
+            if self.profile == "repair_focus":
+                return sensor, random.choice(["42.0", "105.25", "-3.5", "88"]), mode
             return sensor, random.choice(["OVERHEAT", "ERR_DECODE", "NaN", "---"]), mode
         elif mode == "bit_flip_high":
             return sensor, value * random.uniform(100, 1000), mode
@@ -663,13 +676,15 @@ class CadillacGPUStressTest:
         self,
         packets_per_session: int = 1000,
         chaos_rate: float = 0.12,
+        chaos_profile: str = "balanced",
         breaker_threshold: int = 5,
         breaker_recovery: float = 2.0,
         output_dir: str = "data/reports",
         output_suffix: str = "",
     ):
         self.packets_per_session = packets_per_session
-        self.chaos = ChaosInjector(chaos_rate)
+        self.chaos = ChaosInjector(chaos_rate, profile=chaos_profile)
+        self._chaos_profile = self.chaos.profile
         self.output_dir = Path(output_dir)
         self.output_suffix = output_suffix
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -705,6 +720,10 @@ class CadillacGPUStressTest:
             f"sigma={self._anomaly_sigma_threshold:.2f}, "
             f"breaker={self._breaker_threshold}, "
             f"recovery={self._breaker_recovery:.2f}s[/dim]"
+        )
+        console.print(
+            f"[dim]Chaos profile: {self._chaos_profile} | "
+            f"modes={', '.join(self.chaos.active_modes)}[/dim]"
         )
 
         # GPU workloads
@@ -919,6 +938,9 @@ class CadillacGPUStressTest:
                 value=value_out,
                 request_id=ctx.request_id,
             )
+            if chaos_type == "duplicate_timestamp":
+                pkt.timestamp = "2026-01-01T00:00:00"
+                pkt.metadata["duplicate_timestamp"] = True
 
             # --- CPU: Circuit Breaker ---
             t_val = time.monotonic()
@@ -1072,6 +1094,32 @@ class CadillacGPUStressTest:
                         metadata=raw_meta,
                     )
                     is_valid, reason = self.breaker.validator.validate_packet(pkt_norm)
+
+            if not is_valid and "string_in_numeric_field" in reason and isinstance(raw_value, str):
+                try:
+                    parsed_value = float(raw_value.strip())
+                    pkt_num = TelemetryPacket(
+                        packet_id=rec["packet_id"],
+                        timestamp=rec["timestamp"],
+                        sensor=self._normalize_sensor(raw_sensor),
+                        value=parsed_value,
+                        metadata=raw_meta,
+                    )
+                    is_valid, reason = self.breaker.validator.validate_packet(pkt_num)
+                except ValueError:
+                    pass
+
+            if not is_valid and "duplicate_timestamp" in reason:
+                repaired_meta = dict(raw_meta) if isinstance(raw_meta, dict) else {}
+                repaired_meta.pop("duplicate_timestamp", None)
+                pkt_dedup = TelemetryPacket(
+                    packet_id=rec["packet_id"],
+                    timestamp=datetime.utcnow().isoformat(),
+                    sensor=self._normalize_sensor(raw_sensor),
+                    value=raw_value,
+                    metadata=repaired_meta,
+                )
+                is_valid, reason = self.breaker.validator.validate_packet(pkt_dedup)
 
             repair_ms = (time.monotonic() - t0) * 1000
 
@@ -1577,6 +1625,13 @@ def main():
         help="Chaos injection rate 0.0–1.0 (default: 0.12)",
     )
     parser.add_argument(
+        "--chaos-profile",
+        type=str,
+        default="balanced",
+        choices=list(CHAOS_PROFILES.keys()),
+        help="Chaos mode profile (default: balanced)",
+    )
+    parser.add_argument(
         "--threshold", type=int, default=5,
         help="Circuit-breaker failure threshold (default: 5)",
     )
@@ -1614,6 +1669,7 @@ def main():
     test = CadillacGPUStressTest(
         packets_per_session=packets,
         chaos_rate=chaos,
+        chaos_profile=args.chaos_profile,
         breaker_threshold=threshold,
         output_suffix=args.output_suffix,
     )

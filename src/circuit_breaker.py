@@ -142,6 +142,12 @@ class SchemaValidator:
         """
         sensor = packet.sensor.lower().replace(" ", "_").replace("(", "").replace(")", "")
 
+        # --- Explicit duplicate timestamp marker -----------------
+        if isinstance(packet.metadata, dict) and packet.metadata.get("duplicate_timestamp"):
+            return False, (
+                f"duplicate_timestamp|sensor={packet.sensor}|timestamp={packet.timestamp}"
+            )
+
         # --- Null / missing value ----------------------------------
         if packet.value is None:
             return False, f"null_value|sensor={packet.sensor}"
