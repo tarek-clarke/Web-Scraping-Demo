@@ -17,9 +17,9 @@ A production-ready telemetry spine that processes 3.6M packets per race weekend 
 
 **Key Performance:**
 - **Sub-1ms p95 latency** at full race load (3.6M packets)
-- **68.5% acceptance rate** under 5% chaos injection
-- **26K+ schema-drift packets** autonomously recovered via GPU-accelerated BERT
-- **167K+ anomalies detected** in real-time with tensor-based outlier detection
+- **70.77% acceptance rate** under 5% chaos injection
+- **25.8K+ schema-drift packets** autonomously recovered via GPU-accelerated BERT
+- **167.6K+ anomalies detected** in real-time with tensor-based outlier detection
 - **6/6 SLOs passed** - Race-ready verdict
 
 **Budget Cap Value:**
