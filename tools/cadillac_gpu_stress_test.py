@@ -1530,8 +1530,8 @@ def main():
         help="Optional suffix for output filenames (e.g. _sprint, _weekend)",
     )
     parser.add_argument(
-        "--clear-sqlite", action="store_true",
-        help="Delete stress-test SQLite DB/WAL/SHM files before the run starts",
+        "--preserve-sqlite", action="store_true",
+        help="Preserve stress-test SQLite DB/WAL/SHM files between runs",
     )
     args = parser.parse_args()
 
@@ -1548,16 +1548,16 @@ def main():
         chaos = args.chaos
         threshold = args.threshold
 
+    if not args.preserve_sqlite:
+        deleted = CadillacGPUStressTest.clear_sqlite_artifacts()
+        console.print(f"[dim]SQLite pre-run cleanup complete → removed {deleted} file(s)[/dim]")
+
     test = CadillacGPUStressTest(
         packets_per_session=packets,
         chaos_rate=chaos,
         breaker_threshold=threshold,
         output_suffix=args.output_suffix,
     )
-
-    if args.clear_sqlite:
-        deleted = CadillacGPUStressTest.clear_sqlite_artifacts()
-        console.print(f"[dim]SQLite pre-run cleanup complete → removed {deleted} file(s)[/dim]")
 
     report = test.run()
 
