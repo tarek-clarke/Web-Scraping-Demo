@@ -53,6 +53,10 @@ class EnhancedSemanticTranslator(SemanticTranslator):
         self.resolution_method_used = None
         self.learned_mapping_hits = 0
         self.bert_fallback_count = 0
+
+        # Embedding cache for learned mapping keys (invalidated on mapping changes)
+        self._learned_embeddings_cache = None
+        self._learned_keys_cache = None
     
     def resolve(
         self,
@@ -99,10 +103,16 @@ class EnhancedSemanticTranslator(SemanticTranslator):
         
         return result, confidence
     
+    def _invalidate_embedding_cache(self) -> None:
+        """Clear cached learned-mapping embeddings (call after mapping changes)."""
+        self._learned_embeddings_cache = None
+        self._learned_keys_cache = None
+
     def _fuzzy_match_learned_mapping(self, messy_field: str) -> Optional[Tuple[str, float]]:
         """
         Attempt fuzzy matching against learned mappings.
         Uses semantic similarity to find close matches.
+        Caches learned-key embeddings to avoid re-encoding on every miss.
         
         Args:
             messy_field: The field to match
@@ -116,18 +126,21 @@ class EnhancedSemanticTranslator(SemanticTranslator):
         # Encode the messy field
         messy_embedding = self.model.encode(messy_field, convert_to_tensor=True)
         
-        # Encode all learned mapping keys
-        learned_keys = list(self.learned_mappings.keys())
-        learned_embeddings = self.model.encode(learned_keys, convert_to_tensor=True)
+        # Use cached embeddings if available; rebuild on invalidation
+        if self._learned_embeddings_cache is None or self._learned_keys_cache is None:
+            self._learned_keys_cache = list(self.learned_mappings.keys())
+            self._learned_embeddings_cache = self.model.encode(
+                self._learned_keys_cache, convert_to_tensor=True
+            )
         
         # Find best match
-        scores = util.cos_sim(messy_embedding, learned_embeddings)[0]
+        scores = util.cos_sim(messy_embedding, self._learned_embeddings_cache)[0]
         best_match_idx = torch.argmax(scores).item()
         confidence = scores[best_match_idx].item()
         
         # Only return if confidence is reasonably high (>0.7)
         if confidence > 0.7:
-            learned_key = learned_keys[best_match_idx]
+            learned_key = self._learned_keys_cache[best_match_idx]
             return self.learned_mappings[learned_key], confidence
         
         return None
@@ -181,6 +194,7 @@ class EnhancedSemanticTranslator(SemanticTranslator):
             persist: Whether to persist to feedback file
         """
         self.learned_mappings[raw_field] = standard_field
+        self._invalidate_embedding_cache()  # Cached embeddings are now stale
         
         if persist:
             # Record as human-approved mapping

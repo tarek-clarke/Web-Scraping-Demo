@@ -86,6 +86,7 @@ class TestDeadLetterQueue:
         pkt = TelemetryPacket(sensor="speed", value=None)
         record = DLQRecord(packet=pkt, reason="null_value", circuit_state="CLOSED")
         dlq.enqueue(record)
+        dlq.flush()
         assert dlq.depth() == 1
         dlq.close()
 
@@ -95,6 +96,7 @@ class TestDeadLetterQueue:
             pkt = TelemetryPacket(sensor=f"sensor_{i}", value=None)
             record = DLQRecord(packet=pkt, reason="test", circuit_state="OPEN")
             dlq.enqueue(record)
+        dlq.flush()
         recent = dlq.recent(limit=3)
         assert len(recent) == 3
         dlq.close()
@@ -104,6 +106,7 @@ class TestDeadLetterQueue:
         pkt = TelemetryPacket(packet_id="pkt_001", sensor="rpm", value=None)
         record = DLQRecord(packet=pkt, reason="test", circuit_state="CLOSED")
         dlq.enqueue(record)
+        dlq.flush()
         assert dlq.depth() == 1
         dlq.mark_reprocessed("pkt_001")
         assert dlq.depth() == 0
@@ -226,6 +229,7 @@ class TestTracksideEdgeBuffer:
             value=350.0,
         )
         buf.write(pkt)
+        buf.flush()  # Ensure batched write is committed
         rows = buf.replay(session_id="silverstone_race")
         assert len(rows) == 1
         assert rows[0]["packet_id"] == "pkt_001"
@@ -248,6 +252,7 @@ class TestTracksideEdgeBuffer:
         pkt = BufferedPacket(packet_id="dup_001", sensor="speed", value=300.0)
         buf.write(pkt)
         buf.write(pkt)  # duplicate
+        buf.flush()
         assert buf.health.total_buffered == 1
         buf.close()
 
@@ -264,6 +269,7 @@ class TestTracksideEdgeBuffer:
         )
         for i in range(5):
             buf.write(BufferedPacket(packet_id=f"pkt_{i}", sensor="speed", value=float(i)))
+        buf.flush()
 
         result = buf.drain_pending()
         assert result["synced"] == 5
@@ -281,6 +287,7 @@ class TestTracksideEdgeBuffer:
             sync_callback=fail_sync,
         )
         buf.write(BufferedPacket(packet_id="pkt_001", sensor="speed", value=300.0))
+        buf.flush()
         result = buf.drain_pending()
         assert result["failed"] == 1
         # Exactly-once semantics: failed packets roll back to PENDING for retry
@@ -295,6 +302,7 @@ class TestTracksideEdgeBuffer:
         )
         for i in range(10):
             buf.write(BufferedPacket(packet_id=f"pkt_{i}", sensor="speed", value=float(i)))
+        buf.flush()
         h = buf.health
         assert h.total_buffered == 10
         assert h.pending_sync == 10
@@ -545,6 +553,7 @@ class TestDLQReprocessing:
         pkt = TelemetryPacket(sensor="engine_temp", value=1050.0)
         accepted, reason = cb.process(pkt)
         assert accepted is False
+        cb.dlq.flush()
         assert cb.dlq.depth() == 1
 
         # Update validator ranges to accept higher temps
@@ -561,6 +570,7 @@ class TestDLQReprocessing:
             failure_threshold=10, dlq_path=str(tmp_path / "dlq.sqlite")
         )
         cb.process(TelemetryPacket(sensor="speed", value=None))
+        cb.dlq.flush()
         assert cb.dlq.depth() == 1
 
         # Reprocess - null value is still invalid
@@ -575,6 +585,7 @@ class TestDLQReprocessing:
         )
         pkt = TelemetryPacket(sensor="speed", value=None)
         cb.process(pkt)
+        cb.dlq.flush()
 
         # Reprocess 3 times to hit max
         for _ in range(3):
@@ -592,6 +603,7 @@ class TestDLQReprocessing:
         for i in range(5):
             pkt = TelemetryPacket(packet_id=f"pkt_{i}", sensor="speed", value=None)
             dlq.enqueue(DLQRecord(packet=pkt, reason="test", circuit_state="CLOSED"))
+        dlq.flush()
 
         candidates = dlq.fetch_reprocessable(limit=3)
         assert len(candidates) == 3
@@ -601,6 +613,7 @@ class TestDLQReprocessing:
         dlq = DeadLetterQueue(db_path=str(tmp_path / "dlq.sqlite"))
         pkt = TelemetryPacket(packet_id="retry_test", sensor="speed", value=None)
         dlq.enqueue(DLQRecord(packet=pkt, reason="test", circuit_state="CLOSED"))
+        dlq.flush()
 
         dlq.increment_retry("retry_test")
         dlq.increment_retry("retry_test")
@@ -628,6 +641,7 @@ class TestExactlyOnceDrain:
             sync_callback=mock_sync,
         )
         buf.write(BufferedPacket(packet_id="pkt_001", sensor="speed", value=300.0))
+        buf.flush()
         result = buf.drain_pending()
         assert "batch_id" in result
         assert result["synced"] == 1
@@ -642,6 +656,7 @@ class TestExactlyOnceDrain:
             sync_callback=fail_sync,
         )
         buf.write(BufferedPacket(packet_id="pkt_001", sensor="speed", value=300.0))
+        buf.flush()
         result = buf.drain_pending()
         assert result["failed"] == 1
 
@@ -654,6 +669,7 @@ class TestExactlyOnceDrain:
     def test_recover_incomplete_batches(self, tmp_path):
         buf = TracksideEdgeBuffer(db_path=str(tmp_path / "buf.sqlite"))
         buf.write(BufferedPacket(packet_id="pkt_001", sensor="speed", value=300.0))
+        buf.flush()
 
         # Simulate a crash during drain by manually setting DRAINING state
         buf._conn.execute(
@@ -679,6 +695,7 @@ class TestExactlyOnceDrain:
         )
         for i in range(3):
             buf.write(BufferedPacket(packet_id=f"pkt_{i}", sensor="speed", value=float(i)))
+            buf.flush()
             buf.drain_pending()
 
         history = buf.drain_history
@@ -698,6 +715,7 @@ class TestExactlyOnceDrain:
             sync_callback=capture_sync,
         )
         buf.write(BufferedPacket(packet_id="pkt_001", sensor="speed", value=300.0))
+        buf.flush()
         buf.drain_pending()
         assert len(received) == 1
         assert "_batch_id" in received[0]

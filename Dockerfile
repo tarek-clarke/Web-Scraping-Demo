@@ -40,17 +40,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     libxml2-dev \
     \
-    # R and statistical packages
-    software-properties-common \
-    r-base \
-    r-base-dev \
-    \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# ──────────────────────────────────────────────────────────────────────────
-# 2. Install R packages (statistical analysis, web scraping)
-# ──────────────────────────────────────────────────────────────────────────
-RUN R -e "install.packages(c('reticulate', 'tidyverse', 'rvest', 'httr2', 'jsonlite'), repos='https://cloud.r-project.org/')" 2>&1 | grep -v "^$"
 
 # ──────────────────────────────────────────────────────────────────────────
 # 3. Install Python packages (PyTorch already in base, add data science)
@@ -58,22 +48,12 @@ RUN R -e "install.packages(c('reticulate', 'tidyverse', 'rvest', 'httr2', 'jsonl
 RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel && \
     pip3 install --no-cache-dir \
     # Core data processing
-    pandas \
     numpy \
     scipy \
     scikit-learn \
     \
-    # Web scraping & HTTP
+    # HTTP
     requests \
-    beautifulsoup4 \
-    lxml \
-    selenium \
-    playwright \
-    \
-    # Visualization & analysis
-    matplotlib \
-    plotly \
-    seaborn \
     \
     # Testing & utilities
     pytest \
@@ -97,11 +77,17 @@ ENV GPU_DEVICE_ORDINAL=0               # Default to first GPU
 # 5. Build fast_ingest C++ extension (zero-copy GPU ingestion)
 # ──────────────────────────────────────────────────────────────────────────
 WORKDIR /app
-COPY . /app
+
+# Copy only build-relevant files first (cache-friendly: Python/doc changes
+# won't invalidate the expensive C++ extension build layer)
+COPY setup.py fast_ingest.cpp fast_ingest_hip.cpp /app/
 
 RUN cd /app && \
     python3 setup.py build_ext --inplace 2>&1 | tee /tmp/build.log && \
     (grep -q "error:" /tmp/build.log && exit 1 || true) || echo "Build complete"
+
+# Now copy the rest of the application
+COPY . /app
 
 # ──────────────────────────────────────────────────────────────────────────
 # 6. Final configuration

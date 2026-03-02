@@ -146,6 +146,10 @@ class TracksideEdgeBuffer:
         self._last_sync_time: Optional[str] = None
         self._connectivity = True
 
+        # Write-behind buffer for batched commits
+        self._commit_interval = 50
+        self._write_count = 0
+
         # Background drain thread
         self._drain_active = False
         self._drain_thread: Optional[threading.Thread] = None
@@ -159,7 +163,12 @@ class TracksideEdgeBuffer:
     # Write Path — guaranteed local persistence
     # -----------------------------------------------------------------
     def write(self, packet: BufferedPacket) -> None:
-        """Persist a single telemetry packet to the local buffer."""
+        """Persist a single telemetry packet to the local buffer.
+
+        Writes are batched: ``commit()`` is deferred until
+        ``_commit_interval`` packets have accumulated (default 50).
+        Call :meth:`flush` to force an immediate commit.
+        """
         with self._lock:
             self._conn.execute(
                 """INSERT OR IGNORE INTO telemetry_buffer
@@ -175,8 +184,18 @@ class TracksideEdgeBuffer:
                     packet.sync_status,
                 ),
             )
-            self._conn.commit()
+            self._write_count += 1
+            if self._write_count >= self._commit_interval:
+                self._conn.commit()
+                self._write_count = 0
             self._last_write_time = datetime.utcnow().isoformat()
+
+    def flush(self) -> None:
+        """Force-commit any buffered writes to disk."""
+        with self._lock:
+            if self._write_count > 0:
+                self._conn.commit()
+                self._write_count = 0
 
     def write_batch(self, packets: List[BufferedPacket]) -> int:
         """Persist a batch; returns the count of newly inserted rows."""
@@ -370,13 +389,14 @@ class TracksideEdgeBuffer:
     @property
     def health(self) -> BufferHealth:
         """Snapshot of current buffer health."""
-        counts = {}
-        for status in ("PENDING", "SYNCED", "FAILED"):
-            cur = self._conn.execute(
-                "SELECT COUNT(*) FROM telemetry_buffer WHERE sync_status = ?",
-                (status,),
-            )
-            counts[status] = cur.fetchone()[0]
+        # Single GROUP BY query instead of 3 separate COUNT queries
+        cur = self._conn.execute(
+            "SELECT sync_status, COUNT(*) FROM telemetry_buffer GROUP BY sync_status"
+        )
+        counts = {"PENDING": 0, "SYNCED": 0, "FAILED": 0}
+        for row in cur.fetchall():
+            if row[0] in counts:
+                counts[row[0]] = row[1]
 
         total = sum(counts.values())
         db_size = self.db_path.stat().st_size if self.db_path.exists() else 0
@@ -419,4 +439,5 @@ class TracksideEdgeBuffer:
     # -----------------------------------------------------------------
     def close(self) -> None:
         self.stop_background_drain()
+        self.flush()  # Commit any pending writes before closing
         self._conn.close()

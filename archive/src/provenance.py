@@ -12,7 +12,7 @@ verification for schema repairs in regulated data pipelines.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -24,10 +24,26 @@ import json
 class TamperEvidentLogger:
     """
     Logs transformations with linked hashes to create a verifiable chain.
+
+    Uses a persistent, buffered file handle to avoid per-write open/close overhead.
     """
 
     log_path: Path = Path("data/provenance_log.jsonl")
     last_hash: Optional[str] = None
+    _handle: Any = field(default=None, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        self.log_path.parent.mkdir(parents=True, exist_ok=True)
+        self._handle = open(self.log_path, "a", encoding="utf-8", buffering=8192)
+
+    def close(self) -> None:
+        """Flush and close the persistent file handle."""
+        if self._handle and not self._handle.closed:
+            self._handle.flush()
+            self._handle.close()
+
+    def __del__(self) -> None:
+        self.close()
 
     def _hash_payload(self, payload: Any) -> str:
         """
@@ -58,7 +74,6 @@ class TamperEvidentLogger:
         Returns:
             The log record persisted to disk.
         """
-        self.log_path.parent.mkdir(parents=True, exist_ok=True)
 
         input_hash = self._hash_payload(input_data)
         output_hash = self._hash_payload(output_data)
@@ -72,8 +87,7 @@ class TamperEvidentLogger:
         record_hash = self._hash_payload(record)
         record["record_hash"] = record_hash
 
-        with self.log_path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(record) + "\n")
+        self._handle.write(json.dumps(record) + "\n")
 
         self.last_hash = record_hash
         return record

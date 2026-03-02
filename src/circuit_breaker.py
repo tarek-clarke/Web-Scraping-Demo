@@ -193,17 +193,19 @@ class DeadLetterQueue:
     CREATE INDEX IF NOT EXISTS idx_dl_quarantined ON dead_letters(quarantined_at);
     """
 
-    def __init__(self, db_path: str = "data/dlq.sqlite"):
+    def __init__(self, db_path: str = "data/dlq.sqlite", commit_interval: int = 20):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self._conn.execute("PRAGMA journal_mode=WAL;")
         self._conn.executescript(self.DDL)
         self._lock = threading.Lock()
+        self._commit_interval = commit_interval
+        self._write_count = 0
 
     # ------------------------------------------------------------------
     def enqueue(self, record: DLQRecord) -> None:
-        """Persist a rejected packet."""
+        """Persist a rejected packet (batched commit)."""
         with self._lock:
             self._conn.execute(
                 """INSERT INTO dead_letters
@@ -222,7 +224,41 @@ class DeadLetterQueue:
                     record.retry_count,
                 ),
             )
+            self._write_count += 1
+            if self._write_count >= self._commit_interval:
+                self._conn.commit()
+                self._write_count = 0
+
+    def enqueue_batch(self, records: List[DLQRecord]) -> None:
+        """Persist multiple rejected packets in a single transaction."""
+        with self._lock:
+            for record in records:
+                self._conn.execute(
+                    """INSERT INTO dead_letters
+                       (packet_id, timestamp, sensor, value, metadata,
+                        reason, circuit_state, quarantined_at, retry_count)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        record.packet.packet_id,
+                        record.packet.timestamp,
+                        record.packet.sensor,
+                        json.dumps(record.packet.value),
+                        json.dumps(record.packet.metadata),
+                        record.reason,
+                        record.circuit_state,
+                        record.quarantined_at,
+                        record.retry_count,
+                    ),
+                )
             self._conn.commit()
+            self._write_count = 0
+
+    def flush(self) -> None:
+        """Force-commit any buffered writes to disk."""
+        with self._lock:
+            if self._write_count > 0:
+                self._conn.commit()
+                self._write_count = 0
 
     # ------------------------------------------------------------------
     def depth(self) -> int:
@@ -278,6 +314,7 @@ class DeadLetterQueue:
             self._conn.commit()
 
     def close(self) -> None:
+        self.flush()  # Commit any pending writes before closing
         self._conn.close()
 
 
@@ -401,15 +438,58 @@ class TelemetryCircuitBreaker:
     def process_batch(self, packets: List[TelemetryPacket]) -> Dict[str, int]:
         """
         Process a list of packets.  Returns summary counts.
+
+        Acquires the lock once for the entire batch and flushes
+        DLQ writes at the end, reducing per-packet overhead.
         """
         accepted = 0
         rejected = 0
-        for pkt in packets:
-            ok, _ = self.process(pkt)
-            if ok:
-                accepted += 1
-            else:
-                rejected += 1
+        with self._lock:
+            self._maybe_transition_to_half_open()
+            for pkt in packets:
+                # ---- OPEN: reject everything until cooldown expires ----
+                if self._state == CircuitState.OPEN:
+                    self._total_rejected += 1
+                    record = DLQRecord(
+                        packet=pkt, reason="circuit_open",
+                        circuit_state=self._state.value,
+                    )
+                    self.dlq.enqueue(record)
+                    if self._on_reject:
+                        self._on_reject(record)
+                    rejected += 1
+                    continue
+
+                is_valid, reason = self.validator.validate_packet(pkt)
+                if is_valid:
+                    self._total_passed += 1
+                    if self._state == CircuitState.HALF_OPEN:
+                        self._half_open_successes += 1
+                        self._half_open_calls += 1
+                        if self._half_open_successes >= self.half_open_max_calls:
+                            self._transition(CircuitState.CLOSED)
+                            self._consecutive_failures = 0
+                    else:
+                        self._consecutive_failures = 0
+                    accepted += 1
+                else:
+                    self._consecutive_failures += 1
+                    self._last_failure_time = time.time()
+                    if self._state == CircuitState.HALF_OPEN:
+                        self._transition(CircuitState.OPEN)
+                    elif self._consecutive_failures >= self.failure_threshold:
+                        self._transition(CircuitState.OPEN)
+                    self._total_rejected += 1
+                    record = DLQRecord(
+                        packet=pkt, reason=reason,
+                        circuit_state=self._state.value,
+                    )
+                    self.dlq.enqueue(record)
+                    if self._on_reject:
+                        self._on_reject(record)
+                    rejected += 1
+        # Flush any buffered DLQ writes after the batch
+        self.dlq.flush()
         return {"accepted": accepted, "rejected": rejected}
 
     def reset(self) -> None:

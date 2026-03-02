@@ -447,11 +447,33 @@ class TelemetryStreamer:
 
 class SemanticTranslator:
     def __init__(self, standard_schema):
-        # Using a reliable, lightweight model (all-MiniLM-L6-v2)
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
         self.standard_schema = standard_schema
-        # Pre-calculate embeddings for the target schema
-        self.schema_embeddings = self.model.encode(standard_schema, convert_to_tensor=True)
+        # Lazy-load: model is loaded on first access via the property
+        self._model = None
+        self._schema_embeddings = None
+
+    @property
+    def model(self):
+        if self._model is None:
+            # Using a reliable, lightweight model (all-MiniLM-L6-v2)
+            self._model = SentenceTransformer('all-MiniLM-L6-v2')
+            # Pre-calculate embeddings for the target schema
+            self._schema_embeddings = self._model.encode(
+                self.standard_schema, convert_to_tensor=True
+            )
+        return self._model
+
+    @property
+    def schema_embeddings(self):
+        """Lazily computed schema embeddings."""
+        if self._schema_embeddings is None:
+            # Accessing self.model triggers model load + embedding computation
+            _ = self.model
+        return self._schema_embeddings
+
+    @schema_embeddings.setter
+    def schema_embeddings(self, value):
+        self._schema_embeddings = value
 
     def resolve(self, messy_field, threshold=0.45):
         """
@@ -470,3 +492,28 @@ class SemanticTranslator:
         if confidence >= threshold:
             return self.standard_schema[best_match_idx], confidence
         return None, confidence
+
+    def resolve_batch(self, messy_fields, threshold=0.45):
+        """
+        Resolve multiple field names in a single batched call.
+
+        Encodes all *messy_fields* in one ``model.encode()`` invocation,
+        eliminating the per-field tokenisation/kernel-launch overhead
+        (~5-15 ms each).  Returns a list of ``(match, confidence)`` tuples
+        in the same order as *messy_fields*.
+        """
+        if not messy_fields:
+            return []
+
+        embeddings = self.model.encode(messy_fields, convert_to_tensor=True)
+        scores = util.cos_sim(embeddings, self.schema_embeddings)  # (N, S)
+        best_indices = torch.argmax(scores, dim=1)
+        confidences = scores[torch.arange(len(messy_fields)), best_indices]
+
+        results = []
+        for idx, conf in zip(best_indices.tolist(), confidences.tolist()):
+            if conf >= threshold:
+                results.append((self.standard_schema[idx], conf))
+            else:
+                results.append((None, conf))
+        return results

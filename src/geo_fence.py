@@ -29,6 +29,7 @@ import hashlib
 import json
 import logging
 import uuid
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -191,7 +192,13 @@ class GeoFence:
     ):
         self.policies = {**POLICIES, **(custom_policies or {})}
         self.circuits = {**CIRCUIT_JURISDICTION, **(custom_circuits or {})}
-        self._processing_log: List[GeoFenceResult] = []
+        # Bounded log: keeps last 10 000 results to prevent unbounded growth
+        self._processing_log: deque = deque(maxlen=10_000)
+        # Running counters so processing_summary stays accurate even after eviction
+        self._total_processed = 0
+        self._total_scrubbed = 0
+        self._total_anonymised = 0
+        self._by_jurisdiction: Dict[str, int] = {}
         self.audit = audit_log
         logger.info(
             "GeoFence initialised | %d circuits mapped | audit=%s",
@@ -335,6 +342,13 @@ class GeoFence:
             compliance_hash=compliance_hash,
         )
         self._processing_log.append(result)
+        # Update running counters
+        self._total_processed += 1
+        self._total_scrubbed += len(fields_scrubbed)
+        self._total_anonymised += len(fields_anonymised)
+        self._by_jurisdiction[jurisdiction.value] = (
+            self._by_jurisdiction.get(jurisdiction.value, 0) + 1
+        )
         return result
 
     def process_batch(
@@ -351,19 +365,12 @@ class GeoFence:
     # -----------------------------------------------------------------
     @property
     def processing_summary(self) -> Dict[str, Any]:
-        """Aggregate stats for all processed payloads."""
-        by_jur: Dict[str, int] = {}
-        total_scrubbed = 0
-        total_anonymised = 0
-        for r in self._processing_log:
-            by_jur[r.jurisdiction] = by_jur.get(r.jurisdiction, 0) + 1
-            total_scrubbed += len(r.fields_scrubbed)
-            total_anonymised += len(r.fields_anonymised)
+        """Aggregate stats for all processed payloads (uses running counters)."""
         return {
-            "total_processed": len(self._processing_log),
-            "by_jurisdiction": by_jur,
-            "total_fields_scrubbed": total_scrubbed,
-            "total_fields_anonymised": total_anonymised,
+            "total_processed": self._total_processed,
+            "by_jurisdiction": dict(self._by_jurisdiction),
+            "total_fields_scrubbed": self._total_scrubbed,
+            "total_fields_anonymised": self._total_anonymised,
         }
 
     # -----------------------------------------------------------------

@@ -275,8 +275,16 @@ class ComplianceAuditLog:
             rows.append(d)
         return rows
 
-    def summary(self) -> Dict[str, Any]:
-        """Aggregate audit statistics."""
+    def summary(self, verify: bool = True) -> Dict[str, Any]:
+        """Aggregate audit statistics.
+
+        Parameters
+        ----------
+        verify : bool
+            When *True* (default for backward compat), runs the O(n)
+            ``verify_chain()`` check.  Set to *False* in hot paths to
+            avoid re-hashing the entire ledger on every call.
+        """
         total = self.count()
         cur = self._conn.execute(
             "SELECT action, COUNT(*) FROM audit_log GROUP BY action ORDER BY COUNT(*) DESC"
@@ -287,12 +295,14 @@ class ComplianceAuditLog:
             "WHERE jurisdiction != '' GROUP BY jurisdiction"
         )
         by_jurisdiction = {row[0]: row[1] for row in cur2}
-        return {
+        result: Dict[str, Any] = {
             "total_entries": total,
             "by_action": by_action,
             "by_jurisdiction": by_jurisdiction,
-            "chain_intact": self.verify_chain(),
         }
+        if verify:
+            result["chain_intact"] = self.verify_chain()
+        return result
 
     # -----------------------------------------------------------------
     # Internal
