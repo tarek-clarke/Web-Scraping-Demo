@@ -172,7 +172,7 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 ## GPU Benchmark Results (Validated on Ubuntu 24.04)
 
 **Hardware:** AMD Radeon RX 7900 XT (20GB VRAM) | ROCm 6.2 | gfx1100 architecture
-**Benchmark run date:** 2026-03-01
+**Benchmark run date:** 2026-03-02
 
 ### Sprint Results (30K Packets @ 5% Chaos)
 
@@ -227,6 +227,65 @@ Full weekend simulation (240K packets/session × 15 sessions, 5% chaos injection
 | **DLQ Depth (final)** | 1,139,649 | 1,056,207 | **-83,442** |
 
 The DLQ depth remains higher than anomaly detections at weekend scale because breaker-open intervals still route packets to quarantine under sustained fault load.
+
+## Repair-Focused Chaos Validation
+
+This profile stress-tests repairability and deterministic runtime by injecting only:
+- `schema_drift`
+- `duplicate_timestamp`
+- `string_in_numeric`
+
+Run commands (Ubuntu 24.04 + ROCm, repair-focused profile):
+
+```bash
+# Sprint @ chaos 0.005
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.005 --chaos-profile repair_focus --output-suffix _sprint_repairfocusrealistic | tee data/reports/run_sprint_repairfocusrealistic.log
+
+# Weekend @ chaos 0.005
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.005 --chaos-profile repair_focus --output-suffix _weekend_repairfocusrealistic | tee data/reports/run_weekend_repairfocusrealistic.log
+
+# Sprint @ chaos 0.001
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.001 --chaos-profile repair_focus --output-suffix _sprint_repairfocusultralow | tee data/reports/run_sprint_repairfocusultralow.log
+
+# Weekend @ chaos 0.001
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.001 --chaos-profile repair_focus --output-suffix _weekend_repairfocusultralow | tee data/reports/run_weekend_repairfocusultralow.log
+```
+
+Expected behavior:
+- High DLQ repair rate (typically 60–85% for repair-oriented chaos mixes, depending on chaos mix size)
+- Zero circuit-breaker trips
+- Deterministic sub-millisecond p95 latency
+- Intact audit hash chain
+
+Representative Ubuntu 24.04 results (side-by-side):
+
+| Run | Chaos | Anomalies Injected | Anomalies Detected | DLQ Quarantined | DLQ Repairs Attempted | DLQ Repairs Recovered | Repair Rate % | p95 Latency | Breaker Trips |
+|-----|------:|--------------------:|-------------------:|----------------:|----------------------:|----------------------:|--------------:|------------:|--------------:|
+| Sprint (30K packets) | 0.005 | 145 | 91 | 15 | 91 | 76 | 83.52% | 0.00 ms | 0 |
+| Weekend (3.6M packets) | 0.005 | 17,745 | 11,658 | 11,513 | 200 | 145 | 72.50% | 0.00 ms | 0 |
+| Sprint (30K packets) | 0.001 | 31 | 18 | 3 | 18 | 15 | 83.33% | 0.00 ms | 0 |
+| Weekend (3.6M packets) | 0.001 | 3,550 | 2,330 | 2,183 | 200 | 147 | 73.50% | 0.00 ms | 0 |
+
+Example successful output excerpt:
+
+```text
+Chaos profile: repair_focus | modes=schema_drift, duplicate_timestamp, string_in_numeric
+...
+Breaker Trips:            0
+DLQ Quarantined:          2183
+DLQ Reprocessed:          147 recovered
+Audit Chain Intact:       True
+p95 Latency:              0.00 ms
+...
+Anomalies Injected:       3550
+Anomalies Caught:         2330
+Repair Rate:              73.50%
+TIMING VERDICT: SUB-MILLISECOND DETECTION ✅
+```
+
+Why detection rate is lower than mixed-chaos runs: repair-only chaos emphasizes schema/name/type recovery paths, while GPU tensor anomaly detection is strongest on magnitude/range corruption classes (e.g., bit-flip outliers). With fewer magnitude anomalies injected, detection percentage trends lower even when repair throughput and latency remain strong.
+
+This benchmark validates the full ingestion → detection → quarantine → repair → audit pipeline end-to-end.
 
 ### Technical Details
 
