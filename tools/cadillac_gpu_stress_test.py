@@ -318,6 +318,11 @@ class GPUMetrics:
     device_name: str = ""
     vram_gb: float = 0.0
     hip_version: str = ""
+    tuning_profile: str = ""
+    semantic_threshold: float = 0.45
+    anomaly_sigma_threshold: float = 3.0
+    breaker_failure_threshold: int = 5
+    breaker_recovery_timeout: float = 2.0
     total_embeddings_computed: int = 0
     total_semantic_resolutions: int = 0
     total_semantic_recovered: int = 0
@@ -673,17 +678,48 @@ class CadillacGPUStressTest:
         self.device = get_gpu_device()
         self._gpu_info = gpu_info_dict(self.device)
 
+        # Threshold profiles:
+        # - GPU active: tuned for throughput/speed
+        # - CPU fallback: preserve original tuning
+        self._tuning_profile = "cpu_original"
+        self._semantic_threshold = 0.45
+        self._anomaly_sigma_threshold = 3.0
+        self._breaker_threshold = breaker_threshold
+        self._breaker_recovery = breaker_recovery
+
+        if self.device.type == "cuda":
+            self._tuning_profile = "gpu_speed"
+            self._semantic_threshold = 0.40
+            self._anomaly_sigma_threshold = 3.5
+
+            # Only auto-adjust breaker settings when defaults are used.
+            # If a user explicitly passes custom values, keep them.
+            if breaker_threshold == 5:
+                self._breaker_threshold = 8
+            if breaker_recovery == 2.0:
+                self._breaker_recovery = 1.0
+
+        console.print(
+            f"[dim]Threshold profile: {self._tuning_profile} | "
+            f"semantic={self._semantic_threshold:.2f}, "
+            f"sigma={self._anomaly_sigma_threshold:.2f}, "
+            f"breaker={self._breaker_threshold}, "
+            f"recovery={self._breaker_recovery:.2f}s[/dim]"
+        )
+
         # GPU workloads
         self.reconciler = GPUSemanticReconciler(
-            CANONICAL_SCHEMA, self.device, threshold=0.45
+            CANONICAL_SCHEMA, self.device, threshold=self._semantic_threshold
         )
-        self.anomaly_detector = GPUAnomalyDetector(self.device)
+        self.anomaly_detector = GPUAnomalyDetector(
+            self.device, sigma_threshold=self._anomaly_sigma_threshold
+        )
         self.hash_verifier = GPUHashVerifier(self.device)
 
         # Standard subsystems (CPU)
         self.breaker = TelemetryCircuitBreaker(
-            failure_threshold=breaker_threshold,
-            recovery_timeout=breaker_recovery,
+            failure_threshold=self._breaker_threshold,
+            recovery_timeout=self._breaker_recovery,
             dlq_path="data/gpu_stress_dlq.sqlite",
         )
         self.buffer = TracksideEdgeBuffer(
@@ -737,6 +773,11 @@ class CadillacGPUStressTest:
             f"[dim]Device: {gpu_label}  |  "
             f"VRAM: {self._gpu_info.get('vram_gb', '?')} GB  |  "
             f"HIP: {self._gpu_info.get('hip_version', 'N/A')}[/dim]\n"
+            f"[dim]Tuning: {self._tuning_profile}  |  "
+            f"semantic={self._semantic_threshold:.2f}  |  "
+            f"sigma={self._anomaly_sigma_threshold:.2f}  |  "
+            f"breaker={self._breaker_threshold}  |  "
+            f"recovery={self._breaker_recovery:.2f}s[/dim]\n"
             "[dim]Simulating 3 consecutive race weekends with GPU-parallel semantic "
             "reconciliation & tensor anomaly detection[/dim]",
             style="on dark_red",
@@ -1104,6 +1145,11 @@ class CadillacGPUStressTest:
             device_name=self._gpu_info.get("name", str(self.device)),
             vram_gb=self._gpu_info.get("vram_gb", 0.0),
             hip_version=str(self._gpu_info.get("hip_version", "")),
+            tuning_profile=self._tuning_profile,
+            semantic_threshold=self._semantic_threshold,
+            anomaly_sigma_threshold=self._anomaly_sigma_threshold,
+            breaker_failure_threshold=self._breaker_threshold,
+            breaker_recovery_timeout=self._breaker_recovery,
             total_embeddings_computed=self._total_embeddings,
             total_semantic_resolutions=self._total_semantic_resolutions,
             total_semantic_recovered=self._total_semantic_recovered,
