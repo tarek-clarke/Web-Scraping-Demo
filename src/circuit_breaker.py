@@ -131,6 +131,9 @@ class SchemaValidator:
     ):
         self.expected_fields = expected_fields or []
         self.value_ranges = {**self.DEFAULT_RANGES, **(value_ranges or {})}
+        # Match specific sensor keys before generic ones (e.g. "brake_temp"
+        # before "brake") to avoid false range validation.
+        self._range_keys = sorted(self.value_ranges.keys(), key=len, reverse=True)
 
     # ------------------------------------------------------------------
     def validate_packet(self, packet: TelemetryPacket) -> Tuple[bool, str]:
@@ -148,7 +151,8 @@ class SchemaValidator:
             return False, f"string_in_numeric_field|sensor={packet.sensor}|value={packet.value}"
 
         # --- Range check (bit-flip / impossible reading) -----------
-        for key, (lo, hi) in self.value_ranges.items():
+        for key in self._range_keys:
+            lo, hi = self.value_ranges[key]
             if key in sensor:
                 try:
                     v = float(packet.value)
