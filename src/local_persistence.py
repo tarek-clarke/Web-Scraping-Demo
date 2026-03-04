@@ -34,6 +34,15 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+try:
+    from kafka import KafkaProducer
+    from kafka.errors import KafkaError
+    KAFKA_AVAILABLE = True
+except ImportError:
+    KAFKA_AVAILABLE = False
+    KafkaProducer = None
+    KafkaError = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -129,12 +138,46 @@ class TracksideEdgeBuffer:
         max_buffer_size: int = 100_000,
         sync_callback: Optional[Callable] = None,
         batch_size: int = 500,
+        kafka_bootstrap_servers: Optional[List[str]] = None,
+        kafka_topic: str = "telemetry-validated",
+        kafka_dlq_topic: str = "telemetry-dlq",
+        enable_kafka: bool = False,
     ):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.max_buffer_size = max_buffer_size
         self.sync_callback = sync_callback
         self.batch_size = batch_size
+
+        # Kafka configuration
+        self.enable_kafka = enable_kafka and KAFKA_AVAILABLE
+        self.kafka_topic = kafka_topic
+        self.kafka_dlq_topic = kafka_dlq_topic
+        self._kafka_producer: Optional[KafkaProducer] = None
+
+        if self.enable_kafka:
+            if not KAFKA_AVAILABLE:
+                logger.warning("Kafka requested but kafka-python not installed. Install with: pip install kafka-python")
+                self.enable_kafka = False
+            elif kafka_bootstrap_servers:
+                try:
+                    self._kafka_producer = KafkaProducer(
+                        bootstrap_servers=kafka_bootstrap_servers,
+                        value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+                        acks='all',  # Wait for all replicas
+                        retries=3,
+                        max_in_flight_requests_per_connection=5,
+                    )
+                    logger.info(
+                        "Kafka producer initialized | servers=%s topic=%s dlq=%s",
+                        kafka_bootstrap_servers, kafka_topic, kafka_dlq_topic
+                    )
+                except Exception as exc:
+                    logger.error("Failed to initialize Kafka producer: %s", exc)
+                    self.enable_kafka = False
+            else:
+                logger.warning("Kafka enabled but no bootstrap_servers provided")
+                self.enable_kafka = False
 
         self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self._conn.execute("PRAGMA journal_mode=WAL;")
@@ -154,13 +197,17 @@ class TracksideEdgeBuffer:
         self._drain_active = False
         self._drain_thread: Optional[threading.Thread] = None
 
+        # Kafka stats
+        self._kafka_sent = 0
+        self._kafka_failed = 0
+
         logger.info(
-            "TracksideEdgeBuffer online | db=%s max=%d",
-            self.db_path, self.max_buffer_size,
+            "TracksideEdgeBuffer online | db=%s max=%d kafka=%s",
+            self.db_path, self.max_buffer_size, self.enable_kafka,
         )
 
     # -----------------------------------------------------------------
-    # Write Path — guaranteed local persistence
+    # Write Path — guaranteed local persistence + optional Kafka output
     # -----------------------------------------------------------------
     def write(self, packet: BufferedPacket) -> None:
         """Persist a single telemetry packet to the local buffer.
@@ -168,6 +215,9 @@ class TracksideEdgeBuffer:
         Writes are batched: ``commit()`` is deferred until
         ``_commit_interval`` packets have accumulated (default 50).
         Call :meth:`flush` to force an immediate commit.
+        
+        If Kafka is enabled, also publishes to Kafka topic (fire-and-forget,
+        non-blocking). SQLite write still succeeds even if Kafka fails.
         """
         with self._lock:
             self._conn.execute(
@@ -190,6 +240,45 @@ class TracksideEdgeBuffer:
                 self._write_count = 0
             self._last_write_time = datetime.utcnow().isoformat()
 
+        # Kafka output (async, non-blocking)
+        if self.enable_kafka and self._kafka_producer:
+            self._send_to_kafka(packet)
+
+    def _send_to_kafka(self, packet: BufferedPacket, is_dlq: bool = False) -> None:
+        """Send packet to Kafka topic (non-blocking, fire-and-forget)."""
+        if not self._kafka_producer:
+            return
+
+        topic = self.kafka_dlq_topic if is_dlq else self.kafka_topic
+        
+        payload = {
+            "packet_id": packet.packet_id,
+            "session_id": packet.session_id,
+            "timestamp": packet.timestamp,
+            "sensor": packet.sensor,
+            "value": packet.value,
+            "metadata": packet.metadata,
+            "sync_status": packet.sync_status,
+        }
+
+        try:
+            future = self._kafka_producer.send(topic, value=payload)
+            # Add callback for tracking (non-blocking)
+            future.add_callback(lambda _: self._on_kafka_success())
+            future.add_errback(lambda e: self._on_kafka_error(e, topic))
+        except Exception as exc:
+            logger.warning("Kafka send exception: %s", exc)
+            self._kafka_failed += 1
+
+    def _on_kafka_success(self) -> None:
+        """Callback when Kafka message is ACKed."""
+        self._kafka_sent += 1
+
+    def _on_kafka_error(self, exc: Exception, topic: str) -> None:
+        """Callback when Kafka message fails."""
+        logger.warning("Kafka send failed to %s: %s", topic, exc)
+        self._kafka_failed += 1
+
     def flush(self) -> None:
         """Force-commit any buffered writes to disk."""
         with self._lock:
@@ -198,7 +287,10 @@ class TracksideEdgeBuffer:
                 self._write_count = 0
 
     def write_batch(self, packets: List[BufferedPacket]) -> int:
-        """Persist a batch; returns the count of newly inserted rows."""
+        """Persist a batch; returns the count of newly inserted rows.
+        
+        Also publishes to Kafka if enabled (non-blocking).
+        """
         inserted = 0
         with self._lock:
             for pkt in packets:
@@ -222,6 +314,12 @@ class TracksideEdgeBuffer:
                     pass  # de-dup on packet_id
             self._conn.commit()
             self._last_write_time = datetime.utcnow().isoformat()
+
+        # Kafka batch output (async, non-blocking)
+        if self.enable_kafka and self._kafka_producer:
+            for pkt in packets:
+                self._send_to_kafka(pkt)
+
         return inserted
 
     # -----------------------------------------------------------------
@@ -440,4 +538,25 @@ class TracksideEdgeBuffer:
     def close(self) -> None:
         self.stop_background_drain()
         self.flush()  # Commit any pending writes before closing
+        
+        # Flush Kafka producer
+        if self._kafka_producer:
+            try:
+                self._kafka_producer.flush(timeout=5)
+                self._kafka_producer.close()
+                logger.info(
+                    "Kafka producer closed | sent=%d failed=%d",
+                    self._kafka_sent, self._kafka_failed
+                )
+            except Exception as exc:
+                logger.warning("Error closing Kafka producer: %s", exc)
+        
         self._conn.close()
+
+    @property
+    def kafka_stats(self) -> Dict[str, int]:
+        """Return Kafka send statistics."""
+        return {
+            "sent": self._kafka_sent,
+            "failed": self._kafka_failed,
+        }

@@ -44,6 +44,10 @@ typing_extensions==4.15.0
 tzdata==2025.3
 pytest==8.0.0
 
+# Optional: Kafka integration
+# Install with: pip install kafka-python
+# kafka-python==2.0.2
+
 # NOTE:
 # Install PyTorch separately for your target backend (CUDA / ROCm / CPU)
 # using the commands in README.md and GETTING_STARTED.md.
