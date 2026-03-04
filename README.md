@@ -48,7 +48,8 @@ A production-ready telemetry spine that processes 3.6M packets per race weekend 
                          │    • Dead Letter Queue (SQLite)
                          │
                          ├──► src/local_persistence.py
-                         │    • Trackside Edge Buffer (SQLite WAL)
+                         │    • Trackside Edge Buffer (SQLite WAL + optional Kafka)
+                         │    • Dual-write: local persistence + streaming output
                          │    • Zero data loss during connectivity drops
                          │    • Background drain to cloud when restored
                          │
@@ -78,16 +79,20 @@ flowchart LR
     RF["Car RF Downlink<br/>(50 Hz telemetry)"]
     CB["Circuit Breaker<br/>Schema Validator<br/>bit-flip, drift, NaN"]
     DLQ[("Dead Letter Queue<br/>SQLite")]
-    EDGE[("Trackside Edge Buffer<br/>SQLite WAL<br/>zero data loss")]
+    EDGE[("Trackside Edge Buffer<br/>SQLite WAL + Kafka<br/>dual-write")]
     GEO["Geo-Fence<br/>GDPR / Sovereignty"]
     BERT["GPU Semantic<br/>Reconciliation<br/>BERT + cosine similarity"]
     AUDIT[("Audit Log<br/>SHA-256 hash chain<br/>tamper-evident")]
     SINK["War Room<br/>Global Sink"]
+    KAFKA_VALID["Kafka Topic:<br/>telemetry-validated"]
+    KAFKA_DLQ["Kafka Topic:<br/>telemetry-dlq"]
 
     RF -->|clean packets| CB
     CB -->|bad packets| DLQ
     CB -->|valid data| EDGE
     EDGE -->|exactly-once drain| GEO
+    EDGE -.->|optional streaming| KAFKA_VALID
+    DLQ -.->|optional streaming| KAFKA_DLQ
     GEO -->|jurisdiction-aware| BERT
     BERT -->|field reconciliation| AUDIT
     AUDIT -->|provenance chain| SINK
@@ -96,6 +101,8 @@ flowchart LR
     style DLQ fill:#ffe066
     style EDGE fill:#51cf66
     style AUDIT fill:#4dabf7
+    style KAFKA_VALID fill:#a9e34b
+    style KAFKA_DLQ fill:#ffd43b
 ```
 
 ### Core Components (7 files)
@@ -104,13 +111,36 @@ flowchart LR
 |-----------|---------|-------|--------|
 | **tools/cadillac_gpu_stress_test.py** | GPU stress test orchestrator | 1,542 | ✅ Active |
 | **src/circuit_breaker.py** | Circuit breaker + DLQ | 532 | ✅ Active |
-| **src/local_persistence.py** | Edge buffer (SQLite WAL) | 403 | ✅ Active |
+| **src/local_persistence.py** | Edge buffer (SQLite WAL + Kafka) | 490 | ✅ Active |
 | **src/geo_fence.py** | GDPR compliance | 389 | ✅ Active |
 | **src/audit_log.py** | Hash-chain provenance | 283 | ✅ Active |
 | **src/middleware/tracing.py** | Request context | 123 | ✅ Active |
 | **src/slo.py** | SLO tracking | 271 | ✅ Active |
 
-**Total Active Codebase:** 3,543 lines (excluding tests and archived modules)
+**Total Active Codebase:** 3,630 lines (excluding tests and archived modules)
+
+### Streaming Output (Optional)
+
+The edge buffer supports **dual-write to Kafka** for real-time streaming alongside local SQLite persistence. Disabled by default for trackside autonomy; enable when cloud connectivity is reliable.
+
+```python
+# Enable Kafka streaming output
+buffer = TracksideEdgeBuffer(
+    enable_kafka=True,
+    kafka_bootstrap_servers="kafka:9092",
+    kafka_topic="telemetry-validated",
+    kafka_dlq_topic="telemetry-dlq"
+)
+```
+
+**Architecture:**
+- **Local-first:** SQLite write always succeeds, even if Kafka fails
+- **Async/non-blocking:** Fire-and-forget sends preserve <1ms latency
+- **Dual-write:** Validated packets → `telemetry-validated`, DLQ → `telemetry-dlq`
+- **Graceful degradation:** Logs warning if kafka-python unavailable
+
+📘 **Full guide:** [docs/KAFKA_INTEGRATION.md](docs/KAFKA_INTEGRATION.md)  
+🛠️ **Example:** [examples/kafka_integration_example.py](examples/kafka_integration_example.py)
 
 ## Quick Start (Ubuntu 24.04 + AMD ROCm)
 
@@ -311,6 +341,7 @@ This benchmark validates the full ingestion → detection → quarantine → rep
 | Capability | Module | Evidence |
 |---|---|---|
 | Zero data loss during trackside connectivity drops | src/local_persistence.py | SQLite WAL edge buffer persists every packet locally before cloud sync |
+| Optional real-time streaming to Kafka topics | TracksideEdgeBuffer (Kafka integration) | Dual-write: validated packets to telemetry-validated topic, DLQ to telemetry-dlq topic |
 | Local-first architecture - pit wall always has full telemetry | TracksideEdgeBuffer | Full local replay available even when uplink is severed |
 | Automatic background drain when connectivity is restored | start_background_drain() | Daemon thread syncs pending packets in configurable batches |
 | Production health checks in Docker | docker-compose.production.yml | HEALTHCHECK ensures pipeline is import-ready before traffic flows |
