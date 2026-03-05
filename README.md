@@ -139,8 +139,8 @@ buffer = TracksideEdgeBuffer(
 - **Dual-write:** Validated packets → `telemetry-validated`, DLQ → `telemetry-dlq`
 - **Graceful degradation:** Logs warning if kafka-python unavailable
 
-📘 **Full guide:** [docs/KAFKA_INTEGRATION.md](docs/KAFKA_INTEGRATION.md)  
-🛠️ **Example:** [examples/kafka_integration_example.py](examples/kafka_integration_example.py)
+ **Full guide:** [docs/KAFKA_INTEGRATION.md](docs/KAFKA_INTEGRATION.md)  
+ **Example:** [examples/kafka_integration_example.py](examples/kafka_integration_example.py)
 
 ## Quick Start (Ubuntu 24.04 + AMD ROCm)
 
