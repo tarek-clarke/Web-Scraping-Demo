@@ -47,6 +47,8 @@ jobs:
   sensor-profiles:
     name: Sensor Profile Validation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -113,6 +115,8 @@ jobs:
     name: Full Test Suite
     runs-on: ubuntu-latest
     needs: sensor-profiles
+    permissions:
+      contents: read
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
@@ -152,6 +156,8 @@ jobs:
     name: Compliance Check
     runs-on: ubuntu-latest
     needs: tests
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -221,6 +227,8 @@ jobs:
     name: Deployment Readiness Check
     runs-on: ubuntu-latest
     needs: [tests, compliance]
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -359,6 +367,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [sensor-profiles, tests, compliance, deployment-readiness]
     if: always()
+    permissions: {}
 
     steps:
       - name: Determine overall readiness
