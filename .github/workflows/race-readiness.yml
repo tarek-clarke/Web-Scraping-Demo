@@ -1,0 +1,393 @@
+# Cadillac F1 Race Readiness Pipeline
+# Validates the telemetry system is ready for deployment before each race weekend.
+#
+# Triggered manually (workflow_dispatch) or on pushes to race-prep branches.
+# Runs sensor profile compatibility checks, compliance verification, and
+# deployment readiness validation.
+
+name: Race Readiness — Pre-Race Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      circuit:
+        description: "F1 circuit name (e.g. monaco, monza, silverstone)"
+        required: false
+        default: "monaco"
+        type: string
+      session:
+        description: "Session type (fp1/fp2/fp3/qualifying/race)"
+        required: false
+        default: "race"
+        type: choice
+        options:
+          - fp1
+          - fp2
+          - fp3
+          - qualifying
+          - race
+  push:
+    branches:
+      - "race-prep/**"
+      - "deploy/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "tools/**"
+      - "tests/**"
+
+concurrency:
+  group: race-readiness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Sensor Profile Compatibility ─────────────────────────────────────────
+  sensor-profiles:
+    name: Sensor Profile Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements-ci.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Lint sensor_profiles.py
+        run: |
+          flake8 src/sensor_profiles.py --max-line-length 120 --count --show-source
+
+      - name: Run sensor profile tests
+        env:
+          PYTHONPATH: "."
+        run: |
+          pytest tests/test_sensor_profiles.py -v --tb=short --timeout=60
+
+      - name: Validate 2026 catalogue completeness
+        env:
+          PYTHONPATH: "."
+        run: |
+          python -c "
+          from src.sensor_profiles import CADILLAC_2026_SENSORS, list_safety_critical_sensors
+          assert len(CADILLAC_2026_SENSORS) >= 15, f'Expected 15+ sensors, got {len(CADILLAC_2026_SENSORS)}'
+          print(f'✅ Sensor catalogue: {len(CADILLAC_2026_SENSORS)} sensors')
+          critical = list_safety_critical_sensors()
+          assert 'engine_temp' in critical
+          assert 'tyre_pressure' in critical
+          assert 'brake' in critical
+          print(f'✅ Safety-critical sensors: {critical}')
+          "
+
+      - name: Validate firmware compatibility matrix
+        env:
+          PYTHONPATH: "."
+        run: |
+          python -c "
+          from src.sensor_profiles import FIRMWARE_COMPAT_MATRIX, CADILLAC_2026_SENSORS
+          expected = {'fw_2024_q4', 'fw_2025_pre', 'fw_2025_r1', 'fw_2026_launch'}
+          assert expected.issubset(FIRMWARE_COMPAT_MATRIX.keys()), 'Missing firmware versions'
+          for fw, mapping in FIRMWARE_COMPAT_MATRIX.items():
+              for field, canonical in mapping.items():
+                  assert canonical in CADILLAC_2026_SENSORS, f'{fw}: {field} -> {canonical} not in catalogue'
+          print('✅ Firmware compatibility matrix validated')
+          print(f'  Versions: {list(FIRMWARE_COMPAT_MATRIX.keys())}')
+          "
+
+  # ── Unit + Integration Tests ──────────────────────────────────────────────
+  tests:
+    name: Full Test Suite
+    runs-on: ubuntu-latest
+    needs: sensor-profiles
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements-ci.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Lint (flake8)
+        run: |
+          flake8 src/ tests/ --max-line-length 120 --count --show-source --statistics
+
+      - name: Run full test suite
+        env:
+          PYTHONPATH: "."
+        run: |
+          pytest tests/ -v --tb=short --timeout=120
+
+  # ── Compliance Verification ───────────────────────────────────────────────
+  compliance:
+    name: Compliance Check
+    runs-on: ubuntu-latest
+    needs: tests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Run GDPR + FIA compliance checks
+        env:
+          PYTHONPATH: "."
+        run: |
+          CIRCUIT="${{ github.event.inputs.circuit || 'monaco' }}"
+          python tools/verify_compliance.py \
+            --all \
+            --circuit "${CIRCUIT}" \
+            --report \
+            --output data/compliance_report_ci.json
+          echo "Compliance report generated for circuit: ${CIRCUIT}"
+
+      - name: Verify FIA audit trail capability
+        env:
+          PYTHONPATH: "."
+        run: |
+          python -c "
+          from src.audit_log import ComplianceAuditLog
+          al = ComplianceAuditLog()
+          intact = al.verify_chain()
+          count = al.count()
+          print(f'Audit chain intact: {intact}')
+          print(f'Audit records: {count}')
+          assert intact, 'ERROR: Audit chain is broken'
+          print('✅ FIA audit trail verified')
+          "
+
+      - name: Verify geo-fence jurisdiction mapping
+        env:
+          PYTHONPATH: "."
+        run: |
+          python -c "
+          from src.geo_fence import GeoFence, CIRCUIT_JURISDICTION
+          geo = GeoFence()
+          # Spot-check key circuits
+          circuits = ['monaco', 'monza', 'silverstone', 'bahrain', 'miami']
+          for c in circuits:
+              jur = geo.resolve_jurisdiction(c)
+              print(f'  {c}: {jur.value}')
+          print('✅ Geo-fence jurisdiction mapping OK')
+          "
+
+      - name: Upload compliance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-report-${{ github.event.inputs.circuit || 'monaco' }}
+          path: data/compliance_report_ci.json
+          retention-days: 90
+
+  # ── Deployment Readiness ──────────────────────────────────────────────────
+  deployment-readiness:
+    name: Deployment Readiness Check
+    runs-on: ubuntu-latest
+    needs: [tests, compliance]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Circuit breaker CLOSED check
+        env:
+          PYTHONPATH: "."
+        run: |
+          python -c "
+          from src.circuit_breaker import TelemetryCircuitBreaker, CircuitState
+          cb = TelemetryCircuitBreaker()
+          assert cb.state == CircuitState.CLOSED, f'Expected CLOSED, got {cb.state}'
+          print('✅ Circuit breaker: CLOSED')
+          "
+
+      - name: DLQ empty check
+        env:
+          PYTHONPATH: "."
+        run: |
+          python -c "
+          from src.circuit_breaker import DeadLetterQueue
+          dlq = DeadLetterQueue()
+          depth = dlq.depth()
+          print(f'DLQ depth: {depth}')
+          assert depth == 0, f'Expected 0, got {depth}'
+          print('✅ DLQ: empty')
+          "
+
+      - name: Schema validator integration check
+        env:
+          PYTHONPATH: "."
+        run: |
+          python -c "
+          from src.sensor_profiles import build_schema_validator_ranges
+          from src.circuit_breaker import SchemaValidator, TelemetryPacket
+
+          ranges = build_schema_validator_ranges()
+          validator = SchemaValidator(value_ranges=ranges)
+
+          # Valid packets should pass
+          test_cases = [
+              ('speed', 320.0, True),
+              ('engine_temp', 95.0, True),
+              ('tyre_pressure', 23.0, True),
+              ('engine_temp', 5000.0, False),   # bit-flip
+              ('speed', -50.0, False),           # impossible
+              ('tyre_pressure', 5.0, False),     # puncture
+          ]
+
+          for sensor, value, expected_ok in test_cases:
+              pkt = TelemetryPacket(sensor=sensor, value=value)
+              ok, reason = validator.validate_packet(pkt)
+              assert ok == expected_ok, f'{sensor}={value}: expected {expected_ok}, got {ok} ({reason})'
+              status = '✅' if ok == expected_ok else '❌'
+              print(f'  {status} {sensor}={value} → {\"OK\" if ok else reason}')
+
+          print('✅ Schema validator integration: all cases pass')
+          "
+
+      - name: Pit wall SLO check
+        env:
+          PYTHONPATH: "."
+        run: |
+          python -c "
+          from src.sensor_profiles import PIT_WALL_SLO_SECONDS, PIT_WALL_ALERT_THRESHOLDS
+
+          # Verify safety-critical SLO is under 1 second
+          slo = PIT_WALL_SLO_SECONDS['safety_critical_alert']
+          assert slo < 1.0, f'Safety-critical SLO too high: {slo}s'
+          print(f'✅ Safety-critical alert SLO: {slo}s (< 1s)')
+
+          # Verify thresholds for all key sensors
+          for sensor in ['engine_temp', 'tyre_pressure', 'brake_temp']:
+              assert sensor in PIT_WALL_ALERT_THRESHOLDS, f'{sensor} missing thresholds'
+          print('✅ Pit wall alert thresholds: configured for all key sensors')
+          "
+
+      - name: Generate pre-race checklist
+        env:
+          PYTHONPATH: "."
+        run: |
+          CIRCUIT="${{ github.event.inputs.circuit || 'monaco' }}"
+          SESSION="${{ github.event.inputs.session || 'race' }}"
+          python -c "
+          import datetime
+          circuit = '${CIRCUIT}'
+          session = '${SESSION}'
+          from src.sensor_profiles import CADILLAC_2026_SENSORS, get_track_ranges, list_safety_critical_sensors
+
+          print('=' * 60)
+          print('CADILLAC F1 PRE-RACE CHECKLIST')
+          print(f'Circuit: {circuit.upper()}  |  Session: {session.upper()}')
+          print(f'Generated: {datetime.datetime.utcnow().strftime(\"%Y-%m-%d %H:%M:%S\")} UTC')
+          print('=' * 60)
+          print()
+          print('✅ Sensor catalogue loaded:', len(CADILLAC_2026_SENSORS), 'sensors')
+          print('✅ Safety-critical sensors:', list_safety_critical_sensors())
+          print()
+          print('Track-specific sensor ranges for', circuit, ':')
+          for sensor in ['speed', 'engine_temp', 'tyre_pressure', 'brake_temp']:
+              lo, hi = get_track_ranges(sensor, circuit)
+              print(f'  {sensor}: {lo} – {hi}')
+          print()
+          print('Pipeline Status:')
+          print('  ✅ Sensor profiles: validated')
+          print('  ✅ Firmware matrix: compatible')
+          print('  ✅ Circuit breaker: CLOSED')
+          print('  ✅ DLQ: empty')
+          print('  ✅ Compliance: all checks passed')
+          print()
+          print('VERDICT: RACE-READY ✅')
+          "
+
+      - name: Upload readiness checklist
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: race-readiness-${{ github.event.inputs.circuit || 'monaco' }}-${{ github.event.inputs.session || 'race' }}
+          path: |
+            data/compliance_report_ci.json
+          retention-days: 90
+
+  # ── Summary ───────────────────────────────────────────────────────────────
+  readiness-summary:
+    name: Race Readiness Summary
+    runs-on: ubuntu-latest
+    needs: [sensor-profiles, tests, compliance, deployment-readiness]
+    if: always()
+
+    steps:
+      - name: Determine overall readiness
+        run: |
+          SENSOR_RESULT="${{ needs.sensor-profiles.result }}"
+          TEST_RESULT="${{ needs.tests.result }}"
+          COMPLIANCE_RESULT="${{ needs.compliance.result }}"
+          DEPLOY_RESULT="${{ needs.deployment-readiness.result }}"
+
+          echo "=============================="
+          echo "RACE READINESS SUMMARY"
+          echo "=============================="
+          echo "Circuit: ${{ github.event.inputs.circuit || 'monaco' }}"
+          echo "Session: ${{ github.event.inputs.session || 'race' }}"
+          echo "------------------------------"
+          echo "Sensor Profiles:  ${SENSOR_RESULT}"
+          echo "Test Suite:       ${TEST_RESULT}"
+          echo "Compliance:       ${COMPLIANCE_RESULT}"
+          echo "Deployment:       ${DEPLOY_RESULT}"
+          echo "------------------------------"
+
+          if [ "$SENSOR_RESULT" = "success" ] && \
+             [ "$TEST_RESULT" = "success" ] && \
+             [ "$COMPLIANCE_RESULT" = "success" ] && \
+             [ "$DEPLOY_RESULT" = "success" ]; then
+            echo "VERDICT: RACE-READY ✅"
+            exit 0
+          else
+            echo "VERDICT: NOT READY ❌"
+            echo "Resolve all failures before deployment."
+            exit 1
+          fi

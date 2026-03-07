@@ -1,7 +1,7 @@
 # Race Weekend Runbook
 
 **System:** Resilient RAP Framework — Cadillac F1 Telemetry Pipeline  
-**Version:** 2.0  
+**Version:** 2.1 — 2026 Season  
 **Maintained by:** Tarek Clarke
 
 ---
@@ -18,6 +18,11 @@
 8. [Post-Race: Data Drain & Reconciliation](#8-post-race-data-drain--reconciliation)
 9. [Escalation Contacts](#9-escalation-contacts)
 10. [Glossary](#10-glossary)
+11. [FP1 → Qualifying → Race Progression](#11-fp1--qualifying--race-progression)
+12. [Known 2026 Cadillac Sensor Ranges](#12-known-2026-cadillac-sensor-ranges)
+13. [Live Incident Response — Motorsport-Specific](#13-live-incident-response--motorsport-specific)
+14. [Pit Wall Command Integration](#14-pit-wall-command-integration)
+15. [Post-Race Forensics Workflow](#15-post-race-forensics-workflow)
 
 ---
 
@@ -301,3 +306,356 @@ git commit -m "chore: post-race data reconciliation $(date +%F)"
 | **Audit Chain** | Hash-linked provenance log; tampering breaks the chain |
 | **Backpressure** | Deliberate ingestion slowdown to prevent DLQ overflow |
 | **WAL** | Write-Ahead Log — SQLite mode that improves concurrent write throughput |
+| **FP1/FP2/FP3** | Free Practice sessions 1, 2, and 3 |
+| **Q1/Q2/Q3** | Qualifying segments 1, 2, and 3 |
+| **Pit Wall** | Engineering station at pit lane monitoring live telemetry |
+| **Sensor Profile** | 2026 Cadillac specification for a single telemetry sensor |
+| **Bit-Flip** | Single-bit hardware corruption producing an impossible sensor value |
+| **Firmware Alias** | Historical field name from an older ECU firmware version |
+
+---
+
+## 11. FP1 → Qualifying → Race Progression
+
+### FP1 — Initial Validation
+
+FP1 is used to validate pipeline health under live conditions before race-critical sessions:
+
+```
+Pre-FP1 (T−3h):  Full deployment checklist (see CADILLAC_DEPLOYMENT_CHECKLIST.md)
+FP1 running:      Monitor acceptance rate; expect 85–95% with healthy car
+Post-FP1:         DLQ analysis; identify sensor fault patterns for Q/Race prep
+```
+
+**FP1 Success Criteria:**
+
+| Metric | Target |
+|--------|--------|
+| Acceptance rate | > 80% |
+| P95 latency | < 100 ms |
+| Circuit breaker trips | 0 |
+| DLQ depth (final) | < 5,000 |
+| Audit chain | Intact |
+
+**Post-FP1 DLQ Review:**
+
+```sql
+-- Identify top failure reasons from FP1
+SELECT reason, count(*) AS cnt, sensor
+FROM dead_letter_queue
+WHERE status = 'pending'
+  AND created_at > datetime('now', '-3 hours')
+GROUP BY reason, sensor
+ORDER BY cnt DESC
+LIMIT 20;
+```
+
+### FP2 / FP3 — Progressive Refinement
+
+Between sessions:
+
+1. Reprocess schema-drift DLQ entries from previous session
+2. Verify circuit breaker auto-recovered if it tripped
+3. Update sensor alert thresholds if track conditions changed (e.g., wet → dry)
+4. Check firmware version — mid-session updates require alias table reload
+
+```bash
+# Reprocess schema-drift packets from FP1 before FP2
+PYTHONPATH="." python -c "
+from src.circuit_breaker import TelemetryCircuitBreaker
+cb = TelemetryCircuitBreaker()
+result = cb.reprocess_dlq(limit=5000)
+print('Recovered:', result)
+"
+```
+
+### Qualifying — Heightened Monitoring
+
+Q sessions are typically shorter and higher stakes than practice:
+
+- Reduce health monitor refresh to **250 ms** (default is 500 ms)
+- Pre-configure audio alerts for engine_temp, tyre_pressure
+- Keep DLQ reprocessing running in background (auto-recovery)
+- Do NOT manually reset breaker during Q2/Q3 unless root cause confirmed
+
+### Race — Full Production Mode
+
+```
+Formation lap: Monitor-only — no config changes
+Race start:    Full monitoring, all safety-critical alerts active
+SC period:     Check for sensor anomalies during slow lap
+VSC period:    DLQ reprocess opportunity (low-risk, slow lap)
+Pit stops:     Monitor tyre_pressure + brake_temp closely
+Final lap:     Prepare post-race archive commands
+Flag:          Execute post-race archival within 5 minutes
+```
+
+---
+
+## 12. Known 2026 Cadillac Sensor Ranges
+
+These are the validated operating ranges for the Cadillac 2026 car across typical race conditions.
+
+### Global Ranges (Circuit Breaker Limits)
+
+| Sensor | Min | Max | Unit | Fault Pattern |
+|--------|-----|-----|------|--------------|
+| speed | 0.0 | 380.0 | km/h | bit_flip |
+| rpm | 0.0 | 20,000 | RPM | bit_flip, schema_drift |
+| throttle | 0.0 | 100.0 | % | stuck_value |
+| brake | 0.0 | 100.0 | % | sensor_dropout |
+| engine_temp | −40.0 | 1,000.0 | °C | bit_flip, schema_drift |
+| tyre_pressure | 15.0 | 35.0 | psi | sensor_dropout |
+| brake_temp | 50.0 | 1,200.0 | °C | bit_flip, noise_burst |
+| aero_load | −500.0 | 3,000.0 | N | bit_flip |
+| g_force_lateral | −8.0 | 8.0 | G | bit_flip |
+| g_force_longitudinal | −8.0 | 8.0 | G | bit_flip |
+| g_force_vertical | −5.0 | 5.0 | G | bit_flip |
+| heart_rate | 30.0 | 250.0 | bpm | sensor_dropout |
+| ecu_canbus | −1,000,000 | 1,000,000 | raw | can_bus |
+
+### Track-Specific Ranges (Monaco vs. Monza)
+
+| Sensor | Monaco | Monza | Notes |
+|--------|--------|-------|-------|
+| speed max | 295 km/h | 370 km/h | Monza = high-speed power circuit |
+| engine_temp max | 118°C | 115°C | Monza = better cooling airflow |
+| brake_temp typical | 200–750°C | 200–600°C | Monaco = more braking zones |
+| tyre_pressure min | 22 psi | 21 psi | Monaco = higher lateral load |
+| aero_load range | 800–2,500 N | 200–1,200 N | Monaco = max downforce |
+| rpm typical | 4,000–14,000 | 10,000–15,500 | Monza = constant high RPM |
+
+Full per-circuit ranges are defined in `src/sensor_profiles.py`:
+
+```python
+from src.sensor_profiles import get_track_ranges
+
+# Monaco engine temperature limit
+lo, hi = get_track_ranges("engine_temp", "monaco")
+print(f"Monaco engine_temp: {lo}–{hi}°C")  # 85.0–118.0°C
+```
+
+---
+
+## 13. Live Incident Response — Motorsport-Specific
+
+### Incident: Multi-Sensor Bit-Flip Cascade
+
+**Symptom:** 5+ sensors reporting impossible values simultaneously (e.g., after firmware update applied during red flag)
+
+**Automated Response:**
+1. Circuit breaker trips to OPEN after 5 consecutive failures
+2. All packets routed to DLQ
+3. HALF_OPEN probe triggers after 30 s recovery timeout
+
+**Manual Response Procedure:**
+
+```bash
+# Step 1: Check which sensors are failing
+PYTHONPATH="." python -c "
+from src.circuit_breaker import DeadLetterQueue
+dlq = DeadLetterQueue()
+recent = dlq.recent(limit=100)
+sensors = {}
+for r in recent:
+    sensors[r.sensor] = sensors.get(r.sensor, 0) + 1
+for s, n in sorted(sensors.items(), key=lambda x: -x[1]):
+    print(f'  {s}: {n} failures')
+"
+
+# Step 2: Check firmware version (if schema drift suspected)
+# Verify with telemetry engineer whether ECU update was applied
+
+# Step 3: If firmware update confirmed, load new alias table
+PYTHONPATH="." python -c "
+from src.sensor_profiles import FIRMWARE_COMPAT_MATRIX
+# List all firmware versions and their aliases
+for fw, aliases in FIRMWARE_COMPAT_MATRIX.items():
+    print(f'{fw}: {list(aliases.keys())}')
+"
+
+# Step 4: Reprocess DLQ after firmware alias confirmed
+PYTHONPATH="." python -c "
+from src.circuit_breaker import TelemetryCircuitBreaker
+cb = TelemetryCircuitBreaker()
+result = cb.reprocess_dlq(limit=10000)
+print('Recovered:', result)
+"
+```
+
+### Incident: Trackside Connectivity Loss
+
+**Symptom:** Cloud uplink severed; pit wall disconnected from factory data systems
+
+**Automated Response:**
+- Edge buffer continues writing locally at full rate
+- Zero packet loss (SQLite WAL guarantees durability)
+- Background drain pauses automatically
+
+**Manual Response Procedure:**
+
+```bash
+# Confirm local buffer is absorbing packets
+PYTHONPATH="." python -c "
+from src.local_persistence import TracksideEdgeBuffer
+buf = TracksideEdgeBuffer()
+print('Pending for drain:', buf.pending_count())
+print('Local buffer healthy — no data loss')
+"
+
+# When connectivity restored, trigger manual drain
+PYTHONPATH="." python -c "
+from src.local_persistence import TracksideEdgeBuffer
+buf = TracksideEdgeBuffer()
+n = buf.drain_to_persistent()
+print(f'Drained: {n} packets')
+"
+```
+
+### Incident: Schema Drift After Mid-Season ECU Update
+
+**Symptom:** DLQ filling with `schema_drift` errors after FP1 of a mid-season round
+
+**Root Cause:** ECU firmware updated between races; sensor field names changed
+
+**Resolution:**
+
+```bash
+# Step 1: Identify the new firmware field names from DLQ
+PYTHONPATH="." python -c "
+from src.circuit_breaker import DeadLetterQueue
+dlq = DeadLetterQueue()
+for r in dlq.recent(limit=50):
+    if 'schema_drift' in r.reason:
+        print(f'  sensor={r.sensor} value={r.raw_value}')
+"
+
+# Step 2: Check if new field name is already in alias table
+PYTHONPATH="." python -c "
+from src.sensor_profiles import get_sensor_profile
+# Try looking up the new field name
+profile = get_sensor_profile('TwaterOut')  # replace with actual new name
+print('Resolved to:', profile.name if profile else 'NOT FOUND')
+"
+
+# Step 3: If alias exists, reprocess DLQ
+# If alias NOT found: add new firmware alias to FIRMWARE_COMPAT_MATRIX
+# and restart the pipeline
+```
+
+---
+
+## 14. Pit Wall Command Integration
+
+See [PIT_WALL_INTEGRATION.md](PIT_WALL_INTEGRATION.md) for the full API reference.
+
+### Quick Commands for Pit Wall Engineers
+
+```bash
+# Live system status (run any time)
+PYTHONPATH="." python -c "
+from src.circuit_breaker import TelemetryCircuitBreaker
+cb = TelemetryCircuitBreaker()
+m = cb.metrics
+print('State:', cb.state.value)
+print('DLQ depth:', cb.dlq.depth())
+"
+
+# Check specific sensor health
+PYTHONPATH="." python -c "
+from src.sensor_profiles import get_sensor_profile, get_track_ranges
+
+sensor = 'engine_temp'
+track = 'monaco'
+
+profile = get_sensor_profile(sensor)
+lo, hi = get_track_ranges(sensor, track)
+print(f'{profile.display_name} at {track}: {lo}–{hi} {profile.unit}')
+print('Safety critical:', profile.safety_critical)
+"
+
+# Force circuit breaker reset (use only with confirmed root cause)
+PYTHONPATH="." python -c "
+from src.circuit_breaker import TelemetryCircuitBreaker
+cb = TelemetryCircuitBreaker()
+cb.reset()
+print('Breaker state after reset:', cb.state.value)
+"
+```
+
+### Alert Threshold Quick Reference
+
+| Sensor | Warning | Critical | Action |
+|--------|---------|----------|--------|
+| engine_temp | 115°C | 125°C | Monitor / Engine mode reduction |
+| tyre_pressure | 22.5 psi | 21.0 psi | Consider pit call |
+| brake_temp | 850°C | 1,000°C | Reduce brake bias |
+| rpm | 15,000 | 15,500 | Auto engine mapping switch |
+| heart_rate | 185 bpm | 210 bpm | FIA medical delegate |
+
+---
+
+## 15. Post-Race Forensics Workflow
+
+Execute post-race forensics to support debrief, FIA compliance, and steward inquiries.
+
+### Step 1: Immediate Post-Race (< 5 min)
+
+```bash
+# Generate forensics snapshot
+PYTHONPATH="." python tools/verify_compliance.py \
+  --all \
+  --circuit CIRCUIT_NAME \
+  --report \
+  --output data/forensics_$(date +%Y%m%d_%H%M%S).json
+```
+
+### Step 2: DLQ Analysis (< 30 min)
+
+```sql
+-- Full DLQ breakdown for race debrief
+SELECT
+    sensor,
+    reason,
+    count(*) AS count,
+    min(created_at) AS first_seen,
+    max(created_at) AS last_seen
+FROM dead_letter_queue
+WHERE created_at > datetime('now', '-6 hours')
+GROUP BY sensor, reason
+ORDER BY count DESC;
+```
+
+### Step 3: Audit Chain Export for FIA
+
+```bash
+PYTHONPATH="." python tools/verify_compliance.py \
+  --steward-package \
+  --start RACE_START_TIME \
+  --end RACE_END_TIME \
+  --circuit CIRCUIT_NAME \
+  --output data/fia_audit_package_$(date +%Y%m%d).json
+```
+
+### Step 4: Archive
+
+```bash
+RACE_DATE=$(date +%Y%m%d)
+mkdir -p archive/race_${RACE_DATE}
+cp -r data/reports/ archive/race_${RACE_DATE}/reports/
+cp data/forensics_*.json archive/race_${RACE_DATE}/
+cp data/fia_audit_package_*.json archive/race_${RACE_DATE}/
+echo "Race ${RACE_DATE} archived successfully"
+```
+
+### Forensics Checklist
+
+| # | Task | Pass Criterion |
+|---|------|----------------|
+| 1 | Audit chain verified post-race | `True` |
+| 2 | Compliance report generated | File saved |
+| 3 | DLQ analysis complete | Top reasons identified |
+| 4 | Schema drift packets recovered | Reprocessed count > 0 |
+| 5 | FIA audit package ready | Package file saved |
+| 6 | Data archived | `archive/race_YYYYMMDD/` present |
+| 7 | Budget cap report | Engineer-hours saved documented |
