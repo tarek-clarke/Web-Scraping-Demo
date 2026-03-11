@@ -139,6 +139,8 @@ buffer = TracksideEdgeBuffer(
 - **Dual-write:** Validated packets → `telemetry-validated`, DLQ → `telemetry-dlq`
 - **Graceful degradation:** Logs warning if kafka-python unavailable
 
+> **Compose note:** The `kafka` service in `docker-compose.yml` is implemented with **Redpanda** (Kafka API-compatible). Existing client settings (`kafka:9092`) and CLI flags (`--enable-kafka`, `--kafka-servers`) work unchanged.
+
  **Full guide:** [docs/KAFKA_INTEGRATION.md](docs/KAFKA_INTEGRATION.md)  
  **Example:** [examples/kafka_integration_example.py](examples/kafka_integration_example.py)
 
