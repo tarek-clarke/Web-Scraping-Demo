@@ -22,6 +22,23 @@ A production-ready telemetry spine that processes race-weekend scale loads with 
 - Enforces tamper-evident provenance (SHA-256 hash chain)
 - Tracks race-readiness via deterministic SLO gates
 
+## Table of Contents
+
+- [Quick Start (Ubuntu 24.04 + AMD ROCm)](#quick-start-ubuntu-2404--amd-rocm)
+- [Run Profiles](#run-profiles)
+  - [1) Baseline GPU Benchmarks](#1-baseline-gpu-benchmarks)
+  - [2) Kafka DLQ Routing Validation](#2-kafka-dlq-routing-validation)
+  - [3) Diagnostic Mode (Missed-Detection Attribution)](#3-diagnostic-mode-missed-detection-attribution)
+  - [4) Repair-Focused Validation](#4-repair-focused-validation)
+- [Validated Results](#validated-results)
+- [System Architecture](#system-architecture)
+- [Operational Capabilities](#operational-capabilities)
+- [Docker Deployment](#docker-deployment)
+- [Testing & Validation](#testing--validation)
+- [Architecture Decision Records](#architecture-decision-records)
+- [About](#about)
+- [Licensing](#licensing)
+
 ---
 
 ## Quick Start (Ubuntu 24.04 + AMD ROCm)
@@ -103,6 +120,23 @@ Diagnostic artifacts:
 
 Supported chaos profiles: `balanced`, `repair_focus`.
 
+#### Diagnostic Deep-Dive (Attribution)
+
+From `missed_detection_analysis_diagnostic_weekend.csv`:
+
+- By sensor:
+  - `ecu_canbus`: `299 / 10,586` missed (`2.82%`)
+  - `g_force_lateral`: `69 / 10,864` missed (`0.64%`)
+  - `throttle`: `2 / 10,718` missed (`0.02%`)
+- By chaos mode:
+  - `bit_flip_low`: `335 / 15,509` missed (`2.16%`)
+  - `bit_flip_high`: `35 / 15,423` missed (`0.23%`)
+- Highest-risk combinations:
+  - `ecu_canbus + bit_flip_low`: `274 / 1,519` (`18.04%`)
+  - `g_force_lateral + bit_flip_low`: `61 / 1,583` (`3.85%`)
+
+Interpretation: the remaining gap is concentrated in low-bit-flip behavior on a narrow sensor subset, not uniformly distributed across sessions.
+
 ### 4) Repair-Focused Validation
 
 This profile stresses repairability/runtime with:
@@ -146,23 +180,6 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 | `dlq-repairable-weekend-005` | 152,733 |
 | `dlq-repaired-weekend-005` | 68 |
 | `dlq-non-repairable-weekend-005` | 0 |
-
-### Diagnostic Deep-Dive (Attribution)
-
-From `missed_detection_analysis_diagnostic_weekend.csv`:
-
-- By sensor:
-  - `ecu_canbus`: `299 / 10,586` missed (`2.82%`)
-  - `g_force_lateral`: `69 / 10,864` missed (`0.64%`)
-  - `throttle`: `2 / 10,718` missed (`0.02%`)
-- By chaos mode:
-  - `bit_flip_low`: `335 / 15,509` missed (`2.16%`)
-  - `bit_flip_high`: `35 / 15,423` missed (`0.23%`)
-- Highest-risk combinations:
-  - `ecu_canbus + bit_flip_low`: `274 / 1,519` (`18.04%`)
-  - `g_force_lateral + bit_flip_low`: `61 / 1,583` (`3.85%`)
-
-Interpretation: the remaining gap is concentrated in low-bit-flip behavior on a narrow sensor subset, not uniformly distributed across sessions.
 
 ---
 
