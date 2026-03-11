@@ -44,9 +44,11 @@ typing_extensions==4.15.0
 tzdata==2025.3
 pytest==8.0.0
 
-# Optional: Kafka integration
-# Install with: pip install kafka-python
-# kafka-python==2.0.2
+# Optional: Kafka integration — required for DLQ 3-stream routing
+# kafka-python 2.0.2 does NOT support Python 3.12+; use the maintained fork:
+# pip install kafka-python-ng
+# Topics routed: dlq-repairable | dlq-repaired | dlq-non-repairable
+kafka-python-ng
 
 # NOTE:
 # Install PyTorch separately for your target backend (CUDA / ROCm / CPU)

@@ -42,6 +42,16 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Optional Kafka dependency
+# ---------------------------------------------------------------------------
+try:
+    from kafka import KafkaProducer  # type: ignore
+    KAFKA_AVAILABLE = True
+except ImportError:
+    KAFKA_AVAILABLE = False
+    KafkaProducer = None  # type: ignore
+
 
 # ---------------------------------------------------------------------------
 # Circuit-Breaker States
@@ -203,7 +213,16 @@ class DeadLetterQueue:
     CREATE INDEX IF NOT EXISTS idx_dl_quarantined ON dead_letters(quarantined_at);
     """
 
-    def __init__(self, db_path: str = "data/dlq.sqlite", commit_interval: int = 20):
+    def __init__(
+        self,
+        db_path: str = "data/dlq.sqlite",
+        commit_interval: int = 20,
+        enable_kafka: bool = False,
+        kafka_bootstrap_servers: Optional[List[str]] = None,
+        kafka_topic_repairable: str = "dlq-repairable",
+        kafka_topic_repaired: str = "dlq-repaired",
+        kafka_topic_non_repairable: str = "dlq-non-repairable",
+    ):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
@@ -212,6 +231,50 @@ class DeadLetterQueue:
         self._lock = threading.Lock()
         self._commit_interval = commit_interval
         self._write_count = 0
+
+        # ------------------------------------------------------------------
+        # Kafka routing — three topics for each DLQ outcome
+        # ------------------------------------------------------------------
+        self.kafka_topic_repairable = kafka_topic_repairable
+        self.kafka_topic_repaired = kafka_topic_repaired
+        self.kafka_topic_non_repairable = kafka_topic_non_repairable
+        self.enable_kafka = enable_kafka and KAFKA_AVAILABLE
+        self._kafka_producer: Optional[KafkaProducer] = None
+        self._kafka_sent: int = 0
+        self._kafka_failed: int = 0
+
+        if self.enable_kafka:
+            if not KAFKA_AVAILABLE:
+                logger.warning(
+                    "Kafka requested for DLQ but kafka-python is not installed. "
+                    "Install with: pip install kafka-python"
+                )
+                self.enable_kafka = False
+            elif kafka_bootstrap_servers:
+                try:
+                    self._kafka_producer = KafkaProducer(
+                        bootstrap_servers=kafka_bootstrap_servers,
+                        value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+                        acks="all",
+                        retries=3,
+                        max_in_flight_requests_per_connection=5,
+                    )
+                    logger.info(
+                        "DLQ Kafka producer initialised | servers=%s "
+                        "topics=(%s, %s, %s)",
+                        kafka_bootstrap_servers,
+                        kafka_topic_repairable,
+                        kafka_topic_repaired,
+                        kafka_topic_non_repairable,
+                    )
+                except Exception as exc:
+                    logger.error("Failed to initialise DLQ Kafka producer: %s", exc)
+                    self.enable_kafka = False
+            else:
+                logger.warning(
+                    "Kafka enabled for DLQ but no bootstrap_servers provided"
+                )
+                self.enable_kafka = False
 
     # ------------------------------------------------------------------
     def enqueue(self, record: DLQRecord) -> None:
@@ -239,6 +302,23 @@ class DeadLetterQueue:
                 self._conn.commit()
                 self._write_count = 0
 
+        # Kafka: new quarantined packet is a repairable candidate
+        if self.enable_kafka and self._kafka_producer:
+            self._publish_to_kafka(
+                {
+                    "packet_id": record.packet.packet_id,
+                    "sensor": record.packet.sensor,
+                    "value": record.packet.value,
+                    "reason": record.reason,
+                    "circuit_state": record.circuit_state,
+                    "retry_count": record.retry_count,
+                    "quarantined_at": record.quarantined_at,
+                    "outcome": "repairable",
+                    "published_at": datetime.utcnow().isoformat(),
+                },
+                self.kafka_topic_repairable,
+            )
+
     def enqueue_batch(self, records: List[DLQRecord]) -> None:
         """Persist multiple rejected packets in a single transaction."""
         with self._lock:
@@ -263,12 +343,107 @@ class DeadLetterQueue:
             self._conn.commit()
             self._write_count = 0
 
+        # Kafka: publish all new quarantined packets to the repairable topic
+        if self.enable_kafka and self._kafka_producer:
+            now = datetime.utcnow().isoformat()
+            for record in records:
+                self._publish_to_kafka(
+                    {
+                        "packet_id": record.packet.packet_id,
+                        "sensor": record.packet.sensor,
+                        "value": record.packet.value,
+                        "reason": record.reason,
+                        "circuit_state": record.circuit_state,
+                        "retry_count": record.retry_count,
+                        "quarantined_at": record.quarantined_at,
+                        "outcome": "repairable",
+                        "published_at": now,
+                    },
+                    self.kafka_topic_repairable,
+                )
+
     def flush(self) -> None:
         """Force-commit any buffered writes to disk."""
         with self._lock:
             if self._write_count > 0:
                 self._conn.commit()
                 self._write_count = 0
+
+    # ------------------------------------------------------------------
+    # Kafka helpers
+    # ------------------------------------------------------------------
+    def _publish_to_kafka(self, payload: Dict[str, Any], topic: str) -> None:
+        """Send a DLQ record to a Kafka topic (non-blocking, fire-and-forget)."""
+        if not self._kafka_producer:
+            return
+        try:
+            future = self._kafka_producer.send(topic, value=payload)
+            future.add_callback(lambda _: self._on_kafka_success())
+            future.add_errback(lambda e: self._on_kafka_error(e, topic))
+        except Exception as exc:
+            logger.warning("DLQ Kafka send exception (topic=%s): %s", topic, exc)
+            self._kafka_failed += 1
+
+    def _on_kafka_success(self) -> None:
+        self._kafka_sent += 1
+
+    def _on_kafka_error(self, exc: Exception, topic: str) -> None:
+        logger.warning("DLQ Kafka send failed to %s: %s", topic, exc)
+        self._kafka_failed += 1
+
+    def publish_repair_outcome(
+        self, rec: Dict[str, Any], outcome: str
+    ) -> None:
+        """
+        Route a DLQ reprocessing result to the appropriate Kafka topic.
+
+        Call this immediately after each repair decision in the reprocessing
+        loop — the caller already holds the full ``rec`` dict from
+        :meth:`fetch_reprocessable`, so no extra DB round-trip is needed.
+
+        Parameters
+        ----------
+        rec : dict
+            A record dict as returned by :meth:`fetch_reprocessable`.
+        outcome : str
+            One of:
+
+            * ``"repaired"``        — repair succeeded; packet recovered.
+            * ``"non_repairable"``  — max retries exhausted; packet is dead.
+            * ``"repairable"``      — repair failed this round but retries remain.
+        """
+        if not self.enable_kafka or not self._kafka_producer:
+            return
+
+        topic_map: Dict[str, str] = {
+            "repaired": self.kafka_topic_repaired,
+            "non_repairable": self.kafka_topic_non_repairable,
+            "repairable": self.kafka_topic_repairable,
+        }
+        topic = topic_map.get(outcome)
+        if topic is None:
+            logger.warning(
+                "Unknown DLQ repair outcome '%s' for packet %s — skipping Kafka publish",
+                outcome,
+                rec.get("packet_id"),
+            )
+            return
+
+        payload = {
+            "packet_id": rec.get("packet_id"),
+            "sensor": rec.get("sensor"),
+            "value": rec.get("value"),
+            "reason": rec.get("reason"),
+            "retry_count": rec.get("retry_count", 0),
+            "outcome": outcome,
+            "published_at": datetime.utcnow().isoformat(),
+        }
+        self._publish_to_kafka(payload, topic)
+
+    @property
+    def kafka_stats(self) -> Dict[str, int]:
+        """Return sent/failed counts for monitoring."""
+        return {"sent": self._kafka_sent, "failed": self._kafka_failed}
 
     # ------------------------------------------------------------------
     def depth(self) -> int:
@@ -356,6 +531,11 @@ class TelemetryCircuitBreaker:
         half_open_max_calls: int = 3,
         dlq_path: str = "data/dlq.sqlite",
         validator: Optional[SchemaValidator] = None,
+        enable_kafka: bool = False,
+        kafka_bootstrap_servers: Optional[List[str]] = None,
+        kafka_topic_repairable: str = "dlq-repairable",
+        kafka_topic_repaired: str = "dlq-repaired",
+        kafka_topic_non_repairable: str = "dlq-non-repairable",
     ):
         self._state = CircuitState.CLOSED
         self._lock = threading.Lock()
@@ -380,15 +560,22 @@ class TelemetryCircuitBreaker:
 
         # Dependencies
         self.validator = validator or SchemaValidator()
-        self.dlq = DeadLetterQueue(db_path=dlq_path)
+        self.dlq = DeadLetterQueue(
+            db_path=dlq_path,
+            enable_kafka=enable_kafka,
+            kafka_bootstrap_servers=kafka_bootstrap_servers,
+            kafka_topic_repairable=kafka_topic_repairable,
+            kafka_topic_repaired=kafka_topic_repaired,
+            kafka_topic_non_repairable=kafka_topic_non_repairable,
+        )
 
         # Event hooks (for Health Monitor)
         self._on_state_change: Optional[Callable[[CircuitState, CircuitState], None]] = None
         self._on_reject: Optional[Callable[[DLQRecord], None]] = None
 
         logger.info(
-            "CircuitBreaker initialised | threshold=%d recovery=%.1fs",
-            failure_threshold, recovery_timeout,
+            "CircuitBreaker initialised | threshold=%d recovery=%.1fs kafka=%s",
+            failure_threshold, recovery_timeout, enable_kafka,
         )
 
     # ------------------------------------------------------------------

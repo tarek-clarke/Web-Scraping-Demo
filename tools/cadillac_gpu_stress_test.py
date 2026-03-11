@@ -681,6 +681,11 @@ class CadillacGPUStressTest:
         breaker_recovery: float = 2.0,
         output_dir: str = "data/reports",
         output_suffix: str = "",
+        enable_kafka: bool = False,
+        kafka_bootstrap_servers: Optional[List[str]] = None,
+        kafka_topic_repairable: str = "dlq-repairable",
+        kafka_topic_repaired: str = "dlq-repaired",
+        kafka_topic_non_repairable: str = "dlq-non-repairable",
     ):
         self.packets_per_session = packets_per_session
         self.chaos = ChaosInjector(chaos_rate, profile=chaos_profile)
@@ -740,6 +745,11 @@ class CadillacGPUStressTest:
             failure_threshold=self._breaker_threshold,
             recovery_timeout=self._breaker_recovery,
             dlq_path="data/gpu_stress_dlq.sqlite",
+            enable_kafka=enable_kafka,
+            kafka_bootstrap_servers=kafka_bootstrap_servers,
+            kafka_topic_repairable=kafka_topic_repairable,
+            kafka_topic_repaired=kafka_topic_repaired,
+            kafka_topic_non_repairable=kafka_topic_non_repairable,
         )
         self.buffer = TracksideEdgeBuffer(
             db_path="data/gpu_stress_edge_buffer.sqlite",
@@ -1125,6 +1135,7 @@ class CadillacGPUStressTest:
 
             if is_valid:
                 self.breaker.dlq.mark_reprocessed(rec["packet_id"])
+                self.breaker.dlq.publish_repair_outcome(rec, "repaired")
                 repaired += 1
                 self._repair_events.append(RepairEvent(
                     packet_id=rec["packet_id"],
@@ -1136,8 +1147,10 @@ class CadillacGPUStressTest:
                 retry_count = rec.get("retry_count", 0) + 1
                 if retry_count >= 3:
                     max_retries += 1
+                    self.breaker.dlq.publish_repair_outcome(rec, "non_repairable")
                 else:
                     still_bad += 1
+                    self.breaker.dlq.publish_repair_outcome(rec, "repairable")
                 self._repair_events.append(RepairEvent(
                     packet_id=rec["packet_id"],
                     repair_latency_ms=repair_ms,
@@ -1647,6 +1660,29 @@ def main():
         "--preserve-sqlite", action="store_true",
         help="Preserve stress-test SQLite DB/WAL/SHM files between runs",
     )
+    parser.add_argument(
+        "--enable-kafka", action="store_true",
+        help="Enable Kafka DLQ 3-stream routing (requires kafka-python)",
+    )
+    parser.add_argument(
+        "--kafka-servers", type=str, default="localhost:9092",
+        help=(
+            "Comma-separated Kafka bootstrap servers "
+            "(default: localhost:9092). Only used when --enable-kafka is set."
+        ),
+    )
+    parser.add_argument(
+        "--kafka-topic-repairable", type=str, default="dlq-repairable",
+        help="Kafka topic for quarantined-but-repairable DLQ packets",
+    )
+    parser.add_argument(
+        "--kafka-topic-repaired", type=str, default="dlq-repaired",
+        help="Kafka topic for successfully repaired DLQ packets",
+    )
+    parser.add_argument(
+        "--kafka-topic-non-repairable", type=str, default="dlq-non-repairable",
+        help="Kafka topic for non-repairable (max-retry) DLQ packets",
+    )
     args = parser.parse_args()
 
     if args.showcase:
@@ -1672,6 +1708,15 @@ def main():
         chaos_profile=args.chaos_profile,
         breaker_threshold=threshold,
         output_suffix=args.output_suffix,
+        enable_kafka=args.enable_kafka,
+        kafka_bootstrap_servers=(
+            [s.strip() for s in args.kafka_servers.split(",")]
+            if args.enable_kafka
+            else None
+        ),
+        kafka_topic_repairable=args.kafka_topic_repairable,
+        kafka_topic_repaired=args.kafka_topic_repaired,
+        kafka_topic_non_repairable=args.kafka_topic_non_repairable,
     )
 
     report = test.run()
