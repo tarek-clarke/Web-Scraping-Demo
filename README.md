@@ -207,6 +207,28 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 
 ---
 
+### Diagnostic Mode (Missed-Detection Attribution)
+
+Use diagnostic mode to attribute missed detections by `sensor_id`, `chaos_mode`, and `session`.
+
+```bash
+# Diagnostic run (balanced profile)
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 60000 --chaos 0.12 --chaos-profile balanced --diagnostic --output-suffix _diagnostic_weekend
+
+# Analyze diagnostic JSON in terminal
+source .venv/bin/activate && python3 tools/sensor_fault_diagnostic.py --input data/reports/missed_detection_analysis_diagnostic_weekend.json
+```
+
+Diagnostic artifacts are exported to `data/reports/`:
+- `missed_detection_analysis_<suffix>.json`
+- `missed_detection_analysis_<suffix>.csv`
+
+Notes:
+- Supported chaos profiles are currently `balanced` and `repair_focus`.
+- `--diagnostic` is off by default to avoid extra tracking overhead in baseline runs.
+
+---
+
 ## GPU Benchmark Results (Validated on Ubuntu 24.04)
 
 **Hardware:** AMD Radeon RX 7900 XT (20GB VRAM) | ROCm 6.2 | gfx1100 architecture
@@ -269,6 +291,23 @@ Full weekend simulation (240K packets/session × 15 sessions, 5% chaos injection
 | `dlq-non-repairable-weekend-005` | 0 |
 
 Kafka publish counts align with DLQ/quarantine plus reprocessing traffic (`repairable` includes initial quarantine events and re-published retryable records).
+
+### Missed-Detection Deep-Dive (Diagnostic Run)
+
+From `missed_detection_analysis_diagnostic_weekend.csv`:
+
+- By sensor:
+    - `ecu_canbus`: `299 / 10,586` missed (`2.82%`)
+    - `g_force_lateral`: `69 / 10,864` missed (`0.64%`)
+    - `throttle`: `2 / 10,718` missed (`0.02%`)
+- By chaos mode:
+    - `bit_flip_low`: `335 / 15,509` missed (`2.16%`)
+    - `bit_flip_high`: `35 / 15,423` missed (`0.23%`)
+- Highest-risk combinations:
+    - `ecu_canbus + bit_flip_low`: `274 / 1,519` (`18.04%`)
+    - `g_force_lateral + bit_flip_low`: `61 / 1,583` (`3.85%`)
+
+This confirms the dominant remaining detection gap is concentrated in low-bit-flip scenarios on a small subset of sensors, not uniformly across sessions.
 
 ## Repair-Focused Chaos Validation
 
