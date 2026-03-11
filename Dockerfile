@@ -58,7 +58,10 @@ RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel && \
     # Testing & utilities
     pytest \
     pyyaml \
-    python-dotenv
+    python-dotenv \
+    \
+    # Kafka DLQ 3-stream routing (Python 3.10–3.13 compatible fork)
+    kafka-python-ng
 
 # ──────────────────────────────────────────────────────────────────────────
 # 4. ROCm Environment Configuration  

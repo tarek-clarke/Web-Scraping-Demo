@@ -1,4 +1,34 @@
 services:
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Kafka (KRaft mode — no Zookeeper)
+  # DLQ topics auto-created on first connect; override KAFKA_CFG_* to tune.
+  # ────────────────────────────────────────────────────────────────────────
+  kafka:
+    image: bitnami/kafka:3.9
+    container_name: cadillac_kafka
+    restart: unless-stopped
+    environment:
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_CFG_NUM_PARTITIONS=3
+      - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=1
+    ports:
+      - "9092:9092"
+    volumes:
+      - cadillac_kafka_data:/bitnami/kafka
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   cadillac:
     build: 
       context: .
@@ -11,7 +41,14 @@ services:
     # ────────────────────────────────────────────────────────────────────────
     # ENVIRONMENT: ROCm + GPU Configuration
     # ────────────────────────────────────────────────────────────────────────
+    depends_on:
+      kafka:
+        condition: service_healthy
+
     environment:
+      # Kafka DLQ routing — use compose service name as bootstrap server
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      
       # ROCm runtime configuration for AMD GPU (7900 XT / RDNA3)
       - ROCM_HOME=/opt/rocm
       - LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm-6.2.0/lib:/usr/local/lib
@@ -75,3 +112,4 @@ services:
 volumes:
   cadillac_outputs:
   cadillac_results:
+  cadillac_kafka_data:
