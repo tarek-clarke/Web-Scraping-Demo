@@ -35,6 +35,7 @@ import sqlite3
 import threading
 import time
 import uuid
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -182,6 +183,82 @@ class SchemaValidator:
                 break
 
         return True, "OK"
+
+
+class TemporalSequenceValidator:
+    """Detect duplicate timestamps within a bounded per-session window."""
+
+    def __init__(self, window_size: int = 100):
+        self.window_size = window_size
+        self._seen_timestamps: Dict[str, deque[str]] = {}
+        self._lock = threading.Lock()
+
+    @staticmethod
+    def _session_key(packet: TelemetryPacket) -> str:
+        metadata = packet.metadata if isinstance(packet.metadata, dict) else {}
+        for key in ("session_id", "session"):
+            value = metadata.get(key)
+            if isinstance(value, str) and value:
+                return value
+        return "global"
+
+    def validate(
+        self, packet: TelemetryPacket, record: bool = True
+    ) -> Tuple[bool, Optional[str]]:
+        timestamp = packet.timestamp
+        if not timestamp:
+            return True, None
+
+        session_key = self._session_key(packet)
+        with self._lock:
+            window = self._seen_timestamps.get(session_key)
+            if window is None:
+                window = deque(maxlen=self.window_size)
+                self._seen_timestamps[session_key] = window
+
+            if timestamp in window:
+                return False, "duplicate_timestamp"
+
+            if record:
+                window.append(timestamp)
+            return True, None
+
+    def reset(self) -> None:
+        with self._lock:
+            self._seen_timestamps.clear()
+
+
+class StrictTypeValidator:
+    """Enforce exact runtime types for sensor values (no coercion)."""
+
+    def __init__(self, field_types: Dict[str, Any]):
+        self.field_types = {
+            self._normalise_field_name(str(field)): expected
+            for field, expected in field_types.items()
+        }
+
+    @staticmethod
+    def _normalise_field_name(field: str) -> str:
+        return (
+            field.lower()
+            .replace(" ", "_")
+            .replace("(", "")
+            .replace(")", "")
+        )
+
+    def validate(self, packet: TelemetryPacket) -> Tuple[bool, Optional[str]]:
+        if packet.value is None:
+            return True, None
+
+        field = self._normalise_field_name(packet.sensor)
+        expected_type = self.field_types.get(field)
+        if expected_type is None:
+            return True, None
+
+        if not isinstance(packet.value, expected_type):
+            return False, f"type_violation:{field}"
+
+        return True, None
 
 
 # ---------------------------------------------------------------------------
@@ -531,6 +608,8 @@ class TelemetryCircuitBreaker:
         half_open_max_calls: int = 3,
         dlq_path: str = "data/dlq.sqlite",
         validator: Optional[SchemaValidator] = None,
+        temporal_validator: Optional[TemporalSequenceValidator] = None,
+        strict_type_validator: Optional[StrictTypeValidator] = None,
         enable_kafka: bool = False,
         kafka_bootstrap_servers: Optional[List[str]] = None,
         kafka_topic_repairable: str = "dlq-repairable",
@@ -560,6 +639,19 @@ class TelemetryCircuitBreaker:
 
         # Dependencies
         self.validator = validator or SchemaValidator()
+        self.temporal_validator = temporal_validator or TemporalSequenceValidator(
+            window_size=100
+        )
+        strict_defaults = {
+            key: float for key in SchemaValidator.DEFAULT_RANGES.keys()
+        }
+        self.strict_type_validator = strict_type_validator or StrictTypeValidator(
+            field_types=strict_defaults
+        )
+        self._pre_breaker_validators = [
+            self.temporal_validator,
+            self.strict_type_validator,
+        ]
         self.dlq = DeadLetterQueue(
             db_path=dlq_path,
             enable_kafka=enable_kafka,
@@ -608,6 +700,25 @@ class TelemetryCircuitBreaker:
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
+    def validate_packet(
+        self, packet: TelemetryPacket, record_temporal: bool = True
+    ) -> Tuple[bool, str]:
+        """
+        Run pre-breaker validators then schema/range validation.
+
+        Pre-breaker validator failures are routed to DLQ but do not count as
+        breaker-state transition failures.
+        """
+        for validator in self._pre_breaker_validators:
+            if isinstance(validator, TemporalSequenceValidator):
+                is_valid, reason = validator.validate(packet, record=record_temporal)
+            else:
+                is_valid, reason = validator.validate(packet)
+            if not is_valid:
+                return False, reason or "validation_failed"
+
+        return self.validator.validate_packet(packet)
+
     def process(self, packet: TelemetryPacket) -> Tuple[bool, str]:
         """
         Submit a telemetry packet to the circuit breaker.
@@ -625,11 +736,13 @@ class TelemetryCircuitBreaker:
                 return self._reject(packet, "circuit_open")
 
             # ---- Validate the packet --------------------------------
-            is_valid, reason = self.validator.validate_packet(packet)
+            is_valid, reason = self.validate_packet(packet, record_temporal=False)
 
             if is_valid:
                 return self._on_success(packet)
             else:
+                if reason == "duplicate_timestamp" or reason.startswith("type_violation:"):
+                    return self._reject(packet, reason)
                 return self._on_failure(packet, reason)
 
     def process_batch(self, packets: List[TelemetryPacket]) -> Dict[str, int]:
@@ -657,7 +770,7 @@ class TelemetryCircuitBreaker:
                     rejected += 1
                     continue
 
-                is_valid, reason = self.validator.validate_packet(pkt)
+                is_valid, reason = self.validate_packet(pkt)
                 if is_valid:
                     self._total_passed += 1
                     if self._state == CircuitState.HALF_OPEN:
@@ -670,6 +783,20 @@ class TelemetryCircuitBreaker:
                         self._consecutive_failures = 0
                     accepted += 1
                 else:
+                    if reason == "duplicate_timestamp" or reason.startswith("type_violation:"):
+                        self._total_rejected += 1
+                        if isinstance(pkt.metadata, dict):
+                            pkt.metadata.setdefault("chaos_mode", reason)
+                        record = DLQRecord(
+                            packet=pkt, reason=reason,
+                            circuit_state=self._state.value,
+                        )
+                        self.dlq.enqueue(record)
+                        if self._on_reject:
+                            self._on_reject(record)
+                        rejected += 1
+                        continue
+
                     self._consecutive_failures += 1
                     self._last_failure_time = time.time()
                     if self._state == CircuitState.HALF_OPEN:
@@ -698,6 +825,10 @@ class TelemetryCircuitBreaker:
             self._half_open_calls = 0
             self._half_open_successes = 0
             self._record_state_change(old, CircuitState.CLOSED)
+            for validator in self._pre_breaker_validators:
+                reset_fn = getattr(validator, "reset", None)
+                if callable(reset_fn):
+                    reset_fn()
         logger.info("CircuitBreaker manually RESET → CLOSED")
 
     def reprocess_dlq(self, limit: int = 50) -> Dict[str, int]:
@@ -732,7 +863,7 @@ class TelemetryCircuitBreaker:
                 metadata=json.loads(rec["metadata"]) if isinstance(rec["metadata"], str) else (rec["metadata"] or {}),
             )
 
-            is_valid, reason = self.validator.validate_packet(packet)
+            is_valid, reason = self.validate_packet(packet)
 
             if is_valid:
                 self.dlq.mark_reprocessed(rec["packet_id"])
@@ -791,6 +922,8 @@ class TelemetryCircuitBreaker:
 
     def _reject(self, packet: TelemetryPacket, reason: str) -> Tuple[bool, str]:
         self._total_rejected += 1
+        if isinstance(packet.metadata, dict):
+            packet.metadata.setdefault("chaos_mode", reason)
         record = DLQRecord(
             packet=packet,
             reason=reason,

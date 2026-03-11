@@ -1,5 +1,6 @@
 {
-  "dlq-repairable-weekend-rf005": 12250,
-  "dlq-repaired-weekend-rf005": 144,
-  "dlq-non-repairable-weekend-rf005": 0
+  "bootstrap_servers": "localhost:9092",
+  "kafka_repairable": 12155,
+  "kafka_repaired": 66,
+  "kafka_non_repairable": 0
 }

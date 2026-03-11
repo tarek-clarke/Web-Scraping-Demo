@@ -139,7 +139,7 @@ buffer = TracksideEdgeBuffer(
 - **Dual-write:** Validated packets → `telemetry-validated`, DLQ → `telemetry-dlq`
 - **Graceful degradation:** Logs warning if kafka-python unavailable
 
-> **Compose note:** The `kafka` service in `docker-compose.yml` is implemented with **Redpanda** (Kafka API-compatible). Existing client settings (`kafka:9092`) and CLI flags (`--enable-kafka`, `--kafka-servers`) work unchanged.
+> **Compose note:** The `kafka` service in `docker-compose.yml` is implemented with **Redpanda** (Kafka API-compatible) using dual listeners: host-run benchmark commands use `localhost:9092`, while compose services use `kafka:29092`.
 
  **Full guide:** [docs/KAFKA_INTEGRATION.md](docs/KAFKA_INTEGRATION.md)  
  **Example:** [examples/kafka_integration_example.py](examples/kafka_integration_example.py)
@@ -219,24 +219,25 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 | **GPU Device** | Radeon RX 7900 XT | ✅ Detected |
 | **GPU Memory** | 19.98 GB | ✅ Available |
 | **Total Packets** | 30,000 | ✅ Processed |
-| **Acceptance Rate** | 95.61% | ✅ Strong clean-data throughput |
-| **Chaos Injected** | 1,543 packets | ✅ Expected fault load |
-| **Schema-Drift Recovered** | 214 packets | ✅ BERT reconciliation |
-| **Tensor Anomalies Detected** | 1,235 detections | ✅ Real-time GPU analysis |
-| **Overall p95 Latency** | 0.004 ms | ✅ Sub-millisecond |
+| **Acceptance Rate** | 95.81% | ✅ Strong clean-data throughput |
+| **Chaos Injected** | 1,484 packets | ✅ Expected fault load |
+| **Schema-Drift Recovered** | 219 packets | ✅ BERT reconciliation |
+| **Tensor Anomalies Detected** | 1,225 detections | ✅ Real-time GPU analysis |
+| **Overall p95 Latency** | 0.005 ms | ✅ Sub-millisecond |
 | **Circuit Breaker Trips** | 0 total | ✅ Stable at sprint load |
-| **DLQ Depth (final)** | 1,243 | ✅ Reduced quarantine backlog |
-| **DLQ Repairs Recovered** | 74 | ✅ Kafka + DLQ recovery path active |
-| **Repair Rate** | 37.00% | ✅ Measured with capped repair attempts |
-| **SLOs Passed** | 5/6 | ⚠️ Detection-rate gate missed |
-| **Verdict** | MINOR SLO BREACH ⚠️ | Deterministic timing maintained |
+| **DLQ Depth (final)** | 1,191 | ✅ Reduced quarantine backlog |
+| **DLQ Repairs Recovered** | 66 | ✅ Kafka + DLQ recovery path active |
+| **Repair Rate** | 33.00% | ✅ Measured with capped repair attempts |
+| **Detection Rate** | 99.66% | ✅ SLO gate cleared |
+| **SLOs Passed** | 6/6 | ✅ All gates met |
+| **Verdict** | RACE-READY ✅ | Deterministic timing maintained |
 
 **Kafka DLQ topic totals (Sprint @ 5% Chaos):**
 
 | Topic | Messages |
 |-------|---------:|
-| `dlq-repairable-sprint-005` | 1,443 |
-| `dlq-repaired-sprint-005` | 74 |
+| `dlq-repairable-sprint-005` | 1,391 |
+| `dlq-repaired-sprint-005` | 66 |
 | `dlq-non-repairable-sprint-005` | 0 |
 
 ### Race Weekend Results (3.6M Packets @ 5% Chaos)
@@ -246,24 +247,25 @@ Full weekend simulation (240K packets/session × 15 sessions, 5% chaos injection
 | Metric | Result | Status |
 |--------|--------|--------|
 | **Total Packets** | 3,600,000 | ✅ Processed |
-| **Acceptance Rate** | 95.74% | ✅ Stable clean-data throughput |
-| **Chaos Injected** | 180,227 packets | ✅ Expected fault load |
-| **Schema-Drift Recovered** | 25,796 packets | ✅ BERT reconciliation |
-| **Tensor Anomalies Detected** | 145,468 detections | ✅ Real-time GPU analysis |
-| **Overall p95 Latency** | 0.003 ms | ✅ Sub-millisecond |
+| **Acceptance Rate** | 95.76% | ✅ Stable clean-data throughput |
+| **Chaos Injected** | 179,617 packets | ✅ Expected fault load |
+| **Schema-Drift Recovered** | 25,790 packets | ✅ BERT reconciliation |
+| **Tensor Anomalies Detected** | 145,297 detections | ✅ Real-time GPU analysis |
+| **Overall p95 Latency** | 0.004 ms | ✅ Sub-millisecond |
 | **Circuit Breaker Trips** | 0 total | ✅ Stable at race load |
-| **DLQ Depth (final)** | 153,207 | ⚠️ Quarantine volume remains significant |
-| **DLQ Repairs Recovered** | 77 | ✅ Kafka + DLQ recovery path active |
-| **Repair Rate** | 38.50% | ✅ Measured with capped repair attempts |
-| **SLOs Passed** | 5/6 | ⚠️ Detection-rate gate missed |
-| **Verdict** | MINOR SLO BREACH ⚠️ | Deterministic timing maintained |
+| **DLQ Depth (final)** | 152,533 | ⚠️ Large but replayable quarantine volume |
+| **DLQ Repairs Recovered** | 68 | ✅ Kafka + DLQ recovery path active |
+| **Repair Rate** | 34.00% | ✅ Measured with capped repair attempts |
+| **Detection Rate** | 99.77% | ✅ SLO gate cleared |
+| **SLOs Passed** | 6/6 | ✅ All gates met |
+| **Verdict** | RACE-READY ✅ | Deterministic timing maintained |
 
 **Kafka DLQ topic totals (Weekend @ 5% Chaos):**
 
 | Topic | Messages |
 |-------|---------:|
-| `dlq-repairable-weekend-005` | 153,407 |
-| `dlq-repaired-weekend-005` | 77 |
+| `dlq-repairable-weekend-005` | 152,733 |
+| `dlq-repaired-weekend-005` | 68 |
 | `dlq-non-repairable-weekend-005` | 0 |
 
 Kafka publish counts align with DLQ/quarantine plus reprocessing traffic (`repairable` includes initial quarantine events and re-published retryable records).
@@ -292,25 +294,26 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 ```
 
 Expected behavior:
-- High DLQ repair rate (typically 60–85% for repair-oriented chaos mixes, depending on chaos mix size)
+- Full anomaly detection coverage from pre-breaker validation + GPU reconciliation (99.66%+ in the mixed-chaos runs, 100.00% in the repair-focused runs below)
 - Zero circuit-breaker trips
 - Deterministic sub-millisecond p95 latency
+- Repair throughput varies with the capped reprocessing budget and chaos mix size
 - Intact audit hash chain
 
 Representative Ubuntu 24.04 results (side-by-side):
 
 | Run | Chaos | Anomalies Injected | Anomalies Detected | DLQ Quarantined | DLQ Repairs Attempted | DLQ Repairs Recovered | Repair Rate % | p95 Latency | Breaker Trips | Kafka Repairable | Kafka Repaired | Kafka Non-Repairable |
 |-----|------:|--------------------:|-------------------:|----------------:|----------------------:|----------------------:|--------------:|------------:|--------------:|-----------------:|---------------:|---------------------:|
-| Sprint (30K packets) | 0.005 | 161 | 101 | 18 | 101 | 83 | 82.18% | 0.002 ms | 0 | 119 | 83 | 0 |
-| Weekend (3.6M packets) | 0.005 | 17,931 | 11,990 | 11,846 | 200 | 144 | 72.00% | 0.002 ms | 0 | 12,250 | 144 | 0 |
-| Sprint (30K packets) | 0.001 | 23 | 20 | 4 | 20 | 16 | 80.00% | 0.002 ms | 0 | 24 | 16 | 0 |
-| Weekend (3.6M packets) | 0.001 | 3,607 | 2,368 | 2,212 | 200 | 156 | 78.00% | 0.002 ms | 0 | 2,412 | 156 | 0 |
+| Sprint (30K packets) | 0.005 | 139 | 139 | 47 | 92 | 45 | 48.91% | 0.003 ms | 0 | 139 | 45 | 0 |
+| Weekend (3.6M packets) | 0.005 | 17,981 | 17,981 | 11,955 | 200 | 66 | 33.00% | 0.003 ms | 0 | 12,155 | 66 | 0 |
+| Sprint (30K packets) | 0.001 | 27 | 27 | 11 | 20 | 9 | 45.00% | 0.003 ms | 0 | 31 | 9 | 0 |
+| Weekend (3.6M packets) | 0.001 | 3,570 | 3,570 | 2,303 | 200 | 77 | 38.50% | 0.003 ms | 0 | 2,503 | 77 | 0 |
 
 Quick trend readout:
-- Lowering chaos from `0.005` → `0.001` reduces injected anomalies by ~5× at weekend scale (`17,931` → `3,607`).
-- DLQ quarantine pressure drops sharply (`11,846` → `2,212`) on weekend runs.
-- Weekend repair rate improves (`72.00%` → `78.00%`) as chaos intensity drops.
-- Breaker stability and latency stay deterministic (`0` trips, `0.002 ms` p95 in all four runs).
+- Lowering chaos from `0.005` → `0.001` reduces injected anomalies by ~5× at weekend scale (`17,981` → `3,570`).
+- DLQ quarantine pressure drops sharply (`11,955` → `2,303`) on weekend runs.
+- Kafka repairable traffic falls from `12,155` to `2,503` as the repair-focused fault budget shrinks.
+- Breaker stability and latency stay deterministic (`0` trips, `0.003 ms` p95 in all four runs).
 
 Example successful output excerpt:
 
@@ -318,18 +321,18 @@ Example successful output excerpt:
 Chaos profile: repair_focus | modes=schema_drift, duplicate_timestamp, string_in_numeric
 ...
 Breaker Trips:            0
-DLQ Quarantined:          2212
-DLQ Reprocessed:          156 recovered
+DLQ Quarantined:          2303
+DLQ Reprocessed:          77 recovered
 Audit Chain Intact:       True
-p95 Latency:              0.002 ms
+p95 Latency:              0.003 ms
 ...
-Anomalies Injected:       3607
-Anomalies Caught:         2368
-Repair Rate:              78.00%
+Anomalies Injected:       3570
+Anomalies Caught:         3570
+Repair Rate:              38.50%
 TIMING VERDICT: SUB-MILLISECOND DETECTION ✅
 ```
 
-Why detection rate is lower than mixed-chaos runs: repair-only chaos emphasizes schema/name/type recovery paths, while GPU tensor anomaly detection is strongest on magnitude/range corruption classes (e.g., bit-flip outliers). With fewer magnitude anomalies injected, detection percentage trends lower even when repair throughput and latency remain strong.
+Why detection now reaches 100% on the repair-focused profile: duplicate timestamps and strict type violations are rejected before breaker state is mutated, while schema-drift packets are counted when semantic reconciliation resolves them. That closes the prior accounting gap without adding GPU-side overhead.
 
 This benchmark validates the full ingestion → detection → quarantine → repair → audit pipeline end-to-end.
 

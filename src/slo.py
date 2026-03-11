@@ -37,7 +37,7 @@ Usage
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List
+from typing import Any, Iterable, List
 
 
 # ---------------------------------------------------------------------------
@@ -88,6 +88,16 @@ class SLOTracker:
 
     BASE_PACKETS_PER_SESSION: int = 1000
     BASE_SESSIONS: int = 15
+    DETECTION_CATEGORIES = {
+        "null_value",
+        "string_in_numeric",
+        "schema_drift",
+        "bit_flip_high",
+        "bit_flip_low",
+        "duplicate_timestamp",
+        "sensor_dropout",
+        "type_violation",
+    }
 
     BUDGETS: List[SLOBudget] = [
         SLOBudget(
@@ -159,6 +169,44 @@ class SLOTracker:
         if budget.name == "BREAKER_TRIPS_PER_SESSION":
             return budget.threshold * per_session_scale
         return budget.threshold
+
+    def calculate_detection_rate(
+        self,
+        detection_events: Iterable[Any],
+        categories: Iterable[str] | None = None,
+    ) -> float:
+        """
+        Compute detection rate from per-event records.
+
+        Expected event fields/keys:
+        - ``chaos_type`` (str)
+        - ``detected`` (bool)
+        """
+        recognized = set(categories) if categories is not None else self.DETECTION_CATEGORIES
+        total = 0
+        detected = 0
+
+        for event in detection_events:
+            if isinstance(event, dict):
+                chaos_type_raw = event.get("chaos_type", "")
+                is_detected = bool(event.get("detected", False))
+            else:
+                chaos_type_raw = getattr(event, "chaos_type", "")
+                is_detected = bool(getattr(event, "detected", False))
+
+            chaos_type = str(chaos_type_raw).strip().lower()
+            chaos_group = chaos_type.split(":", 1)[0]
+
+            if chaos_group not in recognized:
+                continue
+
+            total += 1
+            if is_detected:
+                detected += 1
+
+        if total == 0:
+            return 1.0
+        return detected / total
 
     def evaluate(
         self,

@@ -22,9 +22,9 @@ services:
       - "0"
       - --check=false
       - --kafka-addr
-      - PLAINTEXT://0.0.0.0:9092
+      - INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
       - --advertise-kafka-addr
-      - PLAINTEXT://kafka:9092
+      - INTERNAL://kafka:29092,EXTERNAL://localhost:9092
     ports:
       - "9092:9092"
     volumes:
@@ -52,8 +52,8 @@ services:
         condition: service_healthy
 
     environment:
-      # Kafka DLQ routing — use compose service name as bootstrap server
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      # Kafka DLQ routing — use the internal compose listener
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       
       # ROCm runtime configuration for AMD GPU (7900 XT / RDNA3)
       - ROCM_HOME=/opt/rocm

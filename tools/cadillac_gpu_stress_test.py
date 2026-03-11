@@ -49,7 +49,7 @@ import random
 import statistics
 import sys
 import time
-from collections import defaultdict
+from collections import defaultdict, deque
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from functools import lru_cache
@@ -252,32 +252,36 @@ class ChaosInjector:
         self.events_injected: Dict[str, int] = defaultdict(int)
 
     def maybe_corrupt(
-        self, sensor: str, value: float
-    ) -> Tuple[str, Any, Optional[str]]:
+        self,
+        sensor: str,
+        value: float,
+        prior_timestamps: Optional[List[str]] = None,
+    ) -> Tuple[str, Any, Optional[str], Optional[str]]:
         if random.random() > self.chaos_rate:
-            return sensor, value, None
+            return sensor, value, None, None
 
         mode = random.choice(self.active_modes)
         self.events_injected[mode] += 1
 
         if mode == "null_value":
-            return sensor, None, mode
+            return sensor, None, mode, None
         elif mode == "string_in_numeric":
             if self.profile == "repair_focus":
-                return sensor, random.choice(["42.0", "105.25", "-3.5", "88"]), mode
-            return sensor, random.choice(["OVERHEAT", "ERR_DECODE", "NaN", "---"]), mode
+                return sensor, random.choice(["forty_two", "sensor_err", "invalid_float", "temp_bad"]), mode, None
+            return sensor, random.choice(["OVERHEAT", "ERR_DECODE", "NaN_text", "---"]), mode, None
         elif mode == "bit_flip_high":
-            return sensor, value * random.uniform(100, 1000), mode
+            return sensor, value * random.uniform(100, 1000), mode, None
         elif mode == "bit_flip_low":
-            return sensor, -abs(value) * random.uniform(10, 100), mode
+            return sensor, -abs(value) * random.uniform(10, 100), mode, None
         elif mode == "schema_drift":
             drifted = sensor + random.choice(["_v2", "_new", "_alt", "_canbus", "_raw"])
-            return drifted, value, mode
+            return drifted, value, mode, None
         elif mode == "duplicate_timestamp":
-            return sensor, value, mode
+            duplicate_ts = random.choice(prior_timestamps) if prior_timestamps else None
+            return sensor, value, mode, duplicate_ts
         elif mode == "sensor_dropout":
-            return sensor, None, mode
-        return sensor, value, None
+            return sensor, None, mode, None
+        return sensor, value, None, None
 
 
 # ---------------------------------------------------------------------------
@@ -764,6 +768,7 @@ class CadillacGPUStressTest:
         self._breaker_trip_count = 0
         self._drain_results: List[Dict[str, Any]] = []
         self._detection_events: List[DetectionEvent] = []
+        self._detection_event_lookup: Dict[str, DetectionEvent] = {}
         self._repair_events: List[RepairEvent] = []
         self.timing_summary: Optional[ResilienceTimingSummary] = None
 
@@ -870,6 +875,7 @@ class CadillacGPUStressTest:
         batch_packets: List[TelemetryPacket] = []
         batch_chaos: List[Optional[str]] = []
         batch_ctxs: List[RequestContext] = []
+        session_timestamps: deque[str] = deque(maxlen=100)
 
         def _flush_gpu_batch():
             """Run GPU workloads on the accumulated batch."""
@@ -912,6 +918,27 @@ class CadillacGPUStressTest:
             result.gpu_anomaly_detections += n_anom
             self._total_anomaly_detections += n_anom
 
+            for pkt, chaos_type, anomaly_flag, resolution in zip(
+                batch_packets,
+                batch_chaos,
+                anomalies,
+                resolutions,
+            ):
+                if not chaos_type:
+                    continue
+                event = self._detection_event_lookup.get(pkt.packet_id)
+                if event is None:
+                    continue
+
+                original_sensor, resolved_sensor, _confidence = resolution
+                semantic_detected = (
+                    chaos_type == "schema_drift"
+                    and resolved_sensor is not None
+                    and original_sensor != resolved_sensor
+                )
+                anomaly_detected = bool(anomaly_flag)
+                event.detected = event.detected or semantic_detected or anomaly_detected
+
             # --- GPU: Hash-Chain Verification ---
             payloads = [
                 f"{p.packet_id}:{p.sensor}:{p.value}" for p in batch_packets
@@ -933,8 +960,10 @@ class CadillacGPUStressTest:
             sensor_name, lo, hi = random.choice(SENSORS)
             base_value = round(random.uniform(lo, hi), 2)
 
-            sensor_out, value_out, chaos_type = self.chaos.maybe_corrupt(
-                sensor_name, base_value
+            sensor_out, value_out, chaos_type, duplicate_ts = self.chaos.maybe_corrupt(
+                sensor_name,
+                base_value,
+                prior_timestamps=list(session_timestamps),
             )
             if chaos_type:
                 result.chaos_injected += 1
@@ -946,15 +975,21 @@ class CadillacGPUStressTest:
             pkt = TelemetryPacket(
                 sensor=sensor_out,
                 value=value_out,
+                metadata={"session_id": result.session_name},
                 request_id=ctx.request_id,
             )
-            if chaos_type == "duplicate_timestamp":
-                pkt.timestamp = "2026-01-01T00:00:00"
+            if chaos_type == "duplicate_timestamp" and duplicate_ts:
+                pkt.timestamp = duplicate_ts
                 pkt.metadata["duplicate_timestamp"] = True
+
+            if not (chaos_type == "duplicate_timestamp" and duplicate_ts):
+                session_timestamps.append(pkt.timestamp)
 
             # --- CPU: Circuit Breaker ---
             t_val = time.monotonic()
-            _is_valid, _val_reason = self.breaker.validator.validate_packet(pkt)
+            _is_valid, _val_reason = self.breaker.validate_packet(
+                pkt, record_temporal=False
+            )
             detection_latency_ms = (time.monotonic() - t_val) * 1000
 
             t0 = time.monotonic()
@@ -966,14 +1001,16 @@ class CadillacGPUStressTest:
             ctx.add_stage("circuit_breaker", status="PASSED" if accepted else "REJECTED")
 
             if chaos_type:
-                self._detection_events.append(DetectionEvent(
+                event = DetectionEvent(
                     packet_id=pkt.packet_id,
                     session=result.session_name,
                     sensor=sensor_out,
                     chaos_type=chaos_type,
                     detection_latency_ms=detection_latency_ms,
                     detected=not accepted,
-                ))
+                )
+                self._detection_events.append(event)
+                self._detection_event_lookup[pkt.packet_id] = event
 
             result.packets_sent += 1
             if accepted:
@@ -1091,7 +1128,7 @@ class CadillacGPUStressTest:
                 metadata=raw_meta,
             )
             t0 = time.monotonic()
-            is_valid, reason = self.breaker.validator.validate_packet(pkt)
+            is_valid, reason = self.breaker.validate_packet(pkt, record_temporal=False)
 
             if not is_valid:
                 normalized = self._normalize_sensor(raw_sensor)
@@ -1103,9 +1140,11 @@ class CadillacGPUStressTest:
                         value=raw_value,
                         metadata=raw_meta,
                     )
-                    is_valid, reason = self.breaker.validator.validate_packet(pkt_norm)
+                    is_valid, reason = self.breaker.validate_packet(
+                        pkt_norm, record_temporal=False
+                    )
 
-            if not is_valid and "string_in_numeric_field" in reason and isinstance(raw_value, str):
+            if not is_valid and "type_violation:" in reason and isinstance(raw_value, str):
                 try:
                     parsed_value = float(raw_value.strip())
                     pkt_num = TelemetryPacket(
@@ -1115,7 +1154,9 @@ class CadillacGPUStressTest:
                         value=parsed_value,
                         metadata=raw_meta,
                     )
-                    is_valid, reason = self.breaker.validator.validate_packet(pkt_num)
+                    is_valid, reason = self.breaker.validate_packet(
+                        pkt_num, record_temporal=False
+                    )
                 except ValueError:
                     pass
 
@@ -1129,7 +1170,9 @@ class CadillacGPUStressTest:
                     value=raw_value,
                     metadata=repaired_meta,
                 )
-                is_valid, reason = self.breaker.validator.validate_packet(pkt_dedup)
+                is_valid, reason = self.breaker.validate_packet(
+                    pkt_dedup, record_temporal=False
+                )
 
             repair_ms = (time.monotonic() - t0) * 1000
 
@@ -1507,11 +1550,6 @@ class CadillacGPUStressTest:
     def _evaluate_slos(self) -> None:
         report = self.report
 
-        if report.total_chaos > 0:
-            detection_rate = min(1.0, report.total_rejected / report.total_chaos)
-        else:
-            detection_rate = 1.0
-
         try:
             audit_intact = self.audit.verify_chain()
         except Exception:
@@ -1520,6 +1558,7 @@ class CadillacGPUStressTest:
         total_sessions = len(report.sessions)
 
         tracker = SLOTracker()
+        detection_rate = tracker.calculate_detection_rate(self._detection_events)
         slo_report = tracker.evaluate(
             latency_p95_ms=report.overall_latency_p95,
             acceptance_rate=report.overall_acceptance_rate,

@@ -1,5 +1,6 @@
 {
-  "dlq-repairable-sprint-005": 1443,
-  "dlq-repaired-sprint-005": 74,
-  "dlq-non-repairable-sprint-005": 0
+  "bootstrap_servers": "localhost:9092",
+  "kafka_repairable": 1391,
+  "kafka_repaired": 66,
+  "kafka_non_repairable": 0
 }
