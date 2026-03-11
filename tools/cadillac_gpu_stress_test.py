@@ -48,6 +48,7 @@ import os
 import random
 import statistics
 import sys
+import threading
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field, asdict
@@ -327,6 +328,161 @@ class RepairEvent:
     packet_id: str = ""
     repair_latency_ms: float = 0.0
     recovered: bool = False
+
+
+@dataclass
+class InjectedFaultRecord:
+    packet_id: str = ""
+    sensor_id: str = ""
+    chaos_mode: str = ""
+    original_value: Any = None
+    injected_value: Any = None
+    session: str = ""
+    observed_sensor_id: str = ""
+
+
+class DiagnosticFaultTracker:
+    """Pre-allocated fault tracking used only when diagnostic mode is enabled."""
+
+    def __init__(self, capacity: int):
+        self.capacity = max(1, capacity)
+        self._lock = threading.Lock()
+        self._next_slot = 0
+        self._records: List[Optional[InjectedFaultRecord]] = [None] * self.capacity
+        self._slot_by_packet_id: Dict[str, int] = {}
+        self._detected_fault_ids: set[str] = set()
+        self._totals_by_sensor: Dict[str, int] = defaultdict(int)
+        self._totals_by_chaos: Dict[str, int] = defaultdict(int)
+        self._totals_by_session: Dict[str, int] = defaultdict(int)
+        self._totals_by_sensor_and_chaos: Dict[Tuple[str, str], int] = defaultdict(int)
+
+    def record_injection(
+        self,
+        packet_id: str,
+        sensor_id: str,
+        chaos_mode: str,
+        original_value: Any,
+        injected_value: Any,
+        session: str,
+        observed_sensor_id: str,
+    ) -> None:
+        with self._lock:
+            if self._next_slot >= self.capacity:
+                return
+            record = InjectedFaultRecord(
+                packet_id=packet_id,
+                sensor_id=sensor_id,
+                chaos_mode=chaos_mode,
+                original_value=original_value,
+                injected_value=injected_value,
+                session=session,
+                observed_sensor_id=observed_sensor_id,
+            )
+            slot = self._next_slot
+            self._records[slot] = record
+            self._slot_by_packet_id[packet_id] = slot
+            self._next_slot += 1
+            self._totals_by_sensor[sensor_id] += 1
+            self._totals_by_chaos[chaos_mode] += 1
+            self._totals_by_session[session] += 1
+            self._totals_by_sensor_and_chaos[(sensor_id, chaos_mode)] += 1
+
+    def record_detected(self, packet_id: str) -> None:
+        with self._lock:
+            self._detected_fault_ids.add(packet_id)
+
+    def build_analysis(self) -> Dict[str, Any]:
+        with self._lock:
+            records = [record for record in self._records[: self._next_slot] if record is not None]
+            detected_fault_ids = set(self._detected_fault_ids)
+            totals_by_sensor = dict(self._totals_by_sensor)
+            totals_by_chaos = dict(self._totals_by_chaos)
+            totals_by_session = dict(self._totals_by_session)
+            totals_by_sensor_and_chaos = dict(self._totals_by_sensor_and_chaos)
+
+        missed_records = [record for record in records if record.packet_id not in detected_fault_ids]
+
+        missed_by_sensor: Dict[str, int] = defaultdict(int)
+        missed_by_chaos: Dict[str, int] = defaultdict(int)
+        missed_by_session: Dict[str, int] = defaultdict(int)
+        missed_by_sensor_and_chaos: Dict[Tuple[str, str], int] = defaultdict(int)
+
+        for record in missed_records:
+            missed_by_sensor[record.sensor_id] += 1
+            missed_by_chaos[record.chaos_mode] += 1
+            missed_by_session[record.session] += 1
+            missed_by_sensor_and_chaos[(record.sensor_id, record.chaos_mode)] += 1
+
+        sensor_rows = [
+            {
+                "sensor_id": sensor_id,
+                "miss_count": miss_count,
+                "total_injected": totals_by_sensor.get(sensor_id, 0),
+                "miss_rate": round(miss_count / max(1, totals_by_sensor.get(sensor_id, 0)), 6),
+            }
+            for sensor_id, miss_count in sorted(missed_by_sensor.items(), key=lambda item: (-item[1], item[0]))
+        ]
+        chaos_rows = [
+            {
+                "chaos_mode": chaos_mode,
+                "miss_count": miss_count,
+                "total_injected": totals_by_chaos.get(chaos_mode, 0),
+                "miss_rate": round(miss_count / max(1, totals_by_chaos.get(chaos_mode, 0)), 6),
+            }
+            for chaos_mode, miss_count in sorted(missed_by_chaos.items(), key=lambda item: (-item[1], item[0]))
+        ]
+        session_rows = [
+            {
+                "session": session,
+                "miss_count": miss_count,
+                "total_injected": totals_by_session.get(session, 0),
+                "miss_rate": round(miss_count / max(1, totals_by_session.get(session, 0)), 6),
+            }
+            for session, miss_count in sorted(missed_by_session.items(), key=lambda item: (-item[1], item[0]))
+        ]
+        combo_rows = [
+            {
+                "sensor_id": sensor_id,
+                "chaos_mode": chaos_mode,
+                "miss_count": miss_count,
+                "total_injected": totals_by_sensor_and_chaos.get((sensor_id, chaos_mode), 0),
+                "miss_rate": round(
+                    miss_count / max(1, totals_by_sensor_and_chaos.get((sensor_id, chaos_mode), 0)),
+                    6,
+                ),
+            }
+            for (sensor_id, chaos_mode), miss_count in sorted(
+                missed_by_sensor_and_chaos.items(),
+                key=lambda item: (-item[1], item[0][0], item[0][1]),
+            )
+        ]
+
+        return {
+            "generated_at": datetime.utcnow().isoformat(),
+            "injected_fault_count": len(records),
+            "detected_fault_count": len(detected_fault_ids),
+            "missed_fault_count": len(missed_records),
+            "miss_rate": round(len(missed_records) / max(1, len(records)), 6),
+            "missed_by_sensor": sensor_rows,
+            "missed_by_chaos_mode": chaos_rows,
+            "missed_by_session": session_rows,
+            "missed_by_sensor_and_chaos": combo_rows,
+            "totals_by_sensor": totals_by_sensor,
+            "totals_by_chaos_mode": totals_by_chaos,
+            "totals_by_session": totals_by_session,
+            "totals_by_sensor_and_chaos": [
+                {
+                    "sensor_id": sensor_id,
+                    "chaos_mode": chaos_mode,
+                    "total_injected": total_injected,
+                }
+                for (sensor_id, chaos_mode), total_injected in sorted(
+                    totals_by_sensor_and_chaos.items(),
+                    key=lambda item: (item[0][0], item[0][1]),
+                )
+            ],
+            "missed_faults": [asdict(record) for record in missed_records],
+        }
 
 
 @dataclass
@@ -675,6 +831,9 @@ class CadillacGPUStressTest:
     _SCHEMA_DRIFT_SUFFIXES = (
         "_v2", "_v3", "_new", "_alt", "_canbus", "_raw", "_temp",
     )
+    SENSOR_PACKET_INTERVAL_MS = 10.0
+    CADENCE_TOLERANCE = 3.0
+    SENSOR_DROPOUT_SKIP_SLOTS = 4
 
     def __init__(
         self,
@@ -685,6 +844,7 @@ class CadillacGPUStressTest:
         breaker_recovery: float = 2.0,
         output_dir: str = "data/reports",
         output_suffix: str = "",
+        diagnostic: bool = False,
         enable_kafka: bool = False,
         kafka_bootstrap_servers: Optional[List[str]] = None,
         kafka_topic_repairable: str = "dlq-repairable",
@@ -696,6 +856,7 @@ class CadillacGPUStressTest:
         self._chaos_profile = self.chaos.profile
         self.output_dir = Path(output_dir)
         self.output_suffix = output_suffix
+        self.diagnostic = diagnostic
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # GPU setup
@@ -761,6 +922,11 @@ class CadillacGPUStressTest:
         )
         self.audit = ComplianceAuditLog(db_path="data/gpu_stress_audit.sqlite")
         self.geo = GeoFence(audit_log=self.audit)
+        self.sensor_cadence_baselines = self._build_sensor_cadence_baselines()
+        self.breaker.configure_cadence_monitor(
+            baseline_intervals=self.sensor_cadence_baselines,
+            cadence_tolerance=self.CADENCE_TOLERANCE,
+        )
 
         # Report bookkeeping
         self.report = GPUStressTestReport()
@@ -771,6 +937,12 @@ class CadillacGPUStressTest:
         self._detection_event_lookup: Dict[str, DetectionEvent] = {}
         self._repair_events: List[RepairEvent] = []
         self.timing_summary: Optional[ResilienceTimingSummary] = None
+        self.missed_detection_analysis: Optional[Dict[str, Any]] = None
+        self._diagnostic_tracker = (
+            DiagnosticFaultTracker(capacity=self.packets_per_session * len(TRIPLE_HEADER) * 5)
+            if self.diagnostic
+            else None
+        )
 
         # GPU metric accumulators
         self._total_embeddings = 0
@@ -797,6 +969,18 @@ class CadillacGPUStressTest:
     @staticmethod
     def _mock_cloud_sync(payloads: list) -> bool:
         return random.random() < 0.95
+
+    def _build_sensor_cadence_baselines(self) -> Dict[str, float]:
+        baseline_ms = len(SENSORS) * self.SENSOR_PACKET_INTERVAL_MS
+        return {sensor_name: baseline_ms for sensor_name, *_ in SENSORS}
+
+    @staticmethod
+    def _timestamp_from_ms(timestamp_ms: float) -> str:
+        return datetime.utcfromtimestamp(timestamp_ms / 1000.0).isoformat(timespec="microseconds")
+
+    def _record_detected_fault(self, packet_id: str) -> None:
+        if self._diagnostic_tracker is not None:
+            self._diagnostic_tracker.record_detected(packet_id)
 
     # -----------------------------------------------------------------
     def run(self) -> GPUStressTestReport:
@@ -876,6 +1060,14 @@ class CadillacGPUStressTest:
         batch_chaos: List[Optional[str]] = []
         batch_ctxs: List[RequestContext] = []
         session_timestamps: deque[str] = deque(maxlen=100)
+        session_start_ms = time.time() * 1000.0
+        sensor_phase_ms = {
+            sensor_name: idx * self.SENSOR_PACKET_INTERVAL_MS
+            for idx, (sensor_name, *_rest) in enumerate(SENSORS)
+        }
+        sensor_emit_counts = {sensor_name: 0 for sensor_name, *_rest in SENSORS}
+        sensor_count = len(SENSORS)
+        session_offset = (weekend.round_number + len(session_name)) % sensor_count
 
         def _flush_gpu_batch():
             """Run GPU workloads on the accumulated batch."""
@@ -938,6 +1130,8 @@ class CadillacGPUStressTest:
                 )
                 anomaly_detected = bool(anomaly_flag)
                 event.detected = event.detected or semantic_detected or anomaly_detected
+                if semantic_detected or anomaly_detected:
+                    self._record_detected_fault(pkt.packet_id)
 
             # --- GPU: Hash-Chain Verification ---
             payloads = [
@@ -957,7 +1151,8 @@ class CadillacGPUStressTest:
 
         # -- Main packet loop --
         for i in range(self.packets_per_session):
-            sensor_name, lo, hi = random.choice(SENSORS)
+            sensor_idx = (i + session_offset) % sensor_count
+            sensor_name, lo, hi = SENSORS[sensor_idx]
             base_value = round(random.uniform(lo, hi), 2)
 
             sensor_out, value_out, chaos_type, duplicate_ts = self.chaos.maybe_corrupt(
@@ -968,6 +1163,16 @@ class CadillacGPUStressTest:
             if chaos_type:
                 result.chaos_injected += 1
 
+            emit_index = sensor_emit_counts[sensor_name]
+            if chaos_type == "sensor_dropout":
+                emit_index += self.SENSOR_DROPOUT_SKIP_SLOTS
+            packet_timestamp_ms = (
+                session_start_ms
+                + sensor_phase_ms[sensor_name]
+                + emit_index * self.sensor_cadence_baselines[sensor_name]
+            )
+            sensor_emit_counts[sensor_name] = emit_index + 1
+
             ctx = RequestContext.new(
                 session_id=result.session_name,
                 source="gpu_stress_test",
@@ -975,12 +1180,24 @@ class CadillacGPUStressTest:
             pkt = TelemetryPacket(
                 sensor=sensor_out,
                 value=value_out,
+                timestamp=self._timestamp_from_ms(packet_timestamp_ms),
                 metadata={"session_id": result.session_name},
                 request_id=ctx.request_id,
             )
             if chaos_type == "duplicate_timestamp" and duplicate_ts:
                 pkt.timestamp = duplicate_ts
                 pkt.metadata["duplicate_timestamp"] = True
+
+            if self._diagnostic_tracker is not None and chaos_type:
+                self._diagnostic_tracker.record_injection(
+                    packet_id=pkt.packet_id,
+                    sensor_id=sensor_name,
+                    chaos_mode=chaos_type,
+                    original_value=base_value,
+                    injected_value=value_out,
+                    session=result.session_name,
+                    observed_sensor_id=sensor_out,
+                )
 
             if not (chaos_type == "duplicate_timestamp" and duplicate_ts):
                 session_timestamps.append(pkt.timestamp)
@@ -1011,6 +1228,8 @@ class CadillacGPUStressTest:
                 )
                 self._detection_events.append(event)
                 self._detection_event_lookup[pkt.packet_id] = event
+                if not accepted:
+                    self._record_detected_fault(pkt.packet_id)
 
             result.packets_sent += 1
             if accepted:
@@ -1229,14 +1448,11 @@ class CadillacGPUStressTest:
             sl = sorted(self._latencies)
             self.report.overall_latency_p95 = round(sl[int(len(sl) * 0.95)], 3)
 
-        # Resilience Score (identical formula to CPU test)
+        # Resilience Score (uses event-level detection accounting)
         clean_packets = max(1, total - self.report.total_chaos)
         clean_throughput = min(1.0, self.report.total_accepted / clean_packets)
 
-        if self.report.total_chaos > 0:
-            detection_rate = min(1.0, self.report.total_rejected / self.report.total_chaos)
-        else:
-            detection_rate = 1.0
+        event_detection_rate = SLOTracker().calculate_detection_rate(self._detection_events)
 
         recovery_score = 1.0 if self._breaker_trip_count == 0 else max(
             0, 1.0 - (self._breaker_trip_count / (len(self.report.sessions) * 2))
@@ -1246,7 +1462,7 @@ class CadillacGPUStressTest:
 
         self.report.resilience_score = round(
             0.35 * clean_throughput
-            + 0.25 * detection_rate
+            + 0.25 * event_detection_rate
             + 0.20 * recovery_score
             + 0.20 * latency_score, 4
         )
@@ -1254,6 +1470,10 @@ class CadillacGPUStressTest:
         # Final verdict is set from SLO pass count in _evaluate_slos().
         # Keep report in a pending state until SLO evaluation runs.
         self.report.verdict = "PENDING"
+
+        # Diagnostic: Missed detection analysis
+        if self._diagnostic_tracker is not None:
+            self.missed_detection_analysis = self._diagnostic_tracker.build_analysis()
 
         # GPU metrics
         n_emb_batches = len(self._embedding_batch_times) or 1
@@ -1291,6 +1511,8 @@ class CadillacGPUStressTest:
                          f"{total_lookups:,} lookups ({hit_rate:.1f}% hit rate)[/dim]")
 
         self.timing_summary = self._build_timing_summary()
+        if self._diagnostic_tracker is not None:
+            self.missed_detection_analysis = self._diagnostic_tracker.build_analysis()
 
     # -----------------------------------------------------------------
     def _build_timing_summary(self) -> ResilienceTimingSummary:
@@ -1660,6 +1882,71 @@ class CadillacGPUStressTest:
                 json.dump(asdict(self.timing_summary), f, indent=2, default=str)
             console.print(f"[dim]GPU timing JSON exported → {timing_json_path}[/dim]")
 
+        # --- Diagnostic: Missed Detection Analysis (if enabled) ---
+        if self.diagnostic and self.missed_detection_analysis:
+            analysis = self.missed_detection_analysis
+
+            # Export JSON
+            missed_json_path = self.output_dir / f"missed_detection_analysis{self.output_suffix}.json"
+            with open(missed_json_path, "w") as f:
+                json.dump(analysis, f, indent=2, default=str)
+            console.print(f"[dim]Missed detection analysis JSON → {missed_json_path}[/dim]")
+
+            # Export CSV with breakdown tables
+            missed_csv_path = self.output_dir / f"missed_detection_analysis{self.output_suffix}.csv"
+            with open(missed_csv_path, "w", newline="") as f:
+                writer = csv.writer(f)
+
+                # Section 1: By Sensor
+                writer.writerow(["=== MISSED DETECTIONS BY SENSOR ==="])
+                writer.writerow(["sensor_id", "miss_count", "total_injected", "miss_rate"])
+                for row in analysis.get("missed_by_sensor", []):
+                    writer.writerow([
+                        row.get("sensor_id", ""),
+                        row.get("miss_count", 0),
+                        row.get("total_injected", 0),
+                        f"{row.get('miss_rate', 0):.4f}",
+                    ])
+                writer.writerow([])
+
+                # Section 2: By Chaos Mode
+                writer.writerow(["=== MISSED DETECTIONS BY CHAOS MODE ==="])
+                writer.writerow(["chaos_mode", "miss_count", "total_injected", "miss_rate"])
+                for row in analysis.get("missed_by_chaos_mode", []):
+                    writer.writerow([
+                        row.get("chaos_mode", ""),
+                        row.get("miss_count", 0),
+                        row.get("total_injected", 0),
+                        f"{row.get('miss_rate', 0):.4f}",
+                    ])
+                writer.writerow([])
+
+                # Section 3: By Session
+                writer.writerow(["=== MISSED DETECTIONS BY SESSION ==="])
+                writer.writerow(["session", "miss_count", "total_injected", "miss_rate"])
+                for row in analysis.get("missed_by_session", []):
+                    writer.writerow([
+                        row.get("session", ""),
+                        row.get("miss_count", 0),
+                        row.get("total_injected", 0),
+                        f"{row.get('miss_rate', 0):.4f}",
+                    ])
+                writer.writerow([])
+
+                # Section 4: By Sensor + Chaos Mode
+                writer.writerow(["=== MISSED DETECTIONS BY SENSOR + CHAOS MODE ==="])
+                writer.writerow(["sensor_id", "chaos_mode", "miss_count", "total_injected", "miss_rate"])
+                for row in analysis.get("missed_by_sensor_and_chaos", []):
+                    writer.writerow([
+                        row.get("sensor_id", ""),
+                        row.get("chaos_mode", ""),
+                        row.get("miss_count", 0),
+                        row.get("total_injected", 0),
+                        f"{row.get('miss_rate', 0):.4f}",
+                    ])
+
+            console.print(f"[dim]Missed detection analysis CSV → {missed_csv_path}[/dim]")
+
 
 # ---------------------------------------------------------------------------
 # Entry point
@@ -1694,6 +1981,10 @@ def main():
     parser.add_argument(
         "--output-suffix", type=str, default="",
         help="Optional suffix for output filenames (e.g. _sprint, _weekend)",
+    )
+    parser.add_argument(
+        "--diagnostic", action="store_true",
+        help="Enable fault injection diagnostic tracking (off by default)",
     )
     parser.add_argument(
         "--preserve-sqlite", action="store_true",
@@ -1747,6 +2038,7 @@ def main():
         chaos_profile=args.chaos_profile,
         breaker_threshold=threshold,
         output_suffix=args.output_suffix,
+        diagnostic=args.diagnostic,
         enable_kafka=args.enable_kafka,
         kafka_bootstrap_servers=(
             [s.strip() for s in args.kafka_servers.split(",")]

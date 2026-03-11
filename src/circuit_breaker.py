@@ -261,6 +261,100 @@ class StrictTypeValidator:
         return True, None
 
 
+class SensorCadenceMonitor:
+    """Detect anomalous per-sensor timing gaps before GPU processing."""
+
+    def __init__(
+        self,
+        baseline_intervals: Optional[Dict[str, float]] = None,
+        cadence_tolerance: float = 3.0,
+        history_size: int = 16,
+    ):
+        self.cadence_tolerance = cadence_tolerance
+        self.history_size = history_size
+        self._baseline_intervals: Dict[str, float] = {}
+        self._last_seen_ms: Dict[str, float] = {}
+        self._rolling_intervals: Dict[str, deque[float]] = {}
+        self._lock = threading.Lock()
+        self.configure(baseline_intervals or {}, cadence_tolerance=cadence_tolerance)
+
+    @staticmethod
+    def _normalise_sensor(sensor_id: str) -> str:
+        return (
+            sensor_id.lower()
+            .replace(" ", "_")
+            .replace("(", "")
+            .replace(")", "")
+        )
+
+    @staticmethod
+    def _timestamp_to_ms(timestamp: str) -> Optional[float]:
+        if not timestamp:
+            return None
+        try:
+            return datetime.fromisoformat(timestamp).timestamp() * 1000.0
+        except ValueError:
+            return None
+
+    def configure(
+        self,
+        baseline_intervals: Dict[str, float],
+        cadence_tolerance: Optional[float] = None,
+    ) -> None:
+        with self._lock:
+            if cadence_tolerance is not None:
+                self.cadence_tolerance = cadence_tolerance
+            self._baseline_intervals = {
+                self._normalise_sensor(sensor_id): float(interval_ms)
+                for sensor_id, interval_ms in baseline_intervals.items()
+                if interval_ms and interval_ms > 0.0
+            }
+            self._last_seen_ms.clear()
+            self._rolling_intervals.clear()
+
+    def record(self, sensor_id: str, timestamp_ms: float) -> None:
+        sensor_key = self._normalise_sensor(sensor_id)
+        with self._lock:
+            previous_ms = self._last_seen_ms.get(sensor_key)
+            if previous_ms is not None:
+                history = self._rolling_intervals.get(sensor_key)
+                if history is None:
+                    history = deque(maxlen=self.history_size)
+                    self._rolling_intervals[sensor_key] = history
+                history.append(timestamp_ms - previous_ms)
+            self._last_seen_ms[sensor_key] = timestamp_ms
+
+    def check(self, sensor_id: str, timestamp_ms: float) -> Tuple[bool, Optional[str]]:
+        sensor_key = self._normalise_sensor(sensor_id)
+        with self._lock:
+            baseline_ms = self._baseline_intervals.get(sensor_key)
+            previous_ms = self._last_seen_ms.get(sensor_key)
+            if baseline_ms is None or previous_ms is None:
+                return True, None
+
+            observed_interval = timestamp_ms - previous_ms
+            if observed_interval > baseline_ms * self.cadence_tolerance:
+                return False, f"cadence_violation:{sensor_key}"
+            return True, None
+
+    def validate(
+        self, packet: TelemetryPacket, record: bool = True
+    ) -> Tuple[bool, Optional[str]]:
+        timestamp_ms = self._timestamp_to_ms(packet.timestamp)
+        if timestamp_ms is None:
+            return True, None
+
+        is_valid, reason = self.check(packet.sensor, timestamp_ms)
+        if record:
+            self.record(packet.sensor, timestamp_ms)
+        return is_valid, reason
+
+    def reset(self) -> None:
+        with self._lock:
+            self._last_seen_ms.clear()
+            self._rolling_intervals.clear()
+
+
 # ---------------------------------------------------------------------------
 # Dead Letter Queue — SQLite-backed for crash resilience
 # ---------------------------------------------------------------------------
@@ -648,9 +742,11 @@ class TelemetryCircuitBreaker:
         self.strict_type_validator = strict_type_validator or StrictTypeValidator(
             field_types=strict_defaults
         )
+        self.cadence_monitor = SensorCadenceMonitor(baseline_intervals={})
         self._pre_breaker_validators = [
             self.temporal_validator,
             self.strict_type_validator,
+            self.cadence_monitor,
         ]
         self.dlq = DeadLetterQueue(
             db_path=dlq_path,
@@ -710,7 +806,7 @@ class TelemetryCircuitBreaker:
         breaker-state transition failures.
         """
         for validator in self._pre_breaker_validators:
-            if isinstance(validator, TemporalSequenceValidator):
+            if isinstance(validator, (TemporalSequenceValidator, SensorCadenceMonitor)):
                 is_valid, reason = validator.validate(packet, record=record_temporal)
             else:
                 is_valid, reason = validator.validate(packet)
@@ -741,7 +837,12 @@ class TelemetryCircuitBreaker:
             if is_valid:
                 return self._on_success(packet)
             else:
-                if reason == "duplicate_timestamp" or reason.startswith("type_violation:"):
+                pre_breaker_failure = (
+                    reason == "duplicate_timestamp"
+                    or reason.startswith("type_violation:")
+                    or reason.startswith("cadence_violation:")
+                )
+                if pre_breaker_failure:
                     return self._reject(packet, reason)
                 return self._on_failure(packet, reason)
 
@@ -783,7 +884,12 @@ class TelemetryCircuitBreaker:
                         self._consecutive_failures = 0
                     accepted += 1
                 else:
-                    if reason == "duplicate_timestamp" or reason.startswith("type_violation:"):
+                    pre_breaker_failure = (
+                        reason == "duplicate_timestamp"
+                        or reason.startswith("type_violation:")
+                        or reason.startswith("cadence_violation:")
+                    )
+                    if pre_breaker_failure:
                         self._total_rejected += 1
                         if isinstance(pkt.metadata, dict):
                             pkt.metadata.setdefault("chaos_mode", reason)
@@ -815,6 +921,17 @@ class TelemetryCircuitBreaker:
         # Flush any buffered DLQ writes after the batch
         self.dlq.flush()
         return {"accepted": accepted, "rejected": rejected}
+
+    def configure_cadence_monitor(
+        self,
+        baseline_intervals: Dict[str, float],
+        cadence_tolerance: float = 3.0,
+    ) -> None:
+        """Configure per-sensor cadence baselines without changing process APIs."""
+        self.cadence_monitor.configure(
+            baseline_intervals=baseline_intervals,
+            cadence_tolerance=cadence_tolerance,
+        )
 
     def reset(self) -> None:
         """Force-close the breaker (manual override from pit wall)."""
@@ -863,7 +980,7 @@ class TelemetryCircuitBreaker:
                 metadata=json.loads(rec["metadata"]) if isinstance(rec["metadata"], str) else (rec["metadata"] or {}),
             )
 
-            is_valid, reason = self.validate_packet(packet)
+            is_valid, reason = self.validate_packet(packet, record_temporal=False)
 
             if is_valid:
                 self.dlq.mark_reprocessed(rec["packet_id"])
