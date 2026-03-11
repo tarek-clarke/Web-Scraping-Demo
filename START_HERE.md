@@ -44,6 +44,7 @@ resilient-rap-framework/
 | **Quick start (30 sec)** | [GETTING_STARTED.md](GETTING_STARTED.md) |
 | **Production deployment** | [PRODUCTION.md](PRODUCTION.md) |
 | **System architecture** | [docs/LEARN.md](docs/LEARN.md) |
+| **Diagnostic mode & missed-detection analysis** | [README.md](README.md#diagnostic-mode-missed-detection-attribution) |
 | **Run a pipeline** | `python3 main.py --help` |
 | **Running examples** | See [examples/](examples/) folder |
 | **Testing** | `python3 -m pytest tests/ -v` |
