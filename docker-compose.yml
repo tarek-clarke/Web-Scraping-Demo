@@ -1,30 +1,36 @@
 services:
 
   # ────────────────────────────────────────────────────────────────────────
-  # Kafka (KRaft mode — no Zookeeper)
-  # DLQ topics auto-created on first connect; override KAFKA_CFG_* to tune.
+  # Kafka-compatible broker (Redpanda, no Zookeeper)
+  # DLQ topics auto-created on first connect.
   # ────────────────────────────────────────────────────────────────────────
   kafka:
-    image: bitnami/kafka:3.9
+    image: docker.redpanda.com/redpandadata/redpanda:v24.1.9
     container_name: cadillac_kafka
     restart: unless-stopped
-    environment:
-      - KAFKA_CFG_NODE_ID=1
-      - KAFKA_CFG_PROCESS_ROLES=broker,controller
-      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
-      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
-      - KAFKA_CFG_NUM_PARTITIONS=3
-      - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=1
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - 1G
+      - --reserve-memory
+      - 0M
+      - --node-id
+      - "0"
+      - --check=false
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr
+      - PLAINTEXT://kafka:9092
     ports:
       - "9092:9092"
     volumes:
-      - cadillac_kafka_data:/bitnami/kafka
+      - cadillac_kafka_data:/var/lib/redpanda/data
     healthcheck:
-      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list"]
+      test: ["CMD", "rpk", "cluster", "info", "--brokers", "localhost:9092"]
       interval: 10s
       timeout: 5s
       retries: 5

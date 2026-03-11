@@ -195,6 +195,12 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 
 # Race weekend benchmark (3.6M total packets)
 source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend | tee data/reports/run_weekend.log
+
+# Sprint benchmark + Kafka DLQ routing validation
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-005 --kafka-topic-repaired dlq-repaired-sprint-005 --kafka-topic-non-repairable dlq-non-repairable-sprint-005 --output-suffix _sprint_kafka | tee data/reports/run_sprint_kafka.log
+
+# Weekend benchmark + Kafka DLQ routing validation
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-005 --kafka-topic-repaired dlq-repaired-weekend-005 --kafka-topic-non-repairable dlq-non-repairable-weekend-005 --output-suffix _weekend_kafka | tee data/reports/run_weekend_kafka.log
 ```
 
 ---
@@ -202,7 +208,7 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 ## GPU Benchmark Results (Validated on Ubuntu 24.04)
 
 **Hardware:** AMD Radeon RX 7900 XT (20GB VRAM) | ROCm 6.2 | gfx1100 architecture
-**Benchmark run date:** 2026-03-02
+**Benchmark run date:** 2026-03-11
 
 ### Sprint Results (30K Packets @ 5% Chaos)
 
@@ -211,24 +217,25 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 | **GPU Device** | Radeon RX 7900 XT | ✅ Detected |
 | **GPU Memory** | 19.98 GB | ✅ Available |
 | **Total Packets** | 30,000 | ✅ Processed |
-| **Acceptance Rate** | 86.61% | ✅ Improved clean-data throughput |
-| **Chaos Injected** | 1,550 packets | ✅ Expected fault load |
-| **Schema-Drift Recovered** | 204 packets | ✅ BERT reconciliation |
-| **Tensor Anomalies Detected** | 1,385 detections | ✅ Real-time GPU analysis |
-| **Overall p95 Latency** | 0.228 ms | ✅ Sub-millisecond |
+| **Acceptance Rate** | 95.61% | ✅ Strong clean-data throughput |
+| **Chaos Injected** | 1,543 packets | ✅ Expected fault load |
+| **Schema-Drift Recovered** | 214 packets | ✅ BERT reconciliation |
+| **Tensor Anomalies Detected** | 1,235 detections | ✅ Real-time GPU analysis |
+| **Overall p95 Latency** | 0.004 ms | ✅ Sub-millisecond |
 | **Circuit Breaker Trips** | 0 total | ✅ Stable at sprint load |
-| **DLQ Depth (final)** | 4,017 | ✅ Reduced quarantine backlog |
-| **SLOs Passed** | 6/6 | ✅ All SLOs met |
-| **Verdict** | RACE-READY ✅ | Based on SLO result (6/6 passed) |
+| **DLQ Depth (final)** | 1,243 | ✅ Reduced quarantine backlog |
+| **DLQ Repairs Recovered** | 74 | ✅ Kafka + DLQ recovery path active |
+| **Repair Rate** | 37.00% | ✅ Measured with capped repair attempts |
+| **SLOs Passed** | 5/6 | ⚠️ Detection-rate gate missed |
+| **Verdict** | MINOR SLO BREACH ⚠️ | Deterministic timing maintained |
 
-**Ubuntu 24.04 vs Ubuntu 22.04 (Sprint):**
+**Kafka DLQ topic totals (Sprint @ 5% Chaos):**
 
-| Metric | Ubuntu 22.04 | Ubuntu 24.04 (current) | Delta |
-|--------|--------------|-------------------------|-------|
-| **Acceptance Rate** | 71.04% | 86.61% | **+15.57 pp** |
-| **Overall p95 Latency** | 0.250 ms | 0.228 ms | **-0.022 ms** |
-| **Circuit Breaker Trips** | 1 | 0 | **-1** |
-| **DLQ Depth (final)** | 8,880 | 4,017 | **-4,863** |
+| Topic | Messages |
+|-------|---------:|
+| `dlq-repairable-sprint-005` | 1,443 |
+| `dlq-repaired-sprint-005` | 74 |
+| `dlq-non-repairable-sprint-005` | 0 |
 
 ### Race Weekend Results (3.6M Packets @ 5% Chaos)
 
@@ -237,26 +244,27 @@ Full weekend simulation (240K packets/session × 15 sessions, 5% chaos injection
 | Metric | Result | Status |
 |--------|--------|--------|
 | **Total Packets** | 3,600,000 | ✅ Processed |
-| **Acceptance Rate** | 70.77% | ⚠️ Needs tuning |
-| **Chaos Injected** | 180,720 packets | ✅ Expected fault load |
-| **Schema-Drift Recovered** | 25,805 packets | ✅ BERT reconciliation |
-| **Tensor Anomalies Detected** | 167,559 detections | ✅ Real-time GPU analysis |
-| **Overall p95 Latency** | 0.252 ms | ✅ Sub-millisecond |
-| **Circuit Breaker Trips** | 119 total | ⚠️ Elevated at race load |
-| **DLQ Depth (final)** | 1,056,207 | ⚠️ High quarantine backlog |
-| **SLOs Passed** | 6/6 | ✅ All SLOs met |
-| **Verdict** | RACE-READY ✅ | Based on SLO result (6/6 passed) |
+| **Acceptance Rate** | 95.74% | ✅ Stable clean-data throughput |
+| **Chaos Injected** | 180,227 packets | ✅ Expected fault load |
+| **Schema-Drift Recovered** | 25,796 packets | ✅ BERT reconciliation |
+| **Tensor Anomalies Detected** | 145,468 detections | ✅ Real-time GPU analysis |
+| **Overall p95 Latency** | 0.003 ms | ✅ Sub-millisecond |
+| **Circuit Breaker Trips** | 0 total | ✅ Stable at race load |
+| **DLQ Depth (final)** | 153,207 | ⚠️ Quarantine volume remains significant |
+| **DLQ Repairs Recovered** | 77 | ✅ Kafka + DLQ recovery path active |
+| **Repair Rate** | 38.50% | ✅ Measured with capped repair attempts |
+| **SLOs Passed** | 5/6 | ⚠️ Detection-rate gate missed |
+| **Verdict** | MINOR SLO BREACH ⚠️ | Deterministic timing maintained |
 
-**Ubuntu 24.04 vs Ubuntu 22.04 (Weekend):**
+**Kafka DLQ topic totals (Weekend @ 5% Chaos):**
 
-| Metric | Ubuntu 22.04 | Ubuntu 24.04 (current) | Delta |
-|--------|--------------|-------------------------|-------|
-| **Acceptance Rate** | 68.50% | 70.77% | **+2.27 pp** |
-| **Overall p95 Latency** | 0.267 ms | 0.252 ms | **-0.015 ms** |
-| **Circuit Breaker Trips** | 141 | 119 | **-22** |
-| **DLQ Depth (final)** | 1,139,649 | 1,056,207 | **-83,442** |
+| Topic | Messages |
+|-------|---------:|
+| `dlq-repairable-weekend-005` | 153,407 |
+| `dlq-repaired-weekend-005` | 77 |
+| `dlq-non-repairable-weekend-005` | 0 |
 
-The DLQ depth remains higher than anomaly detections at weekend scale because breaker-open intervals still route packets to quarantine under sustained fault load.
+Kafka publish counts align with DLQ/quarantine plus reprocessing traffic (`repairable` includes initial quarantine events and re-published retryable records).
 
 ## Repair-Focused Chaos Validation
 
@@ -269,16 +277,16 @@ Run commands (Ubuntu 24.04 + ROCm, repair-focused profile):
 
 ```bash
 # Sprint @ chaos 0.005
-source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.005 --chaos-profile repair_focus --output-suffix _sprint_repairfocusrealistic | tee data/reports/run_sprint_repairfocusrealistic.log
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.005 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-rf005 --kafka-topic-repaired dlq-repaired-sprint-rf005 --kafka-topic-non-repairable dlq-non-repairable-sprint-rf005 --output-suffix _sprint_repairfocusrealistic_kafka | tee data/reports/run_sprint_repairfocusrealistic_kafka.log
 
 # Weekend @ chaos 0.005
-source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.005 --chaos-profile repair_focus --output-suffix _weekend_repairfocusrealistic | tee data/reports/run_weekend_repairfocusrealistic.log
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.005 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-rf005 --kafka-topic-repaired dlq-repaired-weekend-rf005 --kafka-topic-non-repairable dlq-non-repairable-weekend-rf005 --output-suffix _weekend_repairfocusrealistic_kafka | tee data/reports/run_weekend_repairfocusrealistic_kafka.log
 
 # Sprint @ chaos 0.001
-source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.001 --chaos-profile repair_focus --output-suffix _sprint_repairfocusultralow | tee data/reports/run_sprint_repairfocusultralow.log
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.001 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-rf001 --kafka-topic-repaired dlq-repaired-sprint-rf001 --kafka-topic-non-repairable dlq-non-repairable-sprint-rf001 --output-suffix _sprint_repairfocusultralow_kafka | tee data/reports/run_sprint_repairfocusultralow_kafka.log
 
 # Weekend @ chaos 0.001
-source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.001 --chaos-profile repair_focus --output-suffix _weekend_repairfocusultralow | tee data/reports/run_weekend_repairfocusultralow.log
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.001 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-rf001 --kafka-topic-repaired dlq-repaired-weekend-rf001 --kafka-topic-non-repairable dlq-non-repairable-weekend-rf001 --output-suffix _weekend_repairfocusultralow_kafka | tee data/reports/run_weekend_repairfocusultralow_kafka.log
 ```
 
 Expected behavior:
@@ -289,18 +297,18 @@ Expected behavior:
 
 Representative Ubuntu 24.04 results (side-by-side):
 
-| Run | Chaos | Anomalies Injected | Anomalies Detected | DLQ Quarantined | DLQ Repairs Attempted | DLQ Repairs Recovered | Repair Rate % | p95 Latency | Breaker Trips |
-|-----|------:|--------------------:|-------------------:|----------------:|----------------------:|----------------------:|--------------:|------------:|--------------:|
-| Sprint (30K packets) | 0.005 | 145 | 91 | 15 | 91 | 76 | 83.52% | 0.00 ms | 0 |
-| Weekend (3.6M packets) | 0.005 | 17,745 | 11,658 | 11,513 | 200 | 145 | 72.50% | 0.00 ms | 0 |
-| Sprint (30K packets) | 0.001 | 31 | 18 | 3 | 18 | 15 | 83.33% | 0.00 ms | 0 |
-| Weekend (3.6M packets) | 0.001 | 3,550 | 2,330 | 2,183 | 200 | 147 | 73.50% | 0.00 ms | 0 |
+| Run | Chaos | Anomalies Injected | Anomalies Detected | DLQ Quarantined | DLQ Repairs Attempted | DLQ Repairs Recovered | Repair Rate % | p95 Latency | Breaker Trips | Kafka Repairable | Kafka Repaired | Kafka Non-Repairable |
+|-----|------:|--------------------:|-------------------:|----------------:|----------------------:|----------------------:|--------------:|------------:|--------------:|-----------------:|---------------:|---------------------:|
+| Sprint (30K packets) | 0.005 | 161 | 101 | 18 | 101 | 83 | 82.18% | 0.002 ms | 0 | 119 | 83 | 0 |
+| Weekend (3.6M packets) | 0.005 | 17,931 | 11,990 | 11,846 | 200 | 144 | 72.00% | 0.002 ms | 0 | 12,250 | 144 | 0 |
+| Sprint (30K packets) | 0.001 | 23 | 20 | 4 | 20 | 16 | 80.00% | 0.002 ms | 0 | 24 | 16 | 0 |
+| Weekend (3.6M packets) | 0.001 | 3,607 | 2,368 | 2,212 | 200 | 156 | 78.00% | 0.002 ms | 0 | 2,412 | 156 | 0 |
 
 Quick trend readout:
-- Lowering chaos from `0.005` → `0.001` reduces injected anomalies by ~5× at both scales.
-- DLQ quarantine pressure drops sharply (`11,513` → `2,183`) on weekend runs.
-- Repair rate remains stable/high across both levels (`72.50%` to `73.50%` weekend; `83%+` sprint).
-- Breaker stability and latency stay deterministic (`0` trips, `0.00 ms` p95 in all four runs).
+- Lowering chaos from `0.005` → `0.001` reduces injected anomalies by ~5× at weekend scale (`17,931` → `3,607`).
+- DLQ quarantine pressure drops sharply (`11,846` → `2,212`) on weekend runs.
+- Weekend repair rate improves (`72.00%` → `78.00%`) as chaos intensity drops.
+- Breaker stability and latency stay deterministic (`0` trips, `0.002 ms` p95 in all four runs).
 
 Example successful output excerpt:
 
@@ -308,14 +316,14 @@ Example successful output excerpt:
 Chaos profile: repair_focus | modes=schema_drift, duplicate_timestamp, string_in_numeric
 ...
 Breaker Trips:            0
-DLQ Quarantined:          2183
-DLQ Reprocessed:          147 recovered
+DLQ Quarantined:          2212
+DLQ Reprocessed:          156 recovered
 Audit Chain Intact:       True
-p95 Latency:              0.00 ms
+p95 Latency:              0.002 ms
 ...
-Anomalies Injected:       3550
-Anomalies Caught:         2330
-Repair Rate:              73.50%
+Anomalies Injected:       3607
+Anomalies Caught:         2368
+Repair Rate:              78.00%
 TIMING VERDICT: SUB-MILLISECOND DETECTION ✅
 ```
 
@@ -331,8 +339,9 @@ This benchmark validates the full ingestion → detection → quarantine → rep
 - **Provenance Verification:** Batch hash-chain integrity checks via GPU-emulated SHA-256 integer operations
 
 **Output Artifacts:**
-- Sprint/weekend CSV & JSON reports in `data/reports/` with `_sprint` / `_weekend` suffixes
-- Full execution logs: `run_sprint.log`, `run_weekend.log`
+- Sprint/weekend CSV & JSON reports in `data/reports/` with `_kafka` suffixes
+- Kafka topic count snapshots: `kafka_topic_counts_*.json`
+- Full execution logs: `run_*_kafka.log`
 
 ---
 
