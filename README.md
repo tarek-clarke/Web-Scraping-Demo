@@ -26,10 +26,10 @@ A production-ready telemetry spine that processes race-weekend scale loads with 
 
 - [Quick Start (Ubuntu 24.04 + AMD ROCm)](#quick-start-ubuntu-2404--amd-rocm)
 - [Run Profiles](#run-profiles)
-  - [1) Baseline GPU Benchmarks](#1-baseline-gpu-benchmarks)
-  - [2) Kafka DLQ Routing Validation](#2-kafka-dlq-routing-validation)
-  - [3) Diagnostic Mode (Missed-Detection Attribution)](#3-diagnostic-mode-missed-detection-attribution)
-  - [4) Repair-Focused Validation](#4-repair-focused-validation)
+  - [Baseline GPU Benchmarks](#baseline-gpu-benchmarks)
+  - [Kafka DLQ Routing Validation](#kafka-dlq-routing-validation)
+  - [Diagnostic Mode (Missed-Detection Attribution)](#diagnostic-mode-missed-detection-attribution)
+  - [Repair-Focused Validation](#repair-focused-validation)
 - [Validated Results](#validated-results)
 - [System Architecture](#system-architecture)
 - [Operational Capabilities](#operational-capabilities)
@@ -84,7 +84,7 @@ find . -name "*.db-shm" -type f -delete
 
 ## Run Profiles
 
-### 1) Baseline GPU Benchmarks
+### Baseline GPU Benchmarks
 
 ```bash
 # Sprint benchmark (30,000 total packets)
@@ -94,7 +94,7 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend | tee data/reports/run_weekend.log
 ```
 
-### 2) Kafka DLQ Routing Validation
+### Kafka DLQ Routing Validation
 
 ```bash
 # Sprint + Kafka
@@ -104,7 +104,7 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-005 --kafka-topic-repaired dlq-repaired-weekend-005 --kafka-topic-non-repairable dlq-non-repairable-weekend-005 --output-suffix _weekend_kafka | tee data/reports/run_weekend_kafka.log
 ```
 
-### 3) Diagnostic Mode (Missed-Detection Attribution)
+### Diagnostic Mode (Missed-Detection Attribution)
 
 ```bash
 # Diagnostic run (balanced profile)
@@ -137,7 +137,7 @@ From `missed_detection_analysis_diagnostic_weekend.csv`:
 
 Interpretation: the remaining gap is concentrated in low-bit-flip behavior on a narrow sensor subset, not uniformly distributed across sessions.
 
-### 4) Repair-Focused Validation
+### Repair-Focused Validation
 
 This profile stresses repairability/runtime with:
 - `schema_drift`
