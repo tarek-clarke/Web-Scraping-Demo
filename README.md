@@ -368,6 +368,15 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 **Hardware:** AMD Radeon RX 7900 XT (20GB VRAM) | ROCm 6.2 | gfx1100 architecture
 **Benchmark run date:** 2026-03-11
 
+### Cross-GPU Comparison (H200 above 7900 XT)
+
+| Platform | Profile | Total Packets | Acceptance Rate | p95 Latency | Resilience Score | Verdict |
+|---|---|---:|---:|---:|---:|---|
+| NVIDIA H200 NVL (CUDA 13) | Sprint + Kafka (5% chaos) | 30,000 | 89.85% | 0.013 ms | 0.9993 | RACE-READY ✅ |
+| NVIDIA H200 NVL (CUDA 13) | Weekend + Kafka (5% chaos) | 3,600,000 | 89.81% | 0.014 ms | 0.9991 | RACE-READY ✅ |
+| Radeon RX 7900 XT (ROCm 6.2) | Sprint + Kafka (5% chaos) | 30,000 | 95.81% | 0.005 ms | 0.9617 | RACE-READY ✅ |
+| Radeon RX 7900 XT (ROCm 6.2) | Weekend + Kafka (5% chaos) | 3,600,000 | 95.76% | 0.004 ms | 0.9624 | RACE-READY ✅ |
+
 ### Sprint Results (30K Packets @ 5% Chaos)
 
 | Metric | Result | Status |
