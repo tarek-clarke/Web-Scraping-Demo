@@ -98,6 +98,8 @@ def _sanitize_suffix_token(raw: str) -> str:
 
 
 def _detect_cpu_suffix() -> str:
+    brand = ""
+
     if platform.system() == "Darwin":
         try:
             brand = subprocess.check_output(
@@ -106,10 +108,44 @@ def _detect_cpu_suffix() -> str:
             m = re.search(r"Apple\s+(M\d+)", brand, flags=re.IGNORECASE)
             if m:
                 return m.group(1).upper()
-            if brand:
-                return _sanitize_suffix_token(brand)
         except Exception:
             pass
+    elif platform.system() == "Windows":
+        try:
+            out = subprocess.check_output(
+                ["wmic", "cpu", "get", "name"],
+                text=True, stderr=subprocess.DEVNULL,
+            ).strip()
+            lines = [l.strip() for l in out.splitlines()
+                     if l.strip() and l.strip().lower() != "name"]
+            brand = lines[0] if lines else ""
+        except Exception:
+            pass
+    else:  # Linux / other
+        try:
+            with open("/proc/cpuinfo") as _f:
+                for _line in _f:
+                    if "model name" in _line.lower():
+                        brand = _line.split(":", 1)[1].strip()
+                        break
+        except Exception:
+            brand = platform.processor()
+
+    if brand:
+        # Intel Core: i3/i5/i7/i9-XXXXX[suffix]  e.g. i5-12600K → i512600K
+        m = re.search(r"(i[3579]-\d{4,5}[A-Z]*)", brand, re.IGNORECASE)
+        if m:
+            return _sanitize_suffix_token(m.group(1))
+        # AMD Ryzen: e.g. Ryzen 9 5900X → 5900X
+        m = re.search(r"Ryzen\s+\d+\s+(\d{4,5}[A-Z0-9]*)", brand, re.IGNORECASE)
+        if m:
+            return _sanitize_suffix_token(m.group(1))
+        # Generic: first 4-5 digit model number with optional letter suffix e.g. 12600K
+        m = re.search(r"\b(\d{4,5}[A-Z]+)\b", brand)
+        if m:
+            return m.group(1)
+        return _sanitize_suffix_token(brand)
+
     cpu = platform.processor() or platform.machine() or "CPU"
     return _sanitize_suffix_token(cpu.upper()) or "CPU"
 
@@ -136,10 +172,17 @@ def _detect_hardware_suffix(gpu_info: Optional[Dict[str, Any]] = None) -> str:
         return f"RTX{m.group(1)}" if m else "RTX"
     if "A100" in upper_name:
         return "A100"
+    if "H200" in upper_name:
+        return "H200"
     if "H100" in upper_name:
         return "H100"
 
     return _sanitize_suffix_token(name.upper()) or _detect_cpu_suffix()
+
+
+def _resolve_hardware_output_dir(base_dir: str | Path, hardware_suffix: str) -> Path:
+    hardware_dir = _sanitize_suffix_token(hardware_suffix) or "CPU"
+    return Path(base_dir) / hardware_dir
 
 
 # ---------------------------------------------------------------------------
@@ -907,16 +950,17 @@ class CadillacGPUStressTest:
         self.packets_per_session = packets_per_session
         self.chaos = ChaosInjector(chaos_rate, profile=chaos_profile)
         self._chaos_profile = self.chaos.profile
-        self.output_dir = Path(output_dir)
         self.diagnostic = diagnostic
-        self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # GPU setup
         self.device = get_gpu_device()
         self._gpu_info = gpu_info_dict(self.device)
         auto_suffix = _detect_hardware_suffix(self._gpu_info)
+        self.hardware_suffix = auto_suffix
         chosen = (output_suffix.strip() or auto_suffix).lstrip("_")
         self.output_suffix = f"_{chosen}" if chosen else ""
+        self.output_dir = _resolve_hardware_output_dir(output_dir, self.hardware_suffix)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # Threshold profiles:
         # - GPU active: tuned for throughput/speed

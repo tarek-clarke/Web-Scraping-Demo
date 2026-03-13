@@ -17,6 +17,7 @@ import random
 import polars as pl
 import numpy as np
 from datetime import datetime, timedelta
+from pathlib import Path
 import sys
 import os
 import platform
@@ -39,6 +40,8 @@ def _detect_runtime_suffix() -> str:
     if env_override:
         return _sanitize_suffix_token(env_override)
 
+    brand = ""
+
     if platform.system() == "Darwin":
         try:
             brand = subprocess.check_output(
@@ -47,13 +50,51 @@ def _detect_runtime_suffix() -> str:
             m = re.search(r"Apple\s+(M\d+)", brand, flags=re.IGNORECASE)
             if m:
                 return m.group(1).upper()
-            if brand:
-                return _sanitize_suffix_token(brand)
         except Exception:
             pass
+    elif platform.system() == "Windows":
+        try:
+            out = subprocess.check_output(
+                ["wmic", "cpu", "get", "name"],
+                text=True, stderr=subprocess.DEVNULL,
+            ).strip()
+            lines = [l.strip() for l in out.splitlines()
+                     if l.strip() and l.strip().lower() != "name"]
+            brand = lines[0] if lines else ""
+        except Exception:
+            pass
+    else:  # Linux / other
+        try:
+            with open("/proc/cpuinfo") as _f:
+                for _line in _f:
+                    if "model name" in _line.lower():
+                        brand = _line.split(":", 1)[1].strip()
+                        break
+        except Exception:
+            brand = platform.processor()
+
+    if brand:
+        # Intel Core: i3/i5/i7/i9-XXXXX[suffix]  e.g. i5-12600K → i512600K
+        m = re.search(r"(i[3579]-\d{4,5}[A-Z]*)", brand, re.IGNORECASE)
+        if m:
+            return _sanitize_suffix_token(m.group(1))
+        # AMD Ryzen: e.g. Ryzen 9 5900X → 5900X
+        m = re.search(r"Ryzen\s+\d+\s+(\d{4,5}[A-Z0-9]*)", brand, re.IGNORECASE)
+        if m:
+            return _sanitize_suffix_token(m.group(1))
+        # Generic: first 4-5 digit model number with optional letter suffix e.g. 12600K
+        m = re.search(r"\b(\d{4,5}[A-Z]+)\b", brand)
+        if m:
+            return m.group(1)
+        return _sanitize_suffix_token(brand)
 
     cpu = platform.processor() or platform.machine() or "CPU"
     return _sanitize_suffix_token(cpu.upper()) or "CPU"
+
+
+def _resolve_output_csv_path(base_output_dir: str | Path, runtime_suffix: str) -> Path:
+    hardware_dir = _sanitize_suffix_token(runtime_suffix) or "CPU"
+    return Path(base_output_dir) / hardware_dir / f"engine_temp_stress_test_results_{hardware_dir}.csv"
 
 
 class EngineTemperatureStressIngestor(SportsIngestor):
@@ -343,8 +384,10 @@ def run_stress_test(output_csv=None):
     
     # Save results if requested
     if output_csv:
-        df_healed.write_csv(output_csv)
-        print(f"\n✓ Results saved to {output_csv}")
+        output_csv_path = Path(output_csv)
+        output_csv_path.parent.mkdir(parents=True, exist_ok=True)
+        df_healed.write_csv(output_csv_path)
+        print(f"\n✓ Results saved to {output_csv_path}")
     
     # Print final summary
     print("\n" + "="*80)
@@ -365,7 +408,7 @@ if __name__ == "__main__":
     # Run stress test
     runtime_suffix = _detect_runtime_suffix()
     results = run_stress_test(
-        output_csv=f"data/engine_temp_stress_test_results_{runtime_suffix}.csv"
+        output_csv=str(_resolve_output_csv_path("data/reports", runtime_suffix))
     )
     
     # Exit with appropriate code

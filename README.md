@@ -111,11 +111,11 @@ source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadil
 source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 60000 --chaos 0.12 --chaos-profile balanced --diagnostic --output-suffix _diagnostic_weekend
 
 # Analyze diagnostic JSON in terminal
-source .venv/bin/activate && python3 tools/sensor_fault_diagnostic.py --input data/reports/missed_detection_analysis_diagnostic_weekend.json
+source .venv/bin/activate && python3 tools/sensor_fault_diagnostic.py --input data/reports/<hardware>/missed_detection_analysis_diagnostic_weekend.json
 ```
 
 Diagnostic artifacts:
-- `missed_detection_analysis_<suffix>.json`
+- `data/reports/<hardware>/missed_detection_analysis_<suffix>.json`
 - `missed_detection_analysis_<suffix>.csv`
 
 Supported chaos profiles: `balanced`, `repair_focus`.
@@ -509,7 +509,7 @@ This benchmark validates the full ingestion → detection → quarantine → rep
 - **Provenance Verification:** Batch hash-chain integrity checks via GPU-emulated SHA-256 integer operations
 
 **Output Artifacts:**
-- Sprint/weekend CSV & JSON reports in `data/reports/` with `_kafka` suffixes
+- Benchmark CSV & JSON reports in `data/reports/<hardware>/` and keep scenario suffixes such as `_kafka`, `_weekend`, or `_M4`
 - Kafka topic count snapshots: `kafka_topic_counts_*.json`
 - Full execution logs: `run_*_kafka.log`
 
