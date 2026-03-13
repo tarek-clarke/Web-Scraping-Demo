@@ -244,7 +244,7 @@ class TracksideEdgeBuffer:
         Writes are batched: ``commit()`` is deferred until
         ``_commit_interval`` packets have accumulated (default 50).
         Call :meth:`flush` to force an immediate commit.
-        
+
         If Kafka is enabled, also publishes to Kafka topic (fire-and-forget,
         non-blocking). SQLite write still succeeds even if Kafka fails.
         """
@@ -357,7 +357,7 @@ class TracksideEdgeBuffer:
 
     def write_batch(self, packets: List[BufferedPacket]) -> int:
         """Persist a batch; returns the count of newly inserted rows.
-        
+
         Also publishes to Kafka if enabled (non-blocking).
         """
         inserted = 0
@@ -626,7 +626,7 @@ class TracksideEdgeBuffer:
     def close(self) -> None:
         self.stop_background_drain()
         self.flush()  # Commit any pending writes before closing
-        
+
         # Flush Kafka producer
         if self._kafka_producer:
             try:
@@ -638,7 +638,7 @@ class TracksideEdgeBuffer:
                 )
             except Exception as exc:
                 logger.warning("Error closing Kafka producer: %s", exc)
-        
+
         self._conn.close()
 
     @property

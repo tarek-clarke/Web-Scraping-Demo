@@ -61,6 +61,7 @@ def _default_kafka_key_serializer(key: Any) -> bytes:
         return key
     return str(key).encode("utf-8")
 
+
 # ---------------------------------------------------------------------------
 # Optional Kafka dependency
 # ---------------------------------------------------------------------------
@@ -514,16 +515,16 @@ class DeadLetterQueue:
                 self._build_event(
                     event_type="dlq.repairable",
                     payload={
-                    "packet_id": record.packet.packet_id,
-                    "sensor": record.packet.sensor,
-                    "value": record.packet.value,
-                    "metadata": record.packet.metadata,
-                    "reason": record.reason,
-                    "circuit_state": record.circuit_state,
-                    "retry_count": record.retry_count,
-                    "quarantined_at": record.quarantined_at,
-                    "outcome": "repairable",
-                    "published_at": datetime.utcnow().isoformat(),
+                        "packet_id": record.packet.packet_id,
+                        "sensor": record.packet.sensor,
+                        "value": record.packet.value,
+                        "metadata": record.packet.metadata,
+                        "reason": record.reason,
+                        "circuit_state": record.circuit_state,
+                        "retry_count": record.retry_count,
+                        "quarantined_at": record.quarantined_at,
+                        "outcome": "repairable",
+                        "published_at": datetime.utcnow().isoformat(),
                     },
                     source="dead_letter_queue",
                 ),
@@ -563,16 +564,16 @@ class DeadLetterQueue:
                     self._build_event(
                         event_type="dlq.repairable",
                         payload={
-                        "packet_id": record.packet.packet_id,
-                        "sensor": record.packet.sensor,
-                        "value": record.packet.value,
-                        "metadata": record.packet.metadata,
-                        "reason": record.reason,
-                        "circuit_state": record.circuit_state,
-                        "retry_count": record.retry_count,
-                        "quarantined_at": record.quarantined_at,
-                        "outcome": "repairable",
-                        "published_at": now,
+                            "packet_id": record.packet.packet_id,
+                            "sensor": record.packet.sensor,
+                            "value": record.packet.value,
+                            "metadata": record.packet.metadata,
+                            "reason": record.reason,
+                            "circuit_state": record.circuit_state,
+                            "retry_count": record.retry_count,
+                            "quarantined_at": record.quarantined_at,
+                            "outcome": "repairable",
+                            "published_at": now,
                         },
                         source="dead_letter_queue",
                     ),
@@ -689,7 +690,14 @@ class DeadLetterQueue:
     def _is_schema_drift_reason(self, packet: TelemetryPacket, reason: str) -> bool:
         if packet.sensor.lower().endswith("_new"):
             return True
-        return reason.startswith(("string_in_numeric_field", "non_numeric", "duplicate_timestamp"))
+        return reason.startswith(
+            (
+                "string_in_numeric_field",
+                "non_numeric",
+                "duplicate_timestamp",
+                "type_violation:",
+            )
+        )
 
     def publish_repair_outcome(
         self, rec: Dict[str, Any], outcome: str
@@ -1229,6 +1237,16 @@ class TelemetryCircuitBreaker:
         )
         self.dlq.enqueue(record)
         self.dlq.publish_validation_failure(packet, reason, self._state.value)
+        self.dlq.publish_alert(
+            "validation_failure",
+            {
+                "packet_id": packet.packet_id,
+                "sensor": packet.sensor,
+                "reason": reason,
+                "circuit_state": self._state.value,
+            },
+            key=packet.packet_id,
+        )
 
         if self._on_reject:
             self._on_reject(record)

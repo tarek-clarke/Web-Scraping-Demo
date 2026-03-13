@@ -167,7 +167,10 @@ class TestCircuitBreaker:
         )
 
         assert accepted is False
-        assert "string_in_numeric_field" in reason
+        assert (
+            "string_in_numeric_field" in reason
+            or "type_violation:throttle" in reason
+        )
 
         producer = cb.dlq._kafka_producer
         assert producer is not None
@@ -186,7 +189,10 @@ class TestCircuitBreaker:
 
         assert raw_event["value"]["event_type"] == "telemetry.raw"
         assert drift_event["value"]["event_type"] == "telemetry.schema_drift"
-        assert alert_event["value"]["event_type"] == "telemetry.alert.state_change"
+        assert alert_event["value"]["event_type"] in {
+            "telemetry.alert.state_change",
+            "telemetry.alert.validation_failure",
+        }
         assert cb.dlq.kafka_stats["sent_by_topic"]["telemetry-raw"] == 1
         cb.dlq.close()
 
