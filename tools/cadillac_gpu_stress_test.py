@@ -45,11 +45,14 @@ import csv
 import json
 import math
 import os
+import platform
 import random
+import re
 import statistics
 import sys
 import threading
 import time
+import subprocess
 from collections import defaultdict, deque
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
@@ -87,6 +90,56 @@ from src.middleware.tracing import RequestContext  # noqa: E402
 from src.slo import SLOTracker  # noqa: E402
 
 console = Console()
+
+
+def _sanitize_suffix_token(raw: str) -> str:
+    token = re.sub(r"[^A-Za-z0-9]+", "", raw or "")
+    return token[:40]
+
+
+def _detect_cpu_suffix() -> str:
+    if platform.system() == "Darwin":
+        try:
+            brand = subprocess.check_output(
+                ["sysctl", "-n", "machdep.cpu.brand_string"], text=True
+            ).strip()
+            m = re.search(r"Apple\s+(M\d+)", brand, flags=re.IGNORECASE)
+            if m:
+                return m.group(1).upper()
+            if brand:
+                return _sanitize_suffix_token(brand)
+        except Exception:
+            pass
+    cpu = platform.processor() or platform.machine() or "CPU"
+    return _sanitize_suffix_token(cpu.upper()) or "CPU"
+
+
+def _detect_hardware_suffix(gpu_info: Optional[Dict[str, Any]] = None) -> str:
+    env_override = os.environ.get("RAP_OUTPUT_SUFFIX", "").strip()
+    if env_override:
+        return _sanitize_suffix_token(env_override)
+
+    name = str((gpu_info or {}).get("name") or "").strip()
+    if not name:
+        return _detect_cpu_suffix()
+
+    # Common compact aliases for dashboard-friendly filenames.
+    upper_name = name.upper()
+    if "7900" in upper_name and "XT" in upper_name:
+        return "7900XT"
+    if "MI300" in upper_name:
+        return "MI300"
+    if "MI250" in upper_name:
+        return "MI250"
+    if "RTX" in upper_name:
+        m = re.search(r"RTX\s*(\d{3,4})", upper_name)
+        return f"RTX{m.group(1)}" if m else "RTX"
+    if "A100" in upper_name:
+        return "A100"
+    if "H100" in upper_name:
+        return "H100"
+
+    return _sanitize_suffix_token(name.upper()) or _detect_cpu_suffix()
 
 
 # ---------------------------------------------------------------------------
@@ -855,13 +908,15 @@ class CadillacGPUStressTest:
         self.chaos = ChaosInjector(chaos_rate, profile=chaos_profile)
         self._chaos_profile = self.chaos.profile
         self.output_dir = Path(output_dir)
-        self.output_suffix = output_suffix
         self.diagnostic = diagnostic
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # GPU setup
         self.device = get_gpu_device()
         self._gpu_info = gpu_info_dict(self.device)
+        auto_suffix = _detect_hardware_suffix(self._gpu_info)
+        chosen = (output_suffix.strip() or auto_suffix).lstrip("_")
+        self.output_suffix = f"_{chosen}" if chosen else ""
 
         # Threshold profiles:
         # - GPU active: tuned for throughput/speed
@@ -1980,7 +2035,7 @@ def main():
     )
     parser.add_argument(
         "--output-suffix", type=str, default="",
-        help="Optional suffix for output filenames (e.g. _sprint, _weekend)",
+        help="Optional suffix token for output filenames (e.g. sprint, M4, 7900XT)",
     )
     parser.add_argument(
         "--diagnostic", action="store_true",

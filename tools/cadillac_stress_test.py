@@ -36,8 +36,12 @@ import argparse
 import csv
 import json
 import math
+import os
+import platform
 import random
+import re
 import statistics
+import subprocess
 import sys
 import time
 from collections import defaultdict
@@ -68,6 +72,34 @@ from src.slo import SLOTracker  # noqa: E402
 
 
 console = Console()
+
+
+def _sanitize_suffix_token(raw: str) -> str:
+    token = re.sub(r"[^A-Za-z0-9]+", "", raw or "")
+    return token[:40]
+
+
+def _detect_cpu_suffix() -> str:
+    env_override = os.environ.get("RAP_OUTPUT_SUFFIX", "").strip()
+    if env_override:
+        return _sanitize_suffix_token(env_override)
+
+    # macOS Apple Silicon (e.g., Apple M4)
+    if platform.system() == "Darwin":
+        try:
+            brand = subprocess.check_output(
+                ["sysctl", "-n", "machdep.cpu.brand_string"], text=True
+            ).strip()
+            m = re.search(r"Apple\s+(M\d+)", brand, flags=re.IGNORECASE)
+            if m:
+                return m.group(1).upper()
+            if brand:
+                return _sanitize_suffix_token(brand)
+        except Exception:
+            pass
+
+    cpu = platform.processor() or platform.machine() or "CPU"
+    return _sanitize_suffix_token(cpu.upper()) or "CPU"
 
 
 # ---------------------------------------------------------------------------
@@ -264,10 +296,14 @@ class CadillacStressTest:
         breaker_threshold: int = 5,
         breaker_recovery: float = 2.0,
         output_dir: str = "data/reports",
+        output_suffix: str = "",
     ):
         self.packets_per_session = packets_per_session
         self.chaos = ChaosInjector(chaos_rate)
         self.output_dir = Path(output_dir)
+        auto_suffix = _detect_cpu_suffix()
+        chosen = (output_suffix.strip() or auto_suffix).lstrip("_")
+        self.output_suffix = f"_{chosen}" if chosen else ""
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # Subsystems
@@ -847,7 +883,7 @@ class CadillacStressTest:
     def _export_results(self) -> None:
         """Write results to CSV and JSON for downstream consumption."""
         # --- CSV ---
-        csv_path = self.output_dir / "cadillac_stress_test_results.csv"
+        csv_path = self.output_dir / f"cadillac_stress_test_results{self.output_suffix}.csv"
         with open(csv_path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=[
                 "session_name", "circuit", "packets_sent", "packets_accepted",
@@ -862,13 +898,13 @@ class CadillacStressTest:
         console.print(f"\n[dim]CSV exported → {csv_path}[/dim]")
 
         # --- JSON ---
-        json_path = self.output_dir / "cadillac_stress_test_report.json"
+        json_path = self.output_dir / f"cadillac_stress_test_report{self.output_suffix}.json"
         with open(json_path, "w") as f:
             json.dump(asdict(self.report), f, indent=2, default=str)
         console.print(f"[dim]JSON exported → {json_path}[/dim]")
 
         # --- Resilience Timing CSV ---
-        timing_csv_path = self.output_dir / "resilience_timing_report.csv"
+        timing_csv_path = self.output_dir / f"resilience_timing_report{self.output_suffix}.csv"
         with open(timing_csv_path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=[
                 "packet_id", "session", "sensor", "chaos_type",
@@ -899,7 +935,7 @@ class CadillacStressTest:
 
         # --- Resilience Timing JSON ---
         if self.timing_summary:
-            timing_json_path = self.output_dir / "resilience_timing_report.json"
+            timing_json_path = self.output_dir / f"resilience_timing_report{self.output_suffix}.json"
             with open(timing_json_path, "w") as f:
                 json.dump(asdict(self.timing_summary), f, indent=2, default=str)
             console.print(f"[dim]Timing JSON exported → {timing_json_path}[/dim]")
@@ -928,6 +964,10 @@ def main():
         "--showcase", action="store_true",
         help="Showcase mode: tuned for live demo (1000 pkt, 10%% chaos, fast)"
     )
+    parser.add_argument(
+        "--output-suffix", type=str, default="",
+        help="Optional output suffix token (e.g. M4, 7900XT); auto-detected if omitted",
+    )
     args = parser.parse_args()
 
     if args.showcase:
@@ -944,6 +984,7 @@ def main():
         packets_per_session=packets,
         chaos_rate=chaos,
         breaker_threshold=threshold,
+        output_suffix=args.output_suffix,
     )
     report = test.run()
     # Allow CI to pass on minor SLO breach

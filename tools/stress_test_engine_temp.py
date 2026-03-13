@@ -19,11 +19,41 @@ import numpy as np
 from datetime import datetime, timedelta
 import sys
 import os
+import platform
+import re
+import subprocess
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from adapters.sports.ingestion_sports import SportsIngestor
+
+
+def _sanitize_suffix_token(raw: str) -> str:
+    token = re.sub(r"[^A-Za-z0-9]+", "", raw or "")
+    return token[:40]
+
+
+def _detect_runtime_suffix() -> str:
+    env_override = os.environ.get("RAP_OUTPUT_SUFFIX", "").strip()
+    if env_override:
+        return _sanitize_suffix_token(env_override)
+
+    if platform.system() == "Darwin":
+        try:
+            brand = subprocess.check_output(
+                ["sysctl", "-n", "machdep.cpu.brand_string"], text=True
+            ).strip()
+            m = re.search(r"Apple\s+(M\d+)", brand, flags=re.IGNORECASE)
+            if m:
+                return m.group(1).upper()
+            if brand:
+                return _sanitize_suffix_token(brand)
+        except Exception:
+            pass
+
+    cpu = platform.processor() or platform.machine() or "CPU"
+    return _sanitize_suffix_token(cpu.upper()) or "CPU"
 
 
 class EngineTemperatureStressIngestor(SportsIngestor):
@@ -333,8 +363,9 @@ def run_stress_test(output_csv=None):
 
 if __name__ == "__main__":
     # Run stress test
+    runtime_suffix = _detect_runtime_suffix()
     results = run_stress_test(
-        output_csv="data/engine_temp_stress_test_results.csv"
+        output_csv=f"data/engine_temp_stress_test_results_{runtime_suffix}.csv"
     )
     
     # Exit with appropriate code
