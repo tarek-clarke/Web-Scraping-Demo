@@ -45,6 +45,24 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_KAFKA_EVENT_VERSION = "1.0"
+DEFAULT_KAFKA_PRODUCER_CONFIG: Dict[str, Any] = {
+    "acks": "all",
+    "retries": 3,
+    "max_in_flight_requests_per_connection": 5,
+    "linger_ms": 10,
+    "batch_size": 64 * 1024,
+    "compression_type": "lz4",
+    "request_timeout_ms": 30_000,
+    "max_block_ms": 5_000,
+}
+
+
+def _default_kafka_key_serializer(key: Any) -> bytes:
+    if isinstance(key, bytes):
+        return key
+    return str(key).encode("utf-8")
+
 
 # ---------------------------------------------------------------------------
 # Data Structures
@@ -141,6 +159,8 @@ class TracksideEdgeBuffer:
         kafka_bootstrap_servers: Optional[List[str]] = None,
         kafka_topic: str = "telemetry-validated",
         kafka_dlq_topic: str = "telemetry-dlq",
+        kafka_sync_event_topic: Optional[str] = "telemetry-sync-events",
+        kafka_producer_config: Optional[Dict[str, Any]] = None,
         enable_kafka: bool = False,
     ):
         self.db_path = Path(db_path)
@@ -153,6 +173,11 @@ class TracksideEdgeBuffer:
         self.enable_kafka = enable_kafka and KAFKA_AVAILABLE
         self.kafka_topic = kafka_topic
         self.kafka_dlq_topic = kafka_dlq_topic
+        self.kafka_sync_event_topic = kafka_sync_event_topic
+        self.kafka_producer_config = {
+            **DEFAULT_KAFKA_PRODUCER_CONFIG,
+            **(kafka_producer_config or {}),
+        }
         self._kafka_producer: Optional[KafkaProducer] = None
 
         if self.enable_kafka:
@@ -164,13 +189,13 @@ class TracksideEdgeBuffer:
                     self._kafka_producer = KafkaProducer(
                         bootstrap_servers=kafka_bootstrap_servers,
                         value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-                        acks='all',  # Wait for all replicas
-                        retries=3,
-                        max_in_flight_requests_per_connection=5,
+                        key_serializer=_default_kafka_key_serializer,
+                        **self.kafka_producer_config,
                     )
                     logger.info(
-                        "Kafka producer initialized | servers=%s topic=%s dlq=%s",
-                        kafka_bootstrap_servers, kafka_topic, kafka_dlq_topic
+                        "Kafka producer initialized | servers=%s topic=%s dlq=%s sync=%s",
+                        kafka_bootstrap_servers, kafka_topic, kafka_dlq_topic,
+                        kafka_sync_event_topic,
                     )
                 except Exception as exc:
                     logger.error("Failed to initialize Kafka producer: %s", exc)
@@ -200,6 +225,10 @@ class TracksideEdgeBuffer:
         # Kafka stats
         self._kafka_sent = 0
         self._kafka_failed = 0
+        self._kafka_latency_total_ms = 0.0
+        self._kafka_latency_samples = 0
+        self._kafka_sent_by_topic: Dict[str, int] = {}
+        self._kafka_failed_by_topic: Dict[str, int] = {}
 
         logger.info(
             "TracksideEdgeBuffer online | db=%s max=%d kafka=%s",
@@ -250,7 +279,8 @@ class TracksideEdgeBuffer:
             return
 
         topic = self.kafka_dlq_topic if is_dlq else self.kafka_topic
-        
+        key = packet.session_id or packet.packet_id
+
         payload = {
             "packet_id": packet.packet_id,
             "session_id": packet.session_id,
@@ -261,23 +291,62 @@ class TracksideEdgeBuffer:
             "sync_status": packet.sync_status,
         }
 
+        event = self._build_event(
+            event_type="telemetry.dlq" if is_dlq else "telemetry.validated",
+            payload=payload,
+            source="trackside_edge_buffer",
+        )
+        started = time.perf_counter()
+
         try:
-            future = self._kafka_producer.send(topic, value=payload)
+            future = self._kafka_producer.send(topic, key=key, value=event)
             # Add callback for tracking (non-blocking)
-            future.add_callback(lambda _: self._on_kafka_success())
+            future.add_callback(lambda _: self._on_kafka_success(topic, started))
             future.add_errback(lambda e: self._on_kafka_error(e, topic))
         except Exception as exc:
             logger.warning("Kafka send exception: %s", exc)
-            self._kafka_failed += 1
+            self._on_kafka_error(exc, topic)
 
-    def _on_kafka_success(self) -> None:
+    def _build_event(self, event_type: str, payload: Dict[str, Any], source: str) -> Dict[str, Any]:
+        return {
+            "event_type": event_type,
+            "event_version": DEFAULT_KAFKA_EVENT_VERSION,
+            "source": source,
+            "produced_at": datetime.utcnow().isoformat(),
+            "payload": payload,
+        }
+
+    def _publish_sync_event(self, event_type: str, payload: Dict[str, Any]) -> None:
+        if not self._kafka_producer or not self.kafka_sync_event_topic:
+            return
+
+        batch_id = payload.get("batch_id") or payload.get("packet_id") or "buffer"
+        event = self._build_event(
+            event_type=event_type,
+            payload=payload,
+            source="trackside_edge_buffer",
+        )
+        started = time.perf_counter()
+        topic = self.kafka_sync_event_topic
+        try:
+            future = self._kafka_producer.send(topic, key=batch_id, value=event)
+            future.add_callback(lambda _: self._on_kafka_success(topic, started))
+            future.add_errback(lambda e: self._on_kafka_error(e, topic))
+        except Exception as exc:
+            self._on_kafka_error(exc, topic)
+
+    def _on_kafka_success(self, topic: str, started: float) -> None:
         """Callback when Kafka message is ACKed."""
         self._kafka_sent += 1
+        self._kafka_sent_by_topic[topic] = self._kafka_sent_by_topic.get(topic, 0) + 1
+        self._kafka_latency_total_ms += (time.perf_counter() - started) * 1000
+        self._kafka_latency_samples += 1
 
     def _on_kafka_error(self, exc: Exception, topic: str) -> None:
         """Callback when Kafka message fails."""
         logger.warning("Kafka send failed to %s: %s", topic, exc)
         self._kafka_failed += 1
+        self._kafka_failed_by_topic[topic] = self._kafka_failed_by_topic.get(topic, 0) + 1
 
     def flush(self) -> None:
         """Force-commit any buffered writes to disk."""
@@ -418,6 +487,17 @@ class TracksideEdgeBuffer:
         if success:
             self._last_sync_time = ack_time
 
+        if self.enable_kafka and self._kafka_producer:
+            self._publish_sync_event(
+                event_type="telemetry.sync.acked" if success else "telemetry.sync.failed",
+                payload={
+                    "batch_id": batch_id,
+                    "packet_count": len(row_ids),
+                    "ack_time": ack_time,
+                    "connectivity": success,
+                },
+            )
+
         return {
             "synced": len(row_ids) if success else 0,
             "failed": 0 if success else len(row_ids),
@@ -469,6 +549,14 @@ class TracksideEdgeBuffer:
                 )
                 self._conn.commit()
                 logger.warning("Recovered %d packets from incomplete drain batches", stuck)
+                if self.enable_kafka and self._kafka_producer:
+                    self._publish_sync_event(
+                        event_type="telemetry.sync.recovered",
+                        payload={
+                            "packet_count": stuck,
+                            "connectivity": self._connectivity,
+                        },
+                    )
             return stuck
 
     @property
@@ -556,7 +644,15 @@ class TracksideEdgeBuffer:
     @property
     def kafka_stats(self) -> Dict[str, int]:
         """Return Kafka send statistics."""
+        avg_latency_ms = (
+            round(self._kafka_latency_total_ms / self._kafka_latency_samples, 3)
+            if self._kafka_latency_samples
+            else 0.0
+        )
         return {
             "sent": self._kafka_sent,
             "failed": self._kafka_failed,
+            "avg_latency_ms": avg_latency_ms,
+            "sent_by_topic": dict(self._kafka_sent_by_topic),
+            "failed_by_topic": dict(self._kafka_failed_by_topic),
         }

@@ -223,27 +223,286 @@ flowchart LR
     DLQ[("Dead Letter Queue<br/>SQLite")]
     EDGE[("Trackside Edge Buffer<br/>SQLite WAL + optional Kafka")]
     GEO["Geo-Fence<br/>GDPR / Sovereignty"]
-    BERT["GPU Semantic + Tensor Detection"]
-    AUDIT[("Audit Log<br/>SHA-256 hash chain")]
-    SINK["War Room / Global Sink"]
+    BERT["GPU Semantic<br/>Reconciliation<br/>BERT + cosine similarity"]
+    AUDIT[("Audit Log<br/>SHA-256 hash chain<br/>tamper-evident")]
+    SINK["War Room<br/>Global Sink"]
+    KAFKA_RAW["Kafka Topic:<br/>telemetry-raw"]
+    KAFKA_VALID["Kafka Topic:<br/>telemetry-validated"]
+    KAFKA_DRIFT["Kafka Topic:<br/>telemetry-schema-drift"]
+    KAFKA_ALERTS["Kafka Topic:<br/>telemetry-alerts"]
+    KAFKA_SYNC["Kafka Topic:<br/>telemetry-sync-events"]
+    KAFKA_DLQ["Kafka Topic:<br/>dlq-repairable / dlq-repaired / dlq-non-repairable"]
 
     RF --> CB
     CB -->|bad packets| DLQ
     CB -->|valid data| EDGE
-    EDGE --> GEO --> BERT --> AUDIT --> SINK
+    EDGE -->|exactly-once drain| GEO
+    CB -.->|raw ingress| KAFKA_RAW
+    EDGE -.->|optional streaming| KAFKA_VALID
+    CB -.->|schema drift| KAFKA_DRIFT
+    CB -.->|alerts| KAFKA_ALERTS
+    EDGE -.->|drain state| KAFKA_SYNC
+    DLQ -.->|optional streaming| KAFKA_DLQ
+    GEO -->|jurisdiction-aware| BERT
+    BERT -->|field reconciliation| AUDIT
+    AUDIT -->|provenance chain| SINK
+
+    style CB fill:#ff6b6b
+    style DLQ fill:#ffe066
+    style EDGE fill:#51cf66
+    style AUDIT fill:#4dabf7
+    style KAFKA_RAW fill:#74c0fc
+    style KAFKA_VALID fill:#a9e34b
+    style KAFKA_DRIFT fill:#fcc419
+    style KAFKA_ALERTS fill:#ff8787
+    style KAFKA_SYNC fill:#b197fc
+    style KAFKA_DLQ fill:#ffd43b
 ```
 
 ### Core Components
 
-| Component | Purpose | Status |
-|---|---|---|
-| `tools/cadillac_gpu_stress_test.py` | GPU benchmark orchestrator + diagnostics | ✅ Active |
-| `src/circuit_breaker.py` | Validation, cadence checks, DLQ | ✅ Active |
-| `src/local_persistence.py` | Edge buffering and optional stream fan-out | ✅ Active |
-| `src/geo_fence.py` | Data sovereignty controls | ✅ Active |
-| `src/audit_log.py` | Tamper-evident provenance | ✅ Active |
-| `src/middleware/tracing.py` | Context propagation | ✅ Active |
-| `src/slo.py` | SLO evaluation and reporting | ✅ Active |
+| Component | Purpose | Lines | Status |
+|-----------|---------|-------|--------|
+| **tools/cadillac_gpu_stress_test.py** | GPU stress test orchestrator | 1,542 | ✅ Active |
+| **src/circuit_breaker.py** | Circuit breaker + DLQ | 532 | ✅ Active |
+| **src/local_persistence.py** | Edge buffer (SQLite WAL + Kafka) | 490 | ✅ Active |
+| **src/geo_fence.py** | GDPR compliance | 389 | ✅ Active |
+| **src/audit_log.py** | Hash-chain provenance | 283 | ✅ Active |
+| **src/middleware/tracing.py** | Request context | 123 | ✅ Active |
+| **src/slo.py** | SLO tracking | 271 | ✅ Active |
+
+**Total Active Codebase:** 3,630 lines (excluding tests and archived modules)
+
+### Streaming Output (Optional)
+
+The edge buffer supports **dual-write to Kafka** for real-time streaming alongside local SQLite persistence. Disabled by default for trackside autonomy; enable when cloud connectivity is reliable.
+
+```python
+# Enable Kafka streaming output
+buffer = TracksideEdgeBuffer(
+    enable_kafka=True,
+    kafka_bootstrap_servers=["kafka:9092"],
+    kafka_topic="telemetry-validated",
+    kafka_sync_event_topic="telemetry-sync-events",
+    kafka_producer_config={"linger_ms": 10, "compression_type": "lz4"},
+)
+```
+
+**Architecture:**
+- **Local-first:** SQLite write always succeeds, even if Kafka fails
+- **Async/non-blocking:** Fire-and-forget sends preserve <1ms latency
+- **Keyed event streams:** Raw ingress, validated telemetry, schema drift, alerts, sync events, and DLQ outcomes
+- **Producer tuning:** Keyed messages + linger/batch/compression defaults for higher throughput
+- **Graceful degradation:** Logs warning if kafka-python unavailable
+
+> **Compose note:** The `kafka` service in `docker-compose.yml` is implemented with **Redpanda** (Kafka API-compatible) using dual listeners: host-run benchmark commands use `localhost:9092`, while compose services use `kafka:29092`.
+
+ **Full guide:** [docs/KAFKA_INTEGRATION.md](docs/KAFKA_INTEGRATION.md)  
+ **Example:** [examples/kafka_integration_example.py](examples/kafka_integration_example.py)
+
+## Quick Start (Ubuntu 24.04 + AMD ROCm)
+
+```bash
+# 0. Prerequisites
+# Tested on Ubuntu 24.04 LTS (Noble)
+sudo apt update && sudo apt install -y python3-venv
+
+# 1. Environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 2. Dependencies
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+# Force ROCm wheels on AMD (prevents accidental CUDA wheel install)
+python3 -m pip uninstall -y torch torchvision torchaudio
+python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2.4
+
+# NVIDIA/CUDA fallback (keep commented unless running on NVIDIA hardware)
+# python3 -m pip uninstall -y torch torchvision torchaudio
+# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+
+# 3. Build accelerated ingest
+python3 setup.py build_ext --inplace
+
+# 4. Verify Linux GPU path
+PYTHONPATH="." python3 -c "from archive.modules.translator import TelemetryIngestor; print('fast_ingest available:', TelemetryIngestor.is_accelerated())"
+python3 -c "import torch; print('CUDA/ROCm available:', torch.cuda.is_available()); print('Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
+```
+
+---
+
+```bash
+# 1. Kill any lingering python processes holding the DB lock
+pkill -f cadillac_gpu_stress_test.py
+
+# 2. Find and obliterate the SQLite files wherever they are
+find . -name "*.db" -type f -delete
+find . -name "*.db-wal" -type f -delete
+find . -name "*.db-shm" -type f -delete
+
+# 3. Run a tiny test just to verify the DLQ starts at 0
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 100 --chaos 0.05
+```
+
+---
+
+```bash
+# Sprint benchmark (30,000 total packets)
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint | tee data/reports/run_sprint.log
+
+# Race weekend benchmark (3.6M total packets)
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend | tee data/reports/run_weekend.log
+
+# Sprint benchmark + Kafka DLQ routing validation
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-005 --kafka-topic-repaired dlq-repaired-sprint-005 --kafka-topic-non-repairable dlq-non-repairable-sprint-005 --output-suffix _sprint_kafka | tee data/reports/run_sprint_kafka.log
+
+# Weekend benchmark + Kafka DLQ routing validation
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-005 --kafka-topic-repaired dlq-repaired-weekend-005 --kafka-topic-non-repairable dlq-non-repairable-weekend-005 --output-suffix _weekend_kafka | tee data/reports/run_weekend_kafka.log
+```
+
+---
+
+## GPU Benchmark Results (Validated on Ubuntu 24.04)
+
+**Hardware:** AMD Radeon RX 7900 XT (20GB VRAM) | ROCm 6.2 | gfx1100 architecture
+**Benchmark run date:** 2026-03-11
+
+### Sprint Results (30K Packets @ 5% Chaos)
+
+| Metric | Result | Status |
+|--------|--------|--------|
+| **GPU Device** | Radeon RX 7900 XT | ✅ Detected |
+| **GPU Memory** | 19.98 GB | ✅ Available |
+| **Total Packets** | 30,000 | ✅ Processed |
+| **Acceptance Rate** | 95.81% | ✅ Strong clean-data throughput |
+| **Chaos Injected** | 1,484 packets | ✅ Expected fault load |
+| **Schema-Drift Recovered** | 219 packets | ✅ BERT reconciliation |
+| **Tensor Anomalies Detected** | 1,225 detections | ✅ Real-time GPU analysis |
+| **Overall p95 Latency** | 0.005 ms | ✅ Sub-millisecond |
+| **Circuit Breaker Trips** | 0 total | ✅ Stable at sprint load |
+| **DLQ Depth (final)** | 1,191 | ✅ Reduced quarantine backlog |
+| **DLQ Repairs Recovered** | 66 | ✅ Kafka + DLQ recovery path active |
+| **Repair Rate** | 33.00% | ✅ Measured with capped repair attempts |
+| **Detection Rate** | 99.66% | ✅ SLO gate cleared |
+| **SLOs Passed** | 6/6 | ✅ All gates met |
+| **Verdict** | RACE-READY ✅ | Deterministic timing maintained |
+
+**Kafka DLQ topic totals (Sprint @ 5% Chaos):**
+
+| Topic | Messages |
+|-------|---------:|
+| `dlq-repairable-sprint-005` | 1,391 |
+| `dlq-repaired-sprint-005` | 66 |
+| `dlq-non-repairable-sprint-005` | 0 |
+
+### Race Weekend Results (3.6M Packets @ 5% Chaos)
+
+Full weekend simulation (240K packets/session × 15 sessions, 5% chaos injection):
+
+| Metric | Result | Status |
+|--------|--------|--------|
+| **Total Packets** | 3,600,000 | ✅ Processed |
+| **Acceptance Rate** | 95.76% | ✅ Stable clean-data throughput |
+| **Chaos Injected** | 179,617 packets | ✅ Expected fault load |
+| **Schema-Drift Recovered** | 25,790 packets | ✅ BERT reconciliation |
+| **Tensor Anomalies Detected** | 145,297 detections | ✅ Real-time GPU analysis |
+| **Overall p95 Latency** | 0.004 ms | ✅ Sub-millisecond |
+| **Circuit Breaker Trips** | 0 total | ✅ Stable at race load |
+| **DLQ Depth (final)** | 152,533 | ⚠️ Large but replayable quarantine volume |
+| **DLQ Repairs Recovered** | 68 | ✅ Kafka + DLQ recovery path active |
+| **Repair Rate** | 34.00% | ✅ Measured with capped repair attempts |
+| **Detection Rate** | 99.77% | ✅ SLO gate cleared |
+| **SLOs Passed** | 6/6 | ✅ All gates met |
+| **Verdict** | RACE-READY ✅ | Deterministic timing maintained |
+
+**Kafka DLQ topic totals (Weekend @ 5% Chaos):**
+
+| Topic | Messages |
+|-------|---------:|
+| `dlq-repairable-weekend-005` | 152,733 |
+| `dlq-repaired-weekend-005` | 68 |
+| `dlq-non-repairable-weekend-005` | 0 |
+
+Kafka publish counts align with DLQ/quarantine plus reprocessing traffic (`repairable` includes initial quarantine events and re-published retryable records).
+
+## Repair-Focused Chaos Validation
+
+This profile stress-tests repairability and deterministic runtime by injecting only:
+- `schema_drift`
+- `duplicate_timestamp`
+- `string_in_numeric`
+
+Run commands (Ubuntu 24.04 + ROCm, repair-focused profile):
+
+```bash
+# Sprint @ chaos 0.005
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.005 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-rf005 --kafka-topic-repaired dlq-repaired-sprint-rf005 --kafka-topic-non-repairable dlq-non-repairable-sprint-rf005 --output-suffix _sprint_repairfocusrealistic_kafka | tee data/reports/run_sprint_repairfocusrealistic_kafka.log
+
+# Weekend @ chaos 0.005
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.005 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-rf005 --kafka-topic-repaired dlq-repaired-weekend-rf005 --kafka-topic-non-repairable dlq-non-repairable-weekend-rf005 --output-suffix _weekend_repairfocusrealistic_kafka | tee data/reports/run_weekend_repairfocusrealistic_kafka.log
+
+# Sprint @ chaos 0.001
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.001 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-rf001 --kafka-topic-repaired dlq-repaired-sprint-rf001 --kafka-topic-non-repairable dlq-non-repairable-sprint-rf001 --output-suffix _sprint_repairfocusultralow_kafka | tee data/reports/run_sprint_repairfocusultralow_kafka.log
+
+# Weekend @ chaos 0.001
+source .venv/bin/activate && FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.001 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-rf001 --kafka-topic-repaired dlq-repaired-weekend-rf001 --kafka-topic-non-repairable dlq-non-repairable-weekend-rf001 --output-suffix _weekend_repairfocusultralow_kafka | tee data/reports/run_weekend_repairfocusultralow_kafka.log
+```
+
+Expected behavior:
+- Full anomaly detection coverage from pre-breaker validation + GPU reconciliation (99.66%+ in the mixed-chaos runs, 100.00% in the repair-focused runs below)
+- Zero circuit-breaker trips
+- Deterministic sub-millisecond p95 latency
+- Repair throughput varies with the capped reprocessing budget and chaos mix size
+- Intact audit hash chain
+
+Representative Ubuntu 24.04 results (side-by-side):
+
+| Run | Chaos | Anomalies Injected | Anomalies Detected | DLQ Quarantined | DLQ Repairs Attempted | DLQ Repairs Recovered | Repair Rate % | p95 Latency | Breaker Trips | Kafka Repairable | Kafka Repaired | Kafka Non-Repairable |
+|-----|------:|--------------------:|-------------------:|----------------:|----------------------:|----------------------:|--------------:|------------:|--------------:|-----------------:|---------------:|---------------------:|
+| Sprint (30K packets) | 0.005 | 139 | 139 | 47 | 92 | 45 | 48.91% | 0.003 ms | 0 | 139 | 45 | 0 |
+| Weekend (3.6M packets) | 0.005 | 17,981 | 17,981 | 11,955 | 200 | 66 | 33.00% | 0.003 ms | 0 | 12,155 | 66 | 0 |
+| Sprint (30K packets) | 0.001 | 27 | 27 | 11 | 20 | 9 | 45.00% | 0.003 ms | 0 | 31 | 9 | 0 |
+| Weekend (3.6M packets) | 0.001 | 3,570 | 3,570 | 2,303 | 200 | 77 | 38.50% | 0.003 ms | 0 | 2,503 | 77 | 0 |
+
+Quick trend readout:
+- Lowering chaos from `0.005` → `0.001` reduces injected anomalies by ~5× at weekend scale (`17,981` → `3,570`).
+- DLQ quarantine pressure drops sharply (`11,955` → `2,303`) on weekend runs.
+- Kafka repairable traffic falls from `12,155` to `2,503` as the repair-focused fault budget shrinks.
+- Breaker stability and latency stay deterministic (`0` trips, `0.003 ms` p95 in all four runs).
+
+Example successful output excerpt:
+
+```text
+Chaos profile: repair_focus | modes=schema_drift, duplicate_timestamp, string_in_numeric
+...
+Breaker Trips:            0
+DLQ Quarantined:          2303
+DLQ Reprocessed:          77 recovered
+Audit Chain Intact:       True
+p95 Latency:              0.003 ms
+...
+Anomalies Injected:       3570
+Anomalies Caught:         3570
+Repair Rate:              38.50%
+TIMING VERDICT: SUB-MILLISECOND DETECTION ✅
+```
+
+Why detection now reaches 100% on the repair-focused profile: duplicate timestamps and strict type violations are rejected before breaker state is mutated, while schema-drift packets are counted when semantic reconciliation resolves them. That closes the prior accounting gap without adding GPU-side overhead.
+
+This benchmark validates the full ingestion → detection → quarantine → repair → audit pipeline end-to-end.
+
+### Technical Details
+
+**GPU Capabilities:**
+- **Semantic Reconciliation:** BERT (all-MiniLM-L6-v2) encodes telemetry fields on GPU with batched cosine-similarity against canonical schema
+- **Anomaly Detection:** Sensor values stacked into GPU tensors, z-score outlier detection (σ > 3) in single vectorized pass per batch
+- **Provenance Verification:** Batch hash-chain integrity checks via GPU-emulated SHA-256 integer operations
+
+**Output Artifacts:**
+- Sprint/weekend CSV & JSON reports in `data/reports/` with `_kafka` suffixes
+- Kafka topic count snapshots: `kafka_topic_counts_*.json`
+- Full execution logs: `run_*_kafka.log`
 
 ---
 

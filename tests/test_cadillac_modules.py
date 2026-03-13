@@ -12,6 +12,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import src.circuit_breaker as circuit_breaker_module  # noqa: E402
+import src.local_persistence as local_persistence_module  # noqa: E402
+
 from src.circuit_breaker import (  # noqa: E402
     TelemetryCircuitBreaker,
     TelemetryPacket,
@@ -30,6 +33,39 @@ from src.geo_fence import (  # noqa: E402
 )
 from src.audit_log import ComplianceAuditLog, GENESIS_HASH  # noqa: E402
 from src.middleware.tracing import RequestContext  # noqa: E402
+
+
+class FakeFuture:
+    def __init__(self, topic, key, value):
+        self.topic = topic
+        self.key = key
+        self.value = value
+
+    def add_callback(self, callback):
+        callback({"topic": self.topic, "key": self.key, "value": self.value})
+        return self
+
+    def add_errback(self, _callback):
+        return self
+
+
+class FakeKafkaProducer:
+    instances = []
+
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        self.sent = []
+        FakeKafkaProducer.instances.append(self)
+
+    def send(self, topic, value=None, key=None):
+        self.sent.append({"topic": topic, "key": key, "value": value})
+        return FakeFuture(topic, key, value)
+
+    def flush(self, timeout=None):
+        return timeout
+
+    def close(self):
+        return None
 
 
 # ===================================================================
@@ -114,6 +150,46 @@ class TestDeadLetterQueue:
 
 
 class TestCircuitBreaker:
+    def test_kafka_outputs_include_raw_drift_and_alerts(self, tmp_path, monkeypatch):
+        FakeKafkaProducer.instances.clear()
+        monkeypatch.setattr(circuit_breaker_module, "KAFKA_AVAILABLE", True)
+        monkeypatch.setattr(circuit_breaker_module, "KafkaProducer", FakeKafkaProducer)
+
+        cb = TelemetryCircuitBreaker(
+            failure_threshold=1,
+            dlq_path=str(tmp_path / "dlq.sqlite"),
+            enable_kafka=True,
+            kafka_bootstrap_servers=["localhost:9092"],
+        )
+
+        accepted, reason = cb.process(
+            TelemetryPacket(packet_id="pkt_bad", sensor="throttle", value="OVERHEAT")
+        )
+
+        assert accepted is False
+        assert "string_in_numeric_field" in reason
+
+        producer = cb.dlq._kafka_producer
+        assert producer is not None
+
+        sent_topics = [message["topic"] for message in producer.sent]
+        assert "telemetry-raw" in sent_topics
+        assert "telemetry-schema-drift" in sent_topics
+        assert "telemetry-alerts" in sent_topics
+        assert "dlq-repairable" in sent_topics
+
+        raw_event = next(message for message in producer.sent if message["topic"] == "telemetry-raw")
+        drift_event = next(
+            message for message in producer.sent if message["topic"] == "telemetry-schema-drift"
+        )
+        alert_event = next(message for message in producer.sent if message["topic"] == "telemetry-alerts")
+
+        assert raw_event["value"]["event_type"] == "telemetry.raw"
+        assert drift_event["value"]["event_type"] == "telemetry.schema_drift"
+        assert alert_event["value"]["event_type"] == "telemetry.alert.state_change"
+        assert cb.dlq.kafka_stats["sent_by_topic"]["telemetry-raw"] == 1
+        cb.dlq.close()
+
     def test_closed_accepts_valid_packets(self, tmp_path):
         cb = TelemetryCircuitBreaker(
             failure_threshold=3, dlq_path=str(tmp_path / "dlq.sqlite")
@@ -220,6 +296,50 @@ class TestCircuitBreaker:
 # Edge Buffer Tests
 # ===================================================================
 class TestTracksideEdgeBuffer:
+    def test_kafka_streams_use_event_envelopes(self, tmp_path, monkeypatch):
+        FakeKafkaProducer.instances.clear()
+        monkeypatch.setattr(local_persistence_module, "KAFKA_AVAILABLE", True)
+        monkeypatch.setattr(local_persistence_module, "KafkaProducer", FakeKafkaProducer)
+
+        def mock_sync(_payloads):
+            return True
+
+        buf = TracksideEdgeBuffer(
+            db_path=str(tmp_path / "buf.sqlite"),
+            sync_callback=mock_sync,
+            enable_kafka=True,
+            kafka_bootstrap_servers=["localhost:9092"],
+        )
+        pkt = BufferedPacket(
+            packet_id="pkt_001",
+            session_id="session_a",
+            sensor="speed",
+            value=301.5,
+        )
+
+        buf.write(pkt)
+        buf.flush()
+        buf.drain_pending()
+
+        producer = buf._kafka_producer
+        assert producer is not None
+        sent_topics = [message["topic"] for message in producer.sent]
+        assert "telemetry-validated" in sent_topics
+        assert "telemetry-sync-events" in sent_topics
+
+        validated_event = next(
+            message for message in producer.sent if message["topic"] == "telemetry-validated"
+        )
+        assert validated_event["key"] == "session_a"
+        assert validated_event["value"]["event_type"] == "telemetry.validated"
+        assert validated_event["value"]["payload"]["packet_id"] == "pkt_001"
+
+        assert producer.kwargs["compression_type"] == "lz4"
+        assert producer.kwargs["linger_ms"] == 10
+        assert buf.kafka_stats["sent_by_topic"]["telemetry-validated"] == 1
+        assert buf.kafka_stats["sent_by_topic"]["telemetry-sync-events"] == 1
+        buf.close()
+
     def test_write_and_replay(self, tmp_path):
         buf = TracksideEdgeBuffer(db_path=str(tmp_path / "buf.sqlite"))
         pkt = BufferedPacket(

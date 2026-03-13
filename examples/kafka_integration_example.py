@@ -29,7 +29,8 @@ def main():
         enable_kafka=True,
         kafka_bootstrap_servers=["localhost:9092"],
         kafka_topic="telemetry-validated",
-        kafka_dlq_topic="telemetry-dlq",
+        kafka_sync_event_topic="telemetry-sync-events",
+        kafka_producer_config={"linger_ms": 10, "compression_type": "lz4"},
     )
 
     print("Buffer initialized with Kafka output enabled")
@@ -76,14 +77,17 @@ def main():
     print("\nKafka Stats:")
     print(f"  Messages sent: {kafka_stats['sent']}")
     print(f"  Messages failed: {kafka_stats['failed']}")
+    print(f"  Avg ACK latency: {kafka_stats['avg_latency_ms']} ms")
+    print(f"  Sent by topic: {kafka_stats['sent_by_topic']}")
 
     # Clean up
     buffer.close()
     print("\nBuffer closed successfully")
 
     print("\nNext steps:")
-    print("  1. Check Kafka topic: kafka-console-consumer --bootstrap-server localhost:9092 --topic telemetry-validated --from-beginning")
-    print("  2. Check SQLite: sqlite3 data/example_kafka_buffer.sqlite 'SELECT * FROM telemetry_buffer;'")
+    print("  1. Check validated topic: kafka-console-consumer --bootstrap-server localhost:9092 --topic telemetry-validated --from-beginning")
+    print("  2. Check sync events: kafka-console-consumer --bootstrap-server localhost:9092 --topic telemetry-sync-events --from-beginning")
+    print("  3. Check SQLite: sqlite3 data/example_kafka_buffer.sqlite 'SELECT * FROM telemetry_buffer;'")
 
 
 if __name__ == "__main__":

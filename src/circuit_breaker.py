@@ -43,6 +43,24 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_KAFKA_EVENT_VERSION = "1.0"
+DEFAULT_KAFKA_PRODUCER_CONFIG: Dict[str, Any] = {
+    "acks": "all",
+    "retries": 3,
+    "max_in_flight_requests_per_connection": 5,
+    "linger_ms": 10,
+    "batch_size": 64 * 1024,
+    "compression_type": "lz4",
+    "request_timeout_ms": 30_000,
+    "max_block_ms": 5_000,
+}
+
+
+def _default_kafka_key_serializer(key: Any) -> bytes:
+    if isinstance(key, bytes):
+        return key
+    return str(key).encode("utf-8")
+
 # ---------------------------------------------------------------------------
 # Optional Kafka dependency
 # ---------------------------------------------------------------------------
@@ -393,6 +411,10 @@ class DeadLetterQueue:
         kafka_topic_repairable: str = "dlq-repairable",
         kafka_topic_repaired: str = "dlq-repaired",
         kafka_topic_non_repairable: str = "dlq-non-repairable",
+        kafka_topic_raw: Optional[str] = "telemetry-raw",
+        kafka_topic_schema_drift: Optional[str] = "telemetry-schema-drift",
+        kafka_topic_alerts: Optional[str] = "telemetry-alerts",
+        kafka_producer_config: Optional[Dict[str, Any]] = None,
     ):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -409,10 +431,21 @@ class DeadLetterQueue:
         self.kafka_topic_repairable = kafka_topic_repairable
         self.kafka_topic_repaired = kafka_topic_repaired
         self.kafka_topic_non_repairable = kafka_topic_non_repairable
+        self.kafka_topic_raw = kafka_topic_raw
+        self.kafka_topic_schema_drift = kafka_topic_schema_drift
+        self.kafka_topic_alerts = kafka_topic_alerts
         self.enable_kafka = enable_kafka and KAFKA_AVAILABLE
+        self.kafka_producer_config = {
+            **DEFAULT_KAFKA_PRODUCER_CONFIG,
+            **(kafka_producer_config or {}),
+        }
         self._kafka_producer: Optional[KafkaProducer] = None
         self._kafka_sent: int = 0
         self._kafka_failed: int = 0
+        self._kafka_latency_total_ms: float = 0.0
+        self._kafka_latency_samples: int = 0
+        self._kafka_sent_by_topic: Dict[str, int] = {}
+        self._kafka_failed_by_topic: Dict[str, int] = {}
 
         if self.enable_kafka:
             if not KAFKA_AVAILABLE:
@@ -426,17 +459,19 @@ class DeadLetterQueue:
                     self._kafka_producer = KafkaProducer(
                         bootstrap_servers=kafka_bootstrap_servers,
                         value_serializer=lambda v: json.dumps(v).encode("utf-8"),
-                        acks="all",
-                        retries=3,
-                        max_in_flight_requests_per_connection=5,
+                        key_serializer=_default_kafka_key_serializer,
+                        **self.kafka_producer_config,
                     )
                     logger.info(
                         "DLQ Kafka producer initialised | servers=%s "
-                        "topics=(%s, %s, %s)",
+                        "topics=(%s, %s, %s, raw=%s, drift=%s, alerts=%s)",
                         kafka_bootstrap_servers,
                         kafka_topic_repairable,
                         kafka_topic_repaired,
                         kafka_topic_non_repairable,
+                        kafka_topic_raw,
+                        kafka_topic_schema_drift,
+                        kafka_topic_alerts,
                     )
                 except Exception as exc:
                     logger.error("Failed to initialise DLQ Kafka producer: %s", exc)
@@ -476,18 +511,24 @@ class DeadLetterQueue:
         # Kafka: new quarantined packet is a repairable candidate
         if self.enable_kafka and self._kafka_producer:
             self._publish_to_kafka(
-                {
+                self._build_event(
+                    event_type="dlq.repairable",
+                    payload={
                     "packet_id": record.packet.packet_id,
                     "sensor": record.packet.sensor,
                     "value": record.packet.value,
+                    "metadata": record.packet.metadata,
                     "reason": record.reason,
                     "circuit_state": record.circuit_state,
                     "retry_count": record.retry_count,
                     "quarantined_at": record.quarantined_at,
                     "outcome": "repairable",
                     "published_at": datetime.utcnow().isoformat(),
-                },
+                    },
+                    source="dead_letter_queue",
+                ),
                 self.kafka_topic_repairable,
+                key=record.packet.packet_id,
             )
 
     def enqueue_batch(self, records: List[DLQRecord]) -> None:
@@ -519,18 +560,24 @@ class DeadLetterQueue:
             now = datetime.utcnow().isoformat()
             for record in records:
                 self._publish_to_kafka(
-                    {
+                    self._build_event(
+                        event_type="dlq.repairable",
+                        payload={
                         "packet_id": record.packet.packet_id,
                         "sensor": record.packet.sensor,
                         "value": record.packet.value,
+                        "metadata": record.packet.metadata,
                         "reason": record.reason,
                         "circuit_state": record.circuit_state,
                         "retry_count": record.retry_count,
                         "quarantined_at": record.quarantined_at,
                         "outcome": "repairable",
                         "published_at": now,
-                    },
+                        },
+                        source="dead_letter_queue",
+                    ),
                     self.kafka_topic_repairable,
+                    key=record.packet.packet_id,
                 )
 
     def flush(self) -> None:
@@ -543,24 +590,106 @@ class DeadLetterQueue:
     # ------------------------------------------------------------------
     # Kafka helpers
     # ------------------------------------------------------------------
-    def _publish_to_kafka(self, payload: Dict[str, Any], topic: str) -> None:
+    def _build_event(self, event_type: str, payload: Dict[str, Any], source: str) -> Dict[str, Any]:
+        return {
+            "event_type": event_type,
+            "event_version": DEFAULT_KAFKA_EVENT_VERSION,
+            "source": source,
+            "produced_at": datetime.utcnow().isoformat(),
+            "payload": payload,
+        }
+
+    def _publish_to_kafka(self, payload: Dict[str, Any], topic: Optional[str], key: Optional[str] = None) -> None:
         """Send a DLQ record to a Kafka topic (non-blocking, fire-and-forget)."""
-        if not self._kafka_producer:
+        if not self._kafka_producer or not topic:
             return
+        started = time.perf_counter()
         try:
-            future = self._kafka_producer.send(topic, value=payload)
-            future.add_callback(lambda _: self._on_kafka_success())
+            future = self._kafka_producer.send(topic, key=key, value=payload)
+            future.add_callback(lambda _: self._on_kafka_success(topic, started))
             future.add_errback(lambda e: self._on_kafka_error(e, topic))
         except Exception as exc:
             logger.warning("DLQ Kafka send exception (topic=%s): %s", topic, exc)
-            self._kafka_failed += 1
+            self._on_kafka_error(exc, topic)
 
-    def _on_kafka_success(self) -> None:
+    def _on_kafka_success(self, topic: str, started: float) -> None:
         self._kafka_sent += 1
+        self._kafka_sent_by_topic[topic] = self._kafka_sent_by_topic.get(topic, 0) + 1
+        self._kafka_latency_total_ms += (time.perf_counter() - started) * 1000
+        self._kafka_latency_samples += 1
 
     def _on_kafka_error(self, exc: Exception, topic: str) -> None:
         logger.warning("DLQ Kafka send failed to %s: %s", topic, exc)
         self._kafka_failed += 1
+        self._kafka_failed_by_topic[topic] = self._kafka_failed_by_topic.get(topic, 0) + 1
+
+    def publish_raw_ingress(self, packet: TelemetryPacket) -> None:
+        if not self.enable_kafka or not self._kafka_producer or not self.kafka_topic_raw:
+            return
+
+        self._publish_to_kafka(
+            self._build_event(
+                event_type="telemetry.raw",
+                payload={
+                    "packet_id": packet.packet_id,
+                    "timestamp": packet.timestamp,
+                    "sensor": packet.sensor,
+                    "value": packet.value,
+                    "metadata": packet.metadata,
+                    "request_id": packet.request_id,
+                },
+                source="telemetry_circuit_breaker",
+            ),
+            self.kafka_topic_raw,
+            key=packet.packet_id,
+        )
+
+    def publish_validation_failure(
+        self,
+        packet: TelemetryPacket,
+        reason: str,
+        circuit_state: str,
+    ) -> None:
+        if not self.enable_kafka or not self._kafka_producer:
+            return
+
+        if self._is_schema_drift_reason(packet, reason):
+            self._publish_to_kafka(
+                self._build_event(
+                    event_type="telemetry.schema_drift",
+                    payload={
+                        "packet_id": packet.packet_id,
+                        "timestamp": packet.timestamp,
+                        "sensor": packet.sensor,
+                        "value": packet.value,
+                        "metadata": packet.metadata,
+                        "reason": reason,
+                        "circuit_state": circuit_state,
+                    },
+                    source="telemetry_circuit_breaker",
+                ),
+                self.kafka_topic_schema_drift,
+                key=packet.sensor or packet.packet_id,
+            )
+
+    def publish_alert(self, alert_type: str, payload: Dict[str, Any], key: Optional[str] = None) -> None:
+        if not self.enable_kafka or not self._kafka_producer or not self.kafka_topic_alerts:
+            return
+
+        self._publish_to_kafka(
+            self._build_event(
+                event_type=f"telemetry.alert.{alert_type}",
+                payload=payload,
+                source="telemetry_circuit_breaker",
+            ),
+            self.kafka_topic_alerts,
+            key=key or alert_type,
+        )
+
+    def _is_schema_drift_reason(self, packet: TelemetryPacket, reason: str) -> bool:
+        if packet.sensor.lower().endswith("_new"):
+            return True
+        return reason.startswith(("string_in_numeric_field", "non_numeric", "duplicate_timestamp"))
 
     def publish_repair_outcome(
         self, rec: Dict[str, Any], outcome: str
@@ -614,7 +743,18 @@ class DeadLetterQueue:
     @property
     def kafka_stats(self) -> Dict[str, int]:
         """Return sent/failed counts for monitoring."""
-        return {"sent": self._kafka_sent, "failed": self._kafka_failed}
+        avg_latency_ms = (
+            round(self._kafka_latency_total_ms / self._kafka_latency_samples, 3)
+            if self._kafka_latency_samples
+            else 0.0
+        )
+        return {
+            "sent": self._kafka_sent,
+            "failed": self._kafka_failed,
+            "avg_latency_ms": avg_latency_ms,
+            "sent_by_topic": dict(self._kafka_sent_by_topic),
+            "failed_by_topic": dict(self._kafka_failed_by_topic),
+        }
 
     # ------------------------------------------------------------------
     def depth(self) -> int:
@@ -671,6 +811,12 @@ class DeadLetterQueue:
 
     def close(self) -> None:
         self.flush()  # Commit any pending writes before closing
+        if self._kafka_producer:
+            try:
+                self._kafka_producer.flush(timeout=5)
+                self._kafka_producer.close()
+            except Exception as exc:
+                logger.warning("Error closing DLQ Kafka producer: %s", exc)
         self._conn.close()
 
 
@@ -709,6 +855,10 @@ class TelemetryCircuitBreaker:
         kafka_topic_repairable: str = "dlq-repairable",
         kafka_topic_repaired: str = "dlq-repaired",
         kafka_topic_non_repairable: str = "dlq-non-repairable",
+        kafka_topic_raw: Optional[str] = "telemetry-raw",
+        kafka_topic_schema_drift: Optional[str] = "telemetry-schema-drift",
+        kafka_topic_alerts: Optional[str] = "telemetry-alerts",
+        kafka_producer_config: Optional[Dict[str, Any]] = None,
     ):
         self._state = CircuitState.CLOSED
         self._lock = threading.Lock()
@@ -755,6 +905,10 @@ class TelemetryCircuitBreaker:
             kafka_topic_repairable=kafka_topic_repairable,
             kafka_topic_repaired=kafka_topic_repaired,
             kafka_topic_non_repairable=kafka_topic_non_repairable,
+            kafka_topic_raw=kafka_topic_raw,
+            kafka_topic_schema_drift=kafka_topic_schema_drift,
+            kafka_topic_alerts=kafka_topic_alerts,
+            kafka_producer_config=kafka_producer_config,
         )
 
         # Event hooks (for Health Monitor)
@@ -825,6 +979,7 @@ class TelemetryCircuitBreaker:
         primary pipeline; False if it was routed to the DLQ.
         """
         with self._lock:
+            self.dlq.publish_raw_ingress(packet)
             self._maybe_transition_to_half_open()
 
             # ---- OPEN: reject everything until cooldown expires ----
@@ -858,6 +1013,7 @@ class TelemetryCircuitBreaker:
         with self._lock:
             self._maybe_transition_to_half_open()
             for pkt in packets:
+                self.dlq.publish_raw_ingress(pkt)
                 # ---- OPEN: reject everything until cooldown expires ----
                 if self._state == CircuitState.OPEN:
                     self._total_rejected += 1
@@ -946,6 +1102,11 @@ class TelemetryCircuitBreaker:
                 reset_fn = getattr(validator, "reset", None)
                 if callable(reset_fn):
                     reset_fn()
+            self.dlq.publish_alert(
+                "reset",
+                {"old_state": old.value, "new_state": CircuitState.CLOSED.value},
+                key="circuit-reset",
+            )
         logger.info("CircuitBreaker manually RESET → CLOSED")
 
     def reprocess_dlq(self, limit: int = 50) -> Dict[str, int]:
@@ -985,14 +1146,34 @@ class TelemetryCircuitBreaker:
             if is_valid:
                 self.dlq.mark_reprocessed(rec["packet_id"])
                 self._total_passed += 1
+                self.dlq.publish_alert(
+                    "recovered",
+                    {
+                        "packet_id": rec["packet_id"],
+                        "sensor": rec.get("sensor"),
+                        "retry_count": rec.get("retry_count", 0),
+                    },
+                    key=rec["packet_id"],
+                )
                 recovered += 1
                 logger.info("DLQ packet %s recovered via reprocessing", rec["packet_id"])
             else:
                 self.dlq.increment_retry(rec["packet_id"])
                 retry_count = rec.get("retry_count", 0) + 1
                 if retry_count >= 3:
+                    self.dlq.publish_alert(
+                        "non_repairable",
+                        {
+                            "packet_id": rec["packet_id"],
+                            "sensor": rec.get("sensor"),
+                            "reason": reason,
+                            "retry_count": retry_count,
+                        },
+                        key=rec["packet_id"],
+                    )
                     max_retries += 1
                 else:
+                    self.dlq.publish_validation_failure(packet, reason, self._state.value)
                     still_invalid += 1
 
         logger.info(
@@ -1047,6 +1228,7 @@ class TelemetryCircuitBreaker:
             circuit_state=self._state.value,
         )
         self.dlq.enqueue(record)
+        self.dlq.publish_validation_failure(packet, reason, self._state.value)
 
         if self._on_reject:
             self._on_reject(record)
@@ -1063,6 +1245,15 @@ class TelemetryCircuitBreaker:
             self._half_open_successes = 0
         self._record_state_change(old, new_state)
         logger.info("CircuitBreaker %s → %s", old.value, new_state.value)
+        self.dlq.publish_alert(
+            "state_change",
+            {
+                "old_state": old.value,
+                "new_state": new_state.value,
+                "consecutive_failures": self._consecutive_failures,
+            },
+            key=f"{old.value}-{new_state.value}",
+        )
 
         if self._on_state_change:
             self._on_state_change(old, new_state)

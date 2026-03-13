@@ -11,11 +11,15 @@ Car RF Downlink
     │
     ▼
 Circuit Breaker ──────► SQLite Edge Buffer (local-first, crash-safe)
-    │                          │
-    │                          ├──► Kafka Topic (real-time stream)
-    │                          └──► Background drain to cloud sink
-    │
-    └──► DLQ ─────────────────► Kafka DLQ Topic (quarantined packets)
+  │                          │
+  │                          ├──► Kafka Topic: telemetry-validated
+  │                          ├──► Kafka Topic: telemetry-sync-events
+  │                          └──► Background drain to cloud sink
+  │
+  ├──► Kafka Topic: telemetry-raw
+  ├──► Kafka Topic: telemetry-schema-drift
+  ├──► Kafka Topic: telemetry-alerts
+  └──► DLQ ─────────────────► Kafka Topics: dlq-repairable / dlq-repaired / dlq-non-repairable
 ```
 
 ## Key Design Principles
@@ -45,7 +49,8 @@ buffer = TracksideEdgeBuffer(
     enable_kafka=True,
     kafka_bootstrap_servers=["localhost:9092"],
     kafka_topic="telemetry-validated",
-    kafka_dlq_topic="telemetry-dlq",
+  kafka_sync_event_topic="telemetry-sync-events",
+  kafka_producer_config={"linger_ms": 10, "compression_type": "lz4"},
 )
 ```
 
@@ -56,7 +61,8 @@ buffer = TracksideEdgeBuffer(
 | `enable_kafka` | bool | False | Enable Kafka output |
 | `kafka_bootstrap_servers` | List[str] | None | Kafka broker addresses |
 | `kafka_topic` | str | "telemetry-validated" | Topic for validated packets |
-| `kafka_dlq_topic` | str | "telemetry-dlq" | Topic for DLQ packets |
+| `kafka_sync_event_topic` | str | "telemetry-sync-events" | Topic for drain ACK/failure/recovery events |
+| `kafka_producer_config` | Dict[str, Any] | tuned defaults | Override batching/compression/timeout settings |
 
 ## Usage
 
@@ -104,23 +110,36 @@ print(f"Connectivity: {health.connectivity}")
 
 ## Kafka Message Format
 
-### Validated Telemetry (telemetry-validated topic)
+### Event Envelope
+
+All Kafka streams now use a common envelope:
 
 ```json
 {
-  "packet_id": "a1b2c3d4e5f6",
-  "session_id": "monaco_fp1",
-  "timestamp": "2026-03-04T15:30:45.123456",
-  "sensor": "engine_temp",
-  "value": 95.5,
-  "metadata": {"lap": 12, "driver": "44"},
-  "sync_status": "PENDING"
+  "event_type": "telemetry.validated",
+  "event_version": "1.0",
+  "source": "trackside_edge_buffer",
+  "produced_at": "2026-03-04T15:30:45.123456",
+  "payload": {
+    "packet_id": "a1b2c3d4e5f6",
+    "session_id": "monaco_fp1",
+    "timestamp": "2026-03-04T15:30:45.123456",
+    "sensor": "engine_temp",
+    "value": 95.5,
+    "metadata": {"lap": 12, "driver": "44"},
+    "sync_status": "PENDING"
+  }
 }
 ```
 
-### DLQ Packets (telemetry-dlq topic)
+### Logical Topics
 
-Same format as validated packets, but these represent quarantined/failed packets from the circuit breaker.
+- `telemetry-raw` — all ingress packets before validation
+- `telemetry-validated` — packets accepted by the edge buffer
+- `telemetry-schema-drift` — validation failures that indicate type drift / duplicate timestamps
+- `telemetry-alerts` — circuit transitions, resets, DLQ recovery, and dead-end alerts
+- `telemetry-sync-events` — drain ACK / failure / recovery events
+- `dlq-repairable`, `dlq-repaired`, `dlq-non-repairable` — DLQ lifecycle streams
 
 ## Kafka Consumer Example
 
@@ -180,7 +199,7 @@ services:
 ```bash
 export KAFKA_BOOTSTRAP_SERVERS="kafka1:9092,kafka2:9092,kafka3:9092"
 export KAFKA_TOPIC="telemetry-validated"
-export KAFKA_DLQ_TOPIC="telemetry-dlq"
+export KAFKA_SYNC_EVENT_TOPIC="telemetry-sync-events"
 export ENABLE_KAFKA="true"
 ```
 
@@ -218,10 +237,11 @@ If Kafka send fails during runtime:
 
 ### Backpressure
 
-Kafka producer has built-in backpressure:
+Kafka producer has built-in backpressure and batching:
 - `max_in_flight_requests_per_connection=5`
 - `acks='all'` (wait for all replicas)
 - `retries=3` (automatic retry on transient failures)
+- `linger_ms=10`, `batch_size=64 KiB`, `compression_type='lz4'`
 
 ## Monitoring
 
