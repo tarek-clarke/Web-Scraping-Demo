@@ -86,7 +86,7 @@ WORKDIR /app
 
 # Copy only build-relevant files first (cache-friendly: Python/doc changes
 # won't invalidate the expensive C++ extension build layer)
-COPY setup.py fast_ingest.cpp fast_ingest_hip.cpp /app/
+COPY setup.py fast_ingest.cpp /app/
 
 RUN cd /app && \
     python3 setup.py build_ext --inplace 2>&1 | tee /tmp/build.log && \
@@ -98,7 +98,7 @@ COPY . /app
 # ──────────────────────────────────────────────────────────────────────────
 # 6. Final configuration
 # ──────────────────────────────────────────────────────────────────────────
-ENV PYTHONPATH=/app:$PYTHONPATH
+ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
