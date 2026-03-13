@@ -72,9 +72,12 @@ ENV LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm-6.2.0/lib:/usr/local/lib:$LD_LIBRARY
 ENV PATH=/opt/rocm/bin:/opt/rocm/sbin:$PATH
 
 # HSA (Heterogeneous System Architecture) tuning
-ENV HSA_OVERRIDE_GFX_VERSION=11.0.0    # Force gfx1100 (7900 XT)
-ENV HSA_ENABLE_SDMA=0                  # Use compute instead of SDMA for stability
-ENV GPU_DEVICE_ORDINAL=0               # Default to first GPU
+# Force gfx1100 (7900 XT)
+ENV HSA_OVERRIDE_GFX_VERSION=11.0.0
+# Use compute instead of SDMA for stability
+ENV HSA_ENABLE_SDMA=0
+# Default to first GPU
+ENV GPU_DEVICE_ORDINAL=0
 
 # ──────────────────────────────────────────────────────────────────────────
 # 5. Build fast_ingest C++ extension (zero-copy GPU ingestion)
