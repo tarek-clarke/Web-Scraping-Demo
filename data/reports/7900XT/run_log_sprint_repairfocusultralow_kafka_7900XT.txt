@@ -6,7 +6,7 @@ string_in_numeric
 Loading BERT model on cuda:0 with FP16 precision…
 Schema embeddings shape: torch.Size([10, 384]) on cuda:0
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║ CADILLAC F1 — GPU-ACCELERATED TRIPLE-HEADER STRESS TEST                      ║
+║ TELEMETRY PLATFORM — GPU-ACCELERATED TRIPLE-HEADER STRESS TEST                      ║
 ║ Device: Radeon RX 7900 XT  |  VRAM: 19.98 GB  |  HIP: 7.0.51831              ║
 ║ Tuning: gpu_speed  |  semantic=0.40  |  sigma=3.50  |  breaker=8  |          ║
 ║ recovery=1.00s                                                               ║
@@ -175,13 +175,13 @@ Embedding Cache: 29,864 hits / 30,000 lookups (99.5% hit rate)
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
 GPU CSV exported → 
-data/reports/7900XT/cadillac_gpu_stress_test_results_sprint_repairfocusultralow_
+data/reports/7900XT/telemetry_gpu_stress_test_results_sprint_repairfocusultralow_
 kafka_7900XT.csv
 GPU JSON exported → 
-data/reports/7900XT/cadillac_gpu_stress_test_report_sprint_repairfocusultralow_k
+data/reports/7900XT/telemetry_gpu_stress_test_report_sprint_repairfocusultralow_k
 afka_7900XT.json
 GPU metrics exported → 
-data/reports/7900XT/cadillac_gpu_metrics_sprint_repairfocusultralow_kafka_7900XT
+data/reports/7900XT/telemetry_gpu_metrics_sprint_repairfocusultralow_kafka_7900XT
 .json
 GPU timing CSV exported → 
 data/reports/7900XT/gpu_resilience_timing_report_sprint_repairfocusultralow_kafk

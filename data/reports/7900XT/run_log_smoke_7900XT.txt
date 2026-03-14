@@ -6,7 +6,7 @@ bit_flip_low, schema_drift, duplicate_timestamp, sensor_dropout
 Loading BERT model on cuda:0 with FP16 precision…
 Schema embeddings shape: torch.Size([10, 384]) on cuda:0
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║ CADILLAC F1 — GPU-ACCELERATED TRIPLE-HEADER STRESS TEST                      ║
+║ TELEMETRY PLATFORM — GPU-ACCELERATED TRIPLE-HEADER STRESS TEST                      ║
 ║ Device: Radeon RX 7900 XT  |  VRAM: 19.98 GB  |  HIP: 7.0.51831              ║
 ║ Tuning: gpu_speed  |  semantic=0.40  |  sigma=3.50  |  breaker=8  |          ║
 ║ recovery=1.00s                                                               ║
@@ -17,7 +17,7 @@ Schema embeddings shape: torch.Size([10, 384]) on cuda:0
 ⠋ Overall ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━   0% 0:00:00
 🏁 Round 10 — Spielberg (Austria)
 ⠋ Overall ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━   0% 0:00:00⠋ Overall         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━   0% 0:00:00
-⠋   Spielberg FP1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━   0% 0:00:00/home/tarek/Documents/resilient-rap-framework/tools/cadillac_gpu_stress_test.py:
+⠋   Spielberg FP1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━   0% 0:00:00/home/tarek/Documents/resilient-rap-framework/tools/telemetry_gpu_stress_test.py:
 1089: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and
 scheduled for removal in a future version. Use timezone-aware objects to 
 represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, 
@@ -328,11 +328,11 @@ Embedding Cache: 277 hits / 300 lookups (92.3% hit rate)
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
 GPU CSV exported → 
-data/reports/7900XT/cadillac_gpu_stress_test_results_smoke_7900XT.csv
+data/reports/7900XT/telemetry_gpu_stress_test_results_smoke_7900XT.csv
 GPU JSON exported → 
-data/reports/7900XT/cadillac_gpu_stress_test_report_smoke_7900XT.json
+data/reports/7900XT/telemetry_gpu_stress_test_report_smoke_7900XT.json
 GPU metrics exported → 
-data/reports/7900XT/cadillac_gpu_metrics_smoke_7900XT.json
+data/reports/7900XT/telemetry_gpu_metrics_smoke_7900XT.json
 GPU timing CSV exported → 
 data/reports/7900XT/gpu_resilience_timing_report_smoke_7900XT.csv
 GPU timing JSON exported → 
