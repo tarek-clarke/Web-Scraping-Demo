@@ -26,10 +26,8 @@ A production-ready telemetry spine that processes race-weekend scale loads with 
 
 - [Quick Start (Ubuntu 24.04 + AMD ROCm)](#quick-start-ubuntu-2404--amd-rocm)
 - [Run Profiles](#run-profiles)
-  - [Baseline GPU Benchmarks](#baseline-gpu-benchmarks)
-  - [Kafka DLQ Routing Validation](#kafka-dlq-routing-validation)
+  - [Six-Benchmark Suite (Sprint + Weekend × 3 Profiles)](#six-benchmark-suite-sprint--weekend--3-profiles)
   - [Diagnostic Mode (Missed-Detection Attribution)](#diagnostic-mode-missed-detection-attribution)
-  - [Repair-Focused Validation](#repair-focused-validation)
 - [Validated Results](#validated-results)
 - [System Architecture](#system-architecture)
 - [Operational Capabilities](#operational-capabilities)
@@ -84,24 +82,27 @@ find . -name "*.db-shm" -type f -delete
 
 ## Run Profiles
 
-### Baseline GPU Benchmarks
+### Six-Benchmark Suite (Sprint + Weekend × 3 Profiles)
+
+These six commands are the canonical benchmark suite. The script auto-detects hardware and writes outputs to `data/reports/<hardware>/` with hardware-appended filenames (for example: `_sprint_M4`, `_sprint_12600K`, `_sprint_7900XT`, `_sprint_H200`).
 
 ```bash
-# Sprint benchmark (30,000 total packets)
+# 1) Standard profile — Sprint (30,000 total packets)
 source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint
 
-# Race weekend benchmark (3.6M total packets)
+# 2) Standard profile — Weekend (3.6M total packets)
 source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend
-```
+# 3) Repair-focus realistic — Sprint (@ chaos 0.005)
+source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.005 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-rf005 --kafka-topic-repaired dlq-repaired-sprint-rf005 --kafka-topic-non-repairable dlq-non-repairable-sprint-rf005 --output-suffix _sprint_repairfocusrealistic_kafka
 
-### Kafka DLQ Routing Validation
+# 4) Repair-focus realistic — Weekend (@ chaos 0.005)
+source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.005 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-rf005 --kafka-topic-repaired dlq-repaired-weekend-rf005 --kafka-topic-non-repairable dlq-non-repairable-weekend-rf005 --output-suffix _weekend_repairfocusrealistic_kafka
 
-```bash
-# Sprint + Kafka
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-005 --kafka-topic-repaired dlq-repaired-sprint-005 --kafka-topic-non-repairable dlq-non-repairable-sprint-005 --output-suffix _sprint_kafka
+# 5) Repair-focus ultralow — Sprint (@ chaos 0.001)
+source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.001 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-rf001 --kafka-topic-repaired dlq-repaired-sprint-rf001 --kafka-topic-non-repairable dlq-non-repairable-sprint-rf001 --output-suffix _sprint_repairfocusultralow_kafka
 
-# Weekend + Kafka
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-005 --kafka-topic-repaired dlq-repaired-weekend-005 --kafka-topic-non-repairable dlq-non-repairable-weekend-005 --output-suffix _weekend_kafka
+# 6) Repair-focus ultralow — Weekend (@ chaos 0.001)
+source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.001 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-rf001 --kafka-topic-repaired dlq-repaired-weekend-rf001 --kafka-topic-non-repairable dlq-non-repairable-weekend-rf001 --output-suffix _weekend_repairfocusultralow_kafka
 ```
 
 ### Diagnostic Mode (Missed-Detection Attribution)
@@ -142,21 +143,6 @@ From `missed_detection_analysis_diagnostic_weekend.csv`:
   - `g_force_lateral + bit_flip_low`: `61 / 1,583` (`3.85%`)
 
 Interpretation: the remaining gap is concentrated in low-bit-flip behavior on a narrow sensor subset, not uniformly distributed across sessions.
-
-### Repair-Focused Validation
-
-This profile stresses repairability/runtime with:
-- `schema_drift`
-- `duplicate_timestamp`
-- `string_in_numeric`
-
-```bash
-# Sprint @ chaos 0.005
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.005 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-rf005 --kafka-topic-repaired dlq-repaired-sprint-rf005 --kafka-topic-non-repairable dlq-non-repairable-sprint-rf005 --output-suffix _sprint_repairfocusrealistic_kafka
-
-# Weekend @ chaos 0.005
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.005 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-rf005 --kafka-topic-repaired dlq-repaired-weekend-rf005 --kafka-topic-non-repairable dlq-non-repairable-weekend-rf005 --output-suffix _weekend_repairfocusrealistic_kafka
-```
 
 ---
 
@@ -306,69 +292,6 @@ buffer = TracksideEdgeBuffer(
  **Full guide:** [docs/KAFKA_INTEGRATION.md](docs/KAFKA_INTEGRATION.md)  
  **Example:** [examples/kafka_integration_example.py](examples/kafka_integration_example.py)
 
-## Quick Start (Ubuntu 24.04 + AMD ROCm)
-
-```bash
-# 0. Prerequisites
-# Tested on Ubuntu 24.04 LTS (Noble)
-sudo apt update && sudo apt install -y python3-venv
-
-# 1. Environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# 2. Dependencies
-python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
-# Force ROCm wheels on AMD (prevents accidental CUDA wheel install)
-python3 -m pip uninstall -y torch torchvision torchaudio
-python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2.4
-
-# NVIDIA/CUDA fallback (keep commented unless running on NVIDIA hardware)
-# python3 -m pip uninstall -y torch torchvision torchaudio
-# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
-
-# 3. Build accelerated ingest
-python3 setup.py build_ext --inplace
-
-# 4. Verify Linux GPU path
-PYTHONPATH="." python3 -c "from archive.modules.translator import TelemetryIngestor; print('fast_ingest available:', TelemetryIngestor.is_accelerated())"
-python3 -c "import torch; print('CUDA/ROCm available:', torch.cuda.is_available()); print('Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
-```
-
----
-
-```bash
-# 1. Kill any lingering python processes holding the DB lock
-pkill -f cadillac_gpu_stress_test.py
-
-# 2. Find and obliterate the SQLite files wherever they are
-find . -name "*.db" -type f -delete
-find . -name "*.db-wal" -type f -delete
-find . -name "*.db-shm" -type f -delete
-
-# 3. Run a tiny test just to verify the DLQ starts at 0
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 100 --chaos 0.05
-```
-
----
-
-```bash
-# Sprint benchmark (30,000 total packets)
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint
-
-# Race weekend benchmark (3.6M total packets)
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend
-
-# Sprint benchmark + Kafka DLQ routing validation
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-005 --kafka-topic-repaired dlq-repaired-sprint-005 --kafka-topic-non-repairable dlq-non-repairable-sprint-005 --output-suffix _sprint_kafka
-
-# Weekend benchmark + Kafka DLQ routing validation
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-005 --kafka-topic-repaired dlq-repaired-weekend-005 --kafka-topic-non-repairable dlq-non-repairable-weekend-005 --output-suffix _weekend_kafka
-```
-
----
-
 ## GPU Benchmark Results (Validated on Ubuntu 24.04)
 
 **Hardware:** AMD Radeon RX 7900 XT (20GB VRAM) | ROCm 6.2 | gfx1100 architecture
@@ -448,21 +371,7 @@ This profile stress-tests repairability and deterministic runtime by injecting o
 - `duplicate_timestamp`
 - `string_in_numeric`
 
-Run commands (Ubuntu 24.04 + ROCm, repair-focused profile):
-
-```bash
-# Sprint @ chaos 0.005
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.005 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-rf005 --kafka-topic-repaired dlq-repaired-sprint-rf005 --kafka-topic-non-repairable dlq-non-repairable-sprint-rf005 --output-suffix _sprint_repairfocusrealistic_kafka
-
-# Weekend @ chaos 0.005
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.005 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-rf005 --kafka-topic-repaired dlq-repaired-weekend-rf005 --kafka-topic-non-repairable dlq-non-repairable-weekend-rf005 --output-suffix _weekend_repairfocusrealistic_kafka
-
-# Sprint @ chaos 0.001
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.001 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-rf001 --kafka-topic-repaired dlq-repaired-sprint-rf001 --kafka-topic-non-repairable dlq-non-repairable-sprint-rf001 --output-suffix _sprint_repairfocusultralow_kafka
-
-# Weekend @ chaos 0.001
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.001 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-rf001 --kafka-topic-repaired dlq-repaired-weekend-rf001 --kafka-topic-non-repairable dlq-non-repairable-weekend-rf001 --output-suffix _weekend_repairfocusultralow_kafka
-```
+Commands are listed once in the [Six-Benchmark Suite (Sprint + Weekend × 3 Profiles)](#six-benchmark-suite-sprint--weekend--3-profiles).
 
 Expected behavior:
 - Full anomaly detection coverage from pre-breaker validation + GPU reconciliation (99.66%+ in the mixed-chaos runs, 100.00% in the repair-focused runs below)
