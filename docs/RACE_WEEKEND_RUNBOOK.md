@@ -1,6 +1,6 @@
 # Race Weekend Runbook
 
-**System:** Resilient RAP Framework — Cadillac F1 Telemetry Pipeline  
+**System:** Resilient RAP Framework — Telemetry Platform Telemetry Pipeline  
 **Version:** 2.0  
 **Maintained by:** Tarek Clarke
 
@@ -35,7 +35,7 @@ Complete **≥ 2 hours** before green flag.
 | 6 | Audit chain intact | `python -c "from src.audit_log import AuditLog; print(AuditLog().verify_chain())"` | `True` |
 | 7 | Geo-fence config loaded | `python -c "from src.geo_fence import GeoFence; GeoFence().validate_config()"` | No exception |
 | 8 | Circuit breaker CLOSED | `python -c "from src.circuit_breaker import TelemetryCircuitBreaker; print(TelemetryCircuitBreaker().state)"` | `CLOSED` |
-| 9 | SLO baseline run | `python tools/cadillac_stress_test.py --sessions 1 --packets 1000` | All SLOs PASS |
+| 9 | SLO baseline run | `python tools/telemetry_stress_test.py --sessions 1 --packets 1000` | All SLOs PASS |
 | 10 | Health monitor starts | `python tools/health_monitor.py` | Dashboard renders |
 
 ---
@@ -256,7 +256,7 @@ print('Audit chain intact:', ok)
 "
 
 # 5. Generate final race report
-python tools/cadillac_stress_test.py --report-only
+python tools/telemetry_stress_test.py --report-only
 
 # 6. Archive reports
 cp -r data/reports/ archive/race_$(date +%Y%m%d)/

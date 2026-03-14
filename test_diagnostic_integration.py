@@ -30,7 +30,7 @@ def test_imports():
         return False
 
     try:
-        from tools.cadillac_gpu_stress_test import DiagnosticFaultTracker
+        from tools.telemetry_gpu_stress_test import DiagnosticFaultTracker
         print("✅ DiagnosticFaultTracker imported successfully")
         
         # Try to instantiate
@@ -73,14 +73,14 @@ def test_argparse():
     """Test that --diagnostic flag is recognized."""
     try:
         import argparse
-        from tools.cadillac_gpu_stress_test import main
+        from tools.telemetry_gpu_stress_test import main
         
         # Verify that --diagnostic appears in the stress test's argument parser
         # Can't easily test argparse without running main, but we can check the help text
         print("✅ Diagnostic integration test: checking for --diagnostic flag...")
         
         # Read the file to verify the flag is in there
-        stress_test_path = Path(__file__).parent / "tools" / "cadillac_gpu_stress_test.py"
+        stress_test_path = Path(__file__).parent / "tools" / "telemetry_gpu_stress_test.py"
         content = stress_test_path.read_text()
         
         if '"--diagnostic"' in content and 'action="store_true"' in content:
@@ -90,7 +90,7 @@ def test_argparse():
             return False
             
         if "self.diagnostic = diagnostic" in content:
-            print("✅ diagnostic parameter passed to CadillacGPUStressTest.__init__")
+            print("✅ diagnostic parameter passed to TelemetryGPUStressTest.__init__")
         else:
             print("❌ diagnostic parameter not found in __init__")
             return False
@@ -105,7 +105,7 @@ def test_argparse():
 def test_exports():
     """Test that export functions reference missed_detection_analysis."""
     try:
-        stress_test_path = Path(__file__).parent / "tools" / "cadillac_gpu_stress_test.py"
+        stress_test_path = Path(__file__).parent / "tools" / "telemetry_gpu_stress_test.py"
         content = stress_test_path.read_text()
         
         if "missed_detection_analysis" in content:

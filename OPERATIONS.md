@@ -1,4 +1,4 @@
-# Operations & Failure Runbook - Cadillac F1 Telemetry Spine
+# Operations & Failure Runbook - Telemetry Platform Telemetry Spine
 
 ## Recovery Objectives
 
@@ -143,7 +143,7 @@ v = SchemaValidator(value_ranges={
 - Stress test validates 15-session sustained throughput:
 
 ```bash
-python tools/cadillac_stress_test.py --showcase
+python tools/telemetry_stress_test.py --showcase
 ```
 
 ---
@@ -155,7 +155,7 @@ python tools/cadillac_stress_test.py --showcase
 python tools/health_monitor.py --interval 2
 
 # Run full stress test
-python tools/cadillac_stress_test.py --packets 5000 --chaos
+python tools/telemetry_stress_test.py --packets 5000 --chaos
 
 # Verify audit chain integrity
 python -c "from src.audit_log import ComplianceAuditLog; print(ComplianceAuditLog().verify_chain())"

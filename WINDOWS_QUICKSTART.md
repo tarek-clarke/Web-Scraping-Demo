@@ -18,7 +18,7 @@ powershell -ExecutionPolicy Bypass -File setup_windows_hip.ps1
 powershell -ExecutionPolicy Bypass -File verify_windows_hip.ps1
 
 # 4. Run pipeline
-python tools/cadillac_gpu_stress_test.py --iterations 100
+python tools/telemetry_gpu_stress_test.py --iterations 100
 ```
 
 ## Scripts
@@ -235,12 +235,12 @@ Once setup is verified, you can run:
 
 ### Quick GPU Stress Test
 ```powershell
-python tools/cadillac_gpu_stress_test.py --iterations 100 --batch-size 128
+python tools/telemetry_gpu_stress_test.py --iterations 100 --batch-size 128
 ```
 
 Expected output:
 ```
-Cadillac F1 GPU Stress Test
+Telemetry Platform GPU Stress Test
 ===========================
 Iteration 100/100
   Packets: 12800

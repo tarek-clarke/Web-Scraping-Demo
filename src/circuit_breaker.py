@@ -6,7 +6,7 @@
 """
 Circuit-Breaker Pattern for F1 Telemetry Streams
 ==================================================
-Developed for the 2026 Cadillac F1 Initiative.
+Developed for the 2026 Telemetry Platform Initiative.
 
 Implements a three-state circuit breaker (CLOSED → OPEN → HALF_OPEN) that
 protects the simulation-ready data pipeline from corrupted or drifted
@@ -833,7 +833,7 @@ class DeadLetterQueue:
 # ---------------------------------------------------------------------------
 class TelemetryCircuitBreaker:
     """
-    Production circuit breaker for the Cadillac F1 telemetry spine.
+    Production circuit breaker for the Telemetry Platform telemetry spine.
 
     Parameters
     ----------

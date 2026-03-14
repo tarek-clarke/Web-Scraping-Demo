@@ -148,7 +148,7 @@ class EnhancedCadenceMonitor:
 ```bash
 # Test different sigma values
 for sigma in 2.5 2.0 1.5; do
-  python tools/cadillac_gpu_stress_test.py \
+  python tools/telemetry_gpu_stress_test.py \
     --packets 60000 \
     --chaos 0.12 \
     --chaos-profile balanced \

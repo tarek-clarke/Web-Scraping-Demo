@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Cadillac F1 — Full Showcase Runner
+# Telemetry Platform — Full Showcase Runner
 # =============================================================================
 # One-click execution of every subsystem in the telemetry spine.
-# Designed for live demos to the Cadillac F1 engineering team.
+# Designed for live demos to the Telemetry Platform engineering team.
 #
 # Usage:
-#   chmod +x tools/run_cadillac_showcase.sh
-#   ./tools/run_cadillac_showcase.sh
+#   chmod +x tools/run_telemetry_showcase.sh
+#   ./tools/run_telemetry_showcase.sh
 #
 # What it runs (in order):
 #   1. Unit tests       — 31 tests covering every new module
@@ -46,7 +46,7 @@ header() {
   echo ""
   echo -e "${RED}${BOLD}"
   echo "     ╔═══════════════════════════════════════════════════════════╗"
-  echo "     ║           CADILLAC F1 — TELEMETRY SPINE SHOWCASE         ║"
+  echo "     ║           TELEMETRY PLATFORM — TELEMETRY SPINE SHOWCASE         ║"
   echo "     ║       The Defensive D · Research-to-Production Spine     ║"
   echo "     ╚═══════════════════════════════════════════════════════════╝"
   echo -e "${RESET}"
@@ -75,12 +75,12 @@ run_stage() {
 header
 
 # --- Stage 1: Unit Tests ---
-run_stage "Cadillac Module Tests (31 tests)" \
-  python3 -m pytest tests/test_cadillac_modules.py -v --tb=short
+run_stage "Telemetry Module Tests (31 tests)" \
+  python3 -m pytest tests/test_telemetry_modules.py -v --tb=short
 
 # --- Stage 2: Triple-Header Stress Test (showcase mode) ---
 run_stage "Triple-Header Stress Test (Showcase)" \
-  python3 tools/cadillac_stress_test.py --showcase
+  python3 tools/telemetry_stress_test.py --showcase
 
 # --- Stage 3: Pit Wall Health Monitor (15s demo) ---
 run_stage "Pit Wall Health Monitor (15s live demo)" \

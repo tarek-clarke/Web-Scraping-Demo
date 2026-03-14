@@ -6,7 +6,7 @@
 """
 Immutable Compliance Audit Log
 ================================
-Developed for the 2026 Cadillac F1 Initiative.
+Developed for the 2026 Telemetry Platform Initiative.
 
 Provides a tamper-evident, append-only audit trail for every data-handling
 decision made by the geo-fence, circuit breaker, and edge buffer.  Each

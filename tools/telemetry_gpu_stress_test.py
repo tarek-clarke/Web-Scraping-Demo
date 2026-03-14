@@ -4,11 +4,11 @@
 # See LICENSE for full details.
 
 """
-Cadillac F1 GPU-Accelerated Triple-Header Stress Test
+Telemetry Platform GPU-Accelerated Triple-Header Stress Test
 =======================================================
-Developed for the 2026 Cadillac F1 Initiative.
+Developed for the 2026 Telemetry Platform Initiative.
 
-**GPU-parallel companion** to the CPU-only ``cadillac_stress_test.py``.
+**GPU-parallel companion** to the CPU-only ``telemetry_stress_test.py``.
 
 This variant adds GPU-accelerated workloads that exercise the AMD Radeon
 RX 7900 XT (gfx1100) via ROCm / HIP through PyTorch:
@@ -31,9 +31,9 @@ runs exactly as the CPU test does, so results are directly comparable.
 
 Usage
 -----
-    PYTHONPATH="." python tools/cadillac_gpu_stress_test.py
-    PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --packets 5000 --chaos 0.20
-    PYTHONPATH="." python tools/cadillac_gpu_stress_test.py --showcase
+    PYTHONPATH="." python tools/telemetry_gpu_stress_test.py
+    PYTHONPATH="." python tools/telemetry_gpu_stress_test.py --packets 5000 --chaos 0.20
+    PYTHONPATH="." python tools/telemetry_gpu_stress_test.py --showcase
 
 Author: Tarek Clarke (PhD Candidate — TalTech)
 """
@@ -920,7 +920,7 @@ class GPUHashVerifier:
 # ---------------------------------------------------------------------------
 # GPU Stress Test Runner
 # ---------------------------------------------------------------------------
-class CadillacGPUStressTest:
+class TelemetryGPUStressTest:
     """
     GPU-accelerated Triple-Header stress test.
 
@@ -1097,7 +1097,7 @@ class CadillacGPUStressTest:
         """Execute the GPU-accelerated Triple-Header stress test."""
         gpu_label = self._gpu_info.get("name", str(self.device))
         console.print(Panel(
-            "[bold bright_white]CADILLAC F1 — GPU-ACCELERATED TRIPLE-HEADER STRESS TEST[/bold bright_white]\n"
+            "[bold bright_white]TELEMETRY PLATFORM — GPU-ACCELERATED TRIPLE-HEADER STRESS TEST[/bold bright_white]\n"
             f"[dim]Device: {gpu_label}  |  "
             f"VRAM: {self._gpu_info.get('vram_gb', '?')} GB  |  "
             f"HIP: {self._gpu_info.get('hip_version', 'N/A')}[/dim]\n"
@@ -1916,7 +1916,7 @@ class CadillacGPUStressTest:
     def _export_results(self) -> None:
         """Write GPU-specific results to CSV and JSON."""
         # --- Session CSV ---
-        csv_path = self.output_dir / f"cadillac_gpu_stress_test_results{self.output_suffix}.csv"
+        csv_path = self.output_dir / f"telemetry_gpu_stress_test_results{self.output_suffix}.csv"
         fieldnames = [
             "session_name", "circuit", "packets_sent", "packets_accepted",
             "packets_rejected", "chaos_injected", "breaker_trips",
@@ -1944,13 +1944,13 @@ class CadillacGPUStressTest:
         console.print(f"\n[dim]GPU CSV exported → {csv_path}[/dim]")
 
         # --- Full JSON report ---
-        json_path = self.output_dir / f"cadillac_gpu_stress_test_report{self.output_suffix}.json"
+        json_path = self.output_dir / f"telemetry_gpu_stress_test_report{self.output_suffix}.json"
         with open(json_path, "w") as f:
             json.dump(asdict(self.report), f, indent=2, default=str)
         console.print(f"[dim]GPU JSON exported → {json_path}[/dim]")
 
         # --- GPU metrics standalone JSON ---
-        gpu_json_path = self.output_dir / f"cadillac_gpu_metrics{self.output_suffix}.json"
+        gpu_json_path = self.output_dir / f"telemetry_gpu_metrics{self.output_suffix}.json"
         with open(gpu_json_path, "w") as f:
             json.dump(asdict(self.report.gpu_metrics), f, indent=2, default=str)
         console.print(f"[dim]GPU metrics exported → {gpu_json_path}[/dim]")
@@ -2068,7 +2068,7 @@ class CadillacGPUStressTest:
 # ---------------------------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(
-        description="Cadillac F1 GPU-Accelerated Triple-Header Stress Test"
+        description="Telemetry Platform GPU-Accelerated Triple-Header Stress Test"
     )
     parser.add_argument(
         "--packets", type=int, default=1000,
@@ -2144,10 +2144,10 @@ def main():
         threshold = args.threshold
 
     if not args.preserve_sqlite:
-        deleted = CadillacGPUStressTest.clear_sqlite_artifacts()
+        deleted = TelemetryGPUStressTest.clear_sqlite_artifacts()
         console.print(f"[dim]SQLite pre-run cleanup complete → removed {deleted} file(s)[/dim]")
 
-    test = CadillacGPUStressTest(
+    test = TelemetryGPUStressTest(
         packets_per_session=packets,
         chaos_rate=chaos,
         chaos_profile=args.chaos_profile,

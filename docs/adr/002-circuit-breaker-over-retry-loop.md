@@ -54,4 +54,4 @@ a configurable failure threshold and cooldown window.
 
 - Martin Fowler, "Circuit Breaker": https://martinfowler.com/bliki/CircuitBreaker.html
 - `src/circuit_breaker.py` — implementation
-- `tools/cadillac_stress_test.py` — validation harness
+- `tools/telemetry_stress_test.py` — validation harness

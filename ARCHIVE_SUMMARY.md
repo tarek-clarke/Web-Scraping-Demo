@@ -5,8 +5,8 @@ This document tracks files that were moved to the `archive/` folder because they
 ## Stress Test Scripts (Active)
 
 The following stress test scripts remain active:
-- `tools/cadillac_gpu_stress_test.py` - GPU-accelerated stress test
-- `tools/cadillac_stress_test.py` - CPU stress test  
+- `tools/telemetry_gpu_stress_test.py` - GPU-accelerated stress test
+- `tools/telemetry_stress_test.py` - CPU stress test  
 - `tools/stress_test_engine_temp.py` - Engine temperature stress test
 
 ## Dependencies Used by Stress Tests
@@ -25,8 +25,8 @@ The stress tests use only these modules from the codebase:
 - `sports/ingestion_sports.py` - SportsIngestor (used by stress_test_engine_temp.py)
 
 ### From `tests/`:
-- `chaos_engine.py` - Used by test_cadillac_modules.py
-- `test_cadillac_modules.py` - Tests for stress test modules
+- `chaos_engine.py` - Used by test_telemetry_modules.py
+- `test_telemetry_modules.py` - Tests for stress test modules
 - `test_engine_temp_stress.py` - Tests for engine temp stress
 
 ## Archived Files (36 files)
@@ -64,7 +64,7 @@ Files moved to `archive/` with original folder structure maintained:
 - `health_monitor.py`
 - `profile_embeddings.py`
 - `replay_stream.py`
-- `run_cadillac_showcase.sh`
+- `run_telemetry_showcase.sh`
 - `run_showcase_and_publish.sh`
 - `tui_replayer.py`
 - `validate_p99_latency.py`

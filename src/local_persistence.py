@@ -6,7 +6,7 @@
 """
 Local-First Persistence Layer (Trackside Edge Buffer)
 ======================================================
-Developed for the 2026 Cadillac F1 Initiative.
+Developed for the 2026 Telemetry Platform Initiative.
 
 Guarantees zero data loss during trackside connectivity drops by persisting
 every telemetry packet to a local SQLite WAL database before attempting the

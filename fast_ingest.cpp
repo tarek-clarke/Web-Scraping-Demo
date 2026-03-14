@@ -17,7 +17,7 @@
  * 4. ROCm/HIP first: compiled with AMD clang / hipcc through PyTorch's
  *    CUDAExtension shim, which routes CUDA APIs → HIP automatically.
  *
- * Telemetry packet layout (10 channels, defined in cadillac_gpu_stress_test.py)
+ * Telemetry packet layout (10 channels, defined in telemetry_gpu_stress_test.py)
  * -----------------------------------------------------------------------
  *  idx  sensor           lo       hi
  *   0   speed            80.0    360.0

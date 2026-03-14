@@ -1,4 +1,4 @@
-# Module Summary - Cadillac F1 Telemetry Spine
+# Module Summary - Telemetry Platform Telemetry Spine
 
 ## Core Pipeline Modules
 
@@ -111,7 +111,7 @@
 
 ---
 
-### **tools/cadillac_stress_test.py** (605 lines)
+### **tools/telemetry_stress_test.py** (605 lines)
 **Purpose:** Triple-header stress test simulating real F1 load with chaos injection.
 
 **Simulates:**
@@ -173,7 +173,7 @@
 
 **Architecture:**
 - 3 services: pipeline (main), health-monitor (observability), edge-buffer (persistence)
-- Internal bridge network (`cadillac-internal`) — no external exposure
+- Internal bridge network (`telemetry-internal`) — no external exposure
 - CPU/memory limits enforced (Budget Cap discipline)
 - Secrets NOT in image (env vars only)
 
@@ -183,7 +183,7 @@
 
 ---
 
-### **tests/test_cadillac_modules.py** (388 lines, 59 tests)
+### **tests/test_telemetry_modules.py** (388 lines, 59 tests)
 **Coverage:**
 
 | Module | Tests | Coverage |
@@ -211,7 +211,7 @@
 | *What stops bad data from corrupting analysis?* | Three-state circuit breaker + SchemaValidator + DLQ reprocessing | circuit_breaker.py |
 | *How do we handle GDPR?* | Per-circuit geo-fence, immutable audit log, verifiable chain | geo_fence.py + audit_log.py |
 | *How do we trace failures?* | Request-ID correlation + per-stage latency tracking | tracing.py |
-| *How do we prove it works?* | Chaos injection stress test, 59 unit/integration tests, resilience scoring | cadillac_stress_test.py + tests/ |
+| *How do we prove it works?* | Chaos injection stress test, 59 unit/integration tests, resilience scoring | telemetry_stress_test.py + tests/ |
 | *What happens at 2am on race day?* | Health monitor on one screen, alert thresholds, auto-recovery | health_monitor.py |
 
 

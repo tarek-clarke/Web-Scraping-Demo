@@ -63,7 +63,7 @@ class BaseIngestor(ABC):
         # Initialize the Semantic Translator (ML Engine)
         self.translator = SemanticTranslator(target_schema)
 
-        # --- Cadillac F1 Production Layers (opt-in) ---
+        # --- Telemetry Platform Production Layers (opt-in) ---
         self.circuit_breaker = None
         if enable_circuit_breaker:
             from src.circuit_breaker import TelemetryCircuitBreaker

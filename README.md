@@ -1,4 +1,4 @@
-# Cadillac F1 Telemetry Platform
+# Telemetry Platform Telemetry Platform
 
 [![Status](https://img.shields.io/badge/Status-Production--Ready-brightgreen)](.)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-red.svg)
@@ -72,7 +72,7 @@ python3 -c "import torch; print('CUDA/ROCm available:', torch.cuda.is_available(
 If SQLite lock artifacts exist from prior runs:
 
 ```bash
-pkill -f cadillac_gpu_stress_test.py
+pkill -f telemetry_gpu_stress_test.py
 find . -name "*.db" -type f -delete
 find . -name "*.db-wal" -type f -delete
 find . -name "*.db-shm" -type f -delete
@@ -88,28 +88,28 @@ These six commands are the canonical benchmark suite. The script auto-detects ha
 
 ```bash
 # 1) Standard profile — Sprint (30,000 total packets)
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint
+source .venv/bin/activate && PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint
 
 # 2) Standard profile — Weekend (3.6M total packets)
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend
+source .venv/bin/activate && PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend
 # 3) Repair-focus realistic — Sprint (@ chaos 0.005)
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.005 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-rf005 --kafka-topic-repaired dlq-repaired-sprint-rf005 --kafka-topic-non-repairable dlq-non-repairable-sprint-rf005 --output-suffix _sprint_repairfocusrealistic_kafka
+source .venv/bin/activate && PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.005 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-rf005 --kafka-topic-repaired dlq-repaired-sprint-rf005 --kafka-topic-non-repairable dlq-non-repairable-sprint-rf005 --output-suffix _sprint_repairfocusrealistic_kafka
 
 # 4) Repair-focus realistic — Weekend (@ chaos 0.005)
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.005 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-rf005 --kafka-topic-repaired dlq-repaired-weekend-rf005 --kafka-topic-non-repairable dlq-non-repairable-weekend-rf005 --output-suffix _weekend_repairfocusrealistic_kafka
+source .venv/bin/activate && PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 240000 --chaos 0.005 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-rf005 --kafka-topic-repaired dlq-repaired-weekend-rf005 --kafka-topic-non-repairable dlq-non-repairable-weekend-rf005 --output-suffix _weekend_repairfocusrealistic_kafka
 
 # 5) Repair-focus ultralow — Sprint (@ chaos 0.001)
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.001 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-rf001 --kafka-topic-repaired dlq-repaired-sprint-rf001 --kafka-topic-non-repairable dlq-non-repairable-sprint-rf001 --output-suffix _sprint_repairfocusultralow_kafka
+source .venv/bin/activate && PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.001 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-sprint-rf001 --kafka-topic-repaired dlq-repaired-sprint-rf001 --kafka-topic-non-repairable dlq-non-repairable-sprint-rf001 --output-suffix _sprint_repairfocusultralow_kafka
 
 # 6) Repair-focus ultralow — Weekend (@ chaos 0.001)
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 240000 --chaos 0.001 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-rf001 --kafka-topic-repaired dlq-repaired-weekend-rf001 --kafka-topic-non-repairable dlq-non-repairable-weekend-rf001 --output-suffix _weekend_repairfocusultralow_kafka
+source .venv/bin/activate && PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 240000 --chaos 0.001 --chaos-profile repair_focus --enable-kafka --kafka-servers localhost:9092 --kafka-topic-repairable dlq-repairable-weekend-rf001 --kafka-topic-repaired dlq-repaired-weekend-rf001 --kafka-topic-non-repairable dlq-non-repairable-weekend-rf001 --output-suffix _weekend_repairfocusultralow_kafka
 ```
 
 ### Diagnostic Mode (Missed-Detection Attribution)
 
 ```bash
 # Diagnostic run (balanced profile)
-source .venv/bin/activate && PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 60000 --chaos 0.12 --chaos-profile balanced --diagnostic --output-suffix _diagnostic_weekend
+source .venv/bin/activate && PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 60000 --chaos 0.12 --chaos-profile balanced --diagnostic --output-suffix _diagnostic_weekend
 
 # Analyze diagnostic JSON in terminal
 source .venv/bin/activate && python3 tools/sensor_fault_diagnostic.py --input data/reports/<hardware>/missed_detection_analysis_diagnostic_weekend_<hardware>.json
@@ -182,7 +182,7 @@ Interpretation: the remaining gap is concentrated in low-bit-flip behavior on a 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      GPU STRESS TEST SCRIPT                     │
-│              tools/cadillac_gpu_stress_test.py                  │
+│              tools/telemetry_gpu_stress_test.py                  │
 │  • BERT Semantic Reconciliation (GPU-accelerated)               │
 │  • Tensor Anomaly Detection (z-score > 3σ)                      │
 │  • Batch Hash-Chain Provenance (SHA-256)                        │
@@ -255,7 +255,7 @@ flowchart LR
 
 | Component | Purpose | Lines | Status |
 |-----------|---------|-------|--------|
-| **tools/cadillac_gpu_stress_test.py** | GPU stress test orchestrator | 1,542 | ✅ Active |
+| **tools/telemetry_gpu_stress_test.py** | GPU stress test orchestrator | 1,542 | ✅ Active |
 | **src/circuit_breaker.py** | Circuit breaker + DLQ | 532 | ✅ Active |
 | **src/local_persistence.py** | Edge buffer (SQLite WAL + Kafka) | 490 | ✅ Active |
 | **src/geo_fence.py** | GDPR compliance | 389 | ✅ Active |
@@ -460,7 +460,7 @@ docker-compose -f docker-compose.production.yml up -d
 PYTHONPATH="." pytest tests/ -v
 
 # CPU stress test
-PYTHONPATH="." python tools/cadillac_stress_test.py --packets 5000 --chaos 0.20
+PYTHONPATH="." python tools/telemetry_stress_test.py --packets 5000 --chaos 0.20
 
 # Engine temperature anomaly test
 PYTHONPATH="." python tools/stress_test_engine_temp.py

@@ -4,9 +4,9 @@
 # See LICENSE for full details.
 
 """
-Cadillac F1 Triple-Header Stress Test
+Telemetry Platform Triple-Header Stress Test
 =======================================
-Developed for the 2026 Cadillac F1 Initiative.
+Developed for the 2026 Telemetry Platform Initiative.
 
 Simulates the most punishing load profile in the F1 calendar: three
 consecutive race weekends (e.g. Spielberg → Silverstone → Budapest)
@@ -24,8 +24,8 @@ The test validates:
 
 Usage
 -----
-    PYTHONPATH="." python tools/cadillac_stress_test.py
-    PYTHONPATH="." python tools/cadillac_stress_test.py --packets 5000 --chaos 0.20
+    PYTHONPATH="." python tools/telemetry_stress_test.py
+    PYTHONPATH="." python tools/telemetry_stress_test.py --packets 5000 --chaos 0.20
 
 Author: Tarek Clarke (PhD Candidate — TalTech)
 """
@@ -322,10 +322,10 @@ class StressTestReport:
 # ---------------------------------------------------------------------------
 # Stress Test Runner
 # ---------------------------------------------------------------------------
-class CadillacStressTest:
+class TelemetryStressTest:
     """
     Triple-header stress test that exercises every layer of the
-    Cadillac F1 telemetry spine.
+    Telemetry Platform telemetry spine.
     """
 
     def __init__(
@@ -378,7 +378,7 @@ class CadillacStressTest:
     def run(self) -> StressTestReport:
         """Execute the full Triple-Header stress test."""
         console.print(Panel(
-            "[bold bright_white]CADILLAC F1 — TRIPLE-HEADER STRESS TEST[/bold bright_white]\n"
+            "[bold bright_white]TELEMETRY PLATFORM — TRIPLE-HEADER STRESS TEST[/bold bright_white]\n"
             "[dim]Simulating 3 consecutive race weekends with randomised chaos injection[/dim]",
             style="on dark_red",
             box=box.DOUBLE_EDGE,
@@ -923,7 +923,7 @@ class CadillacStressTest:
     def _export_results(self) -> None:
         """Write results to CSV and JSON for downstream consumption."""
         # --- CSV ---
-        csv_path = self.output_dir / f"cadillac_stress_test_results{self.output_suffix}.csv"
+        csv_path = self.output_dir / f"telemetry_stress_test_results{self.output_suffix}.csv"
         with open(csv_path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=[
                 "session_name", "circuit", "packets_sent", "packets_accepted",
@@ -938,7 +938,7 @@ class CadillacStressTest:
         console.print(f"\n[dim]CSV exported → {csv_path}[/dim]")
 
         # --- JSON ---
-        json_path = self.output_dir / f"cadillac_stress_test_report{self.output_suffix}.json"
+        json_path = self.output_dir / f"telemetry_stress_test_report{self.output_suffix}.json"
         with open(json_path, "w") as f:
             json.dump(asdict(self.report), f, indent=2, default=str)
         console.print(f"[dim]JSON exported → {json_path}[/dim]")
@@ -986,7 +986,7 @@ class CadillacStressTest:
 # ---------------------------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(
-        description="Cadillac F1 Triple-Header Stress Test"
+        description="Telemetry Platform Triple-Header Stress Test"
     )
     parser.add_argument(
         "--packets", type=int, default=1000,
@@ -1020,7 +1020,7 @@ def main():
         chaos = args.chaos
         threshold = args.threshold
 
-    test = CadillacStressTest(
+    test = TelemetryStressTest(
         packets_per_session=packets,
         chaos_rate=chaos,
         breaker_threshold=threshold,

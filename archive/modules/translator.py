@@ -9,7 +9,7 @@ Two classes are exported:
 
   SemanticTranslator
       BERT-based fuzzy matcher that maps messy / drifted sensor field names
-      (e.g. "engine_temp_v2", "RPM_raw") to the canonical Cadillac F1 schema.
+      (e.g. "engine_temp_v2", "RPM_raw") to the canonical Telemetry Platform schema.
       Unchanged from the original design; operates on string inputs.
 
   TelemetryIngestor
@@ -66,7 +66,7 @@ except ImportError:
     )
 
 # ---------------------------------------------------------------------------
-# Sector sensor layout — matches SENSORS in cadillac_gpu_stress_test.py
+# Sector sensor layout — matches SENSORS in telemetry_gpu_stress_test.py
 # ---------------------------------------------------------------------------
 # Order   Sensor            lo        hi
 # ──────  ────────────────  ────────  ────────
@@ -99,7 +99,7 @@ SENSOR_HI: List[float] = [360.0, 15500.0, 100.0, 1100.0,  130.0,
 
 class TelemetryIngestor:
     """
-    High-performance numeric telemetry ingestion for Cadillac F1 sensors.
+    High-performance numeric telemetry ingestion for Telemetry Platform sensors.
 
     Uses the ``fast_ingest`` C++ extension when available to achieve:
       • Zero redundant memcpy  — ``torch::from_blob`` wraps hipHostMalloc buffer.
@@ -116,7 +116,7 @@ class TelemetryIngestor:
         Target device for tensors.  Defaults to ``cuda`` if available.
     lo : list[float], optional
         Per-channel physical minimum for normalization.
-        Defaults to :data:`SENSOR_LO` (Cadillac F1 10-sensor layout).
+        Defaults to :data:`SENSOR_LO` (Telemetry Platform 10-sensor layout).
     hi : list[float], optional
         Per-channel physical maximum for normalization.
         Defaults to :data:`SENSOR_HI`.

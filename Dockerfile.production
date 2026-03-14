@@ -1,7 +1,7 @@
 # =============================================================================
-#  Cadillac F1 Telemetry Spine — Production Dockerfile
+#  Telemetry Platform Telemetry Spine — Production Dockerfile
 # =============================================================================
-#  Developed for the 2026 Cadillac F1 Initiative.
+#  Developed for the 2026 Telemetry Platform Initiative.
 #  Enterprise security standards per Chris Green's Infrastructure review.
 #
 #  Security features:
@@ -24,9 +24,9 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 FROM python:3.10-slim AS runtime
 
 LABEL maintainer="Tarek Clarke <tclarke91@proton.me>"
-LABEL org.opencontainers.image.title="Cadillac F1 Telemetry Spine"
+LABEL org.opencontainers.image.title="Telemetry Platform Telemetry Spine"
 LABEL org.opencontainers.image.description="Resilient RAP Framework — production F1 telemetry pipeline"
-LABEL org.opencontainers.image.vendor="2026 Cadillac F1 Initiative"
+LABEL org.opencontainers.image.vendor="2026 Telemetry Platform Initiative"
 LABEL org.opencontainers.image.licenses="PolyForm-Noncommercial-1.0.0"
 
 # Security: create non-root user
@@ -59,4 +59,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 # Default: run the stress test as validation
 ENV PYTHONPATH="/app"
 ENTRYPOINT ["python"]
-CMD ["tools/cadillac_stress_test.py", "--packets", "500"]
+CMD ["tools/telemetry_stress_test.py", "--packets", "500"]

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests for Cadillac F1 Production Modules
+Tests for Telemetry Platform Production Modules
 ==========================================
 Validates: Circuit-Breaker, Edge Buffer, Geo-Fence, and Health Monitor.
 """

@@ -1,6 +1,6 @@
 # Running Resilient RAP Framework on Windows with AMD 7900 XT
 
-This guide explains how to run the Cadillac F1 telemetry pipeline **natively on Windows** using HIP for Windows (AMD's CUDA equivalent for the 7900 XT).
+This guide explains how to run the Telemetry Platform telemetry pipeline **natively on Windows** using HIP for Windows (AMD's CUDA equivalent for the 7900 XT).
 
 ## Overview: What is HIP for Windows?
 
@@ -75,7 +75,7 @@ if torch.cuda.is_available():
 
 ```powershell
 cd G:\Docker\resilient-rap-framework
-git pull origin feat/cadillac-f1-production
+git pull origin main
 ```
 
 ### 5. Build fast_ingest.cpp Extension
@@ -201,14 +201,14 @@ Add-Content $profile "`n`$env:PATH += ';C:\Program Files\AMD\ROCm\bin'"
 
 ## Running the Full Pipeline
 
-Once GPU is verified working, run the Cadillac telemetry pipeline:
+Once GPU is verified working, run the Telemetry telemetry pipeline:
 
 ```powershell
 # Option 1: Direct Python script
 python examples/demo_hitl_retraining.py
 
 # Option 2: Run the stress test
-python tools/cadillac_gpu_stress_test.py --iterations 1000 --batch-size 128
+python tools/telemetry_gpu_stress_test.py --iterations 1000 --batch-size 128
 
 # Option 3: Start the interactive TUI replayer
 python tools/tui_replayer.py
@@ -223,7 +223,7 @@ python tools/tui_replayer.py
 | Latency (p99)       | ~2.5ms            | ~1.8ms            |
 | Memory Transfer     | 95% of Linux      | Baseline          |
 
-Windows HIP performs ~85-95% as well as Linux ROCm on the same hardware. For a Cadillac interview, this is more than sufficient.
+Windows HIP performs ~85-95% as well as Linux ROCm on the same hardware. For a Telemetry interview, this is more than sufficient.
 
 ## Next Steps: Containerization
 

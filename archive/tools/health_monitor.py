@@ -6,7 +6,7 @@
 """
 Pit Wall Health Monitor — CLI Dashboard
 =========================================
-Developed for the 2026 Cadillac F1 Initiative.
+Developed for the 2026 Telemetry Platform Initiative.
 
 Real-time visibility into:
   • Circuit-Breaker state & DLQ depth
@@ -165,7 +165,7 @@ class PitWallMonitor:
         hrs, mins = divmod(mins, 60)
         ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
         header = Text()
-        header.append("  CADILLAC F1  ", style="bold white on dark_red")
+        header.append("  TELEMETRY PLATFORM  ", style="bold white on dark_red")
         header.append("  PIT WALL HEALTH MONITOR  ", style="bold white on grey27")
         header.append(f"  {ts}  ", style="dim")
         header.append(f"  Uptime: {hrs:02d}:{mins:02d}:{secs:02d}", style="dim cyan")
@@ -357,7 +357,7 @@ def _run_demo(duration: int = 30) -> None:
     from src.geo_fence import GeoFence
 
     console = Console()
-    console.print("\n[bold bright_white on dark_red]  CADILLAC F1 — PIT WALL MONITOR DEMO  [/bold bright_white on dark_red]\n")
+    console.print("\n[bold bright_white on dark_red]  TELEMETRY PLATFORM — PIT WALL MONITOR DEMO  [/bold bright_white on dark_red]\n")
 
     # --- Initialise subsystems ---
     breaker = TelemetryCircuitBreaker(
@@ -466,7 +466,7 @@ def _run_demo(duration: int = 30) -> None:
 # Entry point
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Cadillac F1 Pit Wall Health Monitor")
+    parser = argparse.ArgumentParser(description="Telemetry Platform Pit Wall Health Monitor")
     parser.add_argument("--duration", type=int, default=30, help="Demo duration in seconds")
     parser.add_argument("--snapshot", action="store_true", help="Print a single frame and exit")
     args = parser.parse_args()

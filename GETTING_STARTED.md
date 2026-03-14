@@ -40,16 +40,16 @@ The framework automatically detects and uses any available GPU:
 ### Auto-Detection (Default)
 ```bash
 # Uses GPU if available, CPU otherwise
-PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py --packets 2000 --chaos 0.15
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.15
 ```
 
 ### Force Specific Backend
 ```bash
 # Force GPU (CUDA/ROCm)
-FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py
+FORCE_DEVICE=gpu PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py
 
 # Force CPU only
-FORCE_DEVICE=cpu PYTHONPATH="." python3 tools/cadillac_gpu_stress_test.py
+FORCE_DEVICE=cpu PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py
 ```
 
 ### Install for Specific Backend

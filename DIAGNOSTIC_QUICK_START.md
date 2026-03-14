@@ -21,10 +21,10 @@ The diagnostic framework helps identify which sensors and fault types are respon
 cd /home/tarek/Documents/resilient-rap-framework
 
 # Fast test (1000 packets, 12% chaos, ~1-2 minutes)
-python tools/cadillac_gpu_stress_test.py --diagnostic
+python tools/telemetry_gpu_stress_test.py --diagnostic
 
 # Weekend-scale test (60K packets, 12% chaos, ~10-15 minutes)
-python tools/cadillac_gpu_stress_test.py \
+python tools/telemetry_gpu_stress_test.py \
     --packets 60000 \
     --chaos 0.12 \
     --chaos-profile weekend_kafka \
@@ -161,7 +161,7 @@ sensor_dropout         350      400      87.5%  🔴 CRITICAL
 
 **Fix**:
 ```python
-# In cadillac_gpu_stress_test.py, modify:
+# In telemetry_gpu_stress_test.py, modify:
 CADENCE_TOLERANCE = 5.0  # Increased from 3.0
 ```
 
@@ -243,8 +243,8 @@ print(f"Found {len(critical)} critical chaos modes")
 
 ```bash
 # Run with different configurations
-python tools/cadillac_gpu_stress_test.py --diagnostic --output-suffix _config1
-python tools/cadillac_gpu_stress_test.py --diagnostic --output-suffix _config2
+python tools/telemetry_gpu_stress_test.py --diagnostic --output-suffix _config1
+python tools/telemetry_gpu_stress_test.py --diagnostic --output-suffix _config2
 
 # Compare results
 diff <(jq '.missed_fault_count' missed_detection_analysis_config1.json) \
@@ -271,7 +271,7 @@ python tools/sensor_fault_diagnostic.py \
 
 **A**: Verify you're using `--diagnostic` flag:
 ```bash
-python tools/cadillac_gpu_stress_test.py --diagnostic
+python tools/telemetry_gpu_stress_test.py --diagnostic
 ```
 
 The flag must be passed; it defaults to off for production.
@@ -281,7 +281,7 @@ The flag must be passed; it defaults to off for production.
 **A**: Verify the JSON file path matches the suffix you used:
 ```bash
 # If you ran with:
-python tools/cadillac_gpu_stress_test.py --diagnostic --output-suffix _my_run
+python tools/telemetry_gpu_stress_test.py --diagnostic --output-suffix _my_run
 
 # Then use:
 python tools/sensor_fault_diagnostic.py \

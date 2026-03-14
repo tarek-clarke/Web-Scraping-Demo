@@ -57,7 +57,7 @@ Are you setting up for:
 
 ### Path 1: Windows-Only (Quick Demo)
 
-Best for: Cadillac interview, quick benchmarking
+Best for: Telemetry interview, quick benchmarking
 
 ```bash
 # Prerequisites (one-time): 
@@ -72,7 +72,7 @@ powershell -ExecutionPolicy Bypass -File setup_windows_hip.ps1
 powershell -ExecutionPolicy Bypass -File verify_windows_hip.ps1
 
 # Run demo
-python tools/cadillac_gpu_stress_test.py
+python tools/telemetry_gpu_stress_test.py
 ```
 
 **Time to ready:** 15 minutes (after prerequisites)
@@ -85,15 +85,15 @@ Best for: Production deployment, cloud servers
 # Clone repo on Linux
 git clone https://github.com/tarek-clarke/resilient-rap-framework.git
 cd resilient-rap-framework
-git checkout feat/cadillac-f1-production
+git checkout main
 
 # Start container
 docker compose up -d
 
 # Run inside container
-docker exec -it cadillac_rocm bash
+docker exec -it telemetry_rocm bash
 cd /app
-python tools/cadillac_gpu_stress_test.py
+python tools/telemetry_gpu_stress_test.py
 ```
 
 **Time to ready:** 10 minutes (after Docker install)
@@ -176,21 +176,21 @@ The `Dockerfile` in this repo:
 powershell -ExecutionPolicy Bypass -File setup_windows_hip.ps1
 
 # Make changes to pipeline code
-# Edit: modules/translator.py, tools/cadillac_gpu_stress_test.py, etc.
+# Edit: modules/translator.py, tools/telemetry_gpu_stress_test.py, etc.
 
 # Test locally
-python tools/cadillac_gpu_stress_test.py --iterations 100
+python tools/telemetry_gpu_stress_test.py --iterations 100
 
 # Commit changes
 git add .
-git commit -m "Feature: Cadillac F1 GPU acceleration"
-git push origin feat/cadillac-f1-production
+git commit -m "Feature: Telemetry Platform GPU acceleration"
+git push origin main
 ```
 
 ### Day 2: Demo (Windows + Linux)
 
 ```powershell
-# Windows demo for Cadillac team
+# Windows demo for Telemetry team
 python examples/demo_hitl_retraining.py
 
 # Show GPU working:
@@ -202,7 +202,7 @@ On Linux (after code push):
 ```bash
 # Linux engineer clones and deploys
 docker compose up -d
-docker exec -it cadillac_rocm python /app/tools/cadillac_gpu_stress_test.py
+docker exec -it telemetry_rocm python /app/tools/telemetry_gpu_stress_test.py
 
 # Same results, different hardware ✅
 ```
@@ -236,10 +236,10 @@ powershell -ExecutionPolicy Bypass -File setup_windows_hip.ps1 -Verbose
 
 ```bash
 # Check device passthrough
-docker exec -it cadillac_rocm ls /dev/kfd /dev/dri
+docker exec -it telemetry_rocm ls /dev/kfd /dev/dri
 
 # Verify container permissions
-docker exec -it cadillac_rocm rocminfo
+docker exec -it telemetry_rocm rocminfo
 ```
 
 ### Building fails: Can't find HIP headers
@@ -308,7 +308,7 @@ A: Git push your changes → Clone on Linux → `docker compose up` → Same cod
 ### For Linux Deployment:
 1. Clone repo: `git clone https://github.com/tarek-clarke/resilient-rap-framework.git`
 2. Start container: `docker compose up -d`
-3. Demo: `docker exec -it cadillac_rocm python tools/cadillac_gpu_stress_test.py`
+3. Demo: `docker exec -it telemetry_rocm python tools/telemetry_gpu_stress_test.py`
 
 ### For Dual Setup:
 1. Start on Windows, commit to git

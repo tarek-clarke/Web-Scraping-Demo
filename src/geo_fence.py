@@ -6,7 +6,7 @@
 """
 Data Sovereignty & Geo-Fencing Module
 =======================================
-Developed for the 2026 Cadillac F1 Initiative.
+Developed for the 2026 Telemetry Platform Initiative.
 
 Enforces jurisdiction-aware data handling for telemetry captured across
 international borders.  EU-collected data (Spain, Austria, Belgium, …)

@@ -6,7 +6,7 @@ services:
   # ────────────────────────────────────────────────────────────────────────
   kafka:
     image: docker.redpanda.com/redpandadata/redpanda:v24.1.9
-    container_name: cadillac_kafka
+    container_name: telemetry_kafka
     restart: unless-stopped
     command:
       - redpanda
@@ -28,19 +28,19 @@ services:
     ports:
       - "9092:9092"
     volumes:
-      - cadillac_kafka_data:/var/lib/redpanda/data
+      - telemetry_kafka_data:/var/lib/redpanda/data
     healthcheck:
       test: ["CMD", "rpk", "cluster", "info", "--brokers", "localhost:9092"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  cadillac:
+  telemetry:
     build: 
       context: .
       dockerfile: Dockerfile
     
-    container_name: cadillac_rocm
+    container_name: telemetry_rocm
     restart: unless-stopped
     shm_size: '8gb'
 
@@ -85,8 +85,8 @@ services:
       - .:/app
 
       # Local docker volume for outputs (persistent between runs)
-      - cadillac_outputs:/app/outputs
-      - cadillac_results:/app/results
+      - telemetry_outputs:/app/outputs
+      - telemetry_results:/app/results
 
       # For WSL2: Map Windows host path to container
       # Uncomment if running under WSL2 with Windows host
@@ -116,6 +116,6 @@ services:
 # PERSISTENT VOLUMES
 # ────────────────────────────────────────────────────────────────────────────
 volumes:
-  cadillac_outputs:
-  cadillac_results:
-  cadillac_kafka_data:
+  telemetry_outputs:
+  telemetry_results:
+  telemetry_kafka_data:

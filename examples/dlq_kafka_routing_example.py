@@ -6,7 +6,7 @@
 """
 DLQ Kafka 3-Stream Routing Example
 ====================================
-Developed for the 2026 Cadillac F1 Initiative.
+Developed for the 2026 Telemetry Platform Initiative.
 
 Demonstrates how the Dead Letter Queue (DLQ) routes rejected telemetry
 packets to three distinct Kafka topics based on reprocessing outcome:
@@ -50,7 +50,7 @@ Usage
     PYTHONPATH="." python examples/dlq_kafka_routing_example.py
 
     # Or from the GPU stress test:
-    PYTHONPATH="." python tools/cadillac_gpu_stress_test.py \\
+    PYTHONPATH="." python tools/telemetry_gpu_stress_test.py \\
         --enable-kafka --kafka-servers localhost:9092
 """
 
@@ -99,7 +99,7 @@ def bad_packet(sensor: str = "engine_temp_c", value: object = "NOT_A_NUMBER") ->
 def main() -> None:
     print("=" * 60)
     print("  DLQ Kafka 3-Stream Routing Demo")
-    print("  Cadillac F1 2026 — Resilient RAP Framework")
+    print("  Telemetry Platform 2026 — Resilient RAP Framework")
     print("=" * 60)
 
     # ------------------------------------------------------------------
@@ -198,7 +198,7 @@ def main() -> None:
     # ------------------------------------------------------------------
     print("\n[5] To run the full GPU stress test with Kafka DLQ routing:")
     print(
-        "    PYTHONPATH='.' python tools/cadillac_gpu_stress_test.py "
+        "    PYTHONPATH='.' python tools/telemetry_gpu_stress_test.py "
         "--enable-kafka --kafka-servers localhost:9092"
     )
 

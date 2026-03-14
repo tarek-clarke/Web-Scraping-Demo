@@ -2,7 +2,7 @@
 
 ## ✅ IMPLEMENTATION COMPLETE
 
-The comprehensive missed-detection diagnostic system has been fully integrated into the Cadillac GPU stress test pipeline. This system identifies the remaining 0.23% missed detection rate (407 faults out of 179,617 injected) by tracking fault injection and detection events with zero latency impact.
+The comprehensive missed-detection diagnostic system has been fully integrated into the Telemetry GPU stress test pipeline. This system identifies the remaining 0.23% missed detection rate (407 faults out of 179,617 injected) by tracking fault injection and detection events with zero latency impact.
 
 ---
 
@@ -20,7 +20,7 @@ The comprehensive missed-detection diagnostic system has been fully integrated i
 - `configure()` → Sets baseline_intervals and cadence_tolerance
 - `reset()` → Clears state per session for multi-session runs
 
-### 2. **DiagnosticFaultTracker** (`tools/cadillac_gpu_stress_test.py`)
+### 2. **DiagnosticFaultTracker** (`tools/telemetry_gpu_stress_test.py`)
 - **Purpose**: Pre-allocated fault injection and detection tracking
 - **Capacity**: packets_per_session × #sessions × 5 (safety margin, zero dynamic growth)
 - **Thread-Safe**: threading.Lock() for concurrent session workers
@@ -117,7 +117,7 @@ Formula: `0.35×clean_throughput + 0.25×event_detection_rate + 0.20×recovery_s
 - Updated `process_batch()` to route cadence violations to DLQ
 - Added `configure_cadence_monitor(baseline_intervals, cadence_tolerance)` public method
 
-**`tools/cadillac_gpu_stress_test.py`** (major additions)
+**`tools/telemetry_gpu_stress_test.py`** (major additions)
 - Added `threading` import for thread-safe tracking
 - Added `InjectedFaultRecord` dataclass (7 fields)
 - Added `DiagnosticFaultTracker` class (~180 lines)
@@ -149,7 +149,7 @@ Formula: `0.35×clean_throughput + 0.25×event_detection_rate + 0.20×recovery_s
   - Export JSON: `missed_detection_analysis_{suffix}.json`
   - Export CSV: `missed_detection_analysis_{suffix}.csv` (4 sections: by sensor, chaos_mode, session, sensor+chaos)
 - Added `--diagnostic` flag to argparse (off by default)
-- Pass `diagnostic=args.diagnostic` to CadillacGPUStressTest constructor
+- Pass `diagnostic=args.diagnostic` to TelemetryGPUStressTest constructor
 
 ### New Files
 
@@ -179,10 +179,10 @@ Formula: `0.35×clean_throughput + 0.25×event_detection_rate + 0.20×recovery_s
 cd /home/tarek/Documents/resilient-rap-framework
 
 # Basic run with diagnostics
-python tools/cadillac_gpu_stress_test.py --diagnostic
+python tools/telemetry_gpu_stress_test.py --diagnostic
 
 # Full configuration
-python tools/cadillac_gpu_stress_test.py \
+python tools/telemetry_gpu_stress_test.py \
     --packets 5000 \
     --chaos 0.12 \
     --chaos-profile weekend_kafka \
@@ -190,7 +190,7 @@ python tools/cadillac_gpu_stress_test.py \
     --output-suffix _diagnostic_run
 
 # Showcase mode with diagnostics
-python tools/cadillac_gpu_stress_test.py --showcase --diagnostic
+python tools/telemetry_gpu_stress_test.py --showcase --diagnostic
 ```
 
 ### Analyzing Missed Detections
@@ -212,9 +212,9 @@ python tools/sensor_fault_diagnostic.py \
 When running with `--diagnostic`:
 
 1. **Stress Test Report** (standard)
-   - `cadillac_gpu_stress_test_results{suffix}.csv`
-   - `cadillac_gpu_stress_test_report{suffix}.json`
-   - `cadillac_gpu_metrics{suffix}.json`
+   - `telemetry_gpu_stress_test_results{suffix}.csv`
+   - `telemetry_gpu_stress_test_report{suffix}.json`
+   - `telemetry_gpu_metrics{suffix}.json`
    - `gpu_resilience_timing_report{suffix}.csv`
    - `gpu_resilience_timing_report{suffix}.json`
 
@@ -295,7 +295,7 @@ schema_corruption       20 misses   5000 injected     0.4% miss rate    ✅ OK
 
 1. **Run weekend-scale test with diagnostics** (e.g., 179,617 packets across 3 sessions)
    ```bash
-   python tools/cadillac_gpu_stress_test.py \
+   python tools/telemetry_gpu_stress_test.py \
        --packets 60000 \
        --chaos 0.12 \
        --chaos-profile weekend_kafka \
@@ -355,7 +355,7 @@ The diagnostic framework is integrated at the following key points:
 
 1. **SLOTracker** (`src/slo.py`) → Used for event-level detection_rate calculation
 2. **TelemetryCircuitBreaker** (`src/circuit_breaker.py`) → Pre-breaker validators include SensorCadenceMonitor
-3. **CadillacGPUStressTest** (`tools/cadillac_gpu_stress_test.py`) → All detection events recorded and exported
+3. **TelemetryGPUStressTest** (`tools/telemetry_gpu_stress_test.py`) → All detection events recorded and exported
 4. **Command-Line Interface** (`main()`) → --diagnostic flag for enablement
 5. **Output Pipeline** (`_export_results()`) → JSON + CSV exports
 

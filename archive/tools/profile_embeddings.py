@@ -10,7 +10,7 @@ import torch
 from torch.profiler import profile, record_function, ProfilerActivity
 
 # Import the reconciler and canonical schema
-from tools.cadillac_gpu_stress_test import GPUSemanticReconciler
+from tools.telemetry_gpu_stress_test import GPUSemanticReconciler
 from modules.translator import CANONICAL_SENSORS
 
 OUT_DIR = "outputs"

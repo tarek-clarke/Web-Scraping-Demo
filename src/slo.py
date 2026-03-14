@@ -6,7 +6,7 @@
 """
 Service Level Objective (SLO) Tracker
 =======================================
-Developed for the 2026 Cadillac F1 Initiative.
+Developed for the 2026 Telemetry Platform Initiative.
 
 Defines, evaluates, and reports SLOs for the telemetry pipeline.
 Designed to be called at the end of any stress test or health check.

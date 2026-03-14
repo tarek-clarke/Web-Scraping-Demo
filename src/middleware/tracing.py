@@ -6,7 +6,7 @@
 """
 Request-ID Correlation Tracing
 ================================
-Developed for the 2026 Cadillac F1 Initiative.
+Developed for the 2026 Telemetry Platform Initiative.
 
 Provides structured, end-to-end packet tracing through the telemetry
 pipeline.  Every telemetry packet is assigned a unique ``request_id``

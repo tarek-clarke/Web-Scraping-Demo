@@ -1,5 +1,5 @@
 # ──────────────────────────────────────────────────────────────────────────
-# Cadillac F1 Telemetry Pipeline: ROCm 6.2 + PyTorch
+# Telemetry Platform Telemetry Pipeline: ROCm 6.2 + PyTorch
 # ──────────────────────────────────────────────────────────────────────────
 # Base: Official ROCm 6.2 PyTorch image (AMD 7900 XT / RDNA3)
 # GPU Support: Hip/ROCm (Linux native) + CPU fallback (Windows/WSL2)
