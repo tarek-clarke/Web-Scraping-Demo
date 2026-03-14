@@ -292,19 +292,22 @@ buffer = TracksideEdgeBuffer(
  **Full guide:** [docs/KAFKA_INTEGRATION.md](docs/KAFKA_INTEGRATION.md)  
  **Example:** [examples/kafka_integration_example.py](examples/kafka_integration_example.py)
 
-## GPU Benchmark Results (Validated on Ubuntu 24.04)
+## Cross-Platform Validation Results
 
-**Hardware:** AMD Radeon RX 7900 XT (20GB VRAM) | ROCm 6.2 | gfx1100 architecture
-**Benchmark run date:** 2026-03-11
+Validated across four runtime targets: Linux + NVIDIA CUDA, Linux + AMD ROCm, macOS + Apple Silicon, and x86 CPU fallback.
 
-### Cross-GPU Comparison (H200 above 7900 XT)
+### Cross-Platform Comparison (4 validated targets)
 
-| Platform | Profile | Total Packets | Acceptance Rate | p95 Latency | Resilience Score | Verdict |
-|---|---|---:|---:|---:|---:|---|
-| NVIDIA H200 NVL (CUDA 13) | Sprint + Kafka (5% chaos) | 30,000 | 89.85% | 0.013 ms | 0.9993 | RACE-READY ✅ |
-| NVIDIA H200 NVL (CUDA 13) | Weekend + Kafka (5% chaos) | 3,600,000 | 89.81% | 0.014 ms | 0.9991 | RACE-READY ✅ |
-| Radeon RX 7900 XT (ROCm 6.2) | Sprint + Kafka (5% chaos) | 30,000 | 95.81% | 0.005 ms | 0.9617 | RACE-READY ✅ |
-| Radeon RX 7900 XT (ROCm 6.2) | Weekend + Kafka (5% chaos) | 3,600,000 | 95.76% | 0.004 ms | 0.9624 | RACE-READY ✅ |
+| Runtime Target | Platform | Representative Profile | Total Packets | Acceptance Rate | p95 Latency | Resilience Score | Verdict |
+|---|---|---|---:|---:|---:|---:|---|
+| NVIDIA H200 NVL | Ubuntu 24.04 + CUDA 13 | Sprint + Kafka (5% chaos) | 30,000 | 89.85% | 0.013 ms | 0.9993 | RACE-READY ✅ |
+| AMD Radeon RX 7900 XT | Ubuntu 24.04 + ROCm 6.2 | Sprint (5% chaos) | 30,000 | 95.83% | 0.007 ms | 0.9988 | RACE-READY ✅ |
+| Apple M4 | macOS Apple Silicon | Sprint (5% chaos) | 30,000 | 95.81% | 0.005 ms | 0.9998 | RACE-READY ✅ |
+| Intel Core i5-12600K | x86 CPU fallback | Sprint Standard (5% chaos) | 30,000 | 95.79% | 0.000 ms* | 0.9995 | RACE-READY ✅ |
+
+*CPU fallback timing in the 12600K artifact is rounded to `0.0 ms` at report precision; compare primarily on acceptance rate, breaker stability, and resilience score.
+
+**Validation evidence folders:** `data/reports/H200/`, `data/reports/7900XT/`, `data/reports/M4/`, `data/reports/12600k/`
 
 ### Sprint Results (30K Packets @ 5% Chaos)
 
