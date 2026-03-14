@@ -89,7 +89,7 @@ from src.audit_log import ComplianceAuditLog  # noqa: E402
 from src.middleware.tracing import RequestContext  # noqa: E402
 from src.slo import SLOTracker  # noqa: E402
 
-console = Console()
+console = Console(record=True)
 
 
 def _sanitize_suffix_token(raw: str) -> str:
@@ -183,6 +183,18 @@ def _detect_hardware_suffix(gpu_info: Optional[Dict[str, Any]] = None) -> str:
 def _resolve_hardware_output_dir(base_dir: str | Path, hardware_suffix: str) -> Path:
     hardware_dir = _sanitize_suffix_token(hardware_suffix) or "CPU"
     return Path(base_dir) / hardware_dir
+
+
+def _build_output_suffix(output_suffix: str, hardware_suffix: str) -> str:
+    normalized_hw = _sanitize_suffix_token(hardware_suffix) or "CPU"
+    raw = (output_suffix or "").strip().strip("_")
+    if not raw:
+        return f"_{normalized_hw}"
+
+    normalized_raw = _sanitize_suffix_token(raw).upper()
+    if normalized_hw.upper() not in normalized_raw:
+        raw = f"{raw}_{normalized_hw}"
+    return f"_{raw}"
 
 
 # ---------------------------------------------------------------------------
@@ -957,8 +969,7 @@ class CadillacGPUStressTest:
         self._gpu_info = gpu_info_dict(self.device)
         auto_suffix = _detect_hardware_suffix(self._gpu_info)
         self.hardware_suffix = auto_suffix
-        chosen = (output_suffix.strip() or auto_suffix).lstrip("_")
-        self.output_suffix = f"_{chosen}" if chosen else ""
+        self.output_suffix = _build_output_suffix(output_suffix, self.hardware_suffix)
         self.output_dir = _resolve_hardware_output_dir(output_dir, self.hardware_suffix)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -2045,6 +2056,11 @@ class CadillacGPUStressTest:
                     ])
 
             console.print(f"[dim]Missed detection analysis CSV → {missed_csv_path}[/dim]")
+
+        run_log_path = self.output_dir / f"run_log{self.output_suffix}.txt"
+        with open(run_log_path, "w", encoding="utf-8") as f:
+            f.write(console.export_text(clear=False))
+        console.print(f"[dim]Run log exported → {run_log_path}[/dim]")
 
 
 # ---------------------------------------------------------------------------

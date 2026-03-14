@@ -1,0 +1,108 @@
+{
+  "generated_at": "2026-03-14T01:16:42.622196",
+  "injected_fault_count": 13,
+  "detected_fault_count": 13,
+  "missed_fault_count": 0,
+  "miss_rate": 0.0,
+  "missed_by_sensor": [],
+  "missed_by_chaos_mode": [],
+  "missed_by_session": [],
+  "missed_by_sensor_and_chaos": [],
+  "totals_by_sensor": {
+    "tyre_pressure": 1,
+    "g_force_lateral": 1,
+    "ecu_canbus": 2,
+    "brake_temp": 3,
+    "speed": 3,
+    "engine_temp": 2,
+    "heart_rate": 1
+  },
+  "totals_by_chaos_mode": {
+    "sensor_dropout": 2,
+    "schema_drift": 3,
+    "bit_flip_low": 2,
+    "duplicate_timestamp": 2,
+    "bit_flip_high": 2,
+    "null_value": 1,
+    "string_in_numeric": 1
+  },
+  "totals_by_session": {
+    "spielberg_FP1": 1,
+    "spielberg_FP3": 1,
+    "spielberg_QUALI": 2,
+    "spielberg_RACE": 1,
+    "silverstone_FP1": 1,
+    "silverstone_FP2": 1,
+    "budapest_FP1": 1,
+    "budapest_FP2": 2,
+    "budapest_RACE": 3
+  },
+  "totals_by_sensor_and_chaos": [
+    {
+      "sensor_id": "brake_temp",
+      "chaos_mode": "bit_flip_high",
+      "total_injected": 1
+    },
+    {
+      "sensor_id": "brake_temp",
+      "chaos_mode": "duplicate_timestamp",
+      "total_injected": 1
+    },
+    {
+      "sensor_id": "brake_temp",
+      "chaos_mode": "schema_drift",
+      "total_injected": 1
+    },
+    {
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "total_injected": 1
+    },
+    {
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "string_in_numeric",
+      "total_injected": 1
+    },
+    {
+      "sensor_id": "engine_temp",
+      "chaos_mode": "bit_flip_high",
+      "total_injected": 1
+    },
+    {
+      "sensor_id": "engine_temp",
+      "chaos_mode": "sensor_dropout",
+      "total_injected": 1
+    },
+    {
+      "sensor_id": "g_force_lateral",
+      "chaos_mode": "schema_drift",
+      "total_injected": 1
+    },
+    {
+      "sensor_id": "heart_rate",
+      "chaos_mode": "null_value",
+      "total_injected": 1
+    },
+    {
+      "sensor_id": "speed",
+      "chaos_mode": "bit_flip_low",
+      "total_injected": 1
+    },
+    {
+      "sensor_id": "speed",
+      "chaos_mode": "duplicate_timestamp",
+      "total_injected": 1
+    },
+    {
+      "sensor_id": "speed",
+      "chaos_mode": "schema_drift",
+      "total_injected": 1
+    },
+    {
+      "sensor_id": "tyre_pressure",
+      "chaos_mode": "sensor_dropout",
+      "total_injected": 1
+    }
+  ],
+  "missed_faults": []
+}
