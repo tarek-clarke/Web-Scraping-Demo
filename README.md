@@ -167,12 +167,11 @@ Validated across four runtime targets: Linux + NVIDIA CUDA, Linux + AMD ROCm, ma
 | NVIDIA H200 NVL | Ubuntu 24.04 + CUDA 13 | Weekend + Kafka (5% chaos) | 3,600,000 | 89.81% | 0.014 ms | 0.9991 | RACE-READY ✅ |
 | AMD Radeon RX 7900 XT | Ubuntu 24.04 + ROCm 6.2 | Weekend (5% chaos) | 3,600,000 | 95.75% | 0.007 ms | 0.9994 | RACE-READY ✅ |
 | Apple M4 | macOS Apple Silicon | Weekend (5% chaos) | 3,600,000 | 95.75% | 0.003 ms | 0.9995 | RACE-READY ✅ |
+| Intel Core i5-12600K | x86 CPU fallback | Weekend Standard (5% chaos) | 3,600,000 | 95.76% | 0.000 ms* | 0.9995 | RACE-READY ✅ |
 
 *CPU fallback timing in the 12600K artifact is rounded to `0.0 ms` at report precision; compare primarily on acceptance rate, breaker stability, and resilience score.
 
-*Weekend validation for the 12600K CPU fallback has not been captured in the committed artifact set yet.
-
-**Validation evidence folders:** `data/reports/H200/`, `data/reports/7900XT/`, `data/reports/M4/`, `data/reports/12600k/`
+**Validation evidence folders:** `data/reports/H200/`, `data/reports/7900XT/`, `data/reports/M4/`, `data/reports/12600K/`
 
 ### Sprint Results (30K Packets @ 5% Chaos)
 
