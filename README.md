@@ -1,19 +1,20 @@
-# Telemetry Platform Telemetry Platform
+# Cadillac F1 Telemetry Platform
 
 [![Status](https://img.shields.io/badge/Status-Production--Ready-brightgreen)](.)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-red.svg)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-yellow)
 ![Docker](https://img.shields.io/badge/Docker-Enterprise--Hardened-blue)
 
-**GPU-Accelerated Real-Time Telemetry Processing for 2026 F1 Season (Ubuntu 24.04 + AMD ROCm)**
+**Hardware-Accelerated Real-Time Telemetry Processing for 2026 F1 Season**
 
 **Compatibility:**
-- Primary target: Ubuntu 24.04 LTS + AMD ROCm (validated)
-- Optional fallback: NVIDIA CUDA (commands kept commented in Quick Start)
+- Linux (Ubuntu 24.04 validated): AMD ROCm or NVIDIA CUDA
+- macOS: Apple Silicon (M-Series)
+- CPU Fallback: Standard x86 support across platforms
 
 ## Executive Summary
 
-A production-ready telemetry spine that processes race-weekend scale loads with sub-millisecond p95 latency on AMD Radeon RX 7900 XT, while preserving forensic traceability and local-first resilience.
+A production-ready telemetry spine that processes race-weekend scale loads with sub-millisecond p95 latency on enterprise GPUs and Apple Silicon, while preserving forensic traceability and local-first resilience.
 
 **What this platform does well:**
 - Sustains high-throughput telemetry processing under injected chaos
@@ -24,11 +25,11 @@ A production-ready telemetry spine that processes race-weekend scale loads with 
 
 ## Table of Contents
 
-- [Quick Start (Ubuntu 24.04 + AMD ROCm)](#quick-start-ubuntu-2404--amd-rocm)
+- [Quick Start](#quick-start)
 - [Run Profiles](#run-profiles)
   - [Six-Benchmark Suite (Sprint + Weekend × 3 Profiles)](#six-benchmark-suite-sprint--weekend--3-profiles)
   - [Diagnostic Mode (Missed-Detection Attribution)](#diagnostic-mode-missed-detection-attribution)
-- [Validated Results](#validated-results)
+- [Cross-Platform Validation Results](#cross-platform-validation-results)
 - [System Architecture](#system-architecture)
 - [Operational Capabilities](#operational-capabilities)
 - [Docker Deployment](#docker-deployment)
@@ -39,32 +40,37 @@ A production-ready telemetry spine that processes race-weekend scale loads with 
 
 ---
 
-## Quick Start (Ubuntu 24.04 + AMD ROCm)
+## Quick Start
 
 ```bash
-# 0. Prerequisites
+# 0. Prerequisites (Ubuntu mapping shown, macOS uses Homebrew)
 sudo apt update && sudo apt install -y python3-venv
 
 # 1. Environment
 python3 -m venv .venv
 source .venv/bin/activate
 
-# 2. Dependencies
+# 2. Core Dependencies
 python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
 
-# Force ROCm wheels on AMD
-python3 -m pip uninstall -y torch torchvision torchaudio
-python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2.4
+# 3. Hardware-Specific PyTorch Paths
+# -> Option A: AMD ROCm (Linux)
+# python3 -m pip uninstall -y torch torchvision torchaudio
+# python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2.4
 
-# NVIDIA fallback (keep commented unless on NVIDIA)
+# -> Option B: NVIDIA CUDA (Linux)
 # python3 -m pip uninstall -y torch torchvision torchaudio
 # python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 
-# 3. Build accelerated ingest
+# -> Option C: Apple Mac (macOS)
+# Apple Silicon ships natively with Metal Performance Shaders (MPS) support
+# python3 -m pip install torch torchvision torchaudio
+
+# 4. Build accelerated ingest
 python3 setup.py build_ext --inplace
 
-# 4. Verify GPU path
+# 5. Verify GPU path
 PYTHONPATH="." python3 -c "from archive.modules.translator import TelemetryIngestor; print('fast_ingest available:', TelemetryIngestor.is_accelerated())"
 python3 -c "import torch; print('CUDA/ROCm available:', torch.cuda.is_available()); print('Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 ```
@@ -146,152 +152,6 @@ Interpretation: the remaining gap is concentrated in low-bit-flip behavior on a 
 
 ---
 
-## Validated Results
-
-### Weekend KPI Snapshot (3.6M packets @ 5% chaos)
-
-| Metric | Result |
-|---|---:|
-| Total Packets | 3,600,000 |
-| Acceptance Rate | 95.76% |
-| Chaos Injected | 179,617 |
-| Schema-Drift Recovered (GPU) | 25,790 |
-| Tensor Anomalies Detected | 145,297 |
-| p95 Latency | 0.004 ms |
-| Breaker Trips | 0 |
-| DLQ Quarantined | 152,533 |
-| DLQ Repairs Recovered | 68 |
-| Detection Rate | 99.77% |
-| SLOs Passed | 6/6 |
-| Verdict | RACE-READY ✅ |
-
-### Kafka Topic Totals (Weekend @ 5% chaos)
-
-| Topic | Messages |
-|---|---:|
-| `dlq-repairable-weekend-005` | 152,733 |
-| `dlq-repaired-weekend-005` | 68 |
-| `dlq-non-repairable-weekend-005` | 0 |
-
----
-
-## System Architecture
-
-### High-Level Overview
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      GPU STRESS TEST SCRIPT                     │
-│              tools/telemetry_gpu_stress_test.py                  │
-│  • BERT Semantic Reconciliation (GPU-accelerated)               │
-│  • Tensor Anomaly Detection (z-score > 3σ)                      │
-│  • Batch Hash-Chain Provenance (SHA-256)                        │
-│  • Synthetic telemetry generation & chaos injection              │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ├──► src/circuit_breaker.py
-                         │    • Three-state FSM (CLOSED → OPEN → HALF_OPEN)
-                         │    • Schema validation, cadence checks, DLQ routing
-                         │
-                         ├──► src/local_persistence.py
-                         │    • Local-first edge buffer (SQLite WAL + optional Kafka)
-                         │
-                         ├──► src/geo_fence.py
-                         │    • Jurisdiction-aware handling (GDPR/sovereignty)
-                         │
-                         ├──► src/audit_log.py
-                         │    • Tamper-evident SHA-256 hash chains
-                         │
-                         └──► src/slo.py
-                              • SLO tracking + race-ready verdict gates
-```
-
-### Data Flow
-
-```mermaid
-flowchart LR
-    RF["Car RF Downlink<br/>(50 Hz telemetry)"]
-    CB["Circuit Breaker<br/>Schema + cadence validators"]
-    DLQ[("Dead Letter Queue<br/>SQLite")]
-    EDGE[("Trackside Edge Buffer<br/>SQLite WAL + optional Kafka")]
-    GEO["Geo-Fence<br/>GDPR / Sovereignty"]
-    BERT["GPU Semantic<br/>Reconciliation<br/>BERT + cosine similarity"]
-    AUDIT[("Audit Log<br/>SHA-256 hash chain<br/>tamper-evident")]
-    SINK["War Room<br/>Global Sink"]
-    KAFKA_RAW["Kafka Topic:<br/>telemetry-raw"]
-    KAFKA_VALID["Kafka Topic:<br/>telemetry-validated"]
-    KAFKA_DRIFT["Kafka Topic:<br/>telemetry-schema-drift"]
-    KAFKA_ALERTS["Kafka Topic:<br/>telemetry-alerts"]
-    KAFKA_SYNC["Kafka Topic:<br/>telemetry-sync-events"]
-    KAFKA_DLQ["Kafka Topic:<br/>dlq-repairable / dlq-repaired / dlq-non-repairable"]
-
-    RF --> CB
-    CB -->|bad packets| DLQ
-    CB -->|valid data| EDGE
-    EDGE -->|exactly-once drain| GEO
-    CB -.->|raw ingress| KAFKA_RAW
-    EDGE -.->|optional streaming| KAFKA_VALID
-    CB -.->|schema drift| KAFKA_DRIFT
-    CB -.->|alerts| KAFKA_ALERTS
-    EDGE -.->|drain state| KAFKA_SYNC
-    DLQ -.->|optional streaming| KAFKA_DLQ
-    GEO -->|jurisdiction-aware| BERT
-    BERT -->|field reconciliation| AUDIT
-    AUDIT -->|provenance chain| SINK
-
-    style CB fill:#ff6b6b
-    style DLQ fill:#ffe066
-    style EDGE fill:#51cf66
-    style AUDIT fill:#4dabf7
-    style KAFKA_RAW fill:#74c0fc
-    style KAFKA_VALID fill:#a9e34b
-    style KAFKA_DRIFT fill:#fcc419
-    style KAFKA_ALERTS fill:#ff8787
-    style KAFKA_SYNC fill:#b197fc
-    style KAFKA_DLQ fill:#ffd43b
-```
-
-### Core Components
-
-| Component | Purpose | Lines | Status |
-|-----------|---------|-------|--------|
-| **tools/telemetry_gpu_stress_test.py** | GPU stress test orchestrator | 1,542 | ✅ Active |
-| **src/circuit_breaker.py** | Circuit breaker + DLQ | 532 | ✅ Active |
-| **src/local_persistence.py** | Edge buffer (SQLite WAL + Kafka) | 490 | ✅ Active |
-| **src/geo_fence.py** | GDPR compliance | 389 | ✅ Active |
-| **src/audit_log.py** | Hash-chain provenance | 283 | ✅ Active |
-| **src/middleware/tracing.py** | Request context | 123 | ✅ Active |
-| **src/slo.py** | SLO tracking | 271 | ✅ Active |
-
-**Total Active Codebase:** 3,630 lines (excluding tests and archived modules)
-
-### Streaming Output (Optional)
-
-The edge buffer supports **dual-write to Kafka** for real-time streaming alongside local SQLite persistence. Disabled by default for trackside autonomy; enable when cloud connectivity is reliable.
-
-```python
-# Enable Kafka streaming output
-buffer = TracksideEdgeBuffer(
-    enable_kafka=True,
-    kafka_bootstrap_servers=["kafka:9092"],
-    kafka_topic="telemetry-validated",
-    kafka_sync_event_topic="telemetry-sync-events",
-    kafka_producer_config={"linger_ms": 10, "compression_type": "lz4"},
-)
-```
-
-**Architecture:**
-- **Local-first:** SQLite write always succeeds, even if Kafka fails
-- **Async/non-blocking:** Fire-and-forget sends preserve <1ms latency
-- **Keyed event streams:** Raw ingress, validated telemetry, schema drift, alerts, sync events, and DLQ outcomes
-- **Producer tuning:** Keyed messages + linger/batch/compression defaults for higher throughput
-- **Graceful degradation:** Logs warning if kafka-python unavailable
-
-> **Compose note:** The `kafka` service in `docker-compose.yml` is implemented with **Redpanda** (Kafka API-compatible) using dual listeners: host-run benchmark commands use `localhost:9092`, while compose services use `kafka:29092`.
-
- **Full guide:** [docs/KAFKA_INTEGRATION.md](docs/KAFKA_INTEGRATION.md)  
- **Example:** [examples/kafka_integration_example.py](examples/kafka_integration_example.py)
-
 ## Cross-Platform Validation Results
 
 Validated across four runtime targets: Linux + NVIDIA CUDA, Linux + AMD ROCm, macOS + Apple Silicon, and x86 CPU fallback.
@@ -311,10 +171,6 @@ Validated across four runtime targets: Linux + NVIDIA CUDA, Linux + AMD ROCm, ma
 *CPU fallback timing in the 12600K artifact is rounded to `0.0 ms` at report precision; compare primarily on acceptance rate, breaker stability, and resilience score.
 
 *Weekend validation for the 12600K CPU fallback has not been captured in the committed artifact set yet.
-
-**Validation evidence folders:** `data/reports/H200/`, `data/reports/7900XT/`, `data/reports/M4/`, `data/reports/12600k/`
-
-### Sprint Results (30K Packets @ 5% Chaos)
 
 **Validation evidence folders:** `data/reports/H200/`, `data/reports/7900XT/`, `data/reports/M4/`, `data/reports/12600k/`
 
@@ -442,6 +298,123 @@ This benchmark validates the full ingestion → detection → quarantine → rep
 - Full execution logs: `data/reports/<hardware>/run_log_<suffix>.txt`
 
 ---
+
+## System Architecture
+
+### High-Level Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      GPU STRESS TEST SCRIPT                     │
+│              tools/telemetry_gpu_stress_test.py                  │
+│  • BERT Semantic Reconciliation (GPU-accelerated)               │
+│  • Tensor Anomaly Detection (z-score > 3σ)                      │
+│  • Batch Hash-Chain Provenance (SHA-256)                        │
+│  • Synthetic telemetry generation & chaos injection              │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+                         ├──► src/circuit_breaker.py
+                         │    • Three-state FSM (CLOSED → OPEN → HALF_OPEN)
+                         │    • Schema validation, cadence checks, DLQ routing
+                         │
+                         ├──► src/local_persistence.py
+                         │    • Local-first edge buffer (SQLite WAL + optional Kafka)
+                         │
+                         ├──► src/geo_fence.py
+                         │    • Jurisdiction-aware handling (GDPR/sovereignty)
+                         │
+                         ├──► src/audit_log.py
+                         │    • Tamper-evident SHA-256 hash chains
+                         │
+                         └──► src/slo.py
+                              • SLO tracking + race-ready verdict gates
+```
+
+### Data Flow
+
+```mermaid
+flowchart LR
+    RF["Car RF Downlink<br/>(50 Hz telemetry)"]
+    CB["Circuit Breaker<br/>Schema + cadence validators"]
+    DLQ[("Dead Letter Queue<br/>SQLite")]
+    EDGE[("Trackside Edge Buffer<br/>SQLite WAL + optional Kafka")]
+    GEO["Geo-Fence<br/>GDPR / Sovereignty"]
+    BERT["GPU Semantic<br/>Reconciliation<br/>BERT + cosine similarity"]
+    AUDIT[("Audit Log<br/>SHA-256 hash chain<br/>tamper-evident")]
+    SINK["War Room<br/>Global Sink"]
+    KAFKA_RAW["Kafka Topic:<br/>telemetry-raw"]
+    KAFKA_VALID["Kafka Topic:<br/>telemetry-validated"]
+    KAFKA_DRIFT["Kafka Topic:<br/>telemetry-schema-drift"]
+    KAFKA_ALERTS["Kafka Topic:<br/>telemetry-alerts"]
+    KAFKA_SYNC["Kafka Topic:<br/>telemetry-sync-events"]
+    KAFKA_DLQ["Kafka Topic:<br/>dlq-repairable / dlq-repaired / dlq-non-repairable"]
+
+    RF --> CB
+    CB -->|bad packets| DLQ
+    CB -->|valid data| EDGE
+    EDGE -->|exactly-once drain| GEO
+    CB -.->|raw ingress| KAFKA_RAW
+    EDGE -.->|optional streaming| KAFKA_VALID
+    CB -.->|schema drift| KAFKA_DRIFT
+    CB -.->|alerts| KAFKA_ALERTS
+    EDGE -.->|drain state| KAFKA_SYNC
+    DLQ -.->|optional streaming| KAFKA_DLQ
+    GEO -->|jurisdiction-aware| BERT
+    BERT -->|field reconciliation| AUDIT
+    AUDIT -->|provenance chain| SINK
+
+    style CB fill:#ff6b6b
+    style DLQ fill:#ffe066
+    style EDGE fill:#51cf66
+    style AUDIT fill:#4dabf7
+    style KAFKA_RAW fill:#74c0fc
+    style KAFKA_VALID fill:#a9e34b
+    style KAFKA_DRIFT fill:#fcc419
+    style KAFKA_ALERTS fill:#ff8787
+    style KAFKA_SYNC fill:#b197fc
+    style KAFKA_DLQ fill:#ffd43b
+```
+
+### Core Components
+
+| Component | Purpose | Lines | Status |
+|-----------|---------|-------|--------|
+| **tools/telemetry_gpu_stress_test.py** | GPU stress test orchestrator | 1,542 | ✅ Active |
+| **src/circuit_breaker.py** | Circuit breaker + DLQ | 532 | ✅ Active |
+| **src/local_persistence.py** | Edge buffer (SQLite WAL + Kafka) | 490 | ✅ Active |
+| **src/geo_fence.py** | GDPR compliance | 389 | ✅ Active |
+| **src/audit_log.py** | Hash-chain provenance | 283 | ✅ Active |
+| **src/middleware/tracing.py** | Request context | 123 | ✅ Active |
+| **src/slo.py** | SLO tracking | 271 | ✅ Active |
+
+**Total Active Codebase:** 3,630 lines (excluding tests and archived modules)
+
+### Streaming Output (Optional)
+
+The edge buffer supports **dual-write to Kafka** for real-time streaming alongside local SQLite persistence. Disabled by default for trackside autonomy; enable when cloud connectivity is reliable.
+
+```python
+# Enable Kafka streaming output
+buffer = TracksideEdgeBuffer(
+    enable_kafka=True,
+    kafka_bootstrap_servers=["kafka:9092"],
+    kafka_topic="telemetry-validated",
+    kafka_sync_event_topic="telemetry-sync-events",
+    kafka_producer_config={"linger_ms": 10, "compression_type": "lz4"},
+)
+```
+
+**Architecture:**
+- **Local-first:** SQLite write always succeeds, even if Kafka fails
+- **Async/non-blocking:** Fire-and-forget sends preserve <1ms latency
+- **Keyed event streams:** Raw ingress, validated telemetry, schema drift, alerts, sync events, and DLQ outcomes
+- **Producer tuning:** Keyed messages + linger/batch/compression defaults for higher throughput
+- **Graceful degradation:** Logs warning if kafka-python unavailable
+
+> **Compose note:** The `kafka` service in `docker-compose.yml` is implemented with **Redpanda** (Kafka API-compatible) using dual listeners: host-run benchmark commands use `localhost:9092`, while compose services use `kafka:29092`.
+
+ **Full guide:** [docs/KAFKA_INTEGRATION.md](docs/KAFKA_INTEGRATION.md)  
+ **Example:** [examples/kafka_integration_example.py](examples/kafka_integration_example.py)
 
 ## Operational Capabilities
 
