@@ -154,16 +154,18 @@ Interpretation: the remaining gap is concentrated in low-bit-flip behavior on a 
 
 ## Cross-Platform Validation Results
 
-Validated across four runtime targets: Linux + NVIDIA CUDA, Linux + AMD ROCm, macOS + Apple Silicon, and x86 CPU fallback.
+Validated across five runtime targets: Linux + NVIDIA CUDA, Linux + AMD ROCm, macOS + Apple Silicon, and x86 CPU fallback.
 
-### Cross-Platform Comparison (4 validated targets)
+### Cross-Platform Comparison (5 validated targets)
 
 | Runtime Target | Platform | Representative Profile | Total Packets | Acceptance Rate | p95 Latency | Resilience Score | Verdict |
 |---|---|---|---:|---:|---:|---:|---|
+| NVIDIA B200 | Linux + NVIDIA CUDA | Sprint (5% chaos) | 30,000 | 95.81% | 0.008 ms | 0.9991 | RACE-READY ✅ |
 | NVIDIA H200 NVL | Ubuntu 24.04 + CUDA 13 | Sprint + Kafka (5% chaos) | 30,000 | 89.85% | 0.013 ms | 0.9993 | RACE-READY ✅ |
 | AMD Radeon RX 7900 XT | Ubuntu 24.04 + ROCm 6.2 | Sprint (5% chaos) | 30,000 | 95.83% | 0.007 ms | 0.9988 | RACE-READY ✅ |
 | Apple M4 | macOS Apple Silicon | Sprint (5% chaos) | 30,000 | 95.81% | 0.005 ms | 0.9998 | RACE-READY ✅ |
 | Intel Core i5-12600K | x86 CPU fallback | Sprint Standard (5% chaos) | 30,000 | 95.79% | 0.000 ms* | 0.9995 | RACE-READY ✅ |
+| NVIDIA B200 | Linux + NVIDIA CUDA | Weekend (5% chaos) | 3,600,000 | 95.74% | 0.007 ms | 0.9995 | RACE-READY ✅ |
 | NVIDIA H200 NVL | Ubuntu 24.04 + CUDA 13 | Weekend + Kafka (5% chaos) | 3,600,000 | 89.81% | 0.014 ms | 0.9991 | RACE-READY ✅ |
 | AMD Radeon RX 7900 XT | Ubuntu 24.04 + ROCm 6.2 | Weekend (5% chaos) | 3,600,000 | 95.75% | 0.007 ms | 0.9994 | RACE-READY ✅ |
 | Apple M4 | macOS Apple Silicon | Weekend (5% chaos) | 3,600,000 | 95.75% | 0.003 ms | 0.9995 | RACE-READY ✅ |
@@ -171,22 +173,22 @@ Validated across four runtime targets: Linux + NVIDIA CUDA, Linux + AMD ROCm, ma
 
 *CPU fallback timing in the 12600K artifact is rounded to `0.0 ms` at report precision; compare primarily on acceptance rate, breaker stability, and resilience score.
 
-**Validation evidence folders:** `data/reports/H200/`, `data/reports/7900XT/`, `data/reports/M4/`, `data/reports/12600K/`
+**Validation evidence folders:** `data/reports/B200/`, `data/reports/H200/`, `data/reports/7900XT/`, `data/reports/M4/`, `data/reports/12600K/`
 
 ### Sprint Results (30K Packets @ 5% Chaos)
 
 | Metric | Result | Status |
 |--------|--------|--------|
-| **GPU Device** | Radeon RX 7900 XT | ✅ Detected |
-| **GPU Memory** | 19.98 GB | ✅ Available |
+| **GPU Device** | NVIDIA B200 | ✅ Detected |
+| **GPU Memory** | 178.35 GB | ✅ Available |
 | **Total Packets** | 30,000 | ✅ Processed |
 | **Acceptance Rate** | 95.81% | ✅ Strong clean-data throughput |
-| **Chaos Injected** | 1,484 packets | ✅ Expected fault load |
-| **Schema-Drift Recovered** | 219 packets | ✅ BERT reconciliation |
-| **Tensor Anomalies Detected** | 1,225 detections | ✅ Real-time GPU analysis |
-| **Overall p95 Latency** | 0.005 ms | ✅ Sub-millisecond |
+| **Chaos Injected** | 1,480 packets | ✅ Expected fault load |
+| **Schema-Drift Recovered** | 212 packets | ✅ BERT reconciliation |
+| **Tensor Anomalies Detected** | 1,180 detections | ✅ Real-time GPU analysis |
+| **Overall p95 Latency** | 0.008 ms | ✅ Sub-millisecond |
 | **Circuit Breaker Trips** | 0 total | ✅ Stable at sprint load |
-| **DLQ Depth (final)** | 1,191 | ✅ Reduced quarantine backlog |
+| **DLQ Depth (final)** | 1,192 | ✅ Reduced quarantine backlog |
 | **DLQ Repairs Recovered** | 66 | ✅ Kafka + DLQ recovery path active |
 | **Repair Rate** | 33.00% | ✅ Measured with capped repair attempts |
 | **Detection Rate** | 99.66% | ✅ SLO gate cleared |
@@ -208,13 +210,13 @@ Full weekend simulation (240K packets/session × 15 sessions, 5% chaos injection
 | Metric | Result | Status |
 |--------|--------|--------|
 | **Total Packets** | 3,600,000 | ✅ Processed |
-| **Acceptance Rate** | 95.76% | ✅ Stable clean-data throughput |
-| **Chaos Injected** | 179,617 packets | ✅ Expected fault load |
-| **Schema-Drift Recovered** | 25,790 packets | ✅ BERT reconciliation |
-| **Tensor Anomalies Detected** | 145,297 detections | ✅ Real-time GPU analysis |
-| **Overall p95 Latency** | 0.004 ms | ✅ Sub-millisecond |
+| **Acceptance Rate** | 95.74% | ✅ Stable clean-data throughput |
+| **Chaos Injected** | 180,213 packets | ✅ Expected fault load |
+| **Schema-Drift Recovered** | 25,824 packets | ✅ BERT reconciliation |
+| **Tensor Anomalies Detected** | 148,872 detections | ✅ Real-time GPU analysis |
+| **Overall p95 Latency** | 0.007 ms | ✅ Sub-millisecond |
 | **Circuit Breaker Trips** | 0 total | ✅ Stable at race load |
-| **DLQ Depth (final)** | 152,533 | ⚠️ Large but replayable quarantine volume |
+| **DLQ Depth (final)** | 153,145 | ⚠️ Large but replayable quarantine volume |
 | **DLQ Repairs Recovered** | 68 | ✅ Kafka + DLQ recovery path active |
 | **Repair Rate** | 34.00% | ✅ Measured with capped repair attempts |
 | **Detection Rate** | 99.77% | ✅ SLO gate cleared |
