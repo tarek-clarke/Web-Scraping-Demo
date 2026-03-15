@@ -1,0 +1,20 @@
+{
+  "device_name": "NVIDIA B200",
+  "vram_gb": 178.35,
+  "hip_version": "None",
+  "tuning_profile": "gpu_speed",
+  "semantic_threshold": 0.4,
+  "anomaly_sigma_threshold": 3.5,
+  "breaker_failure_threshold": 8,
+  "breaker_recovery_timeout": 1.0,
+  "total_embeddings_computed": 3600000,
+  "total_semantic_resolutions": 3600000,
+  "total_semantic_recovered": 1270,
+  "total_anomaly_detections": 111085,
+  "total_batch_embedding_time_ms": 886.72,
+  "total_batch_anomaly_time_ms": 21284.31,
+  "total_hash_verification_time_ms": 158964.7,
+  "mean_embedding_batch_ms": 0.0315,
+  "mean_anomaly_batch_ms": 0.7568,
+  "gpu_utilisation_estimate": "active"
+}
