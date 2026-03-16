@@ -154,18 +154,20 @@ Interpretation: the remaining gap is concentrated in low-bit-flip behavior on a 
 
 ## Cross-Platform Validation Results
 
-Validated across six runtime targets: Linux + NVIDIA CUDA, Linux + AMD ROCm, macOS + Apple Silicon, and x86 CPU fallback.
+Validated across seven runtime targets: Linux + NVIDIA CUDA, Linux + AMD ROCm, macOS + Apple Silicon, and x86 CPU fallback.
 
-### Cross-Platform Comparison (6 validated targets)
+### Cross-Platform Comparison (7 validated targets)
 
 | Runtime Target | Platform | Representative Profile | Total Packets | Acceptance Rate | p95 Latency | Resilience Score | Verdict |
 |---|---|---|---:|---:|---:|---:|---|
+| NVIDIA GeForce RTX 5090 | Linux + NVIDIA CUDA | Sprint (5% chaos) | 30,000 | 96.07% | 0.007 ms | 0.9993 | RACE-READY ✅ |
 | NVIDIA RTX PRO 6000 Blackwell | Linux + NVIDIA CUDA | Sprint (5% chaos) | 30,000 | 95.52% | 0.007 ms | 0.9987 | RACE-READY ✅ |
 | NVIDIA B200 | Linux + NVIDIA CUDA | Sprint (5% chaos) | 30,000 | 95.81% | 0.008 ms | 0.9991 | RACE-READY ✅ |
 | NVIDIA H200 NVL | Ubuntu 24.04 + CUDA 13 | Sprint + Kafka (5% chaos) | 30,000 | 89.85% | 0.013 ms | 0.9993 | RACE-READY ✅ |
 | AMD Radeon RX 7900 XT | Ubuntu 24.04 + ROCm 6.2 | Sprint (5% chaos) | 30,000 | 95.83% | 0.007 ms | 0.9988 | RACE-READY ✅ |
 | Apple M4 | macOS Apple Silicon | Sprint (5% chaos) | 30,000 | 95.81% | 0.005 ms | 0.9998 | RACE-READY ✅ |
 | Intel Core i5-12600K | x86 CPU fallback | Sprint Standard (5% chaos) | 30,000 | 95.79% | 0.000 ms* | 0.9995 | RACE-READY ✅ |
+| NVIDIA GeForce RTX 5090 | Linux + NVIDIA CUDA | Weekend (5% chaos) | 3,600,000 | 95.76% | 0.010 ms | 0.9994 | RACE-READY ✅ |
 | NVIDIA RTX PRO 6000 Blackwell | Linux + NVIDIA CUDA | Weekend (5% chaos) | 3,600,000 | 95.74% | 0.006 ms | 0.9995 | RACE-READY ✅ |
 | NVIDIA B200 | Linux + NVIDIA CUDA | Weekend (5% chaos) | 3,600,000 | 95.74% | 0.007 ms | 0.9995 | RACE-READY ✅ |
 | NVIDIA H200 NVL | Ubuntu 24.04 + CUDA 13 | Weekend + Kafka (5% chaos) | 3,600,000 | 89.81% | 0.014 ms | 0.9991 | RACE-READY ✅ |
@@ -175,7 +177,7 @@ Validated across six runtime targets: Linux + NVIDIA CUDA, Linux + AMD ROCm, mac
 
 *CPU fallback timing in the 12600K artifact is rounded to `0.0 ms` at report precision; compare primarily on acceptance rate, breaker stability, and resilience score.
 
-**Validation evidence folders:** `data/reports/RTXB6000/`, `data/reports/B200/`, `data/reports/H200/`, `data/reports/7900XT/`, `data/reports/M4/`, `data/reports/12600K/`
+**Validation evidence folders:** `data/reports/GeForceRTX5090/`, `data/reports/RTXB6000/`, `data/reports/B200/`, `data/reports/H200/`, `data/reports/7900XT/`, `data/reports/M4/`, `data/reports/12600K/`
 
 ### Sprint Results (30K Packets @ 5% Chaos)
 
