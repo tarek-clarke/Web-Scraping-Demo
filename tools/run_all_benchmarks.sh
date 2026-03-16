@@ -34,19 +34,19 @@ echo "📍 Benchmarking on: $HARDWARE_NAME"
 # 5. The Suite (Sprint: 30K, Weekend: 3.6M)
 echo "🚦 Starting Full Suite (6 Tests + Diagnostic)..."
 
-# Canonical Profiles
+# Canonical Profiles (5% mixed chaos)
 PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 30000 --chaos 0.05 --output-suffix _sprint
 PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 3600000 --chaos 0.05 --output-suffix _weekend
 
-# Repair-Focus Profiles
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 30000 --chaos 0.05 --chaos-profile repair_focus --output-suffix _sprint_repairfocus
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 3600000 --chaos 0.05 --chaos-profile repair_focus --output-suffix _weekend_repairfocus
+# Repair-Focus Profiles (0.5% targeted chaos)
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 30000 --chaos 0.005 --chaos-profile repair_focus --output-suffix _sprint_repairfocus
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 3600000 --chaos 0.005 --chaos-profile repair_focus --output-suffix _weekend_repairfocus
 
-# Ultra-Low (High Jitter Stress)
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 30000 --chaos 0.05 --chaos-profile repair_focus --output-suffix _sprint_ultralow
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 3600000 --chaos 0.05 --chaos-profile repair_focus --output-suffix _weekend_ultralow
+# Ultra-Low / Jitter Stress (0.1% micro-faults)
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 30000 --chaos 0.001 --chaos-profile repair_focus --output-suffix _sprint_ultralow
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 3600000 --chaos 0.001 --chaos-profile repair_focus --output-suffix _weekend_ultralow
 
-# Diagnostic Deep-Dive
+# Diagnostic Deep-Dive (High-friction fault load)
 PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 60000 --chaos 0.12 --chaos-profile balanced --diagnostic --output-suffix _diagnostic
 
 # 6. Finalization & Automated Push
