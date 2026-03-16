@@ -31,23 +31,24 @@ export RAP_OUTPUT_SUFFIX=$HARDWARE_NAME
 
 echo "📍 Benchmarking on: $HARDWARE_NAME"
 
-# 5. The Suite (Sprint: 30K, Weekend: 3.6M)
+# 5. The Suite (Sprint: 30K total, Weekend: 3.6M total)
+# NOTE: --packets is PER SESSION (×15 sessions). Use 2000 for 30K total, 240000 for 3.6M total.
 echo "🚦 Starting Full Suite (6 Tests + Diagnostic)..."
 
 # Canonical Profiles (5% mixed chaos)
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 30000 --chaos 0.05 --output-suffix _sprint
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 3600000 --chaos 0.05 --output-suffix _weekend
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend
 
 # Repair-Focus Profiles (0.5% targeted chaos)
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 30000 --chaos 0.005 --chaos-profile repair_focus --output-suffix _sprint_repairfocus
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 3600000 --chaos 0.005 --chaos-profile repair_focus --output-suffix _weekend_repairfocus
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.005 --chaos-profile repair_focus --output-suffix _sprint_repairfocus
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 240000 --chaos 0.005 --chaos-profile repair_focus --output-suffix _weekend_repairfocus
 
 # Ultra-Low / Jitter Stress (0.1% micro-faults)
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 30000 --chaos 0.001 --chaos-profile repair_focus --output-suffix _sprint_ultralow
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 3600000 --chaos 0.001 --chaos-profile repair_focus --output-suffix _weekend_ultralow
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.001 --chaos-profile repair_focus --output-suffix _sprint_ultralow
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 240000 --chaos 0.001 --chaos-profile repair_focus --output-suffix _weekend_ultralow
 
 # Diagnostic Deep-Dive (High-friction fault load)
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 60000 --chaos 0.12 --chaos-profile balanced --diagnostic --output-suffix _diagnostic
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 4000 --chaos 0.12 --chaos-profile balanced --diagnostic --output-suffix _diagnostic
 
 # 6. Finalization & Automated Push
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
