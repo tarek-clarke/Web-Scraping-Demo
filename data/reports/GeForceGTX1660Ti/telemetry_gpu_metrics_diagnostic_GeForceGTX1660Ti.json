@@ -1,0 +1,20 @@
+{
+  "device_name": "NVIDIA GeForce GTX 1660 Ti",
+  "vram_gb": 5.61,
+  "hip_version": "None",
+  "tuning_profile": "gpu_speed",
+  "semantic_threshold": 0.4,
+  "anomaly_sigma_threshold": 3.5,
+  "breaker_failure_threshold": 8,
+  "breaker_recovery_timeout": 1.0,
+  "total_embeddings_computed": 60000,
+  "total_semantic_resolutions": 60000,
+  "total_semantic_recovered": 982,
+  "total_anomaly_detections": 3913,
+  "total_batch_embedding_time_ms": 332.2,
+  "total_batch_anomaly_time_ms": 570.35,
+  "total_hash_verification_time_ms": 12721.77,
+  "mean_embedding_batch_ms": 0.6921,
+  "mean_anomaly_batch_ms": 1.1882,
+  "gpu_utilisation_estimate": "active"
+}
