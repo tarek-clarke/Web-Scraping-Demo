@@ -24,9 +24,11 @@ python3 -m pip install torch torchvision torchaudio --index-url https://download
 echo "🏭 Building C++ Ingest Extensions..."
 python3 setup.py build_ext --inplace
 
-# 4. Hardware Detection
-DETECTED_GPU=$(python3 -c "import torch; print(torch.cuda.get_device_name(0).replace(' ', '_').replace('NVIDIA_', '') if torch.cuda.is_available() else 'CPU_Fallback')" 2>/dev/null || echo "Unknown_Hardware")
+# 4. Hardware Detection (Matched to Python _sanitize_suffix_token logic)
+DETECTED_GPU=$(python3 -c "import torch, re; name = torch.cuda.get_device_name(0).replace('NVIDIA ', '') if torch.cuda.is_available() else 'CPU_Fallback'; print(re.sub(r'[^A-Za-z0-9]+', '', name))" 2>/dev/null || echo "UnknownHardware")
 HARDWARE_NAME=${1:-$DETECTED_GPU}
+# Ensure the final name is sanitized even if passed as an argument
+HARDWARE_NAME=$(python3 -c "import re; print(re.sub(r'[^A-Za-z0-9]+', '', '$HARDWARE_NAME'))")
 export RAP_OUTPUT_SUFFIX=$HARDWARE_NAME
 
 echo "📍 Benchmarking on: $HARDWARE_NAME"
