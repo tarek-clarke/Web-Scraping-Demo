@@ -167,7 +167,7 @@ Validated across eight runtime targets: Linux + NVIDIA CUDA, Linux + AMD ROCm, m
 | NVIDIA GeForce GTX 1660 Ti | Linux + NVIDIA CUDA | Sprint (5% chaos) | 30,000 | 95.85% | 0.020 ms | 0.9998 | RACE-READY ✅ |
 | AMD Radeon RX 7900 XT | Ubuntu 24.04 + ROCm 6.2 | Sprint (5% chaos) | 30,000 | 95.83% | 0.007 ms | 0.9988 | RACE-READY ✅ |
 | Apple M4 | macOS Apple Silicon | Sprint (5% chaos) | 30,000 | 95.81% | 0.005 ms | 0.9998 | RACE-READY ✅ |
-| Intel Core i5-12600K | x86 CPU fallback | Sprint Standard (5% chaos) | 30,000 | 95.79% | 0.000 ms* | 0.9995 | RACE-READY ✅ |
+| Intel Core i5-12600K | x86 CPU fallback | Sprint Standard (5% chaos) | 30,000 | 95.79% | 0.000 ms* | 0.9997 | RACE-READY ✅ |
 | NVIDIA GeForce RTX 5090 | Linux + NVIDIA CUDA | Weekend (5% chaos) | 3,600,000 | 95.76% | 0.010 ms | 0.9994 | RACE-READY ✅ |
 | NVIDIA RTX PRO 6000 Blackwell | Linux + NVIDIA CUDA | Weekend (5% chaos) | 3,600,000 | 95.74% | 0.006 ms | 0.9995 | RACE-READY ✅ |
 | NVIDIA B200 | Linux + NVIDIA CUDA | Weekend (5% chaos) | 3,600,000 | 95.74% | 0.007 ms | 0.9995 | RACE-READY ✅ |
@@ -179,7 +179,7 @@ Validated across eight runtime targets: Linux + NVIDIA CUDA, Linux + AMD ROCm, m
 
 *CPU fallback timing in the 12600K artifact is rounded to `0.0 ms` at report precision; compare primarily on acceptance rate, breaker stability, and resilience score.
 
-**Validation evidence folders:** `data/reports/GeForceGTX1660Ti/`, `data/reports/GeForceRTX5090/`, `data/reports/RTXB6000/`, `data/reports/B200/`, `data/reports/H200/`, `data/reports/7900XT/`, `data/reports/M4/`, `data/reports/12600K/`
+**Validation evidence folders:** `data/reports/GeForceGTX1660Ti/`, `data/reports/GeForceRTX5090/`, `data/reports/RTXB6000/`, `data/reports/B200/`, `data/reports/H200/`, `data/reports/7900XT/`, `data/reports/M4/`, `data/reports/12600k/`
 
 ### Sprint Results (30K Packets @ 5% Chaos)
 
@@ -195,8 +195,8 @@ Validated across eight runtime targets: Linux + NVIDIA CUDA, Linux + AMD ROCm, m
 | **Overall p95 Latency** | 0.008 ms | ✅ Sub-millisecond |
 | **Circuit Breaker Trips** | 0 total | ✅ Stable at sprint load |
 | **DLQ Depth (final)** | 1,192 | ✅ Reduced quarantine backlog |
-| **DLQ Repairs Recovered** | 66 | ✅ Kafka + DLQ recovery path active |
-| **Repair Rate** | 33.00% | ✅ Measured with capped repair attempts |
+| **DLQ Repairs Recovered** | 64 | ✅ DLQ recovery path active |
+| **Repair Rate** | 32.00% | ✅ Measured with capped repair attempts |
 | **Detection Rate** | 99.66% | ✅ SLO gate cleared |
 | **SLOs Passed** | 6/6 | ✅ All gates met |
 | **Verdict** | RACE-READY ✅ | Deterministic timing maintained |
@@ -206,7 +206,7 @@ Validated across eight runtime targets: Linux + NVIDIA CUDA, Linux + AMD ROCm, m
 | Topic | Messages |
 |-------|---------:|
 | `dlq-repairable-sprint-005` | 1,391 |
-| `dlq-repaired-sprint-005` | 66 |
+| `dlq-repaired-sprint-005` | 64 |
 | `dlq-non-repairable-sprint-005` | 0 |
 
 ### Race Weekend Results (3.6M Packets @ 5% Chaos)
@@ -223,9 +223,9 @@ Full weekend simulation (240K packets/session × 15 sessions, 5% chaos injection
 | **Overall p95 Latency** | 0.007 ms | ✅ Sub-millisecond |
 | **Circuit Breaker Trips** | 0 total | ✅ Stable at race load |
 | **DLQ Depth (final)** | 153,145 | ⚠️ Large but replayable quarantine volume |
-| **DLQ Repairs Recovered** | 68 | ✅ Kafka + DLQ recovery path active |
-| **Repair Rate** | 34.00% | ✅ Measured with capped repair attempts |
-| **Detection Rate** | 99.77% | ✅ SLO gate cleared |
+| **DLQ Repairs Recovered** | 62 | ✅ DLQ recovery path active |
+| **Repair Rate** | 31.00% | ✅ Measured with capped repair attempts |
+| **Detection Rate** | 99.80% | ✅ SLO gate cleared |
 | **SLOs Passed** | 6/6 | ✅ All gates met |
 | **Verdict** | RACE-READY ✅ | Deterministic timing maintained |
 
@@ -234,7 +234,7 @@ Full weekend simulation (240K packets/session × 15 sessions, 5% chaos injection
 | Topic | Messages |
 |-------|---------:|
 | `dlq-repairable-weekend-005` | 152,733 |
-| `dlq-repaired-weekend-005` | 68 |
+| `dlq-repaired-weekend-005` | 62 |
 | `dlq-non-repairable-weekend-005` | 0 |
 
 Kafka publish counts align with DLQ/quarantine plus reprocessing traffic (`repairable` includes initial quarantine events and re-published retryable records).
