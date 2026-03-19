@@ -1,0 +1,20 @@
+{
+  "device_name": "cpu",
+  "vram_gb": 0.0,
+  "hip_version": "",
+  "tuning_profile": "cpu_original",
+  "semantic_threshold": 0.45,
+  "anomaly_sigma_threshold": 3.0,
+  "breaker_failure_threshold": 5,
+  "breaker_recovery_timeout": 2.0,
+  "total_embeddings_computed": 30000,
+  "total_semantic_resolutions": 30000,
+  "total_semantic_recovered": 51,
+  "total_anomaly_detections": 1249,
+  "total_batch_embedding_time_ms": 353.42,
+  "total_batch_anomaly_time_ms": 76.32,
+  "total_hash_verification_time_ms": 451.12,
+  "mean_embedding_batch_ms": 1.4726,
+  "mean_anomaly_batch_ms": 0.318,
+  "gpu_utilisation_estimate": "cpu-fallback"
+}

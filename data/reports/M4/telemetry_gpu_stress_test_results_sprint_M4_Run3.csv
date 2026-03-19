@@ -1,0 +1,16 @@
+session_name,circuit,packets_sent,packets_accepted,packets_rejected,chaos_injected,breaker_trips,breaker_final_state,dlq_depth,buffer_pending,latency_p50_ms,latency_p95_ms,latency_p99_ms,geo_scrubbed,duration_s,gpu_semantic_resolutions,gpu_semantic_recovered,gpu_anomaly_detections,gpu_batch_embedding_ms,gpu_batch_anomaly_ms,gpu_device_name,gpu_vram_gb,gpu_hip_version,gpu_utilisation_estimate
+spielberg_FP1,spielberg,2000,1907,93,111,0,CLOSED,93,193,0.005,0.025,0.076,40,0.0,2000,17,102,121.88612285535783,6.442788988351822,cpu,0.0,,cpu-fallback
+spielberg_FP2,spielberg,2000,1916,84,108,0,CLOSED,177,383,0.005,0.026,0.059,40,0.0,2000,24,106,168.80154120735824,18.124917871318758,cpu,0.0,,cpu-fallback
+spielberg_FP3,spielberg,2000,1923,77,88,0,CLOSED,254,190,0.005,0.018,0.052,40,0.0,2000,11,104,34.965623868629336,5.831915768794715,cpu,0.0,,cpu-fallback
+spielberg_QUALI,spielberg,2000,1919,81,91,0,CLOSED,335,190,0.005,0.025,0.057,40,0.0,2000,9,86,49.049918190576136,6.967290886677802,cpu,0.0,,cpu-fallback
+spielberg_RACE,spielberg,2000,1920,80,91,0,CLOSED,415,189,0.005,0.025,0.063,40,0.0,2000,10,88,19.3686259444803,5.314373876899481,cpu,0.0,,cpu-fallback
+silverstone_FP1,silverstone,2000,1919,81,95,0,CLOSED,496,191,0.005,0.023,0.073,40,0.0,2000,13,91,74.76199988741428,7.165874820202589,cpu,0.0,,cpu-fallback
+silverstone_FP2,silverstone,2000,1918,82,92,0,CLOSED,578,190,0.005,0.026,0.061,40,0.0,2000,10,87,28.102626791223884,5.697250831872225,cpu,0.0,,cpu-fallback
+silverstone_FP3,silverstone,2000,1917,83,99,0,CLOSED,661,192,0.005,0.022,0.053,40,0.0,2000,16,102,10.11070713866502,11.138545232824981,cpu,0.0,,cpu-fallback
+silverstone_QUALI,silverstone,2000,1914,86,97,0,CLOSED,747,195,0.005,0.026,0.059,40,0.0,2000,11,118,13.01083480939269,5.54004090372473,cpu,0.0,,cpu-fallback
+silverstone_RACE,silverstone,2000,1910,90,103,0,CLOSED,837,194,0.005,0.024,0.057,40,0.0,2000,13,84,0.6208757404237986,5.437375162728131,cpu,0.0,,cpu-fallback
+budapest_FP1,budapest,2000,1908,92,112,0,CLOSED,929,189,0.005,0.02,0.054,40,0.0,2000,19,91,31.6919160541147,5.16370648983866,cpu,0.0,,cpu-fallback
+budapest_FP2,budapest,2000,1916,84,101,0,CLOSED,1013,191,0.005,0.022,0.046,40,0.0,2000,17,88,0.6408340996131301,5.270833265967667,cpu,0.0,,cpu-fallback
+budapest_FP3,budapest,2000,1928,72,89,0,CLOSED,1085,385,0.005,0.017,0.048,40,0.0,2000,17,103,0.559875974431634,5.03875024151057,cpu,0.0,,cpu-fallback
+budapest_QUALI,budapest,2000,1928,72,88,0,CLOSED,1157,191,0.005,0.019,0.045,40,0.0,2000,16,97,0.5495428340509534,10.056543163955212,cpu,0.0,,cpu-fallback
+budapest_RACE,budapest,2000,1915,85,100,0,CLOSED,1242,190,0.005,0.024,0.056,40,0.0,2000,14,112,0.6404978921636939,6.2789999647066,cpu,0.0,,cpu-fallback
