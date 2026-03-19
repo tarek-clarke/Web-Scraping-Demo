@@ -325,6 +325,34 @@ source .venv/bin/activate && PYTHONPATH="." python3 tools/reconciliation_ablatio
 
 ---
 
+## Statistical Rigor & Aggregation
+
+For research-grade results (as required for our IEEE TKDE submission), the framework supports auto-incrementing repeat runs and statistical aggregation (Mean/StdDev).
+
+### 1. Repeat Benchmark Runs
+To perform repeat runs, simply execute the benchmark script multiple times. The system detects existing reports and appends `_Run2`, `_Run3`, etc., automatically.
+
+```bash
+# Run 1
+python tools/telemetry_gpu_stress_test.py --output-suffix _M4
+
+# Run 2 (automatically becomes _Run2)
+python tools/telemetry_gpu_stress_test.py --output-suffix _M4
+```
+
+### 2. Aggregate Results
+Once multiple runs are completed, use the aggregator to calculate the Mean and Standard Deviation for all key performance indicators.
+
+```bash
+python tools/aggregate_benchmark_runs.py --dir data/reports/M4 --platform M4
+```
+
+This generates:
+- `telemetry_gpu_stress_test_report_M4_Mean.json`: Detailed statistical breakdown.
+- `telemetry_gpu_stress_test_report_M4_Mean.csv`: Summary table for publication.
+
+---
+
 ## System Architecture
 
 ### High-Level Overview

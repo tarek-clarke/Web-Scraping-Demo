@@ -197,6 +197,23 @@ def _build_output_suffix(output_suffix: str, hardware_suffix: str) -> str:
     return f"_{raw}"
 
 
+def _increment_suffix_if_needed(output_dir: Path, base_suffix: str) -> str:
+    """If a report with the current suffix already exists, append _Run2, _Run3, etc."""
+    # We check for the main JSON report file as the existence indicator
+    check_file = output_dir / f"telemetry_gpu_stress_test_report{base_suffix}.json"
+    if not check_file.exists():
+        return base_suffix
+
+    # Try _Run2, _Run3...
+    run_idx = 2
+    while True:
+        candidate = f"{base_suffix}_Run{run_idx}"
+        check_file = output_dir / f"telemetry_gpu_stress_test_report{candidate}.json"
+        if not check_file.exists():
+            return candidate
+        run_idx += 1
+
+
 # ---------------------------------------------------------------------------
 # GPU helpers
 # ---------------------------------------------------------------------------
@@ -972,6 +989,9 @@ class TelemetryGPUStressTest:
         self.output_suffix = _build_output_suffix(output_suffix, self.hardware_suffix)
         self.output_dir = _resolve_hardware_output_dir(output_dir, self.hardware_suffix)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Handle repeat runs (increment suffix if file exists)
+        self.output_suffix = _increment_suffix_if_needed(self.output_dir, self.output_suffix)
 
         # Threshold profiles:
         # - GPU active: tuned for throughput/speed
