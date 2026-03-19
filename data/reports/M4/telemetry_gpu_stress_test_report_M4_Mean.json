@@ -1,0 +1,47 @@
+{
+  "total_packets": {
+    "mean": 1210000.0,
+    "std": 1689985.207036,
+    "n": 3
+  },
+  "overall_acceptance_rate": {
+    "mean": 0.929433,
+    "std": 0.04757,
+    "n": 3
+  },
+  "overall_latency_p95": {
+    "mean": 0.023333,
+    "std": 0.016337,
+    "n": 3
+  },
+  "resilience_score": {
+    "mean": 0.999267,
+    "std": 0.000525,
+    "n": 3
+  },
+  "total_breaker_trips": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 3
+  },
+  "total_semantic_recovered": {
+    "mean": 2156.666667,
+    "std": 2666.739874,
+    "n": 3
+  },
+  "total_anomaly_detections": {
+    "mean": 50944.333333,
+    "std": 70590.942735,
+    "n": 3
+  },
+  "mean_embedding_batch_ms": {
+    "mean": 3.076833,
+    "std": 2.377891,
+    "n": 3
+  },
+  "mean_anomaly_batch_ms": {
+    "mean": 0.3333,
+    "std": 0.190876,
+    "n": 3
+  }
+}
