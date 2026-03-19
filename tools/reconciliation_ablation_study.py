@@ -193,7 +193,7 @@ def run_study():
         f"BERT achieved [green]{bert_correct/n:.1%} accuracy[/green] across all drift types, including [magenta]Synonyms[/magenta] "
         f"where character-distance methods failed. This justifies the {np.mean(bert_latencies):.4f}ms overhead "
         f"as it ensures 0% data loss during unexpected sensor renaming.",
-        title="Theoretical Armor"
+        title="Study Insight"
     ))
 
 if __name__ == "__main__":

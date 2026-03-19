@@ -291,7 +291,7 @@ Why detection now reaches 100% on the repair-focused profile: duplicate timestam
 
 This benchmark validates the full ingestion → detection → quarantine → repair → audit pipeline end-to-end.
 
-## Reconciliation Ablation Study (Theoretical Armor)
+## Reconciliation Ablation Study
 
 To justify the requirement for Transformer-based reconciliation, we benchmark BERT against traditional string-distance and rule-based methods. This ablation study proves that "semantic" awareness is essential for zero-data-loss in F1 telemetry where sensor naming often drifts between teams or upgrades.
 
