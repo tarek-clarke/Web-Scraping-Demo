@@ -141,6 +141,21 @@ def _resolve_hardware_output_dir(base_dir: str | Path, hardware_suffix: str) -> 
     return Path(base_dir) / hardware_dir
 
 
+def _increment_output_path_if_needed(output_path: Path) -> Path:
+    """Append _Run2, _Run3, etc. if a report already exists."""
+    if not output_path.exists():
+        return output_path
+
+    stem = output_path.stem
+    suffix = output_path.suffix
+    run_idx = 2
+    while True:
+        candidate = output_path.with_name(f"{stem}_Run{run_idx}{suffix}")
+        if not candidate.exists():
+            return candidate
+        run_idx += 1
+
+
 # ---------------------------------------------------------------------------
 # Triple-Header Configuration
 # ---------------------------------------------------------------------------
@@ -923,7 +938,9 @@ class TelemetryStressTest:
     def _export_results(self) -> None:
         """Write results to CSV and JSON for downstream consumption."""
         # --- CSV ---
-        csv_path = self.output_dir / f"telemetry_stress_test_results{self.output_suffix}.csv"
+        csv_path = _increment_output_path_if_needed(
+            self.output_dir / f"telemetry_stress_test_results{self.output_suffix}.csv"
+        )
         with open(csv_path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=[
                 "session_name", "circuit", "packets_sent", "packets_accepted",
@@ -938,13 +955,17 @@ class TelemetryStressTest:
         console.print(f"\n[dim]CSV exported → {csv_path}[/dim]")
 
         # --- JSON ---
-        json_path = self.output_dir / f"telemetry_stress_test_report{self.output_suffix}.json"
+        json_path = _increment_output_path_if_needed(
+            self.output_dir / f"telemetry_stress_test_report{self.output_suffix}.json"
+        )
         with open(json_path, "w") as f:
             json.dump(asdict(self.report), f, indent=2, default=str)
         console.print(f"[dim]JSON exported → {json_path}[/dim]")
 
         # --- Resilience Timing CSV ---
-        timing_csv_path = self.output_dir / f"resilience_timing_report{self.output_suffix}.csv"
+        timing_csv_path = _increment_output_path_if_needed(
+            self.output_dir / f"resilience_timing_report{self.output_suffix}.csv"
+        )
         with open(timing_csv_path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=[
                 "packet_id", "session", "sensor", "chaos_type",
@@ -975,7 +996,9 @@ class TelemetryStressTest:
 
         # --- Resilience Timing JSON ---
         if self.timing_summary:
-            timing_json_path = self.output_dir / f"resilience_timing_report{self.output_suffix}.json"
+            timing_json_path = _increment_output_path_if_needed(
+                self.output_dir / f"resilience_timing_report{self.output_suffix}.json"
+            )
             with open(timing_json_path, "w") as f:
                 json.dump(asdict(self.timing_summary), f, indent=2, default=str)
             console.print(f"[dim]Timing JSON exported → {timing_json_path}[/dim]")

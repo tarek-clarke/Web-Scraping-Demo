@@ -35,22 +35,40 @@ echo "📍 Benchmarking on: $HARDWARE_NAME"
 
 # 5. The Suite (Sprint: 30K total, Weekend: 3.6M total)
 # NOTE: --packets is PER SESSION (×15 sessions). Use 2000 for 30K total, 240000 for 3.6M total.
-echo "🚦 Starting Full Suite (6 Tests + Diagnostic)..."
+echo "🚦 Starting Full Suite (3 runs per test + telemetry + engine stress)..."
+
+run_three_times() {
+    local run_cmd="$1"
+    local label="$2"
+
+    echo "▶ Running $label (Run 1/3)"
+    eval "$run_cmd"
+    echo "▶ Running $label (Run 2/3)"
+    eval "$run_cmd"
+    echo "▶ Running $label (Run 3/3)"
+    eval "$run_cmd"
+}
 
 # Canonical Profiles (5% mixed chaos)
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend
+run_three_times 'PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint' "Sprint"
+run_three_times 'PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend' "Weekend"
+
+# Triple-header baseline stress test
+run_three_times 'PYTHONPATH="." python3 tools/telemetry_stress_test.py --packets 5000 --chaos 0.20' "Triple-header stress test"
 
 # Repair-Focus Profiles (0.5% targeted chaos)
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.005 --chaos-profile repair_focus --output-suffix _sprint_repairfocus
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 240000 --chaos 0.005 --chaos-profile repair_focus --output-suffix _weekend_repairfocus
+run_three_times 'PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.005 --chaos-profile repair_focus --output-suffix _sprint_repairfocus' "Repair-focus Sprint"
+run_three_times 'PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 240000 --chaos 0.005 --chaos-profile repair_focus --output-suffix _weekend_repairfocus' "Repair-focus Weekend"
 
 # Ultra-Low / Jitter Stress (0.1% micro-faults)
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.001 --chaos-profile repair_focus --output-suffix _sprint_ultralow
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 240000 --chaos 0.001 --chaos-profile repair_focus --output-suffix _weekend_ultralow
+run_three_times 'PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.001 --chaos-profile repair_focus --output-suffix _sprint_ultralow' "Ultralow Sprint"
+run_three_times 'PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 240000 --chaos 0.001 --chaos-profile repair_focus --output-suffix _weekend_ultralow' "Ultralow Weekend"
 
 # Diagnostic Deep-Dive (High-friction fault load)
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 4000 --chaos 0.12 --chaos-profile balanced --diagnostic --output-suffix _diagnostic
+run_three_times 'PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 4000 --chaos 0.12 --chaos-profile balanced --diagnostic --output-suffix _diagnostic' "Diagnostic"
+
+# Engine temperature stress test (7900XT / M4-compatible)
+run_three_times 'PYTHONPATH="." python3 tools/stress_test_engine_temp.py' "Engine temperature stress test"
 
 # 6. Finalization & Automated Push
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)

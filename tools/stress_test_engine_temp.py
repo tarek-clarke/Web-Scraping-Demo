@@ -97,6 +97,21 @@ def _resolve_output_csv_path(base_output_dir: str | Path, runtime_suffix: str) -
     return Path(base_output_dir) / hardware_dir / f"engine_temp_stress_test_results_{hardware_dir}.csv"
 
 
+def _increment_output_path_if_needed(output_path: Path) -> Path:
+    """Append _Run2, _Run3, etc. if the CSV already exists."""
+    if not output_path.exists():
+        return output_path
+
+    stem = output_path.stem
+    suffix = output_path.suffix
+    run_idx = 2
+    while True:
+        candidate = output_path.with_name(f"{stem}_Run{run_idx}{suffix}")
+        if not candidate.exists():
+            return candidate
+        run_idx += 1
+
+
 class EngineTemperatureStressIngestor(SportsIngestor):
     """
     Extended SportsIngestor with Engine Temperature field and controlled anomalies.
@@ -407,9 +422,10 @@ def run_stress_test(output_csv=None):
 if __name__ == "__main__":
     # Run stress test
     runtime_suffix = _detect_runtime_suffix()
-    results = run_stress_test(
-        output_csv=str(_resolve_output_csv_path("data/reports", runtime_suffix))
+    output_csv_path = _increment_output_path_if_needed(
+        _resolve_output_csv_path("data/reports", runtime_suffix)
     )
+    results = run_stress_test(output_csv=str(output_csv_path))
     
     # Exit with appropriate code
     sys.exit(0 if results['test_passed'] else 1)

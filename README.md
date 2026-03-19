@@ -92,6 +92,8 @@ find . -name "*.db-shm" -type f -delete
 
 These six commands are the canonical benchmark suite. The script auto-detects hardware and writes outputs to `data/reports/<hardware>/` with hardware-appended filenames (for example: `_sprint_M4`, `_sprint_12600K`, `_sprint_7900XT`, `_sprint_H200`).
 
+The automated `tools/run_all_benchmarks.sh` wrapper now runs each benchmark three times (Run1, Run2, Run3) and also includes the engine temperature stress test for the active hardware profile.
+
 ```bash
 # 1) Standard profile — Sprint (30,000 total packets)
 source .venv/bin/activate && PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint
@@ -503,6 +505,9 @@ PYTHONPATH="." python tools/telemetry_stress_test.py --packets 5000 --chaos 0.20
 
 # Engine temperature anomaly test
 PYTHONPATH="." python tools/stress_test_engine_temp.py
+
+# Full benchmark automation (3 runs per test + engine stress test)
+./tools/run_all_benchmarks.sh 7900XT
 ```
 
 ---
