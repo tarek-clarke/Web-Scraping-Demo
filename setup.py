@@ -141,6 +141,19 @@ EXTRA_COMPILE_ARGS = {
     "nvcc": NVCC_FLAGS,
 }
 
+# Automatically find PyTorch NVIDIA wheel headers (e.g., cusparse.h) for pip-only environments
+import glob
+PYTORCH_NVIDIA_INCLUDES = []
+try:
+    site_packages = Path(torch.__file__).parent.parent
+    nvidia_dir = site_packages / "nvidia"
+    if nvidia_dir.is_dir():
+        for inc_dir in nvidia_dir.glob("*/include"):
+            if inc_dir.is_dir():
+                PYTORCH_NVIDIA_INCLUDES.append(str(inc_dir))
+except Exception:
+    pass
+
 if IS_ROCM or IS_CUDA:
     RPATH_ARGS = [
         f"-Wl,-rpath,{TORCH_LIB_PATH}",
@@ -149,6 +162,7 @@ if IS_ROCM or IS_CUDA:
     ext = CUDAExtension(
         name="fast_ingest",
         sources=SOURCES,
+        include_dirs=PYTORCH_NVIDIA_INCLUDES,
         extra_compile_args=EXTRA_COMPILE_ARGS,
         extra_link_args=[a for a in RPATH_ARGS if a],
         # PyTorch's CUDAExtension automatically adds:
