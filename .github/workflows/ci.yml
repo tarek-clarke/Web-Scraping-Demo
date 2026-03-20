@@ -1,4 +1,4 @@
-# Resilient RAP Framework — CI Pipeline
+# Resilient RAP Framework CI Pipeline
 # Runs on every push and PR to validate the full pipeline.
 
 name: CI — Tests & Stress

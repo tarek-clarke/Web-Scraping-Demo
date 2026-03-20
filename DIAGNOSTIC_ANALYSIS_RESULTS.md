@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-**Status**: ✅ ROOT CAUSES IDENTIFIED
+**Status**: [x] ROOT CAUSES IDENTIFIED
 
 The diagnostic framework successfully identified which sensors and fault types are responsible for the 0.34% missed detection rate (370 faults out of 108,617 injected in the weekend scenario).
 
@@ -10,19 +10,19 @@ The diagnostic framework successfully identified which sensors and fault types a
 
 ## Key Findings
 
-### 🔴 CRITICAL: ecu_canbus + bit_flip_low
+###  CRITICAL: ecu_canbus + bit_flip_low
 - **Miss Count**: 274 missed detections
 - **Total Injected**: ~1,520 faults
 - **Miss Rate**: 18.04% (CRITICAL)
 - **Impact**: This single sensor+chaos combination accounts for **74% of all misses** (274/370)
 
-### 🟡 HIGH: g_force_lateral + bit_flip_low  
+###  HIGH: g_force_lateral + bit_flip_low  
 - **Miss Count**: 61 missed detections
 - **Total Injected**: ~1,584 faults
 - **Miss Rate**: 3.85% (HIGH)
 - **Impact**: ~16% of all misses
 
-### ✅ Secondary Issues
+### [x] Secondary Issues
 - ecu_canbus + bit_flip_high: 1.67% miss rate (25 misses)
 - Other sensor+chaos combinations: <1% miss rate
 
@@ -37,17 +37,17 @@ The `bit_flip_low` chaos mode flips bits in numeric values to their LOW state (0
 1. **Detection Gap**: 
    - Z-score anomaly detection uses statistical deviation from baseline
    - Setting a value to 0 or minimum is often within normal operating range during certain events
-   - Example: Throttle at 0% during braking is legitimate → z-score normal
+   - Example: Throttle at 0% during braking is legitimate  z-score normal
 
 2. **ecu_canbus Specific**:
    - ECU (Engine Control Unit) values have high legitimate variance
    - Many ECU parameters naturally drop to 0 during engine shutdown/coast-down
-   - bit_flip_low → minimum values blend with normal background activity
+   - bit_flip_low  minimum values blend with normal background activity
    - Z-score threshold (sigma=3.5) insufficient to catch these subtle drifts
 
 3. **g_force_lateral Specific**:
    - Lateral G-force naturally approaches 0 during straights
-   - bit_flip_low → 0 is indistinguishable from legitimate straight-line behavior
+   - bit_flip_low  0 is indistinguishable from legitimate straight-line behavior
    - Detection ineffective during low-load phases
 
 ---
@@ -69,9 +69,9 @@ bit_flip_high     35 misses (9.5% of all misses)   0.23% miss rate
 
 ### Distribution Across Sessions
 Misses evenly distributed across all 15 sessions (20-33 misses each), indicating:
-- ✅ Not a timing/load issue
-- ✅ Not circuit-specific
-- ✅ Consistent systematic detection gap in the z-score algorithm
+- [x] Not a timing/load issue
+- [x] Not circuit-specific
+- [x] Consistent systematic detection gap in the z-score algorithm
 
 ---
 
@@ -140,7 +140,7 @@ class EnhancedCadenceMonitor:
 ## Recommended Action Plan
 
 ### Immediate (This Session)
-1. ✅ Root causes identified (bit_flip_low on ecu_canbus/g_force_lateral)
+1. [x] Root causes identified (bit_flip_low on ecu_canbus/g_force_lateral)
 2. Document findings (THIS REPORT)
 3. Export CSV for stakeholder review
 
@@ -185,7 +185,7 @@ Based on the findings, here's the predicted impact of tuning:
 | 2.0   | ~0.50%            | +0.10ms per packet   |
 | 1.5   | ~0.25%            | +0.15ms per packet   |
 
-**Trade-off**: Each 0.5 sigma reduction → ~0.02-0.03ms additional latency
+**Trade-off**: Each 0.5 sigma reduction  ~0.02-0.03ms additional latency
 
 ---
 
@@ -215,4 +215,4 @@ All options are feasible. Recommendation: Start with Option 1 (sigma tuning) to 
 ---
 
 Generated: 2026-03-11 19:35 UTC
-Status: ✅ READY FOR STAKEHOLDER REVIEW
+Status: [x] READY FOR STAKEHOLDER REVIEW

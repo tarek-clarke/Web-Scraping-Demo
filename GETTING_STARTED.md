@@ -2,7 +2,7 @@
 
 Welcome! This guide helps you quickly get up and running with the Resilient RAP Framework for your PhD research.
 
-## 📋 Quick Links
+##  Quick Links
 
 - **[README.md](README.md)** - Project overview and installation
 - **[PRODUCTION.md](PRODUCTION.md)** - Production deployment checklist and guidelines
@@ -11,7 +11,7 @@ Welcome! This guide helps you quickly get up and running with the Resilient RAP 
 - **[docs/HITL_RETRAINING_GUIDE.md](docs/HITL_RETRAINING_GUIDE.md)** - Human-in-the-loop workflow
 - **[LICENSE](LICENSE)** - PolyForm Noncommercial 1.0.0
 
-## 🚀 30-Second Start
+##  30-Second Start
 
 ```bash
 # Ubuntu/Debian only (one-time):
@@ -30,7 +30,7 @@ PYTHONPATH="." python3 main.py --adapter openf1 --session 9158 --driver 1 --expo
 cat data/audit.json | python3 -m json.tool
 ```
 
-## � GPU Support (Backend-Agnostic)
+##  GPU Support (Backend-Agnostic)
 
 The framework automatically detects and uses any available GPU:
 - **NVIDIA CUDA** (NVIDIA GPUs)
@@ -74,7 +74,7 @@ python3 -m pip install torch torchvision torchaudio --index-url https://download
 python3 -c "import torch; print('GPU:', torch.cuda.is_available(), 'Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 ```
 
-## �🎯 Common Tasks
+##  Common Tasks
 
 ### Run a Production Pipeline
 ```bash
@@ -99,28 +99,28 @@ python3 -m pytest tests/ -v
 PYTHONPATH="." python3 tools/benchmark_semantic_layer.py
 ```
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 resilient-rap-framework/
-├── README.md              # Start here!
-├── PRODUCTION.md          # For production deployment
-├── main.py               # Entry point
-├── requirements.txt      # Dependencies
-│
-├── adapters/             # Data connectors (F1, NHL, Clinical)
-├── modules/              # Core framework code
-├── src/                  # Utilities and provenance tracking
-├── tools/                # Production utilities
-├── examples/             # Demo scripts and notebooks
-├── tests/                # Test suite
-│
-├── data/                 # Output: audit logs, reports
-├── reporting/            # PDF generation
-└── docs/                 # Detailed documentation
+ README.md              # Start here!
+ PRODUCTION.md          # For production deployment
+ main.py               # Entry point
+ requirements.txt      # Dependencies
+
+ adapters/             # Data connectors (F1, NHL, Clinical)
+ modules/              # Core framework code
+ src/                  # Utilities and provenance tracking
+ tools/                # Production utilities
+ examples/             # Demo scripts and notebooks
+ tests/                # Test suite
+
+ data/                 # Output: audit logs, reports
+ reporting/            # PDF generation
+ docs/                 # Detailed documentation
 ```
 
-## 🧪 Running Examples
+##  Running Examples
 
 ### Example 1: F1 Telemetry (Formula 1 Data)
 ```bash
@@ -137,7 +137,7 @@ python3 main.py --adapter clinical --vendor GE --batch-size 50 --export-audit --
 python3 main.py --adapter nhl --game 2024020001 --export-audit --audit-path data/nhl_audit.json
 ```
 
-## 🔍 Key Concepts
+##  Key Concepts
 
 ### Schema Drift
 The framework automatically detects when data fields change, disappear, or appear.
@@ -151,7 +151,7 @@ Every transformation is logged with input/output hashes for reproducibility.
 ### Reproducibility
 Re-run any pipeline with the same parameters to get identical results.
 
-## 📚 Next Steps
+##  Next Steps
 
 1. **Read [README.md](README.md)** - Understand the project vision
 2. **Review [PRODUCTION.md](PRODUCTION.md)** - Deployment best practices
@@ -159,7 +159,7 @@ Re-run any pipeline with the same parameters to get identical results.
 4. **Run tests** - `pytest tests/ -v`
 5. **Integrate into your research** - Use adapters for your data sources
 
-## ❓ Troubleshooting
+##  Troubleshooting
 
 **Import errors?**
 ```bash
@@ -175,13 +175,13 @@ python3 -m pytest tests/ -v --tb=short
 - Check [docs/QUICK_REFERENCE.md](docs/QUICK_REFERENCE.md)
 - Contact: tclarke91@proton.me
 
-## 📖 For Your Dissertation
+##  For Your Dissertation
 
 This framework provides:
-- ✅ Reproducible data pipelines
-- ✅ Automatic audit trails
-- ✅ Schema evolution handling
-- ✅ Publication-ready provenance
+- [x] Reproducible data pipelines
+- [x] Automatic audit trails
+- [x] Schema evolution handling
+- [x] Publication-ready provenance
 
 Use it to demonstrate trustworthy analytics in your research!
 

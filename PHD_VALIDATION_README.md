@@ -230,21 +230,21 @@ python3 experiments/run_phd_validation.py
 
 PHASE 1: F1 TELEMETRY VALIDATION
 ============================================================
-✓ F1 Validation Complete: 500 samples processed
+ F1 Validation Complete: 500 samples processed
   - Semantic Accuracy: 95.20%
   - Levenshtein Accuracy: 67.40%
   - Regex Accuracy: 52.10%
 
 PHASE 2: CLINICAL ICU VALIDATION (VENDOR DRIFT)
 ============================================================
-✓ Clinical Validation Complete: 500 samples processed
+ Clinical Validation Complete: 500 samples processed
   - Semantic Accuracy: 94.80%
   - Levenshtein Accuracy: 61.20%
   - Regex Accuracy: 48.90%
 
 PHASE 3: AUDITABILITY VALIDATION
 ============================================================
-✓ Chain Integrity: VALID
+ Chain Integrity: VALID
   - Total Transactions: 1000
   - Average Confidence: 0.9234
 
@@ -264,7 +264,7 @@ Per-sample results with columns:
 - `corrupted_field`: Chaos-injected field name
 - `entropy_type`: Type of entropy (synonyms, noise, truncation)
 - `semantic_match`: SemanticLayer resolution
-- `semantic_confidence`: Model confidence (0.0–1.0)
+- `semantic_confidence`: Model confidence (0.01.0)
 - `semantic_correct`: Binary correctness
 - `levenshtein_match`, `regex_match`: Baseline resolutions
 - Similar columns for baseline correctness/confidence
@@ -309,7 +309,7 @@ Chain verification report:
 ### **Claim #1: Semantic Layers Provide Resilience to Schema Drift**
 **Validated by:** F1 + Clinical validation phases
 - Semantic accuracy: >94% across all entropy types
-- Levenshtein/Regex degrade to 50–70% on synonymy
+- Levenshtein/Regex degrade to 5070% on synonymy
 - Result: ~30 percentage point advantage
 
 ### **Claim #2: Cryptographic Provenance Enables Auditability & Compliance**

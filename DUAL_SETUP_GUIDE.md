@@ -7,19 +7,19 @@ This guide explains how to **develop and demo locally on Windows** with your 790
 ```
 Are you setting up for:
 
-├─ LOCAL DEVELOPMENT on Windows (7900 XT)
-│  └─ Use: WINDOWS_SETUP.md + setup_windows_hip.ps1
-│     Result: Native GPU acceleration, no containers
-│     Speed: ~450 pkt/sec, ~2-3ms latency
-│
-├─ PRODUCTION DEPLOYMENT on Linux
-│  └─ Use: Docker + docker-compose.yml
-│     Result: Any Linux machine with GPU
-│     Speed: ~550 pkt/sec, ~1.8ms latency
-│
-└─ DEMO + TESTING (both environments)
-   ├─ Windows: Run locally with HIP (for interview/demo)
-   └─ Linux: Docker for verification/production prep
+ LOCAL DEVELOPMENT on Windows (7900 XT)
+   Use: WINDOWS_SETUP.md + setup_windows_hip.ps1
+     Result: Native GPU acceleration, no containers
+     Speed: ~450 pkt/sec, ~2-3ms latency
+
+ PRODUCTION DEPLOYMENT on Linux
+   Use: Docker + docker-compose.yml
+     Result: Any Linux machine with GPU
+     Speed: ~550 pkt/sec, ~1.8ms latency
+
+ DEMO + TESTING (both environments)
+    Windows: Run locally with HIP (for interview/demo)
+    Linux: Docker for verification/production prep
 ```
 
 ## Overview: How It Works
@@ -33,10 +33,10 @@ Are you setting up for:
 5. **Code:** Same `fast_ingest.cpp` compiles natively
 
 **Advantages:**
-- ✅ Full IDE/debugger support
-- ✅ Native GPU acceleration (~450 pkt/sec)
-- ✅ No virtualization overhead
-- ✅ Live code editing + reload
+- [x] Full IDE/debugger support
+- [x] Native GPU acceleration (~450 pkt/sec)
+- [x] No virtualization overhead
+- [x] Live code editing + reload
 
 ### Docker (Production/Linux)
 
@@ -47,22 +47,22 @@ Are you setting up for:
 5. **Code:** Identical `fast_ingest.cpp` compiles inside container
 
 **Advantages:**
-- ✅ Move to any Linux machine
-- ✅ No installation complexity on target
-- ✅ Works on multi-GPU servers
-- ✅ CI/CD integration ready
-- ✅ Production-grade (~550 pkt/sec)
+- [x] Move to any Linux machine
+- [x] No installation complexity on target
+- [x] Works on multi-GPU servers
+- [x] CI/CD integration ready
+- [x] Production-grade (~550 pkt/sec)
 
 ## Setup Paths
 
 ### Path 1: Windows-Only (Quick Demo)
 
-Best for: Telemetry interview, quick benchmarking
+Best for: Technical interview, quick benchmarking
 
 ```bash
 # Prerequisites (one-time): 
-#   • Visual Studio Build Tools 2022
-#   • HIP for Windows 6.2
+#    Visual Studio Build Tools 2022
+#    HIP for Windows 6.2
 
 # Then:
 cd G:\Docker\resilient-rap-framework
@@ -100,7 +100,7 @@ python tools/telemetry_gpu_stress_test.py
 
 ### Path 3: Dual Setup (Recommended for Interview + Production)
 
-Best for: Full lifecycle (demo → production)
+Best for: Full lifecycle (demo  production)
 
 **On Windows (Development):**
 1. Use `setup_windows_hip.ps1` for local development
@@ -120,12 +120,12 @@ The **same C++ code** works on both:
 // fast_ingest.cpp behavior:
 
 // GPU available (Windows HIP or Linux ROCm)
-cudaMallocHost(...)    // ✅ success → use pinned memory
-normalize(...)         // ✅ async GPU transfer + normalize
+cudaMallocHost(...)    // [x] success  use pinned memory
+normalize(...)         // [x] async GPU transfer + normalize
 
 // GPU not available (WSL2, testing, CPU-only)
-cudaMallocHost(...)    // ❌ fails → silently fallback to malloc
-normalize(...)         // ✅ still works on CPU (slower but correct)
+cudaMallocHost(...)    // [ ] fails  silently fallback to malloc
+normalize(...)         // [x] still works on CPU (slower but correct)
 ```
 
 ### CPU Fallback in action:
@@ -136,11 +136,11 @@ import fast_ingest
 
 # Windows HIP (GPU available)
 result = fast_ingest.normalize(packet, lo, hi)
-print(result.device)  # → cuda:0
+print(result.device)  #  cuda:0
 
 # WSL2 or no GPU (fallback)
 result = fast_ingest.normalize(packet, lo, hi)
-print(result.device)  # → cpu (PyTorch ops still optimized)
+print(result.device)  #  cpu (PyTorch ops still optimized)
 ```
 
 ## Dockerfile Structure (For Linux Deployment)
@@ -167,7 +167,7 @@ The `Dockerfile` in this repo:
      - /dev/dri:/dev/dri       # DRI render nodes
    ```
 
-## Workflow: Development → Demo → Production
+## Workflow: Development  Demo  Production
 
 ### Day 1: Development (Windows)
 
@@ -183,14 +183,14 @@ python tools/telemetry_gpu_stress_test.py --iterations 100
 
 # Commit changes
 git add .
-git commit -m "Feature: Telemetry Platform GPU acceleration"
+git commit -m "Feature: GPU acceleration"
 git push origin main
 ```
 
 ### Day 2: Demo (Windows + Linux)
 
 ```powershell
-# Windows demo for Telemetry team
+# Windows demo for Engineering team
 python examples/demo_hitl_retraining.py
 
 # Show GPU working:
@@ -204,7 +204,7 @@ On Linux (after code push):
 docker compose up -d
 docker exec -it telemetry_rocm python /app/tools/telemetry_gpu_stress_test.py
 
-# Same results, different hardware ✅
+# Same results, different hardware [x]
 ```
 
 ### Day 3+: Production
@@ -216,7 +216,7 @@ docker exec -it telemetry_rocm python /app/tools/telemetry_gpu_stress_test.py
 docker compose pull
 docker compose up -d
 
-# It just works™
+# It just works
 ```
 
 ## Troubleshooting: When GPU Doesn't Work
@@ -296,7 +296,7 @@ A: No. The code is identical. Only the *build system* differs (HIP vs ROCm).
 A: No. The `.pyd` (Windows extension) won't load on Linux. But the `.py` files work anywhere. Just rebuild the extension on the target platform (Docker does this automatically).
 
 **Q: How do I move from Windows demo to Linux production?**  
-A: Git push your changes → Clone on Linux → `docker compose up` → Same code, native GPU.
+A: Git push your changes  Clone on Linux  `docker compose up`  Same code, native GPU.
 
 ## Next Steps
 

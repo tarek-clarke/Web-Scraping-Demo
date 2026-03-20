@@ -84,7 +84,7 @@ SENSOR FAULT DIAGNOSTIC - SUMMARY
 ================================================================================
 Total Missed Faults:         407
 Overall Detection Rate:      0.9977 (99.77%)
-Overall Miss Rate:           0.23% (✅ OK)
+Overall Miss Rate:           0.23% ([x] OK)
 ================================================================================
 
 --------------------------------------------------------------------------------
@@ -92,9 +92,9 @@ MISSED DETECTIONS BY SENSOR (ranked by miss count)
 --------------------------------------------------------------------------------
 Sensor                         Misses       Injected     Miss Rate           
 --------------------------------------------------------------------------------
-ecu_canbus                     125          1000         12.50% (🔴 CRITICAL)
-gps_position                    95          2000          4.75% (🟡 HIGH)
-tire_temp                       50          800           6.25% (🟡 HIGH)
+ecu_canbus                     125          1000         12.50% ( CRITICAL)
+gps_position                    95          2000          4.75% ( HIGH)
+tire_temp                       50          800           6.25% ( HIGH)
 ...
 ```
 
@@ -112,7 +112,7 @@ Two formats available:
 
 ## Interpreting Results
 
-### Red Flags 🔴 (CRITICAL >5% miss rate)
+### Red Flags  (CRITICAL >5% miss rate)
 
 If you see a sensor or chaos_mode with >5% miss rate:
 1. This is a genuine detection gap in the pipeline
@@ -120,11 +120,11 @@ If you see a sensor or chaos_mode with >5% miss rate:
    - **sensor_dropout**: Timing gap too large for tensor z-score to detect
    - **value_drift**: Baseline contamination, detector poorly calibrated
 3. Recommended actions:
-   - Increase `CADENCE_TOLERANCE` in stress test (default 3.0×)
+   - Increase `CADENCE_TOLERANCE` in stress test (default 3.0)
    - Reduce `SENSOR_DROPOUT_SKIP_SLOTS` (default 4)
    - Retune GPU tensor z-score threshold (default sigma=3.5)
 
-### Yellow Flags 🟡 (HIGH 1-5% miss rate)
+### Yellow Flags  (HIGH 1-5% miss rate)
 
 Acceptable but worth investigation:
 1. May indicate edge cases in detection logic
@@ -134,7 +134,7 @@ Acceptable but worth investigation:
    - Check if specific chaos modes are problematic
    - Consider increasing detection threshold strictness
 
-### Green Checks ✅ (OK <1% miss rate)
+### Green Checks [x] (OK <1% miss rate)
 
 Expected normal operation:
 1. Detection is working well for this sensor/chaos combination
@@ -149,7 +149,7 @@ Expected normal operation:
 
 ```
 chaos_mode           misses    total    miss_rate
-sensor_dropout         350      400      87.5%  🔴 CRITICAL
+sensor_dropout         350      400      87.5%   CRITICAL
 ```
 
 **Diagnosis**: The cadence monitor may not be catching the dropout gaps.
@@ -157,7 +157,7 @@ sensor_dropout         350      400      87.5%  🔴 CRITICAL
 **Investigation**:
 1. Check that cadence baseline is correct for the affected sensor
 2. Verify `SENSOR_DROPOUT_SKIP_SLOTS = 4` creates large enough gap
-3. Increase `CADENCE_TOLERANCE` from 3.0× to 4.0× or 5.0×
+3. Increase `CADENCE_TOLERANCE` from 3.0 to 4.0 or 5.0
 
 **Fix**:
 ```python
@@ -171,8 +171,8 @@ Then rerun and compare miss rates.
 
 ```
 sensor_id              misses    total    miss_rate
-ecu_canbus               200     1200      16.7%  🔴 CRITICAL
-tire_temp                 50     1000       5.0%  🟡 HIGH
+ecu_canbus               200     1200      16.7%   CRITICAL
+tire_temp                 50     1000       5.0%   HIGH
 ```
 
 **Diagnosis**: The ecu_canbus sensor has a detection problem.
@@ -193,8 +193,8 @@ python tools/sensor_fault_diagnostic.py \
 
 ```
 session           misses    total    miss_rate
-circuit_spain       150     400      37.5%  🔴 CRITICAL
-monza                50     200      25.0%  🟡 HIGH
+circuit_spain       150     400      37.5%   CRITICAL
+monza                50     200      25.0%   HIGH
 ```
 
 **Diagnosis**: Session-specific issue (circuit-specific timing or chaos profile).
@@ -260,7 +260,7 @@ python tools/sensor_fault_diagnostic.py \
     --input missed_detection_analysis.json \
     --output-csv diagnostic.csv
 
-# Then use any CSV → HTML converter, or load in Excel/Sheets
+# Then use any CSV  HTML converter, or load in Excel/Sheets
 ```
 
 ---

@@ -1,13 +1,12 @@
 # =============================================================================
-#  Telemetry Platform Telemetry Spine — Docker Compose (Production)
+#  Telemetry Pipeline — Docker Compose (Production)
 # =============================================================================
-#  Developed for the 2026 Telemetry Platform Initiative.
-#  Enterprise deployment configuration per Chris Green's review.
+#  Developed for the Resilient RAP Project.
 #
 #  Services:
 #    telemetry-spine  — Core pipeline (circuit breaker, edge buffer, geo-fence)
-#    health-monitor   — Pit Wall CLI dashboard
-#    stress-test      — Triple-header validation runner
+#    health-monitor   — Terminal dashboard
+#    stress-test      — Benchmark runner
 # =============================================================================
 
 services:
@@ -18,7 +17,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.production
-    container_name: telemetry_telemetry_spine
+    container_name: rap_telemetry_spine
     restart: unless-stopped
 
     environment:
@@ -73,7 +72,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.production
-    container_name: telemetry_health_monitor
+    container_name: rap_health_monitor
     restart: "no"
 
     environment:
@@ -108,7 +107,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.production
-    container_name: telemetry_stress_test
+    container_name: rap_stress_test
     restart: "no"
 
     environment:

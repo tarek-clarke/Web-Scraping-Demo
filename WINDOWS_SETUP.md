@@ -25,7 +25,7 @@ You'll need:
 
 ```powershell
 # Download from https://visualstudio.microsoft.com/downloads/
-# Click "Visual Studio Build Tools 2022" → Run installer
+# Click "Visual Studio Build Tools 2022"  Run installer
 # Check: "Desktop development with C++"
 # This gives you cl.exe compiler needed for setup.py build_ext
 ```
@@ -113,7 +113,7 @@ import fast_ingest
 
 # Test 1: CPU pinned tensor (basic)
 result = fast_ingest.ingest([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
-print('✓ CPU ingest works')
+print(' CPU ingest works')
 print('  Shape:', result.shape, 'Device:', result.device)
 
 # Test 2: GPU normalization (THIS IS THE REAL TEST)
@@ -122,7 +122,7 @@ hi = [360.0, 15500.0, 100.0, 1100.0, 130.0, 2800.0, 28.0, 65535.0, 200.0, 6.0]
 packet = [200.0, 8000.0, 50.0, 600.0, 100.0, 1500.0, 23.0, 32768.0, 100.0, 3.0]
 
 result = fast_ingest.normalize(packet, lo, hi)
-print('✓ GPU normalize works')
+print(' GPU normalize works')
 print('  Result device:', result.device)
 print('  Result values (should be [-1, 1]):', result[:3])
 print('  GPU is accelerating:', 'cuda' in str(result.device))
@@ -130,20 +130,20 @@ print('  GPU is accelerating:', 'cuda' in str(result.device))
 # Test 3: Batch ingestion (F1-grade streaming)
 batch = [packet] * 10
 result = fast_ingest.ingest_batch(batch, lo, hi)
-print('✓ Batch GPU ingest works')
+print(' Batch GPU ingest works')
 print('  Shape:', result.shape, 'Device:', result.device)
 "
 ```
 
 **Expected output:**
 ```
-✓ CPU ingest works
+ CPU ingest works
   Shape: torch.Size([10]) Device: cpu
-✓ GPU normalize works
+ GPU normalize works
   Result device: cuda:0
   Result values (should be [-1, 1]): tensor([...], device='cuda:0')
   GPU is accelerating: True
-✓ Batch GPU ingest works
+ Batch GPU ingest works
   Shape: torch.Size([10, 16]) Device: cuda:0
 ```
 
@@ -162,7 +162,7 @@ hipinfo
 **Solution:** Visual Studio Build Tools not installed. Download and install from:
 ```
 https://visualstudio.microsoft.com/downloads/
-→ Visual Studio Build Tools → Desktop development with C++
+ Visual Studio Build Tools  Desktop development with C++
 ```
 
 ### Error: `fast_ingest.cp310-win_amd64.pyd: cannot import`

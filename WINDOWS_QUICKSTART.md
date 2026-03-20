@@ -42,11 +42,11 @@ powershell -ExecutionPolicy Bypass -File setup_windows_hip.ps1 -SkipVSCheck -Ski
 ```
 
 **Options:**
-- `-SkipVSCheck` — Skip compiler check (if already installed)
-- `-SkipHIPCheck` — Skip HIP check (if already installed)
-- `-SkipPyTorch` — Skip PyTorch installation (if already installed)
-- `-SkipBuild` — Skip extension build (if already built)
-- `-TestOnly` — Only run tests, don't build
+- `-SkipVSCheck` ; Skip compiler check (if already installed)
+- `-SkipHIPCheck` ; Skip HIP check (if already installed)
+- `-SkipPyTorch` ; Skip PyTorch installation (if already installed)
+- `-SkipBuild` ; Skip extension build (if already built)
+- `-TestOnly` ; Only run tests, don't build
 
 ### `verify_windows_hip.ps1` (Verification)
 **What it does:**
@@ -63,13 +63,13 @@ powershell -ExecutionPolicy Bypass -File verify_windows_hip.ps1
 ```
 Checking Windows HIP Setup...
 
-✓ Visual Studio Compiler (cl.exe)
-✓ HIP Installation
-✓ PyTorch GPU Detection
-✓ GPU Math OK
-✓ CPU Ingest
-✓ GPU Normalize
-✓ All checks passed!
+ Visual Studio Compiler (cl.exe)
+ HIP Installation
+ PyTorch GPU Detection
+ GPU Math OK
+ CPU Ingest
+ GPU Normalize
+ All checks passed!
 ```
 
 ### `setup_windows_hip.bat` (Batch Launcher)
@@ -133,11 +133,11 @@ powershell -ExecutionPolicy Bypass -File setup_windows_hip.ps1
 ```
 
 This will:
-1. ✓ Check compiler & HIP
-2. ✓ Install PyTorch for HIP
-3. ✓ Build `fast_ingest.cpp` extension
-4. ✓ Test GPU acceleration
-5. ✓ Show success or detailed errors
+1.  Check compiler & HIP
+2.  Install PyTorch for HIP
+3.  Build `fast_ingest.cpp` extension
+4.  Test GPU acceleration
+5.  Show success or detailed errors
 
 ### Manual Verification
 
@@ -240,7 +240,7 @@ python tools/telemetry_gpu_stress_test.py --iterations 100 --batch-size 128
 
 Expected output:
 ```
-Telemetry Platform GPU Stress Test
+GPU Stress Test
 ===========================
 Iteration 100/100
   Packets: 12800

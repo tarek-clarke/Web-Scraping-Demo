@@ -113,17 +113,17 @@ Files moved to `archive/` with original folder structure maintained:
 All archived files maintain their original folder structure inside:
 ```
 archive/
-├── adapters/
-├── benchmarks/
-├── data/
-├── examples/
-├── experiments/
-├── modules/
-├── reporting/
-├── scripts/
-├── src/
-├── tests/
-└── tools/
+ adapters/
+ benchmarks/
+ data/
+ examples/
+ experiments/
+ modules/
+ reporting/
+ scripts/
+ src/
+ tests/
+ tools/
 ```
 
 ## Restoration

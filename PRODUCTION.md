@@ -38,19 +38,19 @@ PYTHONPATH="." python main.py --adapter nhl --game 2024020001 --export-audit
 
 ```
 Core Framework
-├── modules/              # Ingestion, reconciliation, lineage tracking
-├── adapters/            # Domain-specific connectors (production-ready)
-├── src/                 # Provenance and audit utilities
-└── tools/               # Utilities (replay, benchmarking)
+ modules/              # Ingestion, reconciliation, lineage tracking
+ adapters/            # Domain-specific connectors (production-ready)
+ src/                 # Provenance and audit utilities
+ tools/               # Utilities (replay, benchmarking)
 
 Data & Artifacts
-├── data/reproducibility_audit.json    # Full execution audit
-├── data/provenance_log.jsonl         # Lineage tracking (append-only)
-└── data/reports/                      # Generated reports
+ data/reproducibility_audit.json    # Full execution audit
+ data/provenance_log.jsonl         # Lineage tracking (append-only)
+ data/reports/                      # Generated reports
 
 Testing & Validation
-├── tests/               # Unit and integration tests
-└── pytest.ini          # Test configuration
+ tests/               # Unit and integration tests
+ pytest.ini          # Test configuration
 ```
 
 ### Audit Trail Format
@@ -127,23 +127,23 @@ logging.basicConfig(level=logging.INFO)
 Recommended production setup:
 
 ```
-┌─────────────────────────────────────┐
-│   External Data Source              │
-│   (OpenF1, NHL, Hospital)           │
-└──────────────┬──────────────────────┘
-               │
-               ▼
-┌─────────────────────────────────────┐
-│   RAP Adapter                       │
-│   (schema translation + lineage)    │
-└──────────────┬──────────────────────┘
-               │
-          ┌────┴────┐
-          ▼         ▼
-    ┌────────┐  ┌─────────────┐
-    │ Output │  │Audit Trail  │
-    │Database│  │ (JSONL)     │
-    └────────┘  └─────────────┘
+
+   External Data Source              
+   (OpenF1, NHL, Hospital)           
+
+               
+               
+
+   RAP Adapter                       
+   (schema translation + lineage)    
+
+               
+          
+                   
+      
+     Output   Audit Trail  
+    Database   (JSONL)     
+      
 ```
 
 ### Continuous Validation

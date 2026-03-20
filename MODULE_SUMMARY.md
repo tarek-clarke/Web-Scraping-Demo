@@ -8,13 +8,13 @@
 **Purpose:** Three-state FSM that protects the pipeline from corrupted telemetry.
 
 **Key Classes:**
-- `TelemetryCircuitBreaker` — Main breaker with CLOSED/OPEN/HALF_OPEN states
-- `SchemaValidator` — Validates sensor types and physically plausible ranges (15+ F1 sensors)
-- `DeadLetterQueue` — SQLite-backed quarantine for rejected packets
-- `CircuitBreakerMetrics` — Live metrics exposed to health monitor
+- `TelemetryCircuitBreaker` ; Main breaker with CLOSED/OPEN/HALF_OPEN states
+- `SchemaValidator` ; Validates sensor types and physically plausible ranges (15+ F1 sensors)
+- `DeadLetterQueue` ; SQLite-backed quarantine for rejected packets
+- `CircuitBreakerMetrics` ; Live metrics exposed to health monitor
 
 **Why it matters:**
-- One bad sensor (e.g., 5000°C engine temp from a bit-flip) can corrupt lap analysis. The breaker catches it.
+- One bad sensor (e.g., 5000C engine temp from a bit-flip) can corrupt lap analysis. The breaker catches it.
 - HALF_OPEN probing allows automatic recovery without manual pit-wall intervention.
 - DLQ reprocessing enables recovery after firmware updates or sensor calibration fixes.
 
@@ -29,9 +29,9 @@
 **Purpose:** Trackside edge buffer that guarantees zero data loss during connectivity drops.
 
 **Key Classes:**
-- `TracksideEdgeBuffer` — SQLite WAL-backed local buffer
-- `BufferedPacket` — Schema for persisted telemetry
-- `SyncStatus` — Enum (PENDING, SYNCED, FAILED, DRAINING)
+- `TracksideEdgeBuffer` ; SQLite WAL-backed local buffer
+- `BufferedPacket` ; Schema for persisted telemetry
+- `SyncStatus` ; Enum (PENDING, SYNCED, FAILED, DRAINING)
 
 **Why it matters:**
 - WiFi at the track drops. Packets must survive locally until uplink recovers.
@@ -39,8 +39,8 @@
 - RTO < 5s. Background drain thread automatically resumes and syncs pending batches.
 
 **Key implementation:**
-- **Exactly-once batch semantics:** 3-phase drain (claim PENDING rows → sync → ACK/rollback)
-- Batch IDs track state: DRAINING → ACKED/FAILED/RECOVERED
+- **Exactly-once batch semantics:** 3-phase drain (claim PENDING rows  sync  ACK/rollback)
+- Batch IDs track state: DRAINING  ACKED/FAILED/RECOVERED
 - `recover_incomplete_batches()` on startup handles process crashes during drain
 - `drain_history` property shows recent batch status for observability
 
@@ -50,10 +50,10 @@
 **Purpose:** Jurisdiction-aware processor that enforces GDPR/data sovereignty rules.
 
 **Key Classes:**
-- `GeoFence` — Per-circuit compliance enforcer
-- `Jurisdiction` — Enum (EU, US, ME, APAC, UK)
-- `JurisdictionPolicy` — Rule set per jurisdiction
-- `GeoFenceResult` — Separate local_payload (full data) vs sync_payload (compliant data)
+- `GeoFence` ; Per-circuit compliance enforcer
+- `Jurisdiction` ; Enum (EU, US, ME, APAC, UK)
+- `JurisdictionPolicy` ; Rule set per jurisdiction
+- `GeoFenceResult` ; Separate local_payload (full data) vs sync_payload (compliant data)
 
 **Why it matters:**
 - EU rounds must scrub PII, anonymize biometrics, retain locally. US rounds can send full telemetry.
@@ -61,8 +61,8 @@
 - Every compliance action is logged immutably (see audit_log below).
 
 **Key implementation:**
-- Barcelona → EU policy → PII scrubbed, biometrics anonymized, metadata-only sync
-- Austin → US policy → full telemetry forwarded
+- Barcelona  EU policy  PII scrubbed, biometrics anonymized, metadata-only sync
+- Austin  US policy  full telemetry forwarded
 - Request-ID propagated through geo-fence for end-to-end tracing
 - Each result includes `compliance_hash` (SHA-256) as proof of processing
 
@@ -72,12 +72,12 @@
 **Purpose:** Immutable, hash-chained audit trail for every compliance decision.
 
 **Key Classes:**
-- `ComplianceAuditLog` — Append-only SQLite with SHA-256 chain links
-- `AuditEntry` — Single immutable record (action, circuit, jurisdiction, request_id, details)
+- `ComplianceAuditLog` ; Append-only SQLite with SHA-256 chain links
+- `AuditEntry` ; Single immutable record (action, circuit, jurisdiction, request_id, details)
 
 **Why it matters:**
 - GDPR auditors demand proof that PII was handled correctly. This log provides it.
-- `verify_chain()` detects tampering — each entry's hash includes the previous entry's hash.
+- `verify_chain()` detects tampering ; each entry's hash includes the previous entry's hash.
 - Query by jurisdiction or request_id for full compliance trace.
 
 **Key implementation:**
@@ -92,13 +92,13 @@
 **Purpose:** Request-ID correlation and per-stage latency tracking.
 
 **Key Classes:**
-- `RequestContext` — Immutable context that flows through the pipeline
-- `TraceStage` — Single pipeline stage with status and latency_ms
+- `RequestContext` ; Immutable context that flows through the pipeline
+- `TraceStage` ; Single pipeline stage with status and latency_ms
 
 **Why it matters:**
-- When a packet fails, trace it end-to-end: breaker → buffer → geo-fence → cloud
+- When a packet fails, trace it end-to-end: breaker  buffer  geo-fence  cloud
 - Latency profiling at each stage identifies bottlenecks.
-- Correlation ID ties together async operations (breaker → buffer drain → cloud ACK).
+- Correlation ID ties together async operations (breaker  buffer drain  cloud ACK).
 
 **Key implementation:**
 - `add_stage(stage, status, details)` records stage entry and measures latency from previous stage
@@ -115,7 +115,7 @@
 **Purpose:** Triple-header stress test simulating real F1 load with chaos injection.
 
 **Simulates:**
-- 3 race weekends × 5 sessions = 15 total sessions
+- 3 race weekends  5 sessions = 15 total sessions
 - 1,000+ packets/session with realistic sensor ranges
 - 7 chaos modes: null_value, string_in_numeric, bit_flip_high/low, schema_drift, dropout, dup timestamp
 
@@ -145,7 +145,7 @@
 **Key UX:**
 - Live Rich TUI with color coding (green = healthy, red = alert)
 - Refresh interval configurable (default 2s)
-- No pit-wall engineer needs to SSH into the box — all data on one screen
+- No pit-wall engineer needs to SSH into the box ; all data on one screen
 
 ---
 
@@ -164,7 +164,7 @@
 
 **Why it matters:**
 - Budget Cap era demands security discipline. No root exploits in containers.
-- Immutable infrastructure — if the pod is running correctly now, it will run correctly at 2am on race day.
+- Immutable infrastructure ; if the pod is running correctly now, it will run correctly at 2am on race day.
 
 ---
 
@@ -173,7 +173,7 @@
 
 **Architecture:**
 - 3 services: pipeline (main), health-monitor (observability), edge-buffer (persistence)
-- Internal bridge network (`telemetry-internal`) — no external exposure
+- Internal bridge network (`telemetry-internal`) ; no external exposure
 - CPU/memory limits enforced (Budget Cap discipline)
 - Secrets NOT in image (env vars only)
 
@@ -199,7 +199,7 @@
 | **NEW:** ExactlyOnceDrain | 5 | Batch IDs, rollback on failure, crash recovery, drain history |
 | **NEW:** RequestTracing | 5 | Context creation, stage tracking, latency measurement |
 
-**All passing:** 59/59 ✅
+**All passing:** 59/59 [x]
 
 ---
 

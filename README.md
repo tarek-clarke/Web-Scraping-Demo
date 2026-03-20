@@ -1,11 +1,11 @@
-# Cadillac F1 Telemetry Platform
+# Resilient Analytical Pipeline (RAP) Framework
 
-[![Status](https://img.shields.io/badge/Status-Production--Ready-brightgreen)](.)
+![Status](https://img.shields.io/badge/Status-Production--Ready-brightgreen)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-red.svg)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-yellow)
 ![Docker](https://img.shields.io/badge/Docker-Enterprise--Hardened-blue)
 
-**Hardware-Accelerated Real-Time Telemetry Processing for 2026 F1 Season**
+**Hardware-Accelerated Real-Time Telemetry Processing**
 
 **Compatibility:**
 - Linux (Ubuntu 24.04 validated): AMD ROCm or NVIDIA CUDA
@@ -14,77 +14,80 @@
 
 ## Executive Summary
 
-A production-ready telemetry spine that processes race-weekend scale loads with sub-millisecond p95 latency on enterprise GPUs and Apple Silicon, while preserving forensic traceability and local-first resilience.
+A production-ready telemetry spine that processes high-velocity data streams with sub-millisecond p95 latency on enterprise GPUs and Apple Silicon, while preserving forensic traceability and local-first resilience.
 
-**What this platform does well:**
-- Sustains high-throughput telemetry processing under injected chaos
-- Detects/reconciles corruption with GPU semantic + tensor pipelines
-- Preserves continuity with local-first buffering and optional Kafka streaming
-- Enforces tamper-evident provenance (SHA-256 hash chain)
-- Tracks race-readiness via deterministic SLO gates
+**Core Capabilities:**
+- Sustains high-throughput telemetry processing under injected chaos.
+- Detects and reconciles corruption with GPU semantic and tensor pipelines.
+- Preserves continuity with local-first buffering and optional streaming integration.
+- Enforces tamper-evident provenance via SHA-256 hash chains.
+- Tracks operational readiness via deterministic Gate SLOs.
 
 ---
 
-## 🏁 Publication Highlights (IEEE TKDE Submission)
+## Research Highlights
 
-### 1. The "Resilience Delta" (CPU vs. GPU)
-Under high-stress "Budapest" conditions, standard CPU-only telemetry stacks consistently trip the circuit breaker and cease processing. This framework introduces a **GPU-Accelerated Semantic Safety Net** that repairs 100% of schema drift on-the-fly, maintaining 0% downtime across all high-end NVIDIA architectures (B200, H200, RTX 6000).
+### 1. The Resilience Delta (CPU vs. GPU)
+Under high-stress conditions, standard CPU-only telemetry stacks consistently trip the circuit breaker and cease processing. This framework introduces a GPU-accelerated semantic safety net that repairs 100% of schema drift on-the-fly, maintaining zero downtime across all high-end NVIDIA architectures including Blackwell, Hopper, and Ada.
 
 ### 2. Semantic Reconciliation Ablation
-Traditional character-distance methods (Levenshtein) fail when sensor namespaces drift semantically (e.g., `oil_temp` → `lubricant_thermal`). Our BERT-based reconciler achieves **85.7% accuracy** on these complex synonyms, where existing systems hit a 0% recovery floor.
+Traditional character-distance methods, such as Levenshtein, fail when sensor namespaces drift semantically; for example, from oil_temp to lubricant_thermal. The integrated BERT-based reconciler achieves 85.7% accuracy on these complex synonyms, where existing systems hit a zero-recovery floor.
 
 ---
 
-## 📊 Cross-Platform Validation Results (3-Run Statistical Rigor)
+## Cross-Platform Validation Results
 
-The framework has been validated across eight runtime targets with **3 independent runs per profile**, measuring performance floor (`p50`), tail latency (`p95`), and resilience under 5% injected chaos.
+The framework has been validated across eight runtime targets with three independent runs per profile, measuring performance floor (p50), tail latency (p95), and resilience under 5% injected chaos.
 
-| Runtime Target | Platform | Total Packets | Acceptance Rate (Mean) | p95 Latency (Mean) | Resilience Score (Mean) | Circuit Breaker (GPU) | Circuit Breaker (CPU) |
+| Runtime Target | Platform | Total Packets | Acceptance Rate (Mean) | p95 Latency (Mean) | Resilience Score (Mean) | Breaker (GPU) | Breaker (CPU) |
 |---|---|---:|---:|---:|---:|---|---|
-| NVIDIA B200 (Blackwell) | Linux + CUDA | 3,600,000 | 95.82% | 0.007 ms | **0.9994** | **0 Trips** ✅ | 2 Trips ❌ |
-| NVIDIA H200 NVL (Hopper) | Linux + CUDA | 3,600,000 | 89.84% | **0.013 ms** | **0.9993** | **0 Trips** ✅ | 1 Trip ❌ |
-| NVIDIA RTX PRO 6000 Ada | Linux + CUDA | 3,600,000 | 95.74% | 0.006 ms | **0.9995** | **0 Trips** ✅ | 1 Trip ❌ |
-| NVIDIA RTX 5090 | Linux + CUDA | 3,600,000 | 95.76% | 0.010 ms | 0.9994 | 0 Trips ✅ | 1 Trip ❌ |
-| NVIDIA GTX 1660 Ti | Linux + CUDA | 3,600,000 | 95.77% | 0.019 ms | 0.9995 | 0 Trips ✅ | 0 Trips ✅ |
-| AMD Radeon RX 7900 XT | Linux + ROCm | 3,600,000 | 95.75% | 0.007 ms | 0.9994 | 0 Trips ✅ | 1 Trip ❌ |
-| Apple M4 | macOS (MPS) | 3,600,000 | 95.75% | 0.003 ms | 0.9995 | 0 Trips ✅ | 0 Trips ✅ |
-| Intel Core i5-12600K | x86 Fallback | 3,600,000 | 95.76% | N/A* | 0.9995 | N/A | 1 Trip ❌ |
+| NVIDIA B200 (Blackwell) | Linux + CUDA | 3,600,000 | 95.82% | 0.007 ms | **0.9994** | **0 Trips** | 2 Trips |
+| NVIDIA H200 NVL (Hopper) | Linux + CUDA | 3,600,000 | 89.84% | **0.013 ms** | **0.9993** | **0 Trips** | 1 Trip |
+| NVIDIA RTX PRO 6000 Ada | Linux + CUDA | 3,600,000 | 95.74% | 0.006 ms | **0.9995** | **0 Trips** | 1 Trip |
+| NVIDIA RTX 5090 | Linux + CUDA | 3,600,000 | 95.76% | 0.010 ms | 0.9994 | 0 Trips | 1 Trip |
+| NVIDIA GTX 1660 Ti | Linux + CUDA | 3,600,000 | 95.77% | 0.019 ms | 0.9995 | 0 Trips | 0 Trips |
+| AMD Radeon RX 7900 XT | Linux + ROCm | 3,600,000 | 95.75% | 0.007 ms | 0.9994 | 0 Trips | 1 Trip |
+| Apple M4 | macOS (MPS) | 3,600,000 | 95.75% | 0.003 ms | 0.9995 | 0 Trips | 0 Trips |
+| Intel Core i5-12600K | x86 Fallback | 3,600,000 | 95.76% | N/A* | 0.9995 | N/A | 1 Trip |
 
-> **Validation Evidence**: Results are archived in `data/reports/`. High-volume B200 runs (900k packets) demonstrate linear scaling without latency degradation.
+**Technical Evidence:**
+- **The Resilience Delta**: The GPU-accelerated engine maintains a zero-exit rate by repairing all schema drift.
+- **Latency Floor**: The H200 NVL maintains a p95 latency floor of 0.013 ms during 3.6M packet stress tests.
+- **Scaling**: The B200 demonstrates consistent statistical means across three runs, handling 900,000 packets per session without degradation.
 
 ---
 
-## 🏗️ System Architecture & Data Flow
+## System Architecture and Data Flow
 
 ### Design Philosophy: Local-First Resilience
-The architecture prioritizes trackside autonomy. Telemetry is validated and persisted to a high-speed SQLite WAL buffer *before* any remote synchronization occurs.
+The architecture prioritizes edge autonomy. Telemetry is validated and persisted to a high-speed SQLite WAL buffer before any remote synchronization occurs.
 
 ```mermaid
 flowchart LR
-    RF["Car RF Downlink<br/>(50 Hz telemetry)"]
+    RF["Ingress Downlink<br/>(50 Hz telemetry)"]
     CB["Circuit Breaker<br/>Schema + cadence validators"]
     DLQ[("Dead Letter Queue<br/>SQLite")]
-    EDGE[("Trackside Edge Buffer<br/>SQLite WAL + optional Kafka")]
-    BERT["GPU Semantic<br/>Reconciliation<br/>BERT + cosine similarity"]
-    AUDIT[("Audit Log<br/>SHA-256 hash chain")]
-    SINK["War Room<br/>Global Sink"]
+    EDGE[("Edge Buffer<br/>SQLite WAL")]
+    BERT["GPU Semantic<br/>Reconciliation"]
+    AUDIT[("Audit Log<br/>SHA-256 chain")]
+    SINK["Central Sink"]
 
     RF --> CB
-    CB -->|bad packets| DLQ
-    CB -->|valid data| EDGE
+    CB -->|invalid| DLQ
+    CB -->|valid| EDGE
     EDGE --> BERT
     BERT -->|reconciled| AUDIT
     AUDIT --> SINK
 ```
 
 ### GPU Kernel Capabilities
-- **Semantic Reconciliation**: BERT-based encoding (all-MiniLM-L6-v2) for batched field mapping.
-- **Anomaly Detection**: Vectorized z-score outlier detection (σ > 3.5) on hardware tensors.
+- **Semantic Reconciliation**: BERT-based encoding for batched field mapping.
+- **Anomaly Detection**: Vectorized z-score outlier detection (sigma > 3.5) on hardware tensors.
 - **Provenance Verification**: Batch hash-chain integrity checks via GPU-emulated SHA-256.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # 1. Setup Environment
@@ -101,37 +104,37 @@ PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 30000 --chao
 
 ---
 
-## 🚦 Run Profiles & Benchmarking
+## Run Profiles and Benchmarking
 
-### Six-Benchmark Suite
+### Benchmarking Suite
 The automated wrapper `tools/run_all_benchmarks.sh` executes the canonical 3-run suite:
-1.  **Standard Standard (@ 5% chaos)**: High-load baseline.
-2.  **Repair-Focus Realistic (@ 0.5% chaos)**: Tests DLQ recovery throughput.
-3.  **Repair-Focus Ultra-Low (@ 0.1% chaos)**: Validates sub-microsecond latency floors.
+1.  **Standard Standard (5% chaos)**: High-load baseline.
+2.  **Repair-Focus Realistic (0.5% chaos)**: Evaluates recovery throughput.
+3.  **Repair-Focus Ultra-Low (0.1% chaos)**: Validates sub-microsecond latency floors.
 
 ### Diagnostic Mode
-Enables fine-grained attribution of missed detections by chaos mode and sensor.
+Enables attribution of missed detections by chaos mode and sensor.
 ```bash
 python3 tools/telemetry_gpu_stress_test.py --diagnostic --output-suffix _diag
 ```
 
 ---
 
-## 🛠️ Operational Capabilities
+## Operational Capabilities
 
 | Capability | Module | Research Significance |
 |---|---|---|
-| **Semantic Repair** | `translator.py` | Eliminates DNFs caused by "unknown" sensor IDs. |
+| **Semantic Repair** | `translator.py` | Eliminates data loss caused by unknown sensor identifiers. |
 | **Tamper Evidence** | `audit_log.py` | Cryptographic proof of data linearity for forensic review. |
-| **Jurisdiction Gate** | `geo_fence.py` | Enforces GDPR compliance at the edge during EU/Global races. |
-| **SLO Tracking** | `slo.py` | Deterministic "Race-Ready" gating for automation. |
+| **Jurisdiction Gate** | `geo_fence.py` | Enforces regulatory compliance at the edge. |
+| **SLO Tracking** | `slo.py` | Deterministic gating for system automation. |
 
 ---
 
-## 📈 Statistical Rigor & Aggregation
+## Statistical Rigor and Aggregation
 
-To reproduce the IEEE-grade results:
-1.  Run the benchmark script multiple times (it will automatically generate `_Run2`, `_Run3`).
+To reproduce the statistical results:
+1.  Execute the benchmark script multiple times; the system will append Run increments automatically.
 2.  Aggregate the statistical mean and standard deviation:
 ```bash
 python3 tools/aggregate_benchmark_runs.py --dir data/reports/B200 --platform B200
@@ -139,16 +142,16 @@ python3 tools/aggregate_benchmark_runs.py --dir data/reports/B200 --platform B20
 
 ---
 
-## 🐳 Docker & Testing
+## Environment and Testing
 
-- **Local Tests**: `PYTHONPATH="." pytest tests/ -v`
-- **Docker Production**: `docker-compose -f docker-compose.production.yml up -d`
-- **Engine Stress**: `python3 tools/stress_test_engine_temp.py`
+- **Unit Tests**: `PYTHONPATH="." pytest tests/ -v`
+- **Docker Deployment**: `docker-compose -f docker-compose.production.yml up -d`
+- **Stress Testing**: `python3 tools/stress_test_engine_temp.py`
 
 ---
 
-## ⚖️ ADRs & Licensing
+## Architecture Decision Records and Licensing
 
-- **ADRs**: Key decisions on SQLite WAL, Circuit Breakers, and Hash Chains are in `docs/adr/`.
+- **ADRs**: Key decisions on persistence and circuit breakers are documented in `docs/adr/`.
 - **License**: PolyForm Noncommercial License 1.0.0.
 - **Contact**: Tarek Clarke (tclarke91@proton.me)
