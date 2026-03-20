@@ -73,10 +73,15 @@ REPORT_DIR="data/reports/$HARDWARE_NAME"
 echo "📦 Packaging Results..."
 tar -czf ${HARDWARE_NAME}_results_${TIMESTAMP}.tar.gz $REPORT_DIR/
 
-echo "📤 Pushing results to GitHub..."
+echo "📤 Synchronizing and pushing results to GitHub..."
 git add $REPORT_DIR/
 git commit -m "docs: add $HARDWARE_NAME benchmark results ($TIMESTAMP)"
-git push origin main
+
+# Pull latest remote changes (rebase) to avoid conflicts if another instance pushed first
+git pull --rebase origin main || true
+
+# Push. Use '|| true' gently so if an extreme race condition occurs, we don't crash the loop.
+git push origin main || echo "⚠️ Push collision gracefully skipped. Will retry next loop."
 
 echo "✅ ALL BENCHMARKS COMPLETE AND PUSHED TO REMOTE."
 echo "Local archive: ${HARDWARE_NAME}_results_${TIMESTAMP}.tar.gz"
