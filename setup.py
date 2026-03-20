@@ -120,12 +120,14 @@ elif IS_CUDA:
     NVCC_FLAGS = [
         "-O3",
         "--use_fast_math",
-        # Modern Ampere / Ada Lovelace (adjust for your target GPU)
-        "--generate-code=arch=compute_89,code=sm_89",  # RTX 40xx (Ada)
-        "--generate-code=arch=compute_86,code=sm_86",  # RTX 30xx (Ampere)
-        "--generate-code=arch=compute_75,code=sm_75",  # RTX 20xx (Turing)
-        "--generate-code=arch=compute_70,code=sm_70",  # V100
-        "--generate-code=arch=compute_80,code=sm_80",  # A100
+        # Modern Architecture Targets
+        "--generate-code=arch=compute_100,code=sm_100", # RTX B6000 (Blackwell)
+        "--generate-code=arch=compute_90,code=sm_90",   # H100 / H200 (Hopper)
+        "--generate-code=arch=compute_89,code=sm_89",   # RTX 40xx (Ada)
+        "--generate-code=arch=compute_86,code=sm_86",   # RTX 30xx (Ampere)
+        "--generate-code=arch=compute_80,code=sm_80",   # A100
+        "--generate-code=arch=compute_75,code=sm_75",   # RTX 20xx (Turing)
+        "--generate-code=arch=compute_70,code=sm_70",   # V100
     ]
 else:
     NVCC_FLAGS = []
