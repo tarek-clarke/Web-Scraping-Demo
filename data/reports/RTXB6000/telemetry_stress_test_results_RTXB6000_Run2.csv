@@ -1,0 +1,16 @@
+session_name,circuit,packets_sent,packets_accepted,packets_rejected,chaos_injected,breaker_trips,breaker_final_state,dlq_depth,buffer_pending,latency_p50_ms,latency_p95_ms,latency_p99_ms,geo_scrubbed,duration_s
+spielberg_FP1,spielberg,5000,4302,698,1009,0,CLOSED,30910,168,0.004,0.018,0.031,100,0.0
+spielberg_FP2,spielberg,5000,4273,727,1034,0,CLOSED,31637,171,0.004,0.018,0.031,100,0.0
+spielberg_FP3,spielberg,5000,4288,712,1012,0,CLOSED,32349,176,0.004,0.019,0.033,100,0.0
+spielberg_QUALI,spielberg,5000,4297,703,1018,0,CLOSED,33052,169,0.004,0.019,0.034,100,0.0
+spielberg_RACE,spielberg,5000,4288,712,1018,0,CLOSED,33764,182,0.005,0.022,0.038,100,0.0
+silverstone_FP1,silverstone,5000,4252,748,1023,0,CLOSED,34512,165,0.004,0.019,0.034,100,0.0
+silverstone_FP2,silverstone,5000,4306,694,1007,0,CLOSED,35206,173,0.006,0.026,0.047,100,0.0
+silverstone_FP3,silverstone,5000,4290,710,1005,0,CLOSED,35916,172,0.004,0.02,0.039,100,0.0
+silverstone_QUALI,silverstone,5000,4284,716,1011,0,CLOSED,36632,172,0.005,0.022,0.041,100,0.0
+silverstone_RACE,silverstone,5000,4293,707,999,0,CLOSED,37339,167,0.007,0.027,0.043,100,0.0
+budapest_FP1,budapest,5000,4320,680,938,0,CLOSED,38019,168,0.005,0.023,0.038,100,0.0
+budapest_FP2,budapest,5000,4344,656,977,0,CLOSED,38675,179,0.005,0.021,0.037,100,0.0
+budapest_FP3,budapest,5000,4294,706,993,0,CLOSED,39381,169,0.004,0.019,0.038,100,0.0
+budapest_QUALI,budapest,5000,4276,724,1002,0,CLOSED,40105,343,0.004,0.02,0.036,100,0.0
+budapest_RACE,budapest,5000,4273,727,1054,0,CLOSED,40832,166,0.004,0.018,0.038,100,0.0
