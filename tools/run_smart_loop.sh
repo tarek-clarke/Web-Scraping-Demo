@@ -7,8 +7,8 @@ source .venv/bin/activate
 python3 -m pip install -r requirements.txt --quiet
 python3 setup.py build_ext --inplace --quiet
 
-# Detect the precise hardware name matching the Python scripts
-HW_NAME=$(python3 tools/get_hardware_name.py)
+TARGET_RUNS=${1:-3}
+HW_NAME=${2:-$(python3 tools/get_hardware_name.py)}
 HW_DIR="data/reports/$HW_NAME/"
 
 # Ensure the directory exists so ls doesn't fail
@@ -18,7 +18,6 @@ mkdir -p "$HW_DIR"
 # Look specifically for telemetry_gpu_stress_test_report_sprint_*.json
 EXISTING=$(ls ${HW_DIR}telemetry_gpu_stress_test_report_sprint_*.json 2>/dev/null | wc -l)
 
-TARGET_RUNS=${1:-3}
 REMAINDER=$((TARGET_RUNS - EXISTING))
 
 echo "=========================================================="
