@@ -133,14 +133,15 @@ This script:
 - Validates that concurrent GPU memory access does not degrade resilience scores.
 
 **Dual Car Benchmarking Comparison (7900XT)**
-| Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
-| :--- | :--- | :--- | :--- |
-| **Total Packets** | 2,000 | 4,000 (2,000 per car) | 2x Load |
-| **p95 Latency** | 0.007 ms | ~0.010 ms | +0.003 ms overhead |
-| **Acceptance Rate**| 99.97% | 99.97% | Consistent Stability |
-| **Hardware** | 7900XT | 7900XT | Shared GPU Resources |
+| Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
+| :--- | :--- | :--- | :--- | :--- |
+| **Sprint** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
+| **Sprint** | p95 Latency | < 0.010 ms | < 0.010 ms | Negligible overhead |
+| **Weekend**| Total Packets | 3,600,000 | 7,200,000 (3.6M/car)| 2x Extreme Load |
+| **Weekend**| p95 Latency | 0.007 ms | ~0.008 ms | +0.001 ms overhead |
+| **Both** | Acceptance Rate| 95.75% | 95.75% | Consistent |
 
-- **Latency Impact**: Processing two vehicles concurrently resulted in a trivial latency increase of roughly 3 microseconds (+0.003 ms), keeping p95 latency well within the sub-millisecond SLO.
+- **Latency Impact**: Processing two vehicles concurrently (7.2 million packets) on the 7900XT over a simulated race weekend resulted in a trivial latency increase of roughly 1 microsecond (+0.001 ms). p95 latency remained well within the sub-millisecond SLO.
 
 ---
 
