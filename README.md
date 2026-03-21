@@ -161,10 +161,24 @@ This script:
 
 A FastAPI-powered REST API exposes the pipeline's health, metrics, and operational controls.
 
+### Setup
+
 ```bash
-# Start the API server (default port 8000)
+# 1. Install API dependencies
+pip install fastapi uvicorn[standard] httpx
+
+# 2. Start the server (Linux/macOS)
 PYTHONPATH="." python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050
+
+# 2. Start the server (Windows PowerShell)
+$env:PYTHONPATH="."; python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050
 ```
+
+Once running, open your browser to:
+- **Dashboard**: `http://localhost:5050/dashboard`
+- **API Docs (Swagger)**: `http://localhost:5050/docs`
+
+### API Endpoints
 
 | Endpoint | Method | Description |
 |---|---|---|
@@ -173,22 +187,47 @@ PYTHONPATH="." python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050
 | `/slo` | GET | Real-time SLO evaluation against 6 production budgets |
 | `/reports` | GET | List all benchmark report JSON files |
 | `/reports/{id}` | GET | Fetch a specific benchmark report |
-| `/run` | POST | Trigger a 20-packet smoke test |
+| `/run` | POST | Trigger a 20-packet smoke test through the pipeline |
 | `/circuit-breaker/reset` | POST | Manual circuit breaker reset to CLOSED |
 | `/dashboard` | GET | Serve the observability dashboard UI |
-| `/docs` | GET | Auto-generated OpenAPI/Swagger documentation |
+| `/docs` | GET | Auto-generated OpenAPI/Swagger interactive documentation |
+
+### Example Usage
+
+```bash
+# Check pipeline health
+curl http://localhost:5050/health
+
+# View live metrics
+curl http://localhost:5050/metrics
+
+# Trigger a smoke test (20 packets)
+curl -X POST http://localhost:5050/run
+
+# Reset the circuit breaker
+curl -X POST http://localhost:5050/circuit-breaker/reset
+
+# List available benchmark reports
+curl http://localhost:5050/reports
+```
 
 ---
 
 ## Observability Dashboard
 
-A real-time, dark-mode dashboard served at `/dashboard` visualises pipeline health:
+A real-time, dark-mode dashboard served at `/dashboard` visualises pipeline health.
 
-- **Circuit Breaker State** — colour-coded indicator (green/yellow/red)
+### Features
+- **Circuit Breaker State** — colour-coded indicator (green = CLOSED, yellow = HALF_OPEN, red = OPEN)
 - **DLQ Depth** — Chart.js line graph tracking quarantined packets over time
 - **Edge Buffer** — utilisation progress bar with pending/synced counters
 - **SLO Badges** — pass/fail indicators for all 6 service level objectives
 - **Auto-refresh** — polls `/metrics` and `/slo` every 3 seconds
+
+### How to Access
+1. Start the API server (see instructions above)
+2. Open `http://localhost:5050/dashboard` in any browser
+3. The dashboard auto-refreshes — no manual reload needed
 
 No build tools required — single HTML file with embedded CSS and vanilla JavaScript.
 
@@ -196,13 +235,25 @@ No build tools required — single HTML file with embedded CSS and vanilla JavaS
 
 ## CI Quality Gates
 
-The GitHub Actions pipeline enforces automated quality checks on every push and PR:
+The GitHub Actions pipeline (`.github/workflows/ci.yml`) enforces automated quality checks on every push and PR:
 
-- **Lint**: `flake8` with 120-character line limit
-- **Tests**: Full pytest suite across Python 3.10, 3.11, and 3.12
-- **Coverage**: `pytest-cov` with a **75% minimum threshold** — builds fail if coverage drops below this
-- **Stress Test**: 1,000-packet chaos injection (15% corruption rate)
-- **Docker**: Build smoke test verifying container starts cleanly
+| Gate | Tool | Threshold |
+|---|---|---|
+| **Lint** | `flake8` | 120-character line limit |
+| **Tests** | `pytest` | Full suite across Python 3.10, 3.11, 3.12 |
+| **Coverage** | `pytest-cov` | **75% minimum** — builds fail below this |
+| **Stress Test** | Chaos engine | 1,000 packets at 15% corruption rate |
+| **Docker** | `docker build` | Container starts and imports cleanly |
+
+### Running Locally
+
+```bash
+# Run the full test suite with coverage
+PYTHONPATH="." python -m pytest tests/ -v --cov=src --cov-report=term-missing
+
+# Windows PowerShell
+$env:PYTHONPATH="."; python -m pytest tests/ -v -o "addopts=" --cov=src --cov-report=term-missing
+```
 
 ---
 
