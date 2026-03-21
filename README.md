@@ -166,7 +166,7 @@ python3 tools/aggregate_benchmark_runs.py --dir data/reports/B200 --platform B20
 
 A FastAPI-powered REST API exposes the pipeline's health, metrics, and operational controls, with a built-in real-time dashboard.
 
-![Observability Dashboard](file:///C:/Users/Tarek/.gemini/antigravity/brain/da02e3b1-0719-408b-a50c-8410aba7d84e/dashboard_chaos_run_final_1774068267558.png)
+![Observability Dashboard](assets/dashboard_demo.png)
 
 ### Setup
 
