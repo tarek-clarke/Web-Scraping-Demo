@@ -304,6 +304,15 @@
             <div id="slo-grid" class="slo-grid"></div>
         </div>
 
+        <!-- Throughput Chart -->
+        <div class="card chart-container">
+            <div class="card-header">
+                <span class="card-title">Throughput Over Time</span>
+                <span class="card-icon">📈</span>
+            </div>
+            <canvas id="throughput-chart"></canvas>
+        </div>
+
         <!-- DLQ Depth Chart -->
         <div class="card chart-container">
             <div class="card-header">
@@ -329,44 +338,46 @@
     </footer>
 
     <script>
-        // DLQ chart
-        const ctx = document.getElementById('dlq-chart').getContext('2d');
-        const dlqHistory = [];
-        const dlqLabels = [];
+        console.log('[Dashboard] Initialising charts...');
 
-        const dlqChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: dlqLabels,
-                datasets: [{
-                    label: 'DLQ Depth',
-                    data: dlqHistory,
-                    borderColor: '#06b6d4',
-                    backgroundColor: 'rgba(6, 182, 212, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 0,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: {
-                        display: true,
-                        grid: { color: '#1e293b' },
-                        ticks: { color: '#64748b', maxTicksLimit: 8, font: { size: 10 } },
-                    },
-                    y: {
-                        display: true,
-                        grid: { color: '#1e293b' },
-                        ticks: { color: '#64748b', font: { size: 10 } },
-                        beginAtZero: true,
-                    }
-                }
+        const chartOptions = (label) => ({
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: true, grid: { color: '#1e293b' }, ticks: { color: '#64748b', maxTicksLimit: 8, font: { size: 10 } } },
+                y: { display: true, grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { size: 10 } }, beginAtZero: true }
             }
+        });
+
+        // Throughput chart
+        const tpLabels = [];
+        const tpData = [];
+        const throughputChart = new Chart(document.getElementById('throughput-chart').getContext('2d'), {
+            type: 'line',
+            data: { labels: tpLabels, datasets: [{
+                label: 'Total Passed',
+                data: tpData,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                borderWidth: 2, fill: true, tension: 0.4, pointRadius: 2, pointBackgroundColor: '#10b981',
+            }] },
+            options: chartOptions('Throughput'),
+        });
+
+        // DLQ chart
+        const dlqLabels = [];
+        const dlqHistory = [];
+        const dlqChart = new Chart(document.getElementById('dlq-chart').getContext('2d'), {
+            type: 'line',
+            data: { labels: dlqLabels, datasets: [{
+                label: 'DLQ Depth',
+                data: dlqHistory,
+                borderColor: '#06b6d4',
+                backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0,
+            }] },
+            options: chartOptions('DLQ Depth'),
         });
 
         function formatTime(d) {
@@ -398,12 +409,23 @@
                 const dlqDepth = metrics.dlq.depth;
                 document.getElementById('dlq-depth').textContent = dlqDepth.toLocaleString();
 
-                // Chart update
+                // Chart updates
                 const now = new Date();
-                dlqLabels.push(formatTime(now));
+                const timeLabel = formatTime(now);
+
+                // Throughput chart
+                tpLabels.push(timeLabel);
+                tpData.push(metrics.circuit_breaker.total_passed);
+                if (tpLabels.length > 60) { tpLabels.shift(); tpData.shift(); }
+                throughputChart.update('none');
+
+                // DLQ chart
+                dlqLabels.push(timeLabel);
                 dlqHistory.push(dlqDepth);
                 if (dlqLabels.length > 60) { dlqLabels.shift(); dlqHistory.shift(); }
                 dlqChart.update('none');
+
+                console.log(`[Dashboard] Refresh OK — passed: ${metrics.circuit_breaker.total_passed}, DLQ: ${dlqDepth}, state: ${metrics.circuit_breaker.state}`);
 
                 // Buffer
                 document.getElementById('buf-total').textContent = metrics.edge_buffer.total_buffered.toLocaleString();
@@ -433,6 +455,7 @@
                 document.getElementById('status-dot').style.background = 'var(--accent-green)';
 
             } catch (err) {
+                console.error('[Dashboard] Refresh failed:', err);
                 document.getElementById('status-dot').style.background = 'var(--accent-red)';
                 document.getElementById('last-updated').textContent = 'Connection lost';
             }

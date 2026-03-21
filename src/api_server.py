@@ -21,6 +21,7 @@ import glob
 import json
 import logging
 import os
+import random
 import subprocess
 import sys
 import time
@@ -44,7 +45,7 @@ from src.circuit_breaker import (  # noqa: E402
     TelemetryCircuitBreaker,
     TelemetryPacket,
 )
-from src.local_persistence import TracksideEdgeBuffer  # noqa: E402
+from src.local_persistence import TracksideEdgeBuffer, BufferedPacket  # noqa: E402
 from src.audit_log import ComplianceAuditLog  # noqa: E402
 from src.slo import SLOTracker  # noqa: E402
 
@@ -317,6 +318,62 @@ def trigger_smoke_run():
             results["accepted"] += 1
         else:
             results["rejected"] += 1
+
+    results["timestamp"] = datetime.utcnow().isoformat()
+    return results
+
+
+@app.post("/run/chaos", tags=["Controls"])
+def trigger_chaos_run():
+    """Trigger a chaos test (20 packets with 15% corruption) and return results."""
+    breaker = _get_breaker()
+    buffer = _get_buffer()
+    audit = _get_audit()
+
+    results = {"accepted": 0, "rejected": 0, "packets": []}
+    sensors = ["speed", "rpm", "throttle", "brake", "engine_temp"]
+
+    for i in range(20):
+        # 15% chance of corruption
+        if random.random() < 0.15:
+            corruption_type = random.choice(["out_of_range", "null", "wrong_type"])
+            if corruption_type == "out_of_range":
+                pkt = TelemetryPacket(sensor="speed", value=500.0)  # Max is 380
+            elif corruption_type == "null":
+                pkt = TelemetryPacket(sensor="rpm", value=None)
+            else:
+                pkt = TelemetryPacket(sensor="throttle", value="FULL_SEND")
+        else:
+            # Valid packet
+            s = random.choice(sensors)
+            v = random.uniform(10.0, 100.0)
+            pkt = TelemetryPacket(sensor=s, value=v)
+
+        accepted, reason = breaker.process(pkt)
+
+        if accepted:
+            # If accepted, persist to buffer and audit log
+            bpkt = BufferedPacket(
+                packet_id=pkt.packet_id,
+                timestamp=pkt.timestamp,
+                sensor=pkt.sensor,
+                value=pkt.value,
+                metadata=pkt.metadata
+            )
+            buffer.write(bpkt)
+            audit.record(
+                action="PACKET_INGEST",
+                details={"sensor": pkt.sensor, "packet_id": pkt.packet_id}
+            )
+            results["accepted"] += 1
+        else:
+            results["rejected"] += 1
+
+        results["packets"].append({
+            "packet_id": pkt.packet_id,
+            "accepted": accepted,
+            "reason": reason,
+        })
 
     results["timestamp"] = datetime.utcnow().isoformat()
     return results

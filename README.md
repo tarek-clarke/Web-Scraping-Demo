@@ -166,6 +166,8 @@ python3 tools/aggregate_benchmark_runs.py --dir data/reports/B200 --platform B20
 
 A FastAPI-powered REST API exposes the pipeline's health, metrics, and operational controls, with a built-in real-time dashboard.
 
+![Observability Dashboard](file:///C:/Users/Tarek/.gemini/antigravity/brain/da02e3b1-0719-408b-a50c-8410aba7d84e/dashboard_chaos_run_final_1774068267558.png)
+
 ### Setup
 
 ```bash
@@ -191,6 +193,7 @@ Once running:
 | `/reports` | GET | List all benchmark report JSON files |
 | `/reports/{id}` | GET | Fetch a specific benchmark report |
 | `/run` | POST | Trigger a 20-packet smoke test through the pipeline |
+| `/run/chaos` | POST | Trigger a 20-packet chaos test (15% corruption) |
 | `/circuit-breaker/reset` | POST | Manual circuit breaker reset to CLOSED |
 | `/dashboard` | GET | Serve the observability dashboard UI |
 
@@ -200,6 +203,7 @@ Once running:
 curl http://localhost:5050/health                      # Check pipeline health
 curl http://localhost:5050/metrics                     # View live metrics
 curl -X POST http://localhost:5050/run                 # Trigger smoke test (20 packets)
+curl -X POST http://localhost:5050/run/chaos           # Trigger chaos test (20 packets)
 curl -X POST http://localhost:5050/circuit-breaker/reset  # Reset circuit breaker
 curl http://localhost:5050/reports                      # List benchmark reports
 ```

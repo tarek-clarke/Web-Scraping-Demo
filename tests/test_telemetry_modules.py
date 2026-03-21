@@ -265,9 +265,9 @@ class TestCircuitBreaker:
             failure_threshold=10, dlq_path=str(tmp_path / "dlq.sqlite")
         )
         packets = [
-            TelemetryPacket(sensor="speed", value=300.0),
-            TelemetryPacket(sensor="speed", value=None),
-            TelemetryPacket(sensor="speed", value=310.0),
+            TelemetryPacket(sensor="speed", value=300.0, timestamp="2026-03-21T00:00:01"),
+            TelemetryPacket(sensor="speed", value=None, timestamp="2026-03-21T00:00:02"),
+            TelemetryPacket(sensor="speed", value=310.0, timestamp="2026-03-21T00:00:03"),
         ]
         result = cb.process_batch(packets)
         assert result["accepted"] == 2
