@@ -118,6 +118,20 @@ Enables attribution of missed detections by chaos mode and sensor.
 python3 tools/telemetry_gpu_stress_test.py --diagnostic --output-suffix _diag
 ```
 
+### Team Testing (Multi-Car Concurrency)
+This profile validates the framework's ability to handle two simultaneous telemetry streams (Car 1 and Car 2) on a single shared GPU.
+
+```bash
+# Branch: team-testing
+chmod +x tools/run_team_test.sh
+./tools/run_team_test.sh 2000 0.05
+```
+
+This script:
+- Spins up `rap_car_1_spine` and `rap_car_2_spine` containers.
+- Launches parallel GPU-accelerated stress tests.
+- Validates that concurrent GPU memory access does not degrade resilience scores.
+
 ---
 
 ## Operational Capabilities
