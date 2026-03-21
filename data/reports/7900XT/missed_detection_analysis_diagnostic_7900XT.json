@@ -1,0 +1,833 @@
+{
+  "generated_at": "2026-03-19T18:38:56.060516",
+  "injected_fault_count": 7215,
+  "detected_fault_count": 7182,
+  "missed_fault_count": 33,
+  "miss_rate": 0.004574,
+  "missed_by_sensor": [
+    {
+      "sensor_id": "ecu_canbus",
+      "miss_count": 28,
+      "total_injected": 743,
+      "miss_rate": 0.037685
+    },
+    {
+      "sensor_id": "g_force_lateral",
+      "miss_count": 5,
+      "total_injected": 740,
+      "miss_rate": 0.006757
+    }
+  ],
+  "missed_by_chaos_mode": [
+    {
+      "chaos_mode": "bit_flip_low",
+      "miss_count": 29,
+      "total_injected": 1022,
+      "miss_rate": 0.028376
+    },
+    {
+      "chaos_mode": "bit_flip_high",
+      "miss_count": 4,
+      "total_injected": 1012,
+      "miss_rate": 0.003953
+    }
+  ],
+  "missed_by_session": [
+    {
+      "session": "budapest_FP3",
+      "miss_count": 5,
+      "total_injected": 471,
+      "miss_rate": 0.010616
+    },
+    {
+      "session": "silverstone_FP3",
+      "miss_count": 5,
+      "total_injected": 519,
+      "miss_rate": 0.009634
+    },
+    {
+      "session": "budapest_QUALI",
+      "miss_count": 3,
+      "total_injected": 477,
+      "miss_rate": 0.006289
+    },
+    {
+      "session": "silverstone_RACE",
+      "miss_count": 3,
+      "total_injected": 489,
+      "miss_rate": 0.006135
+    },
+    {
+      "session": "spielberg_FP1",
+      "miss_count": 3,
+      "total_injected": 465,
+      "miss_rate": 0.006452
+    },
+    {
+      "session": "spielberg_FP3",
+      "miss_count": 3,
+      "total_injected": 507,
+      "miss_rate": 0.005917
+    },
+    {
+      "session": "budapest_FP2",
+      "miss_count": 2,
+      "total_injected": 481,
+      "miss_rate": 0.004158
+    },
+    {
+      "session": "budapest_RACE",
+      "miss_count": 2,
+      "total_injected": 458,
+      "miss_rate": 0.004367
+    },
+    {
+      "session": "silverstone_QUALI",
+      "miss_count": 2,
+      "total_injected": 489,
+      "miss_rate": 0.00409
+    },
+    {
+      "session": "budapest_FP1",
+      "miss_count": 1,
+      "total_injected": 468,
+      "miss_rate": 0.002137
+    },
+    {
+      "session": "silverstone_FP1",
+      "miss_count": 1,
+      "total_injected": 473,
+      "miss_rate": 0.002114
+    },
+    {
+      "session": "silverstone_FP2",
+      "miss_count": 1,
+      "total_injected": 452,
+      "miss_rate": 0.002212
+    },
+    {
+      "session": "spielberg_QUALI",
+      "miss_count": 1,
+      "total_injected": 505,
+      "miss_rate": 0.00198
+    },
+    {
+      "session": "spielberg_RACE",
+      "miss_count": 1,
+      "total_injected": 479,
+      "miss_rate": 0.002088
+    }
+  ],
+  "missed_by_sensor_and_chaos": [
+    {
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "miss_count": 24,
+      "total_injected": 101,
+      "miss_rate": 0.237624
+    },
+    {
+      "sensor_id": "g_force_lateral",
+      "chaos_mode": "bit_flip_low",
+      "miss_count": 5,
+      "total_injected": 120,
+      "miss_rate": 0.041667
+    },
+    {
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_high",
+      "miss_count": 4,
+      "total_injected": 112,
+      "miss_rate": 0.035714
+    }
+  ],
+  "totals_by_sensor": {
+    "rpm": 715,
+    "heart_rate": 713,
+    "engine_temp": 695,
+    "g_force_lateral": 740,
+    "brake_temp": 748,
+    "throttle": 719,
+    "aero_load": 714,
+    "ecu_canbus": 743,
+    "tyre_pressure": 747,
+    "speed": 681
+  },
+  "totals_by_chaos_mode": {
+    "null_value": 992,
+    "string_in_numeric": 1024,
+    "bit_flip_high": 1012,
+    "schema_drift": 1088,
+    "sensor_dropout": 1115,
+    "duplicate_timestamp": 962,
+    "bit_flip_low": 1022
+  },
+  "totals_by_session": {
+    "spielberg_FP1": 465,
+    "spielberg_FP2": 482,
+    "spielberg_FP3": 507,
+    "spielberg_QUALI": 505,
+    "spielberg_RACE": 479,
+    "silverstone_FP1": 473,
+    "silverstone_FP2": 452,
+    "silverstone_FP3": 519,
+    "silverstone_QUALI": 489,
+    "silverstone_RACE": 489,
+    "budapest_FP1": 468,
+    "budapest_FP2": 481,
+    "budapest_FP3": 471,
+    "budapest_QUALI": 477,
+    "budapest_RACE": 458
+  },
+  "totals_by_sensor_and_chaos": [
+    {
+      "sensor_id": "aero_load",
+      "chaos_mode": "bit_flip_high",
+      "total_injected": 102
+    },
+    {
+      "sensor_id": "aero_load",
+      "chaos_mode": "bit_flip_low",
+      "total_injected": 88
+    },
+    {
+      "sensor_id": "aero_load",
+      "chaos_mode": "duplicate_timestamp",
+      "total_injected": 106
+    },
+    {
+      "sensor_id": "aero_load",
+      "chaos_mode": "null_value",
+      "total_injected": 90
+    },
+    {
+      "sensor_id": "aero_load",
+      "chaos_mode": "schema_drift",
+      "total_injected": 104
+    },
+    {
+      "sensor_id": "aero_load",
+      "chaos_mode": "sensor_dropout",
+      "total_injected": 109
+    },
+    {
+      "sensor_id": "aero_load",
+      "chaos_mode": "string_in_numeric",
+      "total_injected": 115
+    },
+    {
+      "sensor_id": "brake_temp",
+      "chaos_mode": "bit_flip_high",
+      "total_injected": 108
+    },
+    {
+      "sensor_id": "brake_temp",
+      "chaos_mode": "bit_flip_low",
+      "total_injected": 115
+    },
+    {
+      "sensor_id": "brake_temp",
+      "chaos_mode": "duplicate_timestamp",
+      "total_injected": 96
+    },
+    {
+      "sensor_id": "brake_temp",
+      "chaos_mode": "null_value",
+      "total_injected": 102
+    },
+    {
+      "sensor_id": "brake_temp",
+      "chaos_mode": "schema_drift",
+      "total_injected": 124
+    },
+    {
+      "sensor_id": "brake_temp",
+      "chaos_mode": "sensor_dropout",
+      "total_injected": 102
+    },
+    {
+      "sensor_id": "brake_temp",
+      "chaos_mode": "string_in_numeric",
+      "total_injected": 101
+    },
+    {
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_high",
+      "total_injected": 112
+    },
+    {
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "total_injected": 101
+    },
+    {
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "duplicate_timestamp",
+      "total_injected": 88
+    },
+    {
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "null_value",
+      "total_injected": 112
+    },
+    {
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "schema_drift",
+      "total_injected": 109
+    },
+    {
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "sensor_dropout",
+      "total_injected": 116
+    },
+    {
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "string_in_numeric",
+      "total_injected": 105
+    },
+    {
+      "sensor_id": "engine_temp",
+      "chaos_mode": "bit_flip_high",
+      "total_injected": 104
+    },
+    {
+      "sensor_id": "engine_temp",
+      "chaos_mode": "bit_flip_low",
+      "total_injected": 105
+    },
+    {
+      "sensor_id": "engine_temp",
+      "chaos_mode": "duplicate_timestamp",
+      "total_injected": 89
+    },
+    {
+      "sensor_id": "engine_temp",
+      "chaos_mode": "null_value",
+      "total_injected": 99
+    },
+    {
+      "sensor_id": "engine_temp",
+      "chaos_mode": "schema_drift",
+      "total_injected": 109
+    },
+    {
+      "sensor_id": "engine_temp",
+      "chaos_mode": "sensor_dropout",
+      "total_injected": 107
+    },
+    {
+      "sensor_id": "engine_temp",
+      "chaos_mode": "string_in_numeric",
+      "total_injected": 82
+    },
+    {
+      "sensor_id": "g_force_lateral",
+      "chaos_mode": "bit_flip_high",
+      "total_injected": 90
+    },
+    {
+      "sensor_id": "g_force_lateral",
+      "chaos_mode": "bit_flip_low",
+      "total_injected": 120
+    },
+    {
+      "sensor_id": "g_force_lateral",
+      "chaos_mode": "duplicate_timestamp",
+      "total_injected": 97
+    },
+    {
+      "sensor_id": "g_force_lateral",
+      "chaos_mode": "null_value",
+      "total_injected": 102
+    },
+    {
+      "sensor_id": "g_force_lateral",
+      "chaos_mode": "schema_drift",
+      "total_injected": 117
+    },
+    {
+      "sensor_id": "g_force_lateral",
+      "chaos_mode": "sensor_dropout",
+      "total_injected": 108
+    },
+    {
+      "sensor_id": "g_force_lateral",
+      "chaos_mode": "string_in_numeric",
+      "total_injected": 106
+    },
+    {
+      "sensor_id": "heart_rate",
+      "chaos_mode": "bit_flip_high",
+      "total_injected": 107
+    },
+    {
+      "sensor_id": "heart_rate",
+      "chaos_mode": "bit_flip_low",
+      "total_injected": 107
+    },
+    {
+      "sensor_id": "heart_rate",
+      "chaos_mode": "duplicate_timestamp",
+      "total_injected": 93
+    },
+    {
+      "sensor_id": "heart_rate",
+      "chaos_mode": "null_value",
+      "total_injected": 110
+    },
+    {
+      "sensor_id": "heart_rate",
+      "chaos_mode": "schema_drift",
+      "total_injected": 89
+    },
+    {
+      "sensor_id": "heart_rate",
+      "chaos_mode": "sensor_dropout",
+      "total_injected": 116
+    },
+    {
+      "sensor_id": "heart_rate",
+      "chaos_mode": "string_in_numeric",
+      "total_injected": 91
+    },
+    {
+      "sensor_id": "rpm",
+      "chaos_mode": "bit_flip_high",
+      "total_injected": 110
+    },
+    {
+      "sensor_id": "rpm",
+      "chaos_mode": "bit_flip_low",
+      "total_injected": 100
+    },
+    {
+      "sensor_id": "rpm",
+      "chaos_mode": "duplicate_timestamp",
+      "total_injected": 96
+    },
+    {
+      "sensor_id": "rpm",
+      "chaos_mode": "null_value",
+      "total_injected": 102
+    },
+    {
+      "sensor_id": "rpm",
+      "chaos_mode": "schema_drift",
+      "total_injected": 98
+    },
+    {
+      "sensor_id": "rpm",
+      "chaos_mode": "sensor_dropout",
+      "total_injected": 113
+    },
+    {
+      "sensor_id": "rpm",
+      "chaos_mode": "string_in_numeric",
+      "total_injected": 96
+    },
+    {
+      "sensor_id": "speed",
+      "chaos_mode": "bit_flip_high",
+      "total_injected": 77
+    },
+    {
+      "sensor_id": "speed",
+      "chaos_mode": "bit_flip_low",
+      "total_injected": 86
+    },
+    {
+      "sensor_id": "speed",
+      "chaos_mode": "duplicate_timestamp",
+      "total_injected": 105
+    },
+    {
+      "sensor_id": "speed",
+      "chaos_mode": "null_value",
+      "total_injected": 84
+    },
+    {
+      "sensor_id": "speed",
+      "chaos_mode": "schema_drift",
+      "total_injected": 106
+    },
+    {
+      "sensor_id": "speed",
+      "chaos_mode": "sensor_dropout",
+      "total_injected": 112
+    },
+    {
+      "sensor_id": "speed",
+      "chaos_mode": "string_in_numeric",
+      "total_injected": 111
+    },
+    {
+      "sensor_id": "throttle",
+      "chaos_mode": "bit_flip_high",
+      "total_injected": 109
+    },
+    {
+      "sensor_id": "throttle",
+      "chaos_mode": "bit_flip_low",
+      "total_injected": 111
+    },
+    {
+      "sensor_id": "throttle",
+      "chaos_mode": "duplicate_timestamp",
+      "total_injected": 90
+    },
+    {
+      "sensor_id": "throttle",
+      "chaos_mode": "null_value",
+      "total_injected": 96
+    },
+    {
+      "sensor_id": "throttle",
+      "chaos_mode": "schema_drift",
+      "total_injected": 107
+    },
+    {
+      "sensor_id": "throttle",
+      "chaos_mode": "sensor_dropout",
+      "total_injected": 112
+    },
+    {
+      "sensor_id": "throttle",
+      "chaos_mode": "string_in_numeric",
+      "total_injected": 94
+    },
+    {
+      "sensor_id": "tyre_pressure",
+      "chaos_mode": "bit_flip_high",
+      "total_injected": 93
+    },
+    {
+      "sensor_id": "tyre_pressure",
+      "chaos_mode": "bit_flip_low",
+      "total_injected": 89
+    },
+    {
+      "sensor_id": "tyre_pressure",
+      "chaos_mode": "duplicate_timestamp",
+      "total_injected": 102
+    },
+    {
+      "sensor_id": "tyre_pressure",
+      "chaos_mode": "null_value",
+      "total_injected": 95
+    },
+    {
+      "sensor_id": "tyre_pressure",
+      "chaos_mode": "schema_drift",
+      "total_injected": 125
+    },
+    {
+      "sensor_id": "tyre_pressure",
+      "chaos_mode": "sensor_dropout",
+      "total_injected": 120
+    },
+    {
+      "sensor_id": "tyre_pressure",
+      "chaos_mode": "string_in_numeric",
+      "total_injected": 123
+    }
+  ],
+  "missed_faults": [
+    {
+      "packet_id": "90dc2230254e",
+      "sensor_id": "g_force_lateral",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 0.03,
+      "injected_value": -0.8543863717183457,
+      "session": "spielberg_FP1",
+      "observed_sensor_id": "g_force_lateral"
+    },
+    {
+      "packet_id": "69d3e4bc3633",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 22669.44,
+      "injected_value": -481229.9962500802,
+      "session": "spielberg_FP1",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "13cb9c523be0",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 28018.29,
+      "injected_value": -641333.1085015156,
+      "session": "spielberg_FP1",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "a294626e5d28",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 14883.14,
+      "injected_value": -687326.6828729293,
+      "session": "spielberg_FP3",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "82751b48651c",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 40473.8,
+      "injected_value": -741171.4447523549,
+      "session": "spielberg_FP3",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "a0b8f3850883",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 4167.79,
+      "injected_value": -196033.29401716872,
+      "session": "spielberg_FP3",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "f62a3d8820b9",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_high",
+      "original_value": 36.57,
+      "injected_value": 8144.820060967445,
+      "session": "spielberg_QUALI",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "5d6b0cc4bdd6",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 5735.58,
+      "injected_value": -465056.66075420904,
+      "session": "spielberg_RACE",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "8751d273d324",
+      "sensor_id": "g_force_lateral",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 0.09,
+      "injected_value": -6.556858592737834,
+      "session": "silverstone_FP1",
+      "observed_sensor_id": "g_force_lateral"
+    },
+    {
+      "packet_id": "b6a587938ca1",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 3880.68,
+      "injected_value": -315205.4677323639,
+      "session": "silverstone_FP2",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "db512343518e",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 4251.21,
+      "injected_value": -61664.67871708618,
+      "session": "silverstone_FP3",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "7962cea45e25",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 13098.72,
+      "injected_value": -795059.2762899186,
+      "session": "silverstone_FP3",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "6b1d9d0224b9",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 15528.4,
+      "injected_value": -728635.5051054333,
+      "session": "silverstone_FP3",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "530a01f90285",
+      "sensor_id": "g_force_lateral",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 0.71,
+      "injected_value": -7.510706547805142,
+      "session": "silverstone_FP3",
+      "observed_sensor_id": "g_force_lateral"
+    },
+    {
+      "packet_id": "cce73fa33d18",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 36229.73,
+      "injected_value": -574740.8113295058,
+      "session": "silverstone_FP3",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "7838a8b6b264",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 10598.86,
+      "injected_value": -408473.9218715084,
+      "session": "silverstone_QUALI",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "7793915a70e5",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 1678.07,
+      "injected_value": -89175.99747824816,
+      "session": "silverstone_QUALI",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "de271f81d130",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_high",
+      "original_value": 3614.85,
+      "injected_value": 976148.713223954,
+      "session": "silverstone_RACE",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "f2c7ad36c855",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 3166.98,
+      "injected_value": -157635.29799487838,
+      "session": "silverstone_RACE",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "84f608494e75",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 6994.24,
+      "injected_value": -317276.93854167656,
+      "session": "silverstone_RACE",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "859aa9fa9356",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 13504.05,
+      "injected_value": -213062.68119291618,
+      "session": "budapest_FP1",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "50ed0c1bde1f",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_high",
+      "original_value": 135.44,
+      "injected_value": 61092.37441786259,
+      "session": "budapest_FP2",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "2cf9fce6398e",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 43123.0,
+      "injected_value": -960567.2939662349,
+      "session": "budapest_FP2",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "4dd8d5d425c4",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_high",
+      "original_value": 5712.56,
+      "injected_value": 668001.0066187731,
+      "session": "budapest_FP3",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "17ee493da72d",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 72.74,
+      "injected_value": -3206.1652553486906,
+      "session": "budapest_FP3",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "f2a7a2ecb9b2",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 3769.73,
+      "injected_value": -226717.3681448716,
+      "session": "budapest_FP3",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "d93c02222b71",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 59187.58,
+      "injected_value": -781552.9190490597,
+      "session": "budapest_FP3",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "ef8489907316",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 10552.2,
+      "injected_value": -799667.7757622828,
+      "session": "budapest_FP3",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "a251980da521",
+      "sensor_id": "g_force_lateral",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 0.07,
+      "injected_value": -4.324393140164192,
+      "session": "budapest_QUALI",
+      "observed_sensor_id": "g_force_lateral"
+    },
+    {
+      "packet_id": "7032e4ecf4c9",
+      "sensor_id": "g_force_lateral",
+      "chaos_mode": "bit_flip_low",
+      "original_value": -0.01,
+      "injected_value": -0.981355777593097,
+      "session": "budapest_QUALI",
+      "observed_sensor_id": "g_force_lateral"
+    },
+    {
+      "packet_id": "57aa1c0c35e1",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 57386.15,
+      "injected_value": -727397.5228774569,
+      "session": "budapest_QUALI",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "b5b664d2af90",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 21559.76,
+      "injected_value": -574699.2129858901,
+      "session": "budapest_RACE",
+      "observed_sensor_id": "ecu_canbus"
+    },
+    {
+      "packet_id": "dc3626c67ba7",
+      "sensor_id": "ecu_canbus",
+      "chaos_mode": "bit_flip_low",
+      "original_value": 47773.9,
+      "injected_value": -542929.5847038822,
+      "session": "budapest_RACE",
+      "observed_sensor_id": "ecu_canbus"
+    }
+  ]
+}

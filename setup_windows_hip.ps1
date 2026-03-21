@@ -278,7 +278,7 @@ function Main {
             Write-Status "Next: Run the pipeline:" "INFO"
             Write-Status "  python examples/demo_hitl_retraining.py" "INFO"
             Write-Status "  or" "INFO"
-            Write-Status "  python tools/telemetry_gpu_stress_test.py" "INFO"
+            Write-Status "  python tools/cadillac_gpu_stress_test.py" "INFO"
             Write-Host ""
             exit 0
         } else {

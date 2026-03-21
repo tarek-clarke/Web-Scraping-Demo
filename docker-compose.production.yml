@@ -60,6 +60,24 @@ services:
           cpus: "2.0"
           memory: 2G
 
+  # ---------------------------------------------------------------------------
+  # Team War Room (Global Health Monitor Dashboard)
+  # ---------------------------------------------------------------------------
+  health-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    container_name: rap_team_monitor
+    environment:
+      - PYTHONPATH=/app
+      - TERM=xterm-256color
+    volumes:
+      - car-1-data:/app/data/car1:ro
+      - car-2-data:/app/data/car2:ro
+    networks:
+      - telemetry-team-net
+    command: ["python3", "tools/health_monitor.py", "--duration", "300"]
+
 # =============================================================================
 # Isolated Volumes per Car
 # =============================================================================
