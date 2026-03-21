@@ -1,7 +1,7 @@
 // Mock WebSocket Server
 // Simulates realistic telemetry pipeline metrics
 
-// Simulating Cadillac F1 workloads:
+// Simulating high-fidelity workloads:
 // Normal Sprint workload: ~86.61% acceptance, 0.228ms p95, 6/6 SLOs
 // Normal Weekend workload: ~70.77% acceptance, 0.252ms p95, 3.6M packets, 6/6 SLOs
 
