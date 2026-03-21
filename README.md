@@ -157,6 +157,55 @@ This script:
 
 ---
 
+## REST API Control Plane
+
+A FastAPI-powered REST API exposes the pipeline's health, metrics, and operational controls.
+
+```bash
+# Start the API server (default port 8000)
+PYTHONPATH="." python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050
+```
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/health` | GET | Liveness and readiness probe (circuit breaker, buffer, audit) |
+| `/metrics` | GET | Live circuit breaker state, DLQ depth, buffer utilisation |
+| `/slo` | GET | Real-time SLO evaluation against 6 production budgets |
+| `/reports` | GET | List all benchmark report JSON files |
+| `/reports/{id}` | GET | Fetch a specific benchmark report |
+| `/run` | POST | Trigger a 20-packet smoke test |
+| `/circuit-breaker/reset` | POST | Manual circuit breaker reset to CLOSED |
+| `/dashboard` | GET | Serve the observability dashboard UI |
+| `/docs` | GET | Auto-generated OpenAPI/Swagger documentation |
+
+---
+
+## Observability Dashboard
+
+A real-time, dark-mode dashboard served at `/dashboard` visualises pipeline health:
+
+- **Circuit Breaker State** — colour-coded indicator (green/yellow/red)
+- **DLQ Depth** — Chart.js line graph tracking quarantined packets over time
+- **Edge Buffer** — utilisation progress bar with pending/synced counters
+- **SLO Badges** — pass/fail indicators for all 6 service level objectives
+- **Auto-refresh** — polls `/metrics` and `/slo` every 3 seconds
+
+No build tools required — single HTML file with embedded CSS and vanilla JavaScript.
+
+---
+
+## CI Quality Gates
+
+The GitHub Actions pipeline enforces automated quality checks on every push and PR:
+
+- **Lint**: `flake8` with 120-character line limit
+- **Tests**: Full pytest suite across Python 3.10, 3.11, and 3.12
+- **Coverage**: `pytest-cov` with a **75% minimum threshold** — builds fail if coverage drops below this
+- **Stress Test**: 1,000-packet chaos injection (15% corruption rate)
+- **Docker**: Build smoke test verifying container starts cleanly
+
+---
+
 ## Statistical Rigor and Aggregation
 
 To reproduce the statistical results:
