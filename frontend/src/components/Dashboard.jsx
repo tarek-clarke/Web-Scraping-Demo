@@ -73,8 +73,8 @@ export default function Dashboard() {
       {/* Top Bar */}
       <header className="flex justify-between items-center mb-6 bg-darkCard p-4 rounded-xl shadow-lg border border-slate-700">
         <div className="flex items-center space-x-4">
-          <div className="bg-cadillacGold text-darkBg px-3 py-1 font-bold rounded">LAS VEGAS GP</div>
-          <div className="font-semibold text-lg text-cadillacSilver">FP1</div>
+          <div className="bg-accentGold text-darkBg px-3 py-1 font-bold rounded">TELEMETRY VALIDATION</div>
+          <div className="font-semibold text-lg text-accentSilver">SESSION_01</div>
           <div className="text-xl font-mono text-slate-300 ml-4">{formatTime(sessionTime)}</div>
         </div>
         

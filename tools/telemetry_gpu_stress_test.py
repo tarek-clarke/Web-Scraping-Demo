@@ -1039,7 +1039,7 @@ class TelemetryGPUStressTest:
         self.breaker = TelemetryCircuitBreaker(
             failure_threshold=self._breaker_threshold,
             recovery_timeout=self._breaker_recovery,
-            dlq_path="data/gpu_stress_dlq.sqlite",
+            dlq_path=f"data/gpu_stress_dlq{self.output_suffix}.sqlite",
             enable_kafka=enable_kafka,
             kafka_bootstrap_servers=kafka_bootstrap_servers,
             kafka_topic_repairable=kafka_topic_repairable,
@@ -1047,10 +1047,10 @@ class TelemetryGPUStressTest:
             kafka_topic_non_repairable=kafka_topic_non_repairable,
         )
         self.buffer = TracksideEdgeBuffer(
-            db_path="data/gpu_stress_edge_buffer.sqlite",
+            db_path=f"data/gpu_stress_edge_buffer{self.output_suffix}.sqlite",
             sync_callback=self._mock_cloud_sync,
         )
-        self.audit = ComplianceAuditLog(db_path="data/gpu_stress_audit.sqlite")
+        self.audit = ComplianceAuditLog(db_path=f"data/gpu_stress_audit{self.output_suffix}.sqlite")
         self.geo = GeoFence(audit_log=self.audit)
         self.sensor_cadence_baselines = self._build_sensor_cadence_baselines()
         self.breaker.configure_cadence_monitor(

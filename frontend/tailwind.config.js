@@ -9,8 +9,8 @@ export default {
       colors: {
         darkBg: '#0f172a',
         darkCard: '#1e293b',
-        cadillacGold: '#C5A880',
-        cadillacSilver: '#C0C0C0',
+        accentGold: '#C5A880',
+        accentSilver: '#C0C0C0',
       },
     }
   },

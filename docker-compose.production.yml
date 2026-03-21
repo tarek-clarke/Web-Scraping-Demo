@@ -1,152 +1,74 @@
 # =============================================================================
-#  Telemetry Pipeline — Docker Compose (Production)
+#  Telemetry Pipeline — Multi-Car Team Testing (Concurrency)
 # =============================================================================
-#  Developed for the Resilient RAP Project.
-#
-#  Services:
-#    telemetry-spine  — Core pipeline (circuit breaker, edge buffer, geo-fence)
-#    health-monitor   — Terminal dashboard
-#    stress-test      — Benchmark runner
+#  This configuration runs two parallel telemetry pipelines (Car 1 & Car 2)
+#  on a single shared GPU to validate multi-tenant resilience.
 # =============================================================================
 
 services:
   # ---------------------------------------------------------------------------
-  # Core Telemetry Pipeline
+  # Car 1 Pipeline
   # ---------------------------------------------------------------------------
-  telemetry-spine:
+  car-1-pipeline:
     build:
       context: .
       dockerfile: Dockerfile.production
-    container_name: rap_telemetry_spine
+    container_name: rap_car_1_spine
     restart: unless-stopped
-
     environment:
       - PYTHONPATH=/app
       - TELEMETRY_ENV=production
-      - LOG_LEVEL=INFO
-      # Data sovereignty: set the deployment region
-      - DEPLOYMENT_REGION=US
-      - WAR_ROOM_SYNC_ENABLED=true
-
+      - DRIVER_ID=1
+      - SESSION_ID=TEAM_TEST_01
     volumes:
-      # Persistent data volume — survives container restarts
-      - telemetry-data:/app/data
-      # Outputs volume — reports, CSVs, logs
-      - telemetry-outputs:/app/outputs
-      # Read-only code mount (optional, for prod use the baked-in image)
-      # - ./:/app:ro
-
+      - car-1-data:/app/data
+      - car-1-outputs:/app/outputs
     networks:
-      - telemetry-internal
-
-    # Resource limits — budget cap discipline
+      - telemetry-team-net
     deploy:
       resources:
         limits:
           cpus: "2.0"
           memory: 2G
-        reservations:
-          cpus: "0.5"
-          memory: 512M
-
-    # Security hardening
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp:size=100M
-
-    healthcheck:
-      test: ["CMD", "python", "-c", "from modules.base_ingestor import BaseIngestor; print('OK')"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
-
-    command: ["main.py", "--adapter", "openf1", "--session", "9158", "--driver", "1"]
+    # GPU Passthrough (NVIDIA/AMD)
+    # devices:
+    #   - /dev/kfd:/dev/kfd
+    #   - /dev/dri:/dev/dri
 
   # ---------------------------------------------------------------------------
-  # Health Monitor (Pit Wall Dashboard)
+  # Car 2 Pipeline
   # ---------------------------------------------------------------------------
-  health-monitor:
+  car-2-pipeline:
     build:
       context: .
       dockerfile: Dockerfile.production
-    container_name: rap_health_monitor
-    restart: "no"
-
+    container_name: rap_car_2_spine
+    restart: unless-stopped
     environment:
       - PYTHONPATH=/app
-      - TERM=xterm-256color
-
+      - TELEMETRY_ENV=production
+      - DRIVER_ID=2
+      - SESSION_ID=TEAM_TEST_01
     volumes:
-      - telemetry-data:/app/data:ro
-      - telemetry-outputs:/app/outputs:ro
-
+      - car-2-data:/app/data
+      - car-2-outputs:/app/outputs
     networks:
-      - telemetry-internal
-
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-
-    security_opt:
-      - no-new-privileges:true
-
-    command: ["tools/health_monitor.py", "--duration", "60"]
-    depends_on:
-      telemetry-spine:
-        condition: service_healthy
-
-  # ---------------------------------------------------------------------------
-  # Triple-Header Stress Test
-  # ---------------------------------------------------------------------------
-  stress-test:
-    build:
-      context: .
-      dockerfile: Dockerfile.production
-    container_name: rap_stress_test
-    restart: "no"
-
-    environment:
-      - PYTHONPATH=/app
-
-    volumes:
-      - telemetry-data:/app/data
-      - telemetry-outputs:/app/outputs
-
-    networks:
-      - telemetry-internal
-
+      - telemetry-team-net
     deploy:
       resources:
         limits:
           cpus: "2.0"
           memory: 2G
-
-    security_opt:
-      - no-new-privileges:true
-
-    command: ["tools/telemetry_stress_test.py", "--packets", "2000", "--chaos", "0.15"]
 
 # =============================================================================
-# Shared Infrastructure
+# Isolated Volumes per Car
 # =============================================================================
 volumes:
-  telemetry-data:
-    driver: local
-    labels:
-      com.telemetry.purpose: "telemetry-persistence"
-  
-  telemetry-outputs:
-    driver: local
-    labels:
-      com.telemetry.purpose: "telemetry-outputs-reports"
+  car-1-data:
+  car-1-outputs:
+  car-2-data:
+  car-2-outputs:
 
 networks:
-  telemetry-internal:
+  telemetry-team-net:
     driver: bridge
-    labels:
-      com.telemetry.purpose: "internal-pipeline-network"
