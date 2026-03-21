@@ -132,6 +132,16 @@ This script:
 - Launches parallel GPU-accelerated stress tests.
 - Validates that concurrent GPU memory access does not degrade resilience scores.
 
+**Dual Car Benchmarking Comparison (7900XT)**
+| Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
+| :--- | :--- | :--- | :--- |
+| **Total Packets** | 2,000 | 4,000 (2,000 per car) | 2x Load |
+| **p95 Latency** | 0.007 ms | ~0.010 ms | +0.003 ms overhead |
+| **Acceptance Rate**| 99.97% | 99.97% | Consistent Stability |
+| **Hardware** | 7900XT | 7900XT | Shared GPU Resources |
+
+- **Latency Impact**: Processing two vehicles concurrently resulted in a trivial latency increase of roughly 3 microseconds (+0.003 ms), keeping p95 latency well within the sub-millisecond SLO.
+
 ---
 
 ## Operational Capabilities
