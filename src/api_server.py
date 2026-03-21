@@ -51,12 +51,15 @@ from src.slo import SLOTracker  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
+import threading
+
 # ---------------------------------------------------------------------------
-# Application State — lazily initialised singletons
+# Application State — thread-safe lazy initialisation singletons
 # ---------------------------------------------------------------------------
 _breaker: Optional[TelemetryCircuitBreaker] = None
 _buffer: Optional[TracksideEdgeBuffer] = None
 _audit: Optional[ComplianceAuditLog] = None
+_state_lock = threading.Lock()
 _slo_tracker = SLOTracker()
 _start_time = time.time()
 
@@ -67,31 +70,37 @@ REPORTS_DIR = DATA_DIR / "reports"
 def _get_breaker() -> TelemetryCircuitBreaker:
     global _breaker
     if _breaker is None:
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
-        _breaker = TelemetryCircuitBreaker(
-            failure_threshold=5,
-            dlq_path=str(DATA_DIR / "api_dlq.sqlite"),
-        )
+        with _state_lock:
+            if _breaker is None:
+                DATA_DIR.mkdir(parents=True, exist_ok=True)
+                _breaker = TelemetryCircuitBreaker(
+                    failure_threshold=5,
+                    dlq_path=str(DATA_DIR / "dlq.sqlite"),
+                )
     return _breaker
 
 
 def _get_buffer() -> TracksideEdgeBuffer:
     global _buffer
     if _buffer is None:
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
-        _buffer = TracksideEdgeBuffer(
-            db_path=str(DATA_DIR / "api_edge_buffer.sqlite"),
-        )
+        with _state_lock:
+            if _buffer is None:
+                DATA_DIR.mkdir(parents=True, exist_ok=True)
+                _buffer = TracksideEdgeBuffer(
+                    db_path=str(DATA_DIR / "edge_buffer.sqlite"),
+                )
     return _buffer
 
 
 def _get_audit() -> ComplianceAuditLog:
     global _audit
     if _audit is None:
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
-        _audit = ComplianceAuditLog(
-            db_path=str(DATA_DIR / "api_audit.sqlite"),
-        )
+        with _state_lock:
+            if _audit is None:
+                DATA_DIR.mkdir(parents=True, exist_ok=True)
+                _audit = ComplianceAuditLog(
+                    db_path=str(DATA_DIR / "audit_log.sqlite"),
+                )
     return _audit
 
 

@@ -939,21 +939,22 @@ class TelemetryCircuitBreaker:
 
     @property
     def metrics(self) -> CircuitBreakerMetrics:
-        total = self._total_passed + self._total_rejected
-        uptime = self._total_passed / total if total > 0 else 1.0
-        return CircuitBreakerMetrics(
-            state=self.state.value,
-            consecutive_failures=self._consecutive_failures,
-            total_passed=self._total_passed,
-            total_rejected=self._total_rejected,
-            total_dlq=self.dlq.depth(),
-            last_failure_time=(
-                datetime.fromtimestamp(self._last_failure_time).isoformat()
-                if self._last_failure_time else None
-            ),
-            last_state_change=self._last_state_change,
-            uptime_ratio=round(uptime, 4),
-        )
+        with self._lock:
+            total = self._total_passed + self._total_rejected
+            uptime = self._total_passed / total if total > 0 else 1.0
+            return CircuitBreakerMetrics(
+                state=self._state.value,
+                consecutive_failures=self._consecutive_failures,
+                total_passed=self._total_passed,
+                total_rejected=self._total_rejected,
+                total_dlq=self.dlq.depth(),
+                last_failure_time=(
+                    datetime.fromtimestamp(self._last_failure_time).isoformat()
+                    if self._last_failure_time else None
+                ),
+                last_state_change=self._last_state_change,
+                uptime_ratio=round(uptime, 4),
+            )
 
     # ------------------------------------------------------------------
     # Public API
