@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAP Framework — Observability Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-card: #111827;
+            --bg-card-hover: #1a2332;
+            --border: #1e293b;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --gradient-green: linear-gradient(135deg, #10b981, #059669);
+            --gradient-red: linear-gradient(135deg, #ef4444, #dc2626);
+            --gradient-blue: linear-gradient(135deg, #3b82f6, #2563eb);
+            --glow-green: 0 0 20px rgba(16, 185, 129, 0.3);
+            --glow-red: 0 0 20px rgba(239, 68, 68, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 1.25rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #e2e8f0, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        header .subtitle {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin-top: 0.15rem;
+        }
+
+        #status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        #status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: var(--glow-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            padding: 1.5rem 2rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            background: var(--bg-card-hover);
+            border-color: #334155;
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+
+        .card-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .card-icon {
+            font-size: 1.2rem;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+        }
+
+        .badge-green {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-red {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .badge-yellow {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-yellow);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #1e293b;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 0.75rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.5s ease;
+        }
+
+        .chart-container {
+            grid-column: span 2;
+            min-height: 280px;
+        }
+
+        .chart-container canvas {
+            max-height: 250px;
+        }
+
+        .slo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .slo-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.6rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        .slo-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .slo-dot.pass { background: var(--accent-green); }
+        .slo-dot.fail { background: var(--accent-red); }
+
+        footer {
+            text-align: center;
+            padding: 1rem;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            border-top: 1px solid var(--border);
+        }
+
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; padding: 1rem; }
+            .chart-container { grid-column: span 1; }
+            .slo-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>🏎️ Resilient RAP Framework</h1>
+            <div class="subtitle">Observability Dashboard — F1 Telemetry Pipeline</div>
+        </div>
+        <div id="status-indicator">
+            <div id="status-dot"></div>
+            <span id="last-updated">Connecting...</span>
+        </div>
+    </header>
+
+    <div class="grid">
+        <!-- Circuit Breaker State -->
+        <div class="card" id="breaker-card">
+            <div class="card-header">
+                <span class="card-title">Circuit Breaker</span>
+                <span class="card-icon">⚡</span>
+            </div>
+            <div id="breaker-state" class="metric-value" style="color: var(--accent-green);">CLOSED</div>
+            <div class="metric-label">State</div>
+            <div style="display: flex; gap: 1rem; margin-top: 0.75rem;">
+                <div>
+                    <div id="cb-passed" style="font-size: 1.2rem; font-weight: 600; color: var(--accent-green);">0</div>
+                    <div class="metric-label">Passed</div>
+                </div>
+                <div>
+                    <div id="cb-rejected" style="font-size: 1.2rem; font-weight: 600; color: var(--accent-red);">0</div>
+                    <div class="metric-label">Rejected</div>
+                </div>
+                <div>
+                    <div id="cb-failures" style="font-size: 1.2rem; font-weight: 600; color: var(--accent-yellow);">0</div>
+                    <div class="metric-label">Consecutive</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DLQ Depth -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Dead Letter Queue</span>
+                <span class="card-icon">📬</span>
+            </div>
+            <div id="dlq-depth" class="metric-value" style="color: var(--accent-cyan);">0</div>
+            <div class="metric-label">Quarantined Packets</div>
+        </div>
+
+        <!-- Buffer Utilisation -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Edge Buffer</span>
+                <span class="card-icon">💾</span>
+            </div>
+            <div id="buf-total" class="metric-value" style="color: var(--accent-purple);">0</div>
+            <div class="metric-label">Total Buffered</div>
+            <div class="progress-bar">
+                <div id="buf-progress" class="progress-fill" style="width: 0%; background: var(--gradient-blue);"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 0.35rem;">
+                <span class="metric-label"><span id="buf-pending">0</span> pending</span>
+                <span class="metric-label"><span id="buf-synced">0</span> synced</span>
+            </div>
+        </div>
+
+        <!-- SLO Status -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">SLO Status</span>
+                <span class="card-icon">🎯</span>
+            </div>
+            <div id="slo-overall" class="badge badge-green">ALL SLOs MET ✅</div>
+            <div id="slo-grid" class="slo-grid"></div>
+        </div>
+
+        <!-- DLQ Depth Chart -->
+        <div class="card chart-container">
+            <div class="card-header">
+                <span class="card-title">DLQ Depth Over Time</span>
+                <span class="card-icon">📊</span>
+            </div>
+            <canvas id="dlq-chart"></canvas>
+        </div>
+
+        <!-- Audit Log -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Audit Log</span>
+                <span class="card-icon">📋</span>
+            </div>
+            <div id="audit-count" class="metric-value" style="color: var(--accent-blue);">0</div>
+            <div class="metric-label">Total Audit Entries</div>
+        </div>
+    </div>
+
+    <footer>
+        Resilient RAP Framework © 2026 Tarek Clarke — Auto-refreshing every 3s
+    </footer>
+
+    <script>
+        // DLQ chart
+        const ctx = document.getElementById('dlq-chart').getContext('2d');
+        const dlqHistory = [];
+        const dlqLabels = [];
+
+        const dlqChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dlqLabels,
+                datasets: [{
+                    label: 'DLQ Depth',
+                    data: dlqHistory,
+                    borderColor: '#06b6d4',
+                    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: {
+                        display: true,
+                        grid: { color: '#1e293b' },
+                        ticks: { color: '#64748b', maxTicksLimit: 8, font: { size: 10 } },
+                    },
+                    y: {
+                        display: true,
+                        grid: { color: '#1e293b' },
+                        ticks: { color: '#64748b', font: { size: 10 } },
+                        beginAtZero: true,
+                    }
+                }
+            }
+        });
+
+        function formatTime(d) {
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        async function refreshMetrics() {
+            try {
+                const [metricsRes, sloRes] = await Promise.all([
+                    fetch('/metrics'),
+                    fetch('/slo'),
+                ]);
+
+                const metrics = await metricsRes.json();
+                const slo = await sloRes.json();
+
+                // Circuit Breaker
+                const state = metrics.circuit_breaker.state;
+                const stateEl = document.getElementById('breaker-state');
+                stateEl.textContent = state;
+                stateEl.style.color = state === 'CLOSED' ? 'var(--accent-green)' :
+                    state === 'HALF_OPEN' ? 'var(--accent-yellow)' : 'var(--accent-red)';
+
+                document.getElementById('cb-passed').textContent = metrics.circuit_breaker.total_passed.toLocaleString();
+                document.getElementById('cb-rejected').textContent = metrics.circuit_breaker.total_rejected.toLocaleString();
+                document.getElementById('cb-failures').textContent = metrics.circuit_breaker.consecutive_failures;
+
+                // DLQ
+                const dlqDepth = metrics.dlq.depth;
+                document.getElementById('dlq-depth').textContent = dlqDepth.toLocaleString();
+
+                // Chart update
+                const now = new Date();
+                dlqLabels.push(formatTime(now));
+                dlqHistory.push(dlqDepth);
+                if (dlqLabels.length > 60) { dlqLabels.shift(); dlqHistory.shift(); }
+                dlqChart.update('none');
+
+                // Buffer
+                document.getElementById('buf-total').textContent = metrics.edge_buffer.total_buffered.toLocaleString();
+                document.getElementById('buf-pending').textContent = metrics.edge_buffer.pending_sync.toLocaleString();
+                document.getElementById('buf-synced').textContent = metrics.edge_buffer.synced.toLocaleString();
+                const utilPct = Math.min(100, Math.round(metrics.edge_buffer.buffer_utilisation * 100));
+                document.getElementById('buf-progress').style.width = utilPct + '%';
+
+                // Audit
+                document.getElementById('audit-count').textContent = metrics.audit.total_entries.toLocaleString();
+
+                // SLO
+                const overallEl = document.getElementById('slo-overall');
+                overallEl.textContent = slo.overall;
+                overallEl.className = 'badge ' + (slo.failed === 0 ? 'badge-green' : slo.failed <= 1 ? 'badge-yellow' : 'badge-red');
+
+                const sloGrid = document.getElementById('slo-grid');
+                sloGrid.innerHTML = slo.results.map(r =>
+                    `<div class="slo-item">
+                        <div class="slo-dot ${r.passed ? 'pass' : 'fail'}"></div>
+                        <span>${r.name.replace(/_/g, ' ')}</span>
+                    </div>`
+                ).join('');
+
+                // Status
+                document.getElementById('last-updated').textContent = 'Updated ' + formatTime(now);
+                document.getElementById('status-dot').style.background = 'var(--accent-green)';
+
+            } catch (err) {
+                document.getElementById('status-dot').style.background = 'var(--accent-red)';
+                document.getElementById('last-updated').textContent = 'Connection lost';
+            }
+        }
+
+        // Initial load + auto-refresh
+        refreshMetrics();
+        setInterval(refreshMetrics, 3000);
+    </script>
+</body>
+</html>

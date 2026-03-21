@@ -43,6 +43,12 @@ typer-slim==0.21.1
 typing_extensions==4.15.0
 tzdata==2025.3
 pytest==8.0.0
+pytest-cov==6.1.1
+httpx==0.28.1
+
+# REST API Control Plane
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
 
 # Optional: Kafka integration — required for DLQ 3-stream routing
 # kafka-python 2.0.2 does NOT support Python 3.12+; use the maintained fork:
