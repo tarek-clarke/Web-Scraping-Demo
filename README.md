@@ -92,7 +92,8 @@ flowchart LR
 ```bash
 # 1. Setup Environment
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate              # Linux/macOS
+# .venv\Scripts\Activate.ps1           # Windows PowerShell
 pip install -r requirements.txt
 
 # 2. Build Accelerated Ingest
@@ -122,15 +123,13 @@ python3 tools/telemetry_gpu_stress_test.py --diagnostic --output-suffix _diag
 This profile validates the framework's ability to handle two simultaneous telemetry streams (Car 1 and Car 2) on a single shared GPU.
 
 ```bash
-# Branch: team-testing
+# Linux/macOS
 chmod +x tools/run_team_test.sh
 ./tools/run_team_test.sh 2000 0.05
-```
 
-This script:
-- Spins up `rap_car_1_spine` and `rap_car_2_spine` containers.
-- Launches parallel GPU-accelerated stress tests.
-- Validates that concurrent GPU memory access does not degrade resilience scores.
+# Windows PowerShell
+powershell -ExecutionPolicy Bypass -File tools/run_team_test_win.ps1 2000 0.05
+```
 
 **Dual Car Benchmarking Comparison (7900XT)**
 
@@ -143,6 +142,12 @@ This script:
 | **Both** | Acceptance Rate| 95.75% | 95.75% | Consistent |
 
 - **Latency Impact**: Processing two vehicles concurrently (7.2 million packets) on the 7900XT over a simulated race weekend resulted in a trivial latency increase of roughly 1 microsecond (+0.001 ms). p95 latency remained well within the sub-millisecond SLO.
+
+### Statistical Aggregation
+Execute the benchmark script multiple times; the system appends Run increments automatically. Aggregate results with:
+```bash
+python3 tools/aggregate_benchmark_runs.py --dir data/reports/B200 --platform B200
+```
 
 ---
 
@@ -157,28 +162,26 @@ This script:
 
 ---
 
-## REST API Control Plane
+## REST API & Observability Dashboard
 
-A FastAPI-powered REST API exposes the pipeline's health, metrics, and operational controls.
+A FastAPI-powered REST API exposes the pipeline's health, metrics, and operational controls, with a built-in real-time dashboard.
 
 ### Setup
 
 ```bash
-# 1. Install API dependencies
+# 1. Install API dependencies (included in requirements.txt)
 pip install fastapi uvicorn[standard] httpx
 
-# 2. Start the server (Linux/macOS)
-PYTHONPATH="." python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050
-
-# 2. Start the server (Windows PowerShell)
-$env:PYTHONPATH="."; python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050
+# 2. Start the server
+PYTHONPATH="." python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050       # Linux/macOS
+$env:PYTHONPATH="."; python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050  # Windows PowerShell
 ```
 
-Once running, open your browser to:
-- **Dashboard**: `http://localhost:5050/dashboard`
-- **API Docs (Swagger)**: `http://localhost:5050/docs`
+Once running:
+- **Dashboard**: http://localhost:5050/dashboard — real-time dark-mode UI with Chart.js graphs
+- **API Docs (Swagger)**: http://localhost:5050/docs — interactive endpoint explorer
 
-### API Endpoints
+### Endpoints
 
 | Endpoint | Method | Description |
 |---|---|---|
@@ -190,52 +193,44 @@ Once running, open your browser to:
 | `/run` | POST | Trigger a 20-packet smoke test through the pipeline |
 | `/circuit-breaker/reset` | POST | Manual circuit breaker reset to CLOSED |
 | `/dashboard` | GET | Serve the observability dashboard UI |
-| `/docs` | GET | Auto-generated OpenAPI/Swagger interactive documentation |
 
 ### Example Usage
 
 ```bash
-# Check pipeline health
-curl http://localhost:5050/health
-
-# View live metrics
-curl http://localhost:5050/metrics
-
-# Trigger a smoke test (20 packets)
-curl -X POST http://localhost:5050/run
-
-# Reset the circuit breaker
-curl -X POST http://localhost:5050/circuit-breaker/reset
-
-# List available benchmark reports
-curl http://localhost:5050/reports
+curl http://localhost:5050/health                      # Check pipeline health
+curl http://localhost:5050/metrics                     # View live metrics
+curl -X POST http://localhost:5050/run                 # Trigger smoke test (20 packets)
+curl -X POST http://localhost:5050/circuit-breaker/reset  # Reset circuit breaker
+curl http://localhost:5050/reports                      # List benchmark reports
 ```
 
----
-
-## Observability Dashboard
-
-A real-time, dark-mode dashboard served at `/dashboard` visualises pipeline health.
-
-### Features
+### Dashboard Features
 - **Circuit Breaker State** — colour-coded indicator (green = CLOSED, yellow = HALF_OPEN, red = OPEN)
-- **DLQ Depth** — Chart.js line graph tracking quarantined packets over time
+- **DLQ Depth** — line graph tracking quarantined packets over time
 - **Edge Buffer** — utilisation progress bar with pending/synced counters
-- **SLO Badges** — pass/fail indicators for all 6 service level objectives
-- **Auto-refresh** — polls `/metrics` and `/slo` every 3 seconds
-
-### How to Access
-1. Start the API server (see instructions above)
-2. Open `http://localhost:5050/dashboard` in any browser
-3. The dashboard auto-refreshes — no manual reload needed
-
-No build tools required — single HTML file with embedded CSS and vanilla JavaScript.
+- **SLO Badges** — pass/fail for all 6 service level objectives
+- **Auto-refresh** — polls every 3 seconds, no manual reload needed
 
 ---
 
-## CI Quality Gates
+## Testing & CI Quality Gates
 
-The GitHub Actions pipeline (`.github/workflows/ci.yml`) enforces automated quality checks on every push and PR:
+### Running Locally
+
+```bash
+# Linux/macOS
+PYTHONPATH="." python -m pytest tests/ -v --cov=src --cov-report=term-missing
+
+# Windows PowerShell
+$env:PYTHONPATH="."; python -m pytest tests/ -v -o "addopts=" --cov=src --cov-report=term-missing
+
+# Docker Deployment
+docker-compose -f docker-compose.production.yml up -d
+```
+
+### CI Pipeline (`.github/workflows/ci.yml`)
+
+Every push and PR triggers the following gates:
 
 | Gate | Tool | Threshold |
 |---|---|---|
@@ -244,35 +239,6 @@ The GitHub Actions pipeline (`.github/workflows/ci.yml`) enforces automated qual
 | **Coverage** | `pytest-cov` | **75% minimum** — builds fail below this |
 | **Stress Test** | Chaos engine | 1,000 packets at 15% corruption rate |
 | **Docker** | `docker build` | Container starts and imports cleanly |
-
-### Running Locally
-
-```bash
-# Run the full test suite with coverage
-PYTHONPATH="." python -m pytest tests/ -v --cov=src --cov-report=term-missing
-
-# Windows PowerShell
-$env:PYTHONPATH="."; python -m pytest tests/ -v -o "addopts=" --cov=src --cov-report=term-missing
-```
-
----
-
-## Statistical Rigor and Aggregation
-
-To reproduce the statistical results:
-1.  Execute the benchmark script multiple times; the system will append Run increments automatically.
-2.  Aggregate the statistical mean and standard deviation:
-```bash
-python3 tools/aggregate_benchmark_runs.py --dir data/reports/B200 --platform B200
-```
-
----
-
-## Environment and Testing
-
-- **Unit Tests**: `PYTHONPATH="." pytest tests/ -v`
-- **Docker Deployment**: `docker-compose -f docker-compose.production.yml up -d`
-- **Stress Testing**: `python3 tools/stress_test_engine_temp.py`
 
 ---
 
