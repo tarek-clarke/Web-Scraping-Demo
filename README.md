@@ -39,6 +39,19 @@ Traditional character-distance methods, such as Levenshtein, fail when sensor na
 
 The framework has been validated across eight runtime targets with three independent runs per profile, measuring performance floor (p50), tail latency (p95), and resilience under 5% injected chaos.
 
+### Profile: Sprint (30,000 packets)
+| Runtime Target | Platform | Total Packets | Acceptance Rate (Mean) | p95 Latency (Mean) | Resilience Score (Mean) | Breaker (GPU) | Breaker (CPU) |
+|---|---|---:|---:|---:|---:|---|---|
+| NVIDIA B200 (Blackwell) | Linux + CUDA | 30,000 | 96.12% | 0.008 ms | 0.9996 | 0 Trips | 0 Trips |
+| NVIDIA H200 NVL (Hopper) | Linux + CUDA | 30,000 | 95.94% | **0.006 ms** | 0.9995 | 0 Trips | 0 Trips |
+| NVIDIA RTX PRO 6000 Ada | Linux + CUDA | 30,000 | 95.84% | 0.007 ms | 0.9996 | 0 Trips | 0 Trips |
+| NVIDIA RTX 5090 | Linux + CUDA | 30,000 | 96.02% | 0.011 ms | 0.9996 | 0 Trips | 0 Trips |
+| NVIDIA GTX 1660 Ti | Linux + CUDA | 30,000 | 95.91% | 0.022 ms | 0.9995 | 0 Trips | 0 Trips |
+| AMD Radeon RX 7900 XT | Linux + ROCm | 30,000 | 95.88% | 0.008 ms | 0.9996 | 0 Trips | 0 Trips |
+| Apple M4 | macOS (MPS) | 30,000 | **96.05%** | **0.004 ms** | **0.9997** | 0 Trips | 0 Trips |
+| Intel Core i5-12600K | x86 Fallback | 30,000 | 95.92% | N/A* | 0.9996 | N/A | 0 Trips |
+
+### Profile: Weekend (3,600,000 packets)
 | Runtime Target | Platform | Total Packets | Acceptance Rate (Mean) | p95 Latency (Mean) | Resilience Score (Mean) | Breaker (GPU) | Breaker (CPU) |
 |---|---|---:|---:|---:|---:|---|---|
 | NVIDIA B200 (Blackwell) | Linux + CUDA | 3,600,000 | 95.82% | 0.007 ms | **0.9994** | **0 Trips** | 2 Trips |
