@@ -133,6 +133,7 @@ This script:
 - Validates that concurrent GPU memory access does not degrade resilience scores.
 
 **Dual Car Benchmarking Comparison (7900XT)**
+
 | Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
 | :--- | :--- | :--- | :--- | :--- |
 | **Sprint** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
