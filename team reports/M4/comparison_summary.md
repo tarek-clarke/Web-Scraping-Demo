@@ -4,14 +4,14 @@ This report captures the two-car Apple M4 benchmark run from today. It is the lo
 
 ## Performance Overview
 
-| Metric | Car 1 | Car 2 | Comparison |
-| :--- | :--- | :--- | :--- |
-| **Total Packets** | 30,000 | 30,000 | 60,000 combined |
-| **Acceptance Rate** | 87.12% | 67.18% | Car 1 cleaner load, Car 2 hit one breaker trip |
-| **p95 Latency** | 0.020 ms | 0.021 ms | Both remained sub-millisecond |
-| **Circuit Breaker Trips** | 0 | 1 | 1 total |
-| **Resilience Score** | 0.9992 | 0.9197 | Car 1 stronger overall |
-| **Hardware** | Apple M4 | Apple M4 | CPU-fallback two-car run |
+| Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
+| :--- | :--- | :--- | :--- | :--- |
+| **M4** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
+| **M4** | Acceptance Rate | 87.12% | 67.18% | Car 1 cleaner load, Car 2 hit one breaker trip |
+| **M4** | p95 Latency | 0.020 ms | 0.021 ms | Both remained sub-millisecond |
+| **M4** | Circuit Breaker Trips | 0 | 1 | 1 total |
+| **M4** | Resilience Score | 0.9992 | 0.9197 | Car 1 stronger overall |
+| **M4** | Hardware | Apple M4 | Apple M4 | CPU-fallback two-car run |
 
 ### Analysis
 - **Concurrency**: Two telemetry pipelines were run in parallel on the same Apple M4 machine.

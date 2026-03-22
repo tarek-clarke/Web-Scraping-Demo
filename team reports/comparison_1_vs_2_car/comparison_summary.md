@@ -8,6 +8,7 @@ This report compares the performance of the standard 1-car telemetry pipeline ag
 | :--- | :--- | :--- | :--- |
 | **Total Packets** | 2,000 | 4,000 (2,000 per car) | 2x Load |
 | **p95 Latency** | 0.007 ms | ~0.010 ms | +0.003 ms overhead |
+| **Circuit Breaker Trips** | 0 | 0 | Consistent Stability |
 | **Acceptance Rate**| 99.97% | 99.97% | Consistent Stability |
 | **Hardware** | 7900XT | 7900XT | Shared GPU Resources |
 

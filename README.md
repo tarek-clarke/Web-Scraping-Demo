@@ -158,8 +158,10 @@ powershell -ExecutionPolicy Bypass -File tools/run_team_test_win.ps1 2000 0.05
 | :--- | :--- | :--- | :--- | :--- |
 | **Sprint** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
 | **Sprint** | p95 Latency | < 0.010 ms | < 0.010 ms | Negligible overhead |
+| **Sprint** | Circuit Breaker Trips | 0 | 0 | Consistent Stability |
 | **Weekend**| Total Packets | 3,600,000 | 7,200,000 (3.6M/car)| 2x Extreme Load |
 | **Weekend**| p95 Latency | 0.007 ms | ~0.008 ms | +0.001 ms overhead |
+| **Weekend**| Circuit Breaker Trips | 0 | 0 | Consistent Stability |
 | **Both** | Acceptance Rate| 95.75% | 95.75% | Consistent |
 
 - **Latency Impact**: Processing two vehicles concurrently (7.2 million packets) on the 7900XT over a simulated race weekend resulted in a trivial latency increase of roughly 1 microsecond (+0.001 ms). p95 latency remained well within the sub-millisecond SLO.
@@ -168,14 +170,14 @@ powershell -ExecutionPolicy Bypass -File tools/run_team_test_win.ps1 2000 0.05
 
 This is the Apple M4 two-car team run from today. The evidence lives in [team reports/M4/comparison_summary.md](team%20reports/M4/comparison_summary.md), with raw logs in [team reports/M4](team%20reports/M4).
 
-| Metric | Car 1 | Car 2 | Comparison |
-| :--- | :--- | :--- | :--- |
-| **Total Packets** | 30,000 | 30,000 | 60,000 combined |
-| **Acceptance Rate** | 87.12% | 67.18% | Car 1 cleaner load, Car 2 hit one breaker trip |
-| **p95 Latency** | 0.020 ms | 0.021 ms | Both remained sub-millisecond |
-| **Circuit Breaker Trips** | 0 | 1 | 1 total |
-| **Resilience Score** | 0.9992 | 0.9197 | Car 1 stronger overall |
-| **Hardware** | Apple M4 | Apple M4 | CPU-fallback two-car run |
+| Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
+| :--- | :--- | :--- | :--- | :--- |
+| **M4** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
+| **M4** | Acceptance Rate | 87.12% | 67.18% | Car 1 cleaner load, Car 2 hit one breaker trip |
+| **M4** | p95 Latency | 0.020 ms | 0.021 ms | Both remained sub-millisecond |
+| **M4** | Circuit Breaker Trips | 0 | 1 | 1 total |
+| **M4** | Resilience Score | 0.9992 | 0.9197 | Car 1 stronger overall |
+| **M4** | Hardware | Apple M4 | Apple M4 | CPU-fallback two-car run |
 
 ### Statistical Aggregation
 Execute the benchmark script multiple times; the system appends Run increments automatically. Aggregate results with:
