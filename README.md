@@ -164,6 +164,19 @@ powershell -ExecutionPolicy Bypass -File tools/run_team_test_win.ps1 2000 0.05
 
 - **Latency Impact**: Processing two vehicles concurrently (7.2 million packets) on the 7900XT over a simulated race weekend resulted in a trivial latency increase of roughly 1 microsecond (+0.001 ms). p95 latency remained well within the sub-millisecond SLO.
 
+**Dual Car Benchmarking Comparison (M4)**
+
+This is the Apple M4 two-car team run from today. The evidence lives in [team reports/M4/comparison_summary.md](team%20reports/M4/comparison_summary.md), with raw logs in [team reports/M4](team%20reports/M4).
+
+| Metric | Car 1 | Car 2 | Comparison |
+| :--- | :--- | :--- | :--- |
+| **Total Packets** | 30,000 | 30,000 | 60,000 combined |
+| **Acceptance Rate** | 87.12% | 67.18% | Car 1 cleaner load, Car 2 hit one breaker trip |
+| **p95 Latency** | 0.020 ms | 0.021 ms | Both remained sub-millisecond |
+| **Circuit Breaker Trips** | 0 | 1 | 1 total |
+| **Resilience Score** | 0.9992 | 0.9197 | Car 1 stronger overall |
+| **Hardware** | Apple M4 | Apple M4 | CPU-fallback two-car run |
+
 ### Statistical Aggregation
 Execute the benchmark script multiple times; the system appends Run increments automatically. Aggregate results with:
 ```bash
