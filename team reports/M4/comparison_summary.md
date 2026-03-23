@@ -1,6 +1,6 @@
 # Dual Car Benchmarking Comparison (M4)
 
-This report captures the two-car Apple M4 sprint and weekend team runs from today. It is the lower CPU-fallback comparator beneath the 7900XT shared-GPU team run.
+This report compares the performance of the two-car Apple M4 sprint and weekend pipelines running concurrently on the same Apple M4 machine.
 
 ## Sprint Overview
 
@@ -14,11 +14,10 @@ This report captures the two-car Apple M4 sprint and weekend team runs from toda
 
 ### Sprint Analysis
 - **Concurrency**: Two telemetry pipelines were run in parallel on the same Apple M4 machine.
-- **Load**: The sprint run processed 30,000 packets per car, for 60,000 combined.
-- **Latency Impact**: p95 latency stayed in the sub-millisecond range for both cars.
-- **Reliability**: Neither car tripped the circuit breaker during the sprint run.
+- **Latency Impact**: The overhead of processing two vehicles concurrently on the same hardware resulted in a small latency increase, but the p95 latency remained well within the sub-millisecond SLO.
+- **Reliability**: Acceptance rates and chaotic recovery behaved consistently. There were no circuit breaker trips in either run.
 
-### Sprint Raw Logs
+### Sprint Accompanying Raw Data
 - [Car 1 run log](run_log_SprintTeam_Car1_M4.txt)
 - [Car 2 run log](run_log_SprintTeam_Car2_M4.txt)
 
@@ -34,10 +33,9 @@ This report captures the two-car Apple M4 sprint and weekend team runs from toda
 
 ### Weekend Analysis
 - **Concurrency**: Two telemetry pipelines were run in parallel on the same Apple M4 machine.
-- **Load**: The weekend run processed 3.6 million packets per car, for 7.2 million combined.
-- **Latency Impact**: p95 latency stayed in the sub-millisecond range for both cars.
-- **Reliability**: Neither car tripped the circuit breaker during the weekend run.
+- **Latency Impact**: The overhead of processing two vehicles concurrently on the same hardware resulted in a trivial increase, but p95 latency remained well within the sub-millisecond SLO.
+- **Reliability**: Acceptance rates and chaotic recovery behaved consistently. There were no circuit breaker trips in either run.
 
-### Weekend Raw Logs
+### Weekend Accompanying Raw Data
 - [Car 1 run log](run_log_M4Team_Car1.txt)
 - [Car 2 run log](run_log_M4Team_Car2.txt)
