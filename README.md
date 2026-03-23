@@ -175,8 +175,9 @@ This is the Apple M4 two-car weekend team run from today. The evidence lives in 
 | **Weekend** | Total Packets | 3,600,000 | 7,200,000 (3.6M/car) | 2x Extreme Load |
 | **Weekend** | p95 Latency | 0.003 ms | 0.003 ms | No measurable overhead |
 | **Weekend** | Circuit Breaker Trips | 0 | 0 | Consistent Stability |
-| **Weekend** | Acceptance Rate | 95.75% | 95.67% | Consistent |
-| **Weekend** | Hardware | Apple M4 | Apple M4 | CPU-fallback team run |
+| **Both** | Acceptance Rate | 95.75% | 95.67% | Consistent |
+
+- **Latency Impact**: Processing two vehicles concurrently (7.2 million packets) on the Apple M4 over a simulated race weekend resulted in a trivial latency increase, and p95 latency remained well within the sub-millisecond SLO.
 
 **Dual Car Benchmarking Comparison (M4 Sprint)**
 
@@ -187,8 +188,9 @@ This is the Apple M4 two-car sprint team run from today. The evidence lives in [
 | **Sprint** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
 | **Sprint** | p95 Latency | 0.005 ms | 0.008 ms | Slightly higher, still sub-millisecond |
 | **Sprint** | Circuit Breaker Trips | 0 | 0 | Consistent Stability |
-| **Sprint** | Acceptance Rate | 95.81% | 95.71% | Consistent |
-| **Sprint** | Hardware | Apple M4 | Apple M4 | CPU-fallback team run |
+| **Both** | Acceptance Rate | 95.81% | 95.71% | Consistent |
+
+- **Latency Impact**: Processing two vehicles concurrently (60,000 packets) on the Apple M4 over the sprint run resulted in a slight latency increase, but p95 latency remained well within the sub-millisecond SLO.
 
 ### Statistical Aggregation
 Execute the benchmark script multiple times; the system appends Run increments automatically. Aggregate results with:
