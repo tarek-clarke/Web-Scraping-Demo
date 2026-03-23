@@ -139,9 +139,9 @@ powershell -ExecutionPolicy Bypass -File tools/run_team_test_win.ps1 2000 0.05
 | **Sprint** | p95 Latency | < 0.010 ms | < 0.010 ms | Negligible overhead |
 | **Weekend**| Total Packets | 3,600,000 | 7,200,000 (3.6M/car)| 2x Extreme Load |
 | **Weekend**| p95 Latency | 0.007 ms | ~0.008 ms | +0.001 ms overhead |
-| **Both** | Acceptance Rate| 95.75% | 95.75% | Consistent |
+| **Both** | Acceptance Rate (Mean)| 95.75% | **95.64%** | -0.11% Delta |
 
-- **Latency Impact**: Processing two vehicles concurrently (7.2 million packets) on the 7900XT over a simulated race weekend resulted in a trivial latency increase of roughly 1 microsecond (+0.001 ms). p95 latency remained well within the sub-millisecond SLO.
+- **Resilience Mean**: After three independent two-car sets, the framework maintained a mean acceptance rate of **95.70%** for Sprint profiles and **95.58%** for full Weekend sessions.
 
 ### Statistical Aggregation
 Execute the benchmark script multiple times; the system appends Run increments automatically. Aggregate results with:
