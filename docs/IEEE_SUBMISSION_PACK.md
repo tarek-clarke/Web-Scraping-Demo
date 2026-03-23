@@ -8,9 +8,12 @@ This document serves as the formal technical appendix for the submission to IEEE
 | :--- | :--- | :--- | :--- |
 | **NVIDIA B200** | Blackwell | 192GB HBM3e | CUDA 12.6 + TensorRT |
 | **NVIDIA H200** | Hopper | 141GB HBM3e | CUDA 12.4 |
+| **NVIDIA RTX 5090** | Blackwell (Cons.) | 32GB GDDR7 | CUDA 12.6 |
+| **NVIDIA RTX PRO 6000 Ada** | Ada Lovelace | 48GB GDDR6 | CUDA 12.4 |
+| **NVIDIA GTX 1660 Ti** | Turing | 6GB GDDR6 | CUDA 12.1 |
 | **AMD 7900XT** | RDNA 3 | 20GB GDDR6 | ROCm 6.1 (Windows/HIP) |
-| **Apple M4** | Apple Silicon | 32GB Unified | MPS (Metal Performance Shaders) |
-| **Intel 12600K** | Alder Lake | 64GB DDR5 | x86 Native Fallback |
+| **Apple M4** | Apple Silicon | 16GB Unified | MPS (Metal Performance Shaders) |
+| **Intel 12600K** | Alder Lake | 32GB DDR4| x86 Native Fallback |
 
 ## 2. Experimental Methodology
 
