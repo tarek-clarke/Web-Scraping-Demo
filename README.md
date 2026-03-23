@@ -154,15 +154,15 @@ powershell -ExecutionPolicy Bypass -File tools/run_team_test_win.ps1 2000 0.05
 
 **Dual Car Benchmarking Comparison (7900XT)**
 
-| Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
-| :--- | :--- | :--- | :--- | :--- |
-| **Sprint** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
-| **Sprint** | p95 Latency | < 0.010 ms | < 0.010 ms | Negligible overhead |
-| **Sprint** | Circuit Breaker Trips | 0 | 0 | Consistent Stability |
-| **Weekend**| Total Packets | 3,600,000 | 7,200,000 (3.6M/car)| 2x Extreme Load |
-| **Weekend**| p95 Latency | 0.007 ms | ~0.008 ms | +0.001 ms overhead |
-| **Weekend**| Circuit Breaker Trips | 0 | 0 | Consistent Stability |
-| **Both** | Acceptance Rate| 95.75% | 95.75% | Consistent |
+| Profile     | Metric                  | 1-Car (Normal)  | 2-Car (Team)           | Comparison             |
+| :---        | :---                    | :---            | :---                   | :---                   |
+| **Sprint**  | Total Packets           | 30,000          | 60,000 (30k/car)       | 2x Load                |
+| **Sprint**  | p95 Latency             | < 0.010 ms      | < 0.010 ms             | Negligible overhead    |
+| **Sprint**  | Circuit Breaker Trips   | 0               | 0                      | Consistent Stability   |
+| **Weekend** | Total Packets           | 3,600,000       | 7,200,000 (3.6M/car)   | 2x Extreme Load        |
+| **Weekend** | p95 Latency             | 0.007 ms        | ~0.008 ms              | +0.001 ms overhead     |
+| **Weekend** | Circuit Breaker Trips   | 0               | 0                      | Consistent Stability   |
+| **Both**    | Acceptance Rate         | 95.75%          | 95.75%                 | Consistent             |
 
 - **Latency Impact**: Processing two vehicles concurrently (7.2 million packets) on the 7900XT over a simulated race weekend resulted in a trivial latency increase of roughly 1 microsecond (+0.001 ms). p95 latency remained well within the sub-millisecond SLO.
 
@@ -170,15 +170,15 @@ powershell -ExecutionPolicy Bypass -File tools/run_team_test_win.ps1 2000 0.05
 
 This is the Apple M4 two-car sprint and weekend team comparison from today. The evidence lives in [team reports/M4](team%20reports/M4), with raw logs in the same folder.
 
-| Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
-| :--- | :--- | :--- | :--- | :--- |
-| **Sprint** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
-| **Sprint** | p95 Latency | 0.005 ms | 0.008 ms | Slightly higher, still sub-millisecond |
-| **Sprint** | Circuit Breaker Trips | 0 | 0 | Consistent Stability |
-| **Weekend** | Total Packets | 3,600,000 | 7,200,000 (3.6M/car) | 2x Extreme Load |
-| **Weekend** | p95 Latency | 0.003 ms | 0.003 ms | No measurable overhead |
-| **Weekend** | Circuit Breaker Trips | 0 | 0 | Consistent Stability |
-| **Both** | Acceptance Rate | 95.81% / 95.75% | 95.71% / 95.67% | Consistent |
+| Profile     | Metric                  | 1-Car (Normal)  | 2-Car (Team)           | Comparison                             |
+| :---        | :---                    | :---            | :---                   | :---                                   |
+| **Sprint**  | Total Packets           | 30,000          | 60,000 (30k/car)       | 2x Load                                |
+| **Sprint**  | p95 Latency             | 0.005 ms        | 0.008 ms               | Slightly higher, still sub-millisecond |
+| **Sprint**  | Circuit Breaker Trips   | 0               | 0                      | Consistent Stability                   |
+| **Weekend** | Total Packets           | 3,600,000       | 7,200,000 (3.6M/car)   | 2x Extreme Load                        |
+| **Weekend** | p95 Latency             | 0.003 ms        | 0.003 ms               | No measurable overhead                 |
+| **Weekend** | Circuit Breaker Trips   | 0               | 0                      | Consistent Stability                   |
+| **Both**    | Acceptance Rate         | 95.81% / 95.75% | 95.71% / 95.67%        | Consistent                             |
 
 - **Latency Impact**: Processing two vehicles concurrently on the Apple M4 remained well within the sub-millisecond SLO across both sprint and weekend runs.
 
