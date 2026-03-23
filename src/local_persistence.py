@@ -204,7 +204,7 @@ class TracksideEdgeBuffer:
                 logger.warning("Kafka enabled but no bootstrap_servers provided")
                 self.enable_kafka = False
 
-        self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
+        self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False, timeout=60)
         self._conn.execute("PRAGMA journal_mode=WAL;")
         self._conn.execute("PRAGMA synchronous=NORMAL;")
         self._conn.executescript(self.DDL)

@@ -155,6 +155,12 @@ def _detect_hardware_suffix(gpu_info: Optional[Dict[str, Any]] = None) -> str:
     if env_override:
         return _sanitize_suffix_token(env_override)
 
+    # On Apple Silicon, prefer the M-series name (e.g. M4) for folder consistency
+    if platform.system() == "Darwin":
+        cpu_m = _detect_cpu_suffix()
+        if cpu_m and cpu_m.startswith("M"):
+            return cpu_m
+
     name = str((gpu_info or {}).get("name") or "").strip()
     if not name:
         return _detect_cpu_suffix()
@@ -287,6 +293,10 @@ def get_gpu_device() -> torch.device:
     if torch.cuda.is_available():
         return torch.device("cuda", 0)
     
+    # Apple Silicon Metal (MPS) support
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return torch.device("mps")
+    
     # Fallback to CPU
     return torch.device("cpu")
 
@@ -301,6 +311,9 @@ def gpu_info_dict(device: torch.device) -> Dict[str, Any]:
         props = torch.cuda.get_device_properties(device)
         mem = getattr(props, "total_memory", None) or getattr(props, "total_mem", 0)
         info["vram_gb"] = round(mem / (1024 ** 3), 2) if mem else "unknown"
+    elif device.type == "mps":
+        info["name"] = "Apple Metal (MPS)"
+        info["vram_gb"] = "shared"
     else:
         # On Windows, detect AMD GPU via hipInfo even if PyTorch is CPU-only
         hip = _detect_hip_gpu()
