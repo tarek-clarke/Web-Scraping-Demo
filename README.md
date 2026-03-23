@@ -168,16 +168,16 @@ powershell -ExecutionPolicy Bypass -File tools/run_team_test_win.ps1 2000 0.05
 
 **Dual Car Benchmarking Comparison (M4)**
 
-This is the Apple M4 two-car team run from today. The evidence lives in [team reports/M4/comparison_summary.md](team%20reports/M4/comparison_summary.md), with raw logs in [team reports/M4](team%20reports/M4).
+This is the Apple M4 two-car weekend team run from today. The evidence lives in [team reports/M4](team%20reports/M4), with raw logs in the same folder.
 
 | Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
 | :--- | :--- | :--- | :--- | :--- |
-| **M4** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
-| **M4** | Acceptance Rate | 87.12% | 67.18% | Car 1 cleaner load, Car 2 hit one breaker trip |
-| **M4** | p95 Latency | 0.020 ms | 0.021 ms | Both remained sub-millisecond |
-| **M4** | Circuit Breaker Trips | 0 | 1 | 1 total |
-| **M4** | Resilience Score | 0.9992 | 0.9197 | Car 1 stronger overall |
-| **M4** | Hardware | Apple M4 | Apple M4 | CPU-fallback two-car run |
+| **Weekend** | Total Packets | 3,600,000 | 7,200,000 (3.6M/car) | 2x Extreme Load |
+| **Weekend** | p95 Latency | 0.003 ms | 0.003 ms | No measurable overhead |
+| **Weekend** | Circuit Breaker Trips | 0 | 0 | Consistent Stability |
+| **Both** | Acceptance Rate | 95.75% | 95.76% | Consistent |
+| **Both** | Resilience Score | 0.9995 | 0.9995 | Consistent |
+| **Both** | Hardware | Apple M4 | Apple M4 | CPU-fallback team run |
 
 ### Statistical Aggregation
 Execute the benchmark script multiple times; the system appends Run increments automatically. Aggregate results with:

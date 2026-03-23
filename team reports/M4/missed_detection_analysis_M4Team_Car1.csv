@@ -1,0 +1,39 @@
+=== MISSED DETECTIONS BY SENSOR ===
+sensor_id,miss_count,total_injected,miss_rate
+ecu_canbus,253,17827,0.0142
+g_force_lateral,103,18179,0.0057
+throttle,6,17828,0.0003
+engine_temp,1,18088,0.0001
+
+=== MISSED DETECTIONS BY CHAOS MODE ===
+chaos_mode,miss_count,total_injected,miss_rate
+bit_flip_low,326,25756,0.0127
+bit_flip_high,36,25700,0.0014
+duplicate_timestamp,1,25580,0.0000
+
+=== MISSED DETECTIONS BY SESSION ===
+session,miss_count,total_injected,miss_rate
+silverstone_FP1,32,11743,0.0027
+spielberg_FP2,31,12069,0.0026
+budapest_FP3,28,11954,0.0023
+budapest_FP1,26,12112,0.0021
+budapest_FP2,26,11989,0.0022
+silverstone_FP3,26,11979,0.0022
+silverstone_QUALI,26,11869,0.0022
+silverstone_FP2,25,11999,0.0021
+budapest_RACE,24,12130,0.0020
+spielberg_QUALI,23,12141,0.0019
+spielberg_RACE,23,11838,0.0019
+spielberg_FP1,22,11906,0.0018
+silverstone_RACE,21,12134,0.0017
+budapest_QUALI,19,11947,0.0016
+spielberg_FP3,11,11790,0.0009
+
+=== MISSED DETECTIONS BY SENSOR + CHAOS MODE ===
+sensor_id,chaos_mode,miss_count,total_injected,miss_rate
+ecu_canbus,bit_flip_low,234,2481,0.0943
+g_force_lateral,bit_flip_low,92,2582,0.0356
+ecu_canbus,bit_flip_high,19,2624,0.0072
+g_force_lateral,bit_flip_high,11,2509,0.0044
+throttle,bit_flip_high,6,2516,0.0024
+engine_temp,duplicate_timestamp,1,2587,0.0004
