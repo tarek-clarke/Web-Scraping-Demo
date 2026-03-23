@@ -123,7 +123,7 @@ if ($allPassed) {
     Write-Host "✓ All checks passed!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Ready to run:" -ForegroundColor Cyan
-    Write-Host "  python tools/telemetry_gpu_stress_test.py" -ForegroundColor Gray
+    Write-Host "  python tools/cadillac_gpu_stress_test.py" -ForegroundColor Gray
     Write-Host "  python examples/demo_hitl_retraining.py" -ForegroundColor Gray
 } else {
     Write-Host "✗ Some checks failed. See output above." -ForegroundColor Red

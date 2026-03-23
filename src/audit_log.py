@@ -139,22 +139,22 @@ class ComplianceAuditLog:
             details=details or {},
         )
 
-        # Compute chain hash
-        entry_blob = json.dumps({
-            "entry_id": entry.entry_id,
-            "timestamp": entry.timestamp,
-            "action": entry.action,
-            "circuit": entry.circuit,
-            "jurisdiction": entry.jurisdiction,
-            "session_id": entry.session_id,
-            "request_id": entry.request_id,
-            "details": entry.details,
-        }, sort_keys=True)
-
-        chain_input = self._last_hash + entry_blob
-        entry.chain_hash = hashlib.sha256(chain_input.encode()).hexdigest()
-
         with self._lock:
+            # Compute chain hash (inside lock)
+            entry_blob = json.dumps({
+                "entry_id": entry.entry_id,
+                "timestamp": entry.timestamp,
+                "action": entry.action,
+                "circuit": entry.circuit,
+                "jurisdiction": entry.jurisdiction,
+                "session_id": entry.session_id,
+                "request_id": entry.request_id,
+                "details": entry.details,
+            }, sort_keys=True)
+
+            chain_input = self._last_hash + entry_blob
+            entry.chain_hash = hashlib.sha256(chain_input.encode()).hexdigest()
+
             self._conn.execute(
                 """INSERT INTO audit_log
                    (entry_id, timestamp, action, circuit, jurisdiction,

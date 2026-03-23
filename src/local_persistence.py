@@ -204,7 +204,7 @@ class TracksideEdgeBuffer:
                 logger.warning("Kafka enabled but no bootstrap_servers provided")
                 self.enable_kafka = False
 
-        self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
+        self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False, timeout=60)
         self._conn.execute("PRAGMA journal_mode=WAL;")
         self._conn.execute("PRAGMA synchronous=NORMAL;")
         self._conn.executescript(self.DDL)
@@ -575,29 +575,30 @@ class TracksideEdgeBuffer:
     @property
     def health(self) -> BufferHealth:
         """Snapshot of current buffer health."""
-        # Single GROUP BY query instead of 3 separate COUNT queries
-        cur = self._conn.execute(
-            "SELECT sync_status, COUNT(*) FROM telemetry_buffer GROUP BY sync_status"
-        )
-        counts = {"PENDING": 0, "SYNCED": 0, "FAILED": 0}
-        for row in cur.fetchall():
-            if row[0] in counts:
-                counts[row[0]] = row[1]
+        with self._lock:
+            # Single GROUP BY query instead of 3 separate COUNT queries
+            cur = self._conn.execute(
+                "SELECT sync_status, COUNT(*) FROM telemetry_buffer GROUP BY sync_status"
+            )
+            counts = {"PENDING": 0, "SYNCED": 0, "FAILED": 0}
+            for row in cur.fetchall():
+                if row[0] in counts:
+                    counts[row[0]] = row[1]
 
-        total = sum(counts.values())
-        db_size = self.db_path.stat().st_size if self.db_path.exists() else 0
+            total = sum(counts.values())
+            db_size = self.db_path.stat().st_size if self.db_path.exists() else 0
 
-        return BufferHealth(
-            total_buffered=total,
-            pending_sync=counts["PENDING"],
-            synced=counts["SYNCED"],
-            failed=counts["FAILED"],
-            buffer_utilisation=round(total / self.max_buffer_size, 4) if self.max_buffer_size else 0,
-            last_write_time=self._last_write_time,
-            last_sync_time=self._last_sync_time,
-            connectivity=self._connectivity,
-            db_size_bytes=db_size,
-        )
+            return BufferHealth(
+                total_buffered=total,
+                pending_sync=counts["PENDING"],
+                synced=counts["SYNCED"],
+                failed=counts["FAILED"],
+                buffer_utilisation=round(total / self.max_buffer_size, 4) if self.max_buffer_size else 0,
+                last_write_time=self._last_write_time,
+                last_sync_time=self._last_sync_time,
+                connectivity=self._connectivity,
+                db_size_bytes=db_size,
+            )
 
     # -----------------------------------------------------------------
     # Replay (for post-race analysis)

@@ -22,7 +22,7 @@ This enables:
 
 Usage
 -----
->>> ctx = RequestContext.new(session_id="silverstone_fp1", source="rf_downlink")
+>>> ctx = RequestContext.new(session_id="validation_run_01", source="rf_downlink")
 >>> ctx = ctx.add_stage("circuit_breaker", status="PASSED")
 >>> ctx = ctx.add_stage("geo_fence", status="PII_SCRUBBED")
 >>> print(ctx.trace_summary())

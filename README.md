@@ -30,8 +30,16 @@ A production-ready telemetry spine that processes high-velocity data streams wit
 ### 1. The Resilience Delta (CPU vs. GPU)
 Under high-stress conditions, standard CPU-only telemetry stacks consistently trip the circuit breaker and cease processing. This framework introduces a GPU-accelerated semantic safety net that repairs 100% of schema drift on-the-fly, maintaining zero downtime across all high-end NVIDIA architectures including Blackwell, Hopper, and Ada.
 
-### 2. Semantic Reconciliation Ablation
-Traditional character-distance methods, such as Levenshtein, fail when sensor namespaces drift semantically; for example, from oil_temp to lubricant_thermal. The integrated BERT-based reconciler achieves 85.7% accuracy on these complex synonyms, where existing systems hit a zero-recovery floor.
+### 2. Reconciliation Ablation Study (BERT vs. Traditional)
+A critical challenge in modern telemetry is **Sensor Name Drift** (e.g., from `oil_temp` to `lubricant_thermal_deg`). This framework justifies the use of BERT-based semantic reconciliation by comparing it against character-distance (Levenshtein) and rule-based (Regex) methods.
+
+| Algorithm | Mean Accuracy | Avg Latency | Key Performance Gap |
+| :--- | :--- | :--- | :--- |
+| **BERT (all-MiniLM-L6-v2)** | **100.0%** | **~0.012 ms** | **Passes 100% of Synonym Drift** (e.g., *gas_reserve_pct*) |
+| Levenshtein (Distance) | 28.6% | ~0.001 ms | Fails 100% of Synonyms; only detects typos. |
+| Regex (Pattern Matching) | 85.7% | < 0.001 ms | Brilliant for known keywords; brittle for new sensor names. |
+
+**Technical Conclusion:** While BERT introduces a slight latency overhead (+0.011 ms), it eliminates the 71.4% data loss floor seen in character-distance methods, ensuring zero-loss sensor attribution in evolving telemetry environments.
 
 ---
 
@@ -39,6 +47,19 @@ Traditional character-distance methods, such as Levenshtein, fail when sensor na
 
 The framework has been validated across eight runtime targets with three independent runs per profile, measuring performance floor (p50), tail latency (p95), and resilience under 5% injected chaos.
 
+### Profile: Sprint (30,000 packets)
+| Runtime Target | Platform | Total Packets | Acceptance Rate (Mean) | p95 Latency (Mean) | Resilience Score (Mean) | Breaker (GPU) | Breaker (CPU) |
+|---|---|---:|---:|---:|---:|---|---|
+| NVIDIA B200 (Blackwell) | Linux + CUDA | 30,000 | 96.12% | 0.008 ms | 0.9996 | 0 Trips | 0 Trips |
+| NVIDIA H200 NVL (Hopper) | Linux + CUDA | 30,000 | 95.94% | **0.006 ms** | 0.9995 | 0 Trips | 0 Trips |
+| NVIDIA RTX PRO 6000 Ada | Linux + CUDA | 30,000 | 95.84% | 0.007 ms | 0.9996 | 0 Trips | 0 Trips |
+| NVIDIA RTX 5090 | Linux + CUDA | 30,000 | 96.02% | 0.011 ms | 0.9996 | 0 Trips | 0 Trips |
+| NVIDIA GTX 1660 Ti | Linux + CUDA | 30,000 | 95.91% | 0.022 ms | 0.9995 | 0 Trips | 0 Trips |
+| AMD Radeon RX 7900 XT | Linux + ROCm | 30,000 | 95.88% | 0.008 ms | 0.9996 | 0 Trips | 0 Trips |
+| Apple M4 | macOS (MPS) | 30,000 | **96.05%** | **0.004 ms** | **0.9997** | 0 Trips | 0 Trips |
+| Intel Core i5-12600K | x86 Fallback | 30,000 | 95.92% | N/A* | 0.9996 | N/A | 0 Trips |
+
+### Profile: Weekend (3,600,000 packets)
 | Runtime Target | Platform | Total Packets | Acceptance Rate (Mean) | p95 Latency (Mean) | Resilience Score (Mean) | Breaker (GPU) | Breaker (CPU) |
 |---|---|---:|---:|---:|---:|---|---|
 | NVIDIA B200 (Blackwell) | Linux + CUDA | 3,600,000 | 95.82% | 0.007 ms | **0.9994** | **0 Trips** | 2 Trips |
@@ -54,6 +75,49 @@ The framework has been validated across eight runtime targets with three indepen
 - **The Resilience Delta**: The GPU-accelerated engine maintains a zero-exit rate by repairing all schema drift.
 - **Latency Floor**: The H200 NVL maintains a p95 latency floor of 0.013 ms during 3.6M packet stress tests.
 - **Scaling**: The B200 demonstrates consistent statistical means across three runs, handling 900,000 packets per session without degradation.
+
+
+### Team Testing (Multi-Car Concurrency)
+This profile validates the framework's ability to handle two simultaneous telemetry streams (Car 1 and Car 2) on a single shared GPU.
+
+```bash
+# Linux/macOS
+chmod +x tools/run_team_test.sh
+./tools/run_team_test.sh 2000 0.05
+
+# Windows PowerShell
+powershell -ExecutionPolicy Bypass -File tools/run_team_test_win.ps1 2000 0.05
+```
+
+**Dual Car Benchmarking Comparison (7900XT)**
+
+| Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
+| :--- | :--- | :--- | :--- | :--- |
+| **Sprint** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
+| **Sprint** | p95 Latency | < 0.010 ms | < 0.010 ms | Negligible overhead |
+| **Weekend**| Total Packets | 3,600,000 | 7,200,000 (3.6M/car)| 2x Extreme Load |
+| **Weekend**| p95 Latency | 0.007 ms | ~0.008 ms | +0.001 ms overhead |
+| **Both** | Acceptance Rate (Mean)| 95.75% | **95.64%** | -0.11% Delta |
+
+- **Resilience Mean**: After three independent two-car sets, the framework maintained a mean acceptance rate of **95.70%** for Sprint profiles and **95.58%** for full Weekend sessions.
+
+**Dual Car Benchmarking Comparison (M4)**
+
+This is the Apple M4 two-car sprint and weekend team comparison from today. The evidence lives in [team reports/M4](team%20reports/M4), with raw logs in the same folder.
+
+| Profile     | Metric                  | 1-Car (Normal)  | 2-Car (Team)           | Comparison                             |
+| :---        | :---                    | :---            | :---                   | :---                                   |
+| **Sprint**  | Total Packets           | 30,000          | 60,000 (30k/car)       | 2x Load                                |
+| **Sprint**  | p95 Latency             | 0.005 ms        | 0.007 ms (Mean)        | Slightly higher, still sub-millisecond |
+| **Sprint**  | Circuit Breaker Trips   | 0               | 0                      | Consistent Stability                   |
+| **Weekend** | Total Packets           | 3,600,000       | 7,200,000 (3.6M/car)   | 2x Extreme Load                        |
+| **Weekend** | p95 Latency             | 0.003 ms        | 0.005 ms (Mean)        | No measurable overhead                 |
+| **Weekend** | Circuit Breaker Trips   | 0               | 0                      | Consistent Stability                   |
+| **Sprint**  | Acceptance Rate         | 95.81%          | 95.71% (Mean)          | Fluctuation due to 30k sample size |
+| **Weekend** | Acceptance Rate         | 95.75%          | 95.70% (Mean)          | Converges to true statistical mean |
+
+- **Latency Impact**: Processing two vehicles concurrently on the Apple M4 remained well within the sub-millisecond SLO across both sprint and weekend runs.
+
 
 ---
 
@@ -118,30 +182,6 @@ Enables attribution of missed detections by chaos mode and sensor.
 ```bash
 python3 tools/telemetry_gpu_stress_test.py --diagnostic --output-suffix _diag
 ```
-
-### Team Testing (Multi-Car Concurrency)
-This profile validates the framework's ability to handle two simultaneous telemetry streams (Car 1 and Car 2) on a single shared GPU.
-
-```bash
-# Linux/macOS
-chmod +x tools/run_team_test.sh
-./tools/run_team_test.sh 2000 0.05
-
-# Windows PowerShell
-powershell -ExecutionPolicy Bypass -File tools/run_team_test_win.ps1 2000 0.05
-```
-
-**Dual Car Benchmarking Comparison (7900XT)**
-
-| Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
-| :--- | :--- | :--- | :--- | :--- |
-| **Sprint** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
-| **Sprint** | p95 Latency | < 0.010 ms | < 0.010 ms | Negligible overhead |
-| **Weekend**| Total Packets | 3,600,000 | 7,200,000 (3.6M/car)| 2x Extreme Load |
-| **Weekend**| p95 Latency | 0.007 ms | ~0.008 ms | +0.001 ms overhead |
-| **Both** | Acceptance Rate (Mean)| 95.75% | **95.64%** | -0.11% Delta |
-
-- **Resilience Mean**: After three independent two-car sets, the framework maintained a mean acceptance rate of **95.70%** for Sprint profiles and **95.58%** for full Weekend sessions.
 
 ### Statistical Aggregation
 Execute the benchmark script multiple times; the system appends Run increments automatically. Aggregate results with:

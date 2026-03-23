@@ -11,6 +11,7 @@ set -e
 # Default parameters
 PACKETS=${1:-2000}
 CHAOS=${2:-0.15}
+RUN_SUFFIX=${3:-""}
 
 echo "🏁 STARTING TEAM TEST: Two Cars | Single GPU"
 echo "--- Configuration ---"
@@ -19,8 +20,8 @@ echo "Chaos:   $CHAOS"
 echo "---------------------"
 
 # 1. Start Docker Containers
-echo "🚀 Spinning up dedicated pipelines..."
-docker-compose -f docker-compose.production.yml up -d car-1-pipeline car-2-pipeline
+echo "🚀 Spinning up dedicated pipelines and the War Room dashboard..."
+docker-compose -f docker-compose.production.yml up -d car-1-pipeline car-2-pipeline health-monitor
 
 # 2. Monitor GPU (Linux specific, ignored on macOS for now)
 if command -v nvidia-smi &> /dev/null; then
@@ -34,11 +35,11 @@ fi
 # 3. Launch Parallel Stress Tests via Docker Exec
 # Using & to run in parallel
 echo "⚡ Launching Car 1 Benchmark..."
-docker exec rap_car_1_spine python3 tools/telemetry_gpu_stress_test.py --packets $PACKETS --chaos $CHAOS --output-suffix _car1 --diagnostic &
+docker exec rap_car_1_spine python3 tools/telemetry_gpu_stress_test.py --packets $PACKETS --chaos $CHAOS --output-suffix _car1${RUN_SUFFIX} --diagnostic &
 CAR1_PID=$!
 
 echo "⚡ Launching Car 2 Benchmark..."
-docker exec rap_car_2_spine python3 tools/telemetry_gpu_stress_test.py --packets $PACKETS --chaos $CHAOS --output-suffix _car2 --diagnostic &
+docker exec rap_car_2_spine python3 tools/telemetry_gpu_stress_test.py --packets $PACKETS --chaos $CHAOS --output-suffix _car2${RUN_SUFFIX} --diagnostic &
 CAR2_PID=$!
 
 # 4. Wait for both to finish
@@ -52,6 +53,7 @@ echo "✅ Car 2 Complete"
 echo "--------------------------------------------------------"
 echo "🏆 TEAM TEST COMPLETE"
 echo "--------------------------------------------------------"
-echo "Check data/reports/ inside car-1-outputs and car-2-outputs volumes"
-echo "or run docker-compose logs for terminal output."
+echo "Check data/reports/ inside car-1-outputs and car-2-outputs"
+echo "To view the LIVE Team Operations Dashboard during the test:"
+echo "   docker exec -it rap_team_monitor python3 tools/health_monitor.py"
 echo "--------------------------------------------------------"

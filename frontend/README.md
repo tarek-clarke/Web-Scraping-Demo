@@ -10,7 +10,7 @@ A real-time telemetry monitoring dashboard built with React, Tailwind CSS, and R
 - Lucide React (icons)
 
 ## Mock WebSocket Server
-For development and demonstration purposes, this dashboard includes a simulated WebSocket client (`src/mockServer.js`). It generates realistic telemetry metrics reflecting the Cadillac F1 workload (Sprints vs Weekends) and occasionally simulates system degradation (circuit breaker trips, DLQ spikes).
+For development and demonstration purposes, this dashboard includes a simulated WebSocket client (`src/mockServer.js`). It generates realistic telemetry metrics reflecting high-fidelity workloads (Sprints vs Weekends) and occasionally simulates system degradation (circuit breaker trips, DLQ spikes).
 
 ## To Run
 1. Ensure Node.js and npm are installed on your machine.

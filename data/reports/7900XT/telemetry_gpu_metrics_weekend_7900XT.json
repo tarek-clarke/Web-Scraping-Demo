@@ -1,0 +1,20 @@
+{
+  "device_name": "Radeon RX 7900 XT",
+  "vram_gb": 19.98,
+  "hip_version": "7.0.51831",
+  "tuning_profile": "gpu_speed",
+  "semantic_threshold": 0.4,
+  "anomaly_sigma_threshold": 3.5,
+  "breaker_failure_threshold": 8,
+  "breaker_recovery_timeout": 1.0,
+  "total_embeddings_computed": 3600000,
+  "total_semantic_resolutions": 3600000,
+  "total_semantic_recovered": 25603,
+  "total_anomaly_detections": 147820,
+  "total_batch_embedding_time_ms": 753.95,
+  "total_batch_anomaly_time_ms": 22265.99,
+  "total_hash_verification_time_ms": 174930.4,
+  "mean_embedding_batch_ms": 0.0268,
+  "mean_anomaly_batch_ms": 0.7917,
+  "gpu_utilisation_estimate": "active"
+}

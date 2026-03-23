@@ -419,7 +419,7 @@ class DeadLetterQueue:
     ):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
+        self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False, timeout=60)
         self._conn.execute("PRAGMA journal_mode=WAL;")
         self._conn.executescript(self.DDL)
         self._lock = threading.Lock()
@@ -939,21 +939,22 @@ class TelemetryCircuitBreaker:
 
     @property
     def metrics(self) -> CircuitBreakerMetrics:
-        total = self._total_passed + self._total_rejected
-        uptime = self._total_passed / total if total > 0 else 1.0
-        return CircuitBreakerMetrics(
-            state=self.state.value,
-            consecutive_failures=self._consecutive_failures,
-            total_passed=self._total_passed,
-            total_rejected=self._total_rejected,
-            total_dlq=self.dlq.depth(),
-            last_failure_time=(
-                datetime.fromtimestamp(self._last_failure_time).isoformat()
-                if self._last_failure_time else None
-            ),
-            last_state_change=self._last_state_change,
-            uptime_ratio=round(uptime, 4),
-        )
+        with self._lock:
+            total = self._total_passed + self._total_rejected
+            uptime = self._total_passed / total if total > 0 else 1.0
+            return CircuitBreakerMetrics(
+                state=self._state.value,
+                consecutive_failures=self._consecutive_failures,
+                total_passed=self._total_passed,
+                total_rejected=self._total_rejected,
+                total_dlq=self.dlq.depth(),
+                last_failure_time=(
+                    datetime.fromtimestamp(self._last_failure_time).isoformat()
+                    if self._last_failure_time else None
+                ),
+                last_state_change=self._last_state_change,
+                uptime_ratio=round(uptime, 4),
+            )
 
     # ------------------------------------------------------------------
     # Public API
