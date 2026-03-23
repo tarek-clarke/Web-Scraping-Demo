@@ -166,18 +166,6 @@ powershell -ExecutionPolicy Bypass -File tools/run_team_test_win.ps1 2000 0.05
 
 - **Latency Impact**: Processing two vehicles concurrently (7.2 million packets) on the 7900XT over a simulated race weekend resulted in a trivial latency increase of roughly 1 microsecond (+0.001 ms). p95 latency remained well within the sub-millisecond SLO.
 
-**Dual Car Benchmarking Comparison (M4 Sprint)**
-
-This is the Apple M4 two-car sprint team run from today. The evidence lives in [team reports/M4](team%20reports/M4), with raw logs in the same folder.
-
-| Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
-| :--- | :--- | :--- | :--- | :--- |
-| **Sprint** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
-| **Sprint** | p95 Latency | 0.005 ms | 0.008 ms | Slightly higher, still sub-millisecond |
-| **Sprint** | Circuit Breaker Trips | 0 | 0 | Consistent Stability |
-| **Sprint** | Acceptance Rate | 95.81% | 95.71% | Consistent |
-| **Sprint** | Hardware | Apple M4 | Apple M4 | CPU-fallback team run |
-
 **Dual Car Benchmarking Comparison (M4 Weekend)**
 
 This is the Apple M4 two-car weekend team run from today. The evidence lives in [team reports/M4](team%20reports/M4), with raw logs in the same folder.
@@ -189,6 +177,18 @@ This is the Apple M4 two-car weekend team run from today. The evidence lives in 
 | **Weekend** | Circuit Breaker Trips | 0 | 0 | Consistent Stability |
 | **Weekend** | Acceptance Rate | 95.75% | 95.67% | Consistent |
 | **Weekend** | Hardware | Apple M4 | Apple M4 | CPU-fallback team run |
+
+**Dual Car Benchmarking Comparison (M4 Sprint)**
+
+This is the Apple M4 two-car sprint team run from today. The evidence lives in [team reports/M4](team%20reports/M4), with raw logs in the same folder.
+
+| Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
+| :--- | :--- | :--- | :--- | :--- |
+| **Sprint** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
+| **Sprint** | p95 Latency | 0.005 ms | 0.008 ms | Slightly higher, still sub-millisecond |
+| **Sprint** | Circuit Breaker Trips | 0 | 0 | Consistent Stability |
+| **Sprint** | Acceptance Rate | 95.81% | 95.71% | Consistent |
+| **Sprint** | Hardware | Apple M4 | Apple M4 | CPU-fallback team run |
 
 ### Statistical Aggregation
 Execute the benchmark script multiple times; the system appends Run increments automatically. Aggregate results with:
