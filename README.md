@@ -39,7 +39,7 @@ A critical challenge in modern telemetry is **Sensor Name Drift** (e.g., from `o
 | Levenshtein (Distance) | 28.6% | ~0.001 ms | Fails 100% of Synonyms; only detects typos. |
 | Regex (Pattern Matching) | 85.7% | < 0.001 ms | Brilliant for known keywords; brittle for new sensor names. |
 
-**Technical Conclusion:** While BERT introduces a slight latency overhead (+0.011 ms), it eliminates the 71.4% data loss floor seen in character-distance methods, ensuring zero-loss sensor attribution in evolving telemetry environments.
+**Technical Conclusion:** While BERT introduces a slight latency overhead (+0.011 ms), it eliminates the 71.4% data loss floor seen in character-distance methods, ensuring zero-loss sensor attribution in evolving telemetry environments. Source: [reconciliation_ablation_study.py](tools/reconciliation_ablation_study.py)
 
 ---
 
