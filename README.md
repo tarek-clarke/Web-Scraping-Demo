@@ -91,13 +91,19 @@ powershell -ExecutionPolicy Bypass -File tools/run_team_test_win.ps1 2000 0.05
 
 **Dual Car Benchmarking Comparison (7900XT)**
 
-| Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
-| :--- | :--- | :--- | :--- | :--- |
-| **Sprint** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
-| **Sprint** | p95 Latency | < 0.010 ms | < 0.010 ms | Negligible overhead |
-| **Weekend**| Total Packets | 3,600,000 | 7,200,000 (3.6M/car)| 2x Extreme Load |
-| **Weekend**| p95 Latency | 0.007 ms | ~0.008 ms | +0.001 ms overhead |
-| **Both** | Acceptance Rate (Mean)| 95.75% | **95.64%** | -0.11% Delta |
+| Profile     | Metric                  | 1-Car (Normal)  | 2-Car (Team)           | Comparison             |
+| :---        | :---                    | :---            | :---                   | :---                   |
+| **Sprint**  | Total Packets           | 30,000          | 60,000 (30k/car)       | 2x Load                |
+| **Sprint**  | p95 Latency             | < 0.010 ms      | < 0.010 ms             | Negligible overhead    |
+| **Sprint**  | Resilience Score        | 0.9996          | 0.9998                 | Perfect Continuity     |
+| **Sprint**  | Circuit Breaker Trips   | 0               | 0                      | Consistent Stability   |
+| **Weekend** | Total Packets           | 3,600,000       | 7,200,000 (3.6M/car)   | 2x Extreme Load        |
+| **Weekend** | p95 Latency             | 0.007 ms        | ~0.008 ms              | +0.001 ms overhead     |
+| **Weekend** | Resilience Score        | 0.9994          | 0.9995                 | Total Recovery         |
+| **Weekend** | Circuit Breaker Trips   | 0               | 0                      | Consistent Stability   |
+| **Sprint**  | Acceptance Rate         | 95.88%          | 95.75%                 | Fluctuation due to 30k sample size |
+| **Weekend** | Acceptance Rate         | 95.75%          | 95.75%                 | Converges to true statistical mean |
+| **Both**    | Acceptance Rate (Mean)  | 95.75%          | **95.64%**             | -0.11% Delta           |
 
 - **Resilience Mean**: After three independent two-car sets, the framework maintained a mean acceptance rate of **95.70%** for Sprint profiles and **95.58%** for full Weekend sessions.
 
@@ -109,9 +115,11 @@ This is the Apple M4 two-car sprint and weekend team comparison from today. The 
 | :---        | :---                    | :---            | :---                   | :---                                   |
 | **Sprint**  | Total Packets           | 30,000          | 60,000 (30k/car)       | 2x Load                                |
 | **Sprint**  | p95 Latency             | 0.005 ms        | 0.007 ms (Mean)        | Slightly higher, still sub-millisecond |
+| **Sprint**  | Resilience Score        | 0.9997          | 99.95% (Mean)          | Fault-Tolerant Reconciliation          |
 | **Sprint**  | Circuit Breaker Trips   | 0               | 0                      | Consistent Stability                   |
 | **Weekend** | Total Packets           | 3,600,000       | 7,200,000 (3.6M/car)   | 2x Extreme Load                        |
 | **Weekend** | p95 Latency             | 0.003 ms        | 0.005 ms (Mean)        | No measurable overhead                 |
+| **Weekend** | Resilience Score        | 0.9995          | 99.78% (Mean)          | Stable High-Throughput Recovery        |
 | **Weekend** | Circuit Breaker Trips   | 0               | 0                      | Consistent Stability                   |
 | **Sprint**  | Acceptance Rate         | 95.81%          | 95.71% (Mean)          | Fluctuation due to 30k sample size |
 | **Weekend** | Acceptance Rate         | 95.75%          | 95.70% (Mean)          | Converges to true statistical mean |
