@@ -63,15 +63,18 @@ flowchart LR
 
 ---
 
-## Core Methodology: Semantic Reconciliation
+## Core Methodology: 3-Tier Resilient Reconciliation
 
-A critical challenge in modern telemetry is **Sensor Name Drift** (e.g., from `oil_temp` to `lubricant_thermal_deg`). This framework introduces a GPU-accelerated semantic safety net that repairs 100% of schema drift using a **BERT-based reconciliation engine**.
+To ensure both **Autonomous Scalability** (BERT) and **Forensic Accuracy** (Human), the framework implements a hierarchical 3-tier reconciliation architecture:
 
-### 1. The Resilience Delta (CPU vs. GPU)
-Under high-stress conditions, standard CPU-only telemetry stacks consistently trip the circuit breaker. Our GPU engine maintains zero downtime by offloading semantic repair to Tensor Cores, maintaining processing continuity across NVIDIA (CUDA), AMD (ROCm), and Apple Silicon (MPS).
+### Tier 1: Verified Mapping Cache (O(1) - Instant)
+Before performing deep inference, the system checks the `HITLFeedbackManager` for previously human-validated mappings. This "Learned Knowledge Base" acts as a high-speed, local-first cache for recurring drift patterns, ensuring 100% accuracy for fixed protocols.
 
-### 2. Human-in-the-Loop (HITL) Governor
-For mission-critical telemetry, the framework supports manual overrides via the `HITLFeedbackManager`. Human corrections bypass BERT inference to ensure 100% accuracy and are recorded in the audit log for dissertation-grade provenance.
+### Tier 2: Semantic Inference (O(n) - GPU BERT)
+If the drift is novel (unseen), the system invokes GPU-accelerated BERT kernels to reconcile sensor names on-the-fly. This tier handles the **Zero-Shot Drift**—synonyms, abbreviations, and namespace changes that rule-based systems (Regex) cannot anticipate.
+
+### Tier 3: Human-in-the-Loop (Governor - Expert)
+For mission-critical telemetry where BERT confidence falls below the **Resilience Floor** (e.g., < 0.65), the system prompts for a manual research correction. This human-validated signal then populates Tier 1, creating a **Self-Healing Active Learning Loop**.
 
 ---
 
