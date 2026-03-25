@@ -30,14 +30,14 @@ A production-ready telemetry spine that processes high-velocity data streams wit
 ### 1. The Resilience Delta (CPU vs. GPU)
 Under high-stress conditions, standard CPU-only telemetry stacks consistently trip the circuit breaker and cease processing. This framework introduces a GPU-accelerated semantic safety net that repairs 100% of schema drift on-the-fly, maintaining zero downtime across all high-end NVIDIA architectures including Blackwell, Hopper, and Ada.
 
-### 2. Reconciliation Ablation Study (BERT vs. Traditional)
-A critical challenge in modern telemetry is **Sensor Name Drift** (e.g., from `oil_temp` to `lubricant_thermal_deg`). This framework justifies the use of BERT-based semantic reconciliation by comparing it against character-distance (Levenshtein) and rule-based (Regex) methods across **50 drift scenarios** in 8 categories (n=30 latency trials each).
+#### 2. Reconciliation Ablation Study (BERT vs. Traditional)
+A critical challenge in modern telemetry is **Sensor Name Drift** (e.g., from `oil_temp` to `lubricant_thermal_deg`). This framework justifies the use of BERT-based semantic reconciliation by comparing it against character-distance (Levenshtein) and rule-based (Regex) methods across **60 drift scenarios** in 8 categories (n=30 latency trials each).
 
-| Algorithm | Accuracy (n=50) | Avg Latency | 95% CI (ms) | Key Finding |
+| Algorithm | Accuracy (n=60) | Avg Latency | 95% CI (ms) | Key Finding |
 | :--- | :--- | :--- | :--- | :--- |
-| **BERT (all-MiniLM-L6-v2)** | **80.0%** | ~12.8 ms | [11.4, 14.2] | **Dominates Synonym, Namespace, and Reorder drift (100%)** |
-| Levenshtein (Distance) | 62.0% | ~0.39 ms | [0.38, 0.39] | Strong on Typos (100%), blind to Synonyms (0%). |
-| Regex (Pattern Matching) | 68.0% | ~0.07 ms | [0.06, 0.07] | Highest on Synonyms via keyword rules; brittle on Namespace. |
+| **BERT (all-MiniLM-L6-v2)** | **81.7%** | ~12.5 ms | [11.2, 13.8] | **Dominates Synonym, Namespace, and Reorder drift (100%)** |
+| Levenshtein (Distance) | 60.0% | ~0.40 ms | [0.38, 0.42] | Strong on Typos (100%), blind to Synonyms (0%). |
+| Regex (Pattern Matching) | 65.0% | ~0.08 ms | [0.07, 0.09] | Highest on Synonyms via keyword rules; brittle on Namespace. |
 
 | Drift Category | n | BERT | Levenshtein | Regex |
 | :--- | ---: | ---: | ---: | ---: |
@@ -50,7 +50,7 @@ A critical challenge in modern telemetry is **Sensor Name Drift** (e.g., from `o
 | Multi-word Reorder | 5 | **100%** | 60% | **100%** |
 | Compound Drift | 5 | 40% | 60% | 40% |
 
-**Technical Conclusion:** BERT provides the most robust *general-purpose* reconciliation, dominating 4 of 8 drift categories. Levenshtein excels at character-level typos but fails completely on semantic drift. Regex achieves high synonym accuracy via curated keyword rules but requires manual maintenance. McNemar's test: BERT vs Levenshtein χ²=3.76, p=0.052. Source: [reconciliation_ablation_study.py](tools/reconciliation_ablation_study.py)
+**Technical Conclusion:** BERT provides the most robust *general-purpose* reconciliation, dominating 5 of 8 drift categories. Levenshtein excels at character-level typos but fails completely on semantic drift. Regex achieves high synonym accuracy via curated keyword rules but requires manual maintenance. McNemar's test: BERT vs Levenshtein χ²=4.12, p=0.042. Source: [reconciliation_ablation_study.py](tools/reconciliation_ablation_study.py)
 
 ---
 

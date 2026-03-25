@@ -1,0 +1,61 @@
+drifted,expected,type,bert_correct,bert_result,bert_latency_ms,leven_correct,leven_result,leven_latency_ms,regex_correct,regex_result,regex_latency_ms
+speeed,speed,Typo,False,gear_engaged,12.77556,True,speed,0.320579,False,unknown,0.113508
+rmp,rpm,Typo,False,throttle,9.510912,True,rpm,0.222358,False,unknown,0.063267
+throtle,throttle,Typo,True,throttle,8.017038,True,throttle,0.347379,False,unknown,0.059942
+brak_temp,brake_temp,Typo,True,brake_temp,9.5756,True,brake_temp,0.352896,False,unknown,0.064017
+enigne_temp,engine_temp,Typo,True,engine_temp,10.33579,True,engine_temp,0.369439,False,unknown,0.070661
+oil_presure_psi,oil_pressure_psi,Typo,True,oil_pressure_psi,11.94442,True,oil_pressure_psi,0.519432,True,oil_pressure_psi,0.050958
+spd,speed,Abbreviation,True,speed,10.714096,True,speed,0.21025,False,unknown,0.063689
+brk_temp,brake_temp,Abbreviation,True,brake_temp,10.091489,True,brake_temp,0.441444,False,unknown,0.075701
+eng_temp,engine_temp,Abbreviation,True,engine_temp,9.66106,True,engine_temp,0.332386,False,unknown,0.065807
+coolant_temp_c,coolant_temperature_c,Abbreviation,True,coolant_temperature_c,12.147879,True,coolant_temperature_c,0.463079,True,coolant_temperature_c,0.05266
+tyre_pres,tyre_pressure,Abbreviation,True,tyre_pressure,10.723458,True,tyre_pressure,0.383774,True,tyre_pressure,0.038456
+steer_ang,steering_angle,Abbreviation,True,steering_angle,8.320101,True,steering_angle,0.386699,True,steering_angle,0.054182
+hr,heart_rate,Abbreviation,True,heart_rate,8.954719,False,rpm,0.188249,False,unknown,0.062989
+velocity_kph,speed,Synonym,True,speed,8.206013,False,engine_temp,0.412579,True,speed,0.036386
+engine_revolutions,rpm,Synonym,True,rpm,8.538193,False,engine_temp,0.483947,True,rpm,0.025795
+gas_pedal_pct,throttle,Synonym,False,tyre_pressure,8.142322,False,speed,0.463874,True,throttle,0.030328
+disc_temperature,brake_temp,Synonym,True,brake_temp,9.606118,False,oil_temperature_c,0.439406,True,brake_temp,0.036997
+motor_thermal_c,engine_temp,Synonym,True,engine_temp,8.86117,False,g_force_lateral,0.520125,True,engine_temp,0.017783
+downforce_newtons,aero_load,Synonym,False,g_force_lateral,8.178025,False,g_force_lateral,0.479292,True,aero_load,0.031892
+lubricant_thermal_deg,oil_temperature_c,Synonym,True,oil_temperature_c,12.209568,False,coolant_temperature_c,0.613337,True,oil_temperature_c,0.044351
+gas_reserve_pct,fuel_level_percent,Synonym,False,coolant_temperature_c,10.624079,False,oil_pressure_psi,0.521992,True,fuel_level_percent,0.027529
+driver_pulse_bpm,heart_rate,Synonym,True,heart_rate,10.939669,False,oil_pressure_psi,0.53135,True,heart_rate,0.060807
+fuel_tank_remaining,fuel_level_percent,Synonym,True,fuel_level_percent,9.088854,False,brake_temp,0.571121,True,fuel_level_percent,0.058392
+car.telemetry.speed_kph,speed,Namespace,True,speed,11.458407,False,coolant_temperature_c,0.634504,True,speed,0.058835
+sensor.engine.rpm,rpm,Namespace,True,rpm,9.470061,False,engine_temp,0.522599,True,rpm,0.065232
+telemetry.brake.front.psi,brake_pressure_front,Namespace,True,brake_pressure_front,11.182901,True,brake_pressure_front,0.634626,False,unknown,0.088583
+vehicle.tyre.pressure,tyre_pressure,Namespace,True,tyre_pressure,10.214446,True,tyre_pressure,0.617485,False,unknown,0.074774
+daq.ecu.canbus_raw,ecu_canbus,Namespace,True,ecu_canbus,10.87024,True,ecu_canbus,0.469664,True,ecu_canbus,0.058335
+car.driver.heart_rate,heart_rate,Namespace,True,heart_rate,14.011007,True,heart_rate,0.612876,True,heart_rate,0.073568
+sig_0x3F_lat,g_force_lateral,Obfuscated,False,coolant_temperature_c,11.409364,True,g_force_lateral,0.358442,False,unknown,0.069986
+sys_clutch_val,clutch_position,Obfuscated,True,clutch_position,10.819836,True,clutch_position,0.425725,True,clutch_position,0.055151
+ch12_analog_psi,oil_pressure_psi,Obfuscated,True,oil_pressure_psi,10.99997,False,ecu_canbus,0.455521,False,unknown,0.075522
+pid_0x0C_rev,rpm,Obfuscated,False,brake_pressure_rear,11.282147,False,heart_rate,0.343046,True,rpm,0.065408
+ecu_raw_0xA1,ecu_canbus,Obfuscated,True,ecu_canbus,12.289686,True,ecu_canbus,0.435026,True,ecu_canbus,0.081499
+speed_mph,speed,Unit Variant,True,speed,9.326667,True,speed,0.353322,True,speed,0.054076
+tyre_pressure_bar,tyre_pressure,Unit Variant,True,tyre_pressure,8.24886,True,tyre_pressure,0.502307,True,tyre_pressure,0.017856
+oil_temp_fahrenheit,oil_temperature_c,Unit Variant,True,oil_temperature_c,9.686546,True,oil_temperature_c,0.578151,True,oil_temperature_c,0.048945
+brake_temp_kelvin,brake_temp,Unit Variant,True,brake_temp,10.888196,True,brake_temp,0.472803,True,brake_temp,0.033063
+coolant_temp_f,coolant_temperature_c,Unit Variant,True,coolant_temperature_c,11.424818,True,coolant_temperature_c,0.460025,True,coolant_temperature_c,0.050143
+engine_temp_kelvin,engine_temp,Unit Variant,True,engine_temp,10.716439,True,engine_temp,0.47769,True,engine_temp,0.029724
+lateral_force_g,g_force_lateral,Reorder,True,g_force_lateral,9.408765,False,oil_temperature_c,0.502611,True,g_force_lateral,0.047336
+front_brake_pressure,brake_pressure_front,Reorder,True,brake_pressure_front,8.371076,False,brake_pressure_rear,0.551674,True,brake_pressure_front,0.024695
+rear_brake_pressure,brake_pressure_rear,Reorder,True,brake_pressure_rear,8.438394,True,brake_pressure_rear,0.520554,True,brake_pressure_rear,0.028829
+angle_steering,steering_angle,Reorder,True,steering_angle,8.208042,True,steering_angle,0.45656,True,steering_angle,0.044332
+position_clutch,clutch_position,Reorder,True,clutch_position,8.366844,True,clutch_position,0.427975,True,clutch_position,0.050528
+eng_vel_rev_min,rpm,Compound,False,clutch_position,9.340122,False,fuel_level_percent,0.491226,True,rpm,0.068378
+brk_frnt_psi,brake_pressure_front,Compound,False,oil_pressure_psi,10.88743,False,brake_temp,0.446065,False,unknown,0.071732
+lube_press_pounds,oil_pressure_psi,Compound,False,tyre_pressure,10.527867,True,oil_pressure_psi,0.498638,False,unknown,0.075751
+aero_dwnfrc_kn,aero_load,Compound,True,aero_load,10.666272,True,aero_load,0.467669,True,aero_load,0.065462
+cool_h2o_temp,coolant_temperature_c,Compound,True,coolant_temperature_c,10.718281,True,coolant_temperature_c,0.418708,False,unknown,0.074908
+spid,speed,Typo,False,gear_engaged,9.27576,True,speed,0.23203,False,unknown,0.067161
+rpm_val,rpm,Typo,True,rpm,8.056358,True,rpm,0.340981,True,rpm,0.057857
+prs_tyr,tyre_pressure,Abbreviation,False,engine_temp,8.230081,False,brake_pressure_rear,0.354346,False,unknown,0.060814
+v_max,speed,Abbreviation,False,tyre_pressure,7.826489,False,aero_load,0.30416,False,unknown,0.059224
+combustion_heat,engine_temp,Synonym,True,engine_temp,8.325122,False,clutch_position,0.466204,False,unknown,0.065792
+inertial_force,g_force_lateral,Synonym,True,g_force_lateral,8.536694,False,heart_rate,0.468493,False,unknown,0.063639
+fluid_depth,fuel_level_percent,Synonym,False,oil_pressure_psi,8.116946,True,fuel_level_percent,0.418987,False,unknown,0.065793
+telemetry.oil.temp,oil_temperature_c,Namespace,True,oil_temperature_c,15.019253,False,engine_temp,0.611314,False,unknown,0.112208
+id_0xFE_gear,gear_engaged,Obfuscated,True,gear_engaged,18.267707,True,gear_engaged,0.471172,True,gear_engaged,0.101503
+max_v_ms,speed,Compound,False,tyre_pressure,17.502093,False,oil_pressure_psi,0.503342,False,unknown,0.094712

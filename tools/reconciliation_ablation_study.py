@@ -137,6 +137,18 @@ TEST_CASES = [
     {"drifted": "lube_press_pounds",         "expected": "oil_pressure_psi",     "type": "Compound"},
     {"drifted": "aero_dwnfrc_kn",            "expected": "aero_load",            "type": "Compound"},
     {"drifted": "cool_h2o_temp",             "expected": "coolant_temperature_c","type": "Compound"},
+
+    # ── Added for 60+ Sample Size Expansion ────────────────────────
+    {"drifted": "spid",                      "expected": "speed",                "type": "Typo"},
+    {"drifted": "rpm_val",                   "expected": "rpm",                  "type": "Typo"},
+    {"drifted": "prs_tyr",                   "expected": "tyre_pressure",        "type": "Abbreviation"},
+    {"drifted": "v_max",                     "expected": "speed",                "type": "Abbreviation"},
+    {"drifted": "combustion_heat",           "expected": "engine_temp",          "type": "Synonym"},
+    {"drifted": "inertial_force",            "expected": "g_force_lateral",      "type": "Synonym"},
+    {"drifted": "fluid_depth",               "expected": "fuel_level_percent",   "type": "Synonym"},
+    {"drifted": "telemetry.oil.temp",        "expected": "oil_temperature_c",    "type": "Namespace"},
+    {"drifted": "id_0xFE_gear",              "expected": "gear_engaged",         "type": "Obfuscated"},
+    {"drifted": "max_v_ms",                  "expected": "speed",                "type": "Compound"},
 ]
 
 # ---------------------------------------------------------------------------
@@ -173,7 +185,7 @@ class ReconciliationAblation:
         console.print("[yellow]Loading BERT Model (all-MiniLM-L6-v2)...[/yellow]")
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         if torch.backends.mps.is_available():
-            self.device = "mps"
+            self.device = str("mps")
         self.bert_model = SentenceTransformer("all-MiniLM-L6-v2", device=self.device)
         self.canonical_embeddings = self.bert_model.encode(
             CANONICAL_SCHEMA, convert_to_tensor=True
@@ -190,7 +202,7 @@ class ReconciliationAblation:
 
     def reconcile_levenshtein(self, drifted: str) -> Tuple[str, float, float]:
         start = time.perf_counter()
-        best_match = None
+        best_match = ""
         best_score = 0.0
         for canonical in CANONICAL_SCHEMA:
             score = difflib.SequenceMatcher(None, drifted, canonical).ratio()
@@ -246,11 +258,11 @@ def mcnemar_test(correct_a: List[bool], correct_b: List[bool]) -> Dict:
     chi2 = (abs(b - c) - 1) ** 2 / (b + c) if (b + c) > 0 else 0.0
     p_value = 1 - stats.chi2.cdf(chi2, df=1)
     return {
-        "chi2": round(chi2, 4),
-        "p_value": round(p_value, 6),
-        "significant": p_value < 0.05,
-        "b": b,
-        "c": c,
+        "chi2": float(round(float(chi2), 4)),
+        "p_value": float(round(float(p_value), 6)),
+        "significant": bool(p_value < 0.05),
+        "b": int(b),
+        "c": int(c),
     }
 
 
@@ -336,12 +348,12 @@ def run_study(n_trials: int = 30):
 
         per_case_results.append({
             "drifted": drifted, "expected": expected, "type": drift_type,
-            "bert_correct": bool(b_ok), "bert_result": b_res,
-            "leven_correct": bool(l_ok), "leven_result": l_res,
-            "regex_correct": bool(r_ok), "regex_result": r_res,
-            "bert_latency_mean_ms": round(np.mean(b_lats), 6),
-            "leven_latency_mean_ms": round(np.mean(l_lats), 6),
-            "regex_latency_mean_ms": round(np.mean(r_lats), 6),
+            "bert_correct": bool(b_ok), "bert_result": str(b_res),
+            "leven_correct": bool(l_ok), "leven_result": str(l_res),
+            "regex_correct": bool(r_ok), "regex_result": str(r_res),
+            "bert_latency_mean_ms": float(round(float(np.mean(b_lats)), 6)),
+            "leven_latency_mean_ms": float(round(float(np.mean(l_lats)), 6)),
+            "regex_latency_mean_ms": float(round(float(np.mean(r_lats)), 6)),
         })
 
     console.print(detail_table)
