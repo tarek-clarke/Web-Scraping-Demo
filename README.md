@@ -38,43 +38,51 @@ PYTHONPATH="." python3 experiments/run_phd_validation.py
 
 ---
 
-## System Architecture
+## System Architecture: 3-Tier Resilient Reconciliation
 
-### Design Philosophy: Local-First Resilience
-The architecture prioritizes edge autonomy. Telemetry is validated and persisted to a high-speed SQLite WAL buffer before any remote synchronization.
+The architecture prioritizes edge autonomy and "Self-Healing" resilience. Inbound telemetry is validated against a 3-tier reconciliation stack before forensic auditing.
 
 ```mermaid
-flowchart LR
+flowchart TD
     RF["Ingress Downlink<br/>(50 Hz telemetry)"]
     CB["Circuit Breaker<br/>Schema + cadence validators"]
+    
+    subgraph RECON["3-Tier Reconciliation Stack"]
+        direction TB
+        CACHE["Tier 1: Verified Cache<br/>(O(1) Knowledge Base)"]
+        BERT["Tier 2: Semantic Inference<br/>(O(n) GPU BERT)"]
+        HITL["Tier 3: HITL Governor<br/>(Expert Correction)"]
+        
+        CACHE -- "Mismatch" --> BERT
+        BERT -- "Low Confidence" --> HITL
+        HITL -- "Human Validation" --> CACHE
+    end
+    
     DLQ[("Dead Letter Queue<br/>SQLite")]
     EDGE[("Edge Buffer<br/>SQLite WAL")]
-    BERT["GPU Semantic<br/>Reconciliation"]
     AUDIT[("Audit Log<br/>SHA-256 chain")]
     SINK["Central Sink"]
 
     RF --> CB
     CB -->|invalid| DLQ
     CB -->|valid| EDGE
-    EDGE --> BERT
-    BERT -->|reconciled| AUDIT
+    EDGE --> CACHE
+    CACHE -- "Success" --> AUDIT
+    BERT -- "Success" --> AUDIT
     AUDIT --> SINK
 ```
 
 ---
 
-## Core Methodology: 3-Tier Resilient Reconciliation
+## Core Methodology: 3-Tier Active-Learning Loop
 
-To ensure both **Autonomous Scalability** (BERT) and **Forensic Accuracy** (Human), the framework implements a hierarchical 3-tier reconciliation architecture:
+To ensure both **Autonomous Scalability** (BERT) and **Forensic Accuracy** (Human), the framework implements a hierarchical fallback routing system:
 
-### Tier 1: Verified Mapping Cache (O(1) - Instant)
-Before performing deep inference, the system checks the `HITLFeedbackManager` for previously human-validated mappings. This "Learned Knowledge Base" acts as a high-speed, local-first cache for recurring drift patterns, ensuring 100% accuracy for fixed protocols.
+1.  **Tier 1: Verified Mapping Cache (O(1))**: Prioritizes previously human-validated mappings. Acts as a high-speed "Regex Database" for known drift patterns.
+2.  **Tier 2: Semantic Inference (BERT)**: Utilizes GPU-accelerated BERT kernels to reconcile unseen drift (synonyms, abbreviations) where manual rules do not exist.
+3.  **Tier 3: Human-in-the-Loop Governor**: If BERT confidence falls below the **Resilience Floor** (e.g., < 0.65), the system prompts for a manual research correction, which then populates Tier 1.
 
-### Tier 2: Semantic Inference (O(n) - GPU BERT)
-If the drift is novel (unseen), the system invokes GPU-accelerated BERT kernels to reconcile sensor names on-the-fly. This tier handles the **Zero-Shot Drift**—synonyms, abbreviations, and namespace changes that rule-based systems (Regex) cannot anticipate.
-
-### Tier 3: Human-in-the-Loop (Governor - Expert)
-For mission-critical telemetry where BERT confidence falls below the **Resilience Floor** (e.g., < 0.65), the system prompts for a manual research correction. This human-validated signal then populates Tier 1, creating a **Self-Healing Active Learning Loop**.
+**The Resilience Delta**: Under high-stress conditions, standard CPU-only telemetry stacks consistently trip the circuit breaker. Our GPU engine maintains zero downtime by offloading semantic repair to Tensor Cores, maintaining processing continuity across NVIDIA (CUDA), AMD (ROCm), and Apple Silicon (MPS).
 
 ---
 

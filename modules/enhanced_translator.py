@@ -32,45 +32,48 @@ class EnhancedSemanticTranslator:
 
     def translate(self, drifted_field: str) -> Dict:
         """
-        Reconcile a drifted field name to the canonical schema.
-        Returns a result dict with the mapped field and confidence.
+        Reconcile a drifted field name using the 3-Tier Resilient Architecture:
+        Tier 1: Verified Translation Cache (Known mapping from HITL)
+        Tier 2: Semantic Inference (BERT vector space)
+        Tier 3: Expert Revision (Human-in-the-Loop Quarantine)
         """
         start_time = time.perf_counter()
         
-        # ── Step 1: HITL Override (Primary) ──────────────────────────
-        hitl_match = self.hitl.get_correction(drifted_field)
-        if hitl_match and hitl_match in self.canonical_schema:
+        # ── Tier 1: Verified Translation Cache (O(1) Knowledge Base) ──
+        # This matches the user's "Regex Database" concept: instant O(1) lookup.
+        cache_match = self.hitl.get_correction(drifted_field)
+        if cache_match and cache_match in self.canonical_schema:
             latency_ms = (time.perf_counter() - start_time) * 1000
             result = {
                 "original": drifted_field,
-                "mapped": hitl_match,
+                "mapped": cache_match,
                 "confidence": 1.0,
                 "latency_ms": round(latency_ms, 4),
-                "reconciliation_type": "HITL_HUMAN_CORRECTION",
-                "explanation": f"Human-in-the-Loop intervention found: Direct mapping for '{drifted_field}' verified by research lead."
+                "reconciliation_type": "TIER_1_VERIFIED_CACHE",
+                "explanation": f"O(1) Cache Hit: '{drifted_field}' -> '{cache_match}' (Previously human-validated)."
             }
             self.history.append(result)
             return result
 
-        # ── Step 2: BERT Inference ───────────────────────────────────
+        # ── Tier 2: Semantic Inference (O(n) Autonomous BERT) ────────
+        # Handles unseen drift (synonyms, abbreviations) without manual rules.
         drift_embedding = self.model.encode(drifted_field, convert_to_tensor=True)
-        
-        # Compute cosine similarity against all canonical fields
         cos_scores = util.cos_sim(drift_embedding, self.canonical_embeddings)[0]
-        
-        # Find the best match
         best_idx = torch.argmax(cos_scores).item()
         confidence = float(cos_scores[best_idx].item())
         mapped_field = self.canonical_schema[best_idx]
         
         latency_ms = (time.perf_counter() - start_time) * 1000
         
+        # Determine if we fallback to Tier 3 (Human Quarantine)
+        is_confident = confidence >= self.confidence_threshold
+        
         result = {
             "original": drifted_field,
-            "mapped": mapped_field if confidence >= self.confidence_threshold else "unknown",
+            "mapped": mapped_field if is_confident else "unknown",
             "confidence": round(confidence, 4),
             "latency_ms": round(latency_ms, 4),
-            "reconciliation_type": "BERT_SEMANTIC",
+            "reconciliation_type": "TIER_2_BERT_SEMANTIC" if is_confident else "TIER_3_HITL_QUARANTINE",
             "explanation": self.explain(drifted_field, mapped_field, confidence)
         }
         
