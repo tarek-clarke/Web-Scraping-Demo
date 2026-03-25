@@ -11,6 +11,9 @@ Includes Explainable AI (XAI) for mapping transparency.
 
 import time
 import torch
+import numpy as np
+import os
+import json
 from typing import List, Dict, Tuple, Optional
 from sentence_transformers import SentenceTransformer, util
 from modules.hitl_feedback import HITLFeedbackManager
@@ -29,6 +32,28 @@ class EnhancedSemanticTranslator:
         self.history: List[Dict] = []
         self.confidence_threshold = 0.65
         self.hitl = HITLFeedbackManager()
+        self.quarantine_path = "data/quarantine_log.json"
+        
+    def _log_quarantine(self, drifted_field: str, best_guess: str, confidence: float):
+        """
+        Record a low-confidence drift in the Tier 3 Quarantine for expert review.
+        """
+        import json
+        log = []
+        if os.path.exists(self.quarantine_path):
+            with open(self.quarantine_path, 'r') as f:
+                log = json.load(f)
+        
+        # Add entry if not already quarantined
+        if not any(entry["original"] == drifted_field for entry in log):
+            log.append({
+                "original": drifted_field,
+                "suggested": best_guess,
+                "confidence": round(confidence, 4),
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            })
+            with open(self.quarantine_path, 'w') as f:
+                json.dump(log, f, indent=4)
 
     def translate(self, drifted_field: str) -> Dict:
         """
@@ -68,11 +93,14 @@ class EnhancedSemanticTranslator:
         # Determine if we fallback to Tier 3 (Human Quarantine)
         is_confident = confidence >= self.confidence_threshold
         
+        if not is_confident:
+            self._log_quarantine(drifted_field, mapped_field, confidence)
+
         result = {
             "original": drifted_field,
             "mapped": mapped_field if is_confident else "unknown",
-            "confidence": round(confidence, 4),
-            "latency_ms": round(latency_ms, 4),
+            "confidence": round(float(confidence), 4),
+            "latency_ms": round(float(latency_ms), 4),
             "reconciliation_type": "TIER_2_BERT_SEMANTIC" if is_confident else "TIER_3_HITL_QUARANTINE",
             "explanation": self.explain(drifted_field, mapped_field, confidence)
         }
