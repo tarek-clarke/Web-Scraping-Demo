@@ -1,0 +1,31 @@
+{
+    "config": {
+        "n": 1000,
+        "schema_size": 19
+    },
+    "global_accuracy": {
+        "BERT": 0.711,
+        "LEVEN": 0.854,
+        "REGEX": 0.22
+    },
+    "per_type_stats": {
+        "synonyms": {
+            "total": 393,
+            "BERT": 257,
+            "LEVEN": 251,
+            "REGEX": 103
+        },
+        "noise": {
+            "total": 354,
+            "BERT": 341,
+            "LEVEN": 350,
+            "REGEX": 100
+        },
+        "truncation": {
+            "total": 253,
+            "BERT": 113,
+            "LEVEN": 253,
+            "REGEX": 17
+        }
+    }
+}

@@ -49,24 +49,24 @@ def run_validation():
         print(f"Mapped to: {res['mapped']} (Conf: {res['confidence']})")
         audit_log.record(action="PHD_VALIDATION", details={"msg": f"Reconciled {drifted} to {res['mapped']}", "domain": "F1"})
 
-    # ── Phase 2: Domain Agnosticism (Clinical) [DISABLED] ─────────
-    # print("\nPhase 2: Domain Agnosticism (Clinical Vitals)")
-    # clinical_gen = ClinicalVitalsGenerator()
-    # clinical_schema = clinical_gen.schema
-    # clinical_translator = EnhancedSemanticTranslator(clinical_schema)
+    # ── Phase 2: Domain Agnosticism (Clinical) ────────────────────
+    print("\nPhase 2: Domain Agnosticism (Clinical Vitals)")
+    clinical_gen = ClinicalVitalsGenerator()
+    clinical_schema = clinical_gen.schema
+    clinical_translator = EnhancedSemanticTranslator(clinical_schema)
     
-    # clinical_chaos = [
-    #     "pulse_bpm",        # Synonym for heart_rate
-    #     "spo2_saturation",  # Semantic for blood_oxygen_pct
-    #     "core_thermal_c",   # Synonym for body_temp_c
-    #     "bp_systolic"       # Abbreviation for blood_pressure_sys
-    # ]
+    clinical_chaos = [
+        "pulse_bpm",        # Synonym for heart_rate
+        "spo2_saturation",  # Semantic for blood_oxygen_pct
+        "core_thermal_c",   # Synonym for body_temp_c
+        "bp_systolic"       # Abbreviation for blood_pressure_sys
+    ]
     
-    # for drifted in clinical_chaos:
-    #     print(f"  Field: {drifted}...", end=" ")
-    #     res = clinical_translator.translate(drifted)
-    #     print(f"Mapped to: {res['mapped']} (Conf: {res['confidence']})")
-    #     audit_log.record(action="PHD_VALIDATION", details={"msg": f"Reconciled {drifted} to {res['mapped']}", "domain": "CLINICAL"})
+    for drifted in clinical_chaos:
+        print(f"  Field: {drifted}...", end=" ")
+        res = clinical_translator.translate(drifted)
+        print(f"Mapped to: {res['mapped']} (Conf: {res['confidence']})")
+        audit_log.record(action="PHD_VALIDATION", details={"msg": f"Reconciled {drifted} to {res['mapped']}", "domain": "CLINICAL"})
 
     # ── Phase 3: Cryptographic Integrity ──────────────────────────
     print("\nPhase 3: Cryptographic Integrity (Provenance)")

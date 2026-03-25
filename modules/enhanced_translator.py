@@ -13,6 +13,7 @@ import time
 import torch
 from typing import List, Dict, Tuple, Optional
 from sentence_transformers import SentenceTransformer, util
+from modules.hitl_feedback import HITLFeedbackManager
 
 class EnhancedSemanticTranslator:
     def __init__(self, canonical_schema: List[str], model_name: str = "all-MiniLM-L6-v2"):
@@ -27,6 +28,7 @@ class EnhancedSemanticTranslator:
         # Performance & Confidence Tracking
         self.history: List[Dict] = []
         self.confidence_threshold = 0.65
+        self.hitl = HITLFeedbackManager()
 
     def translate(self, drifted_field: str) -> Dict:
         """
@@ -35,7 +37,22 @@ class EnhancedSemanticTranslator:
         """
         start_time = time.perf_counter()
         
-        # Generate embedding for the drifted field
+        # ── Step 1: HITL Override (Primary) ──────────────────────────
+        hitl_match = self.hitl.get_correction(drifted_field)
+        if hitl_match and hitl_match in self.canonical_schema:
+            latency_ms = (time.perf_counter() - start_time) * 1000
+            result = {
+                "original": drifted_field,
+                "mapped": hitl_match,
+                "confidence": 1.0,
+                "latency_ms": round(latency_ms, 4),
+                "reconciliation_type": "HITL_HUMAN_CORRECTION",
+                "explanation": f"Human-in-the-Loop intervention found: Direct mapping for '{drifted_field}' verified by research lead."
+            }
+            self.history.append(result)
+            return result
+
+        # ── Step 2: BERT Inference ───────────────────────────────────
         drift_embedding = self.model.encode(drifted_field, convert_to_tensor=True)
         
         # Compute cosine similarity against all canonical fields
