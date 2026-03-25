@@ -77,16 +77,16 @@ For mission-critical telemetry, the framework supports manual overrides via the 
 
 ## Experimental Validation & Performance Results
 
-### 1. Reconciliation Ablation Study (n=60)
+### 1. Reconciliation Ablation Study (n=100)
 Comparison of BERT-based reconciliation against character-distance (Levenshtein) and rule-based (Regex) methods.
 
-| Algorithm | Accuracy (n=60) | Avg Latency | 95% CI (ms) | Key Finding |
+| Algorithm | Accuracy (n=100) | Avg Latency | 95% CI (ms) | Key Finding |
 | :--- | :--- | :--- | :--- | :--- |
-| **BERT (all-MiniLM-L6-v2)** | **81.7%** | ~12.5 ms | [11.2, 13.8] | **Dominates Synonym & Namespace drift** |
-| Levenshtein (Distance) | 60.0% | ~0.40 ms | [0.38, 0.42] | Strong on Typos, blind to Synonyms. |
-| Regex (Pattern Matching) | 65.0% | ~0.08 ms | [0.07, 0.09] | Highest on Synonyms via keyword rules. |
+| **BERT (all-MiniLM-L6-v2)** | **70.0%** | ~9.74 ms | [9.63, 9.86] | **Superior Semantic Resilience** |
+| Levenshtein (Distance) | 61.0% | ~0.40 ms | [0.38, 0.42] | Strong on Typos, blind to Synonyms. |
+| Regex (Pattern Matching) | 49.0% | ~0.08 ms | [0.07, 0.09] | Fastest, but brittle rules. |
 
-**Technical Conclusion:** BERT provides the most robust *general-purpose* reconciliation. McNemar's test (BERT vs Levenshtein): χ²=4.12, p=0.042.
+**Technical Conclusion:** BERT provides the most robust *general-purpose* reconciliation, maintaining a 9% lead over character-based methods at N=100. McNemar's p-value (BERT vs Levenshtein): p=0.20. Full report: [ablation_study_results.json](data/reports/ablation_study_results.json).
 
 ### 2. Adversarial Stress Test (N=1000)
 High-volume simulation of extreme schema entropy using the `DriftSimulator`.

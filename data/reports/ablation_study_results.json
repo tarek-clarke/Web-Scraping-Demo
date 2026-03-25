@@ -1,114 +1,114 @@
 {
   "study_config": {
-    "n_test_cases": 60,
+    "n_test_cases": 100,
     "n_latency_trials": 30,
     "canonical_schema_size": 19,
     "drift_categories": [
-      "Abbreviation",
+      "Compound",
+      "Namespace",
+      "Synonym",
       "Unit Variant",
       "Typo",
-      "Compound",
-      "Obfuscated",
-      "Namespace",
+      "Abbreviation",
       "Reorder",
-      "Synonym"
+      "Obfuscated"
     ]
   },
   "overall_accuracy": {
-    "bert": 0.75,
-    "levenshtein": 0.5833,
-    "regex": 0.6
+    "bert": 0.7,
+    "levenshtein": 0.61,
+    "regex": 0.49
   },
   "latency_stats": {
     "bert": {
-      "mean_ms": 10.259255,
-      "std_ms": 4.488327,
+      "mean_ms": 9.746631,
+      "std_ms": 3.064372,
       "ci_95": [
-        10.051712,
-        10.466799
+        9.636913,
+        9.856349
       ]
     },
     "levenshtein": {
-      "mean_ms": 0.448025,
-      "std_ms": 0.121997,
+      "mean_ms": 0.441754,
+      "std_ms": 0.103814,
       "ci_95": [
-        0.442384,
-        0.453666
+        0.438037,
+        0.445471
       ]
     },
     "regex": {
-      "mean_ms": 0.058457,
-      "std_ms": 0.038847,
+      "mean_ms": 0.063474,
+      "std_ms": 0.02904,
       "ci_95": [
-        0.056661,
-        0.060254
+        0.062434,
+        0.064514
       ]
     }
   },
   "mcnemar_tests": {
     "bert_vs_levenshtein": {
-      "chi2": 3.6818,
-      "p_value": 0.055009,
+      "chi2": 1.641,
+      "p_value": 0.200185,
       "significant": false,
-      "b": 16,
-      "c": 6
+      "b": 24,
+      "c": 15
     },
     "bert_vs_regex": {
-      "chi2": 3.3684,
-      "p_value": 0.066457,
-      "significant": false,
-      "b": 14,
-      "c": 5
+      "chi2": 11.4286,
+      "p_value": 0.000723,
+      "significant": true,
+      "b": 28,
+      "c": 7
     }
   },
   "per_category": {
     "Typo": {
-      "n": 8,
-      "bert_accuracy": 0.625,
+      "n": 13,
+      "bert_accuracy": 0.6154,
       "levenshtein_accuracy": 1.0,
-      "regex_accuracy": 0.25
+      "regex_accuracy": 0.2308
     },
     "Abbreviation": {
-      "n": 9,
-      "bert_accuracy": 0.7778,
-      "levenshtein_accuracy": 0.6667,
-      "regex_accuracy": 0.3333
+      "n": 14,
+      "bert_accuracy": 0.5,
+      "levenshtein_accuracy": 0.7143,
+      "regex_accuracy": 0.2143
     },
     "Synonym": {
-      "n": 13,
-      "bert_accuracy": 0.6923,
-      "levenshtein_accuracy": 0.0769,
-      "regex_accuracy": 0.7692
+      "n": 23,
+      "bert_accuracy": 0.6957,
+      "levenshtein_accuracy": 0.1739,
+      "regex_accuracy": 0.5217
     },
     "Namespace": {
-      "n": 7,
-      "bert_accuracy": 1.0,
-      "levenshtein_accuracy": 0.5714,
-      "regex_accuracy": 0.5714
+      "n": 12,
+      "bert_accuracy": 0.9167,
+      "levenshtein_accuracy": 0.5,
+      "regex_accuracy": 0.5833
     },
     "Obfuscated": {
-      "n": 6,
-      "bert_accuracy": 0.6667,
+      "n": 11,
+      "bert_accuracy": 0.4545,
+      "levenshtein_accuracy": 0.7273,
+      "regex_accuracy": 0.4545
+    },
+    "Unit Variant": {
+      "n": 11,
+      "bert_accuracy": 1.0,
+      "levenshtein_accuracy": 1.0,
+      "regex_accuracy": 0.9091
+    },
+    "Reorder": {
+      "n": 9,
+      "bert_accuracy": 1.0,
       "levenshtein_accuracy": 0.6667,
       "regex_accuracy": 0.6667
     },
-    "Unit Variant": {
-      "n": 6,
-      "bert_accuracy": 1.0,
-      "levenshtein_accuracy": 1.0,
-      "regex_accuracy": 1.0
-    },
-    "Reorder": {
-      "n": 5,
-      "bert_accuracy": 1.0,
-      "levenshtein_accuracy": 0.6,
-      "regex_accuracy": 1.0
-    },
     "Compound": {
-      "n": 6,
-      "bert_accuracy": 0.3333,
-      "levenshtein_accuracy": 0.5,
-      "regex_accuracy": 0.3333
+      "n": 7,
+      "bert_accuracy": 0.4286,
+      "levenshtein_accuracy": 0.4286,
+      "regex_accuracy": 0.4286
     }
   },
   "per_case_results": [
@@ -122,9 +122,9 @@
       "leven_result": "speed",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 12.77556,
-      "leven_latency_mean_ms": 0.320579,
-      "regex_latency_mean_ms": 0.113508
+      "bert_latency_mean_ms": 12.90115,
+      "leven_latency_mean_ms": 0.331394,
+      "regex_latency_mean_ms": 0.117892
     },
     {
       "drifted": "rmp",
@@ -136,9 +136,9 @@
       "leven_result": "rpm",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 9.510912,
-      "leven_latency_mean_ms": 0.222358,
-      "regex_latency_mean_ms": 0.063267
+      "bert_latency_mean_ms": 10.840218,
+      "leven_latency_mean_ms": 0.226868,
+      "regex_latency_mean_ms": 0.070183
     },
     {
       "drifted": "throtle",
@@ -150,9 +150,9 @@
       "leven_result": "throttle",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 8.017038,
-      "leven_latency_mean_ms": 0.347379,
-      "regex_latency_mean_ms": 0.059942
+      "bert_latency_mean_ms": 8.596464,
+      "leven_latency_mean_ms": 0.353172,
+      "regex_latency_mean_ms": 0.065764
     },
     {
       "drifted": "brak_temp",
@@ -164,9 +164,9 @@
       "leven_result": "brake_temp",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 9.5756,
-      "leven_latency_mean_ms": 0.352896,
-      "regex_latency_mean_ms": 0.064017
+      "bert_latency_mean_ms": 9.569322,
+      "leven_latency_mean_ms": 0.353225,
+      "regex_latency_mean_ms": 0.067833
     },
     {
       "drifted": "enigne_temp",
@@ -178,9 +178,9 @@
       "leven_result": "engine_temp",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 10.33579,
-      "leven_latency_mean_ms": 0.369439,
-      "regex_latency_mean_ms": 0.070661
+      "bert_latency_mean_ms": 11.080568,
+      "leven_latency_mean_ms": 0.375354,
+      "regex_latency_mean_ms": 0.082883
     },
     {
       "drifted": "oil_presure_psi",
@@ -192,9 +192,9 @@
       "leven_result": "oil_pressure_psi",
       "regex_correct": true,
       "regex_result": "oil_pressure_psi",
-      "bert_latency_mean_ms": 11.94442,
-      "leven_latency_mean_ms": 0.519432,
-      "regex_latency_mean_ms": 0.050958
+      "bert_latency_mean_ms": 11.994894,
+      "leven_latency_mean_ms": 0.50464,
+      "regex_latency_mean_ms": 0.070185
     },
     {
       "drifted": "spd",
@@ -206,9 +206,9 @@
       "leven_result": "speed",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 10.714096,
-      "leven_latency_mean_ms": 0.21025,
-      "regex_latency_mean_ms": 0.063689
+      "bert_latency_mean_ms": 10.908601,
+      "leven_latency_mean_ms": 0.218893,
+      "regex_latency_mean_ms": 0.074878
     },
     {
       "drifted": "brk_temp",
@@ -220,9 +220,9 @@
       "leven_result": "brake_temp",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 10.091489,
-      "leven_latency_mean_ms": 0.441444,
-      "regex_latency_mean_ms": 0.075701
+      "bert_latency_mean_ms": 9.34579,
+      "leven_latency_mean_ms": 0.380613,
+      "regex_latency_mean_ms": 0.074644
     },
     {
       "drifted": "eng_temp",
@@ -234,9 +234,9 @@
       "leven_result": "engine_temp",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 9.66106,
-      "leven_latency_mean_ms": 0.332386,
-      "regex_latency_mean_ms": 0.065807
+      "bert_latency_mean_ms": 10.386458,
+      "leven_latency_mean_ms": 0.340967,
+      "regex_latency_mean_ms": 0.073131
     },
     {
       "drifted": "coolant_temp_c",
@@ -248,9 +248,9 @@
       "leven_result": "coolant_temperature_c",
       "regex_correct": true,
       "regex_result": "coolant_temperature_c",
-      "bert_latency_mean_ms": 12.147879,
-      "leven_latency_mean_ms": 0.463079,
-      "regex_latency_mean_ms": 0.05266
+      "bert_latency_mean_ms": 11.265172,
+      "leven_latency_mean_ms": 0.47429,
+      "regex_latency_mean_ms": 0.061186
     },
     {
       "drifted": "tyre_pres",
@@ -262,9 +262,9 @@
       "leven_result": "tyre_pressure",
       "regex_correct": true,
       "regex_result": "tyre_pressure",
-      "bert_latency_mean_ms": 10.723458,
-      "leven_latency_mean_ms": 0.383774,
-      "regex_latency_mean_ms": 0.038456
+      "bert_latency_mean_ms": 10.448533,
+      "leven_latency_mean_ms": 0.39103,
+      "regex_latency_mean_ms": 0.042301
     },
     {
       "drifted": "steer_ang",
@@ -276,9 +276,9 @@
       "leven_result": "steering_angle",
       "regex_correct": true,
       "regex_result": "steering_angle",
-      "bert_latency_mean_ms": 8.320101,
-      "leven_latency_mean_ms": 0.386699,
-      "regex_latency_mean_ms": 0.054182
+      "bert_latency_mean_ms": 8.376487,
+      "leven_latency_mean_ms": 0.387507,
+      "regex_latency_mean_ms": 0.057576
     },
     {
       "drifted": "hr",
@@ -290,9 +290,9 @@
       "leven_result": "rpm",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 8.954719,
-      "leven_latency_mean_ms": 0.188249,
-      "regex_latency_mean_ms": 0.062989
+      "bert_latency_mean_ms": 7.872368,
+      "leven_latency_mean_ms": 0.185479,
+      "regex_latency_mean_ms": 0.060078
     },
     {
       "drifted": "velocity_kph",
@@ -304,9 +304,9 @@
       "leven_result": "engine_temp",
       "regex_correct": true,
       "regex_result": "speed",
-      "bert_latency_mean_ms": 8.206013,
-      "leven_latency_mean_ms": 0.412579,
-      "regex_latency_mean_ms": 0.036386
+      "bert_latency_mean_ms": 8.44984,
+      "leven_latency_mean_ms": 0.418169,
+      "regex_latency_mean_ms": 0.03794
     },
     {
       "drifted": "engine_revolutions",
@@ -318,9 +318,9 @@
       "leven_result": "engine_temp",
       "regex_correct": true,
       "regex_result": "rpm",
-      "bert_latency_mean_ms": 8.538193,
-      "leven_latency_mean_ms": 0.483947,
-      "regex_latency_mean_ms": 0.025795
+      "bert_latency_mean_ms": 9.958686,
+      "leven_latency_mean_ms": 0.527568,
+      "regex_latency_mean_ms": 0.037482
     },
     {
       "drifted": "gas_pedal_pct",
@@ -332,9 +332,9 @@
       "leven_result": "speed",
       "regex_correct": true,
       "regex_result": "throttle",
-      "bert_latency_mean_ms": 8.142322,
-      "leven_latency_mean_ms": 0.463874,
-      "regex_latency_mean_ms": 0.030328
+      "bert_latency_mean_ms": 9.843024,
+      "leven_latency_mean_ms": 0.489751,
+      "regex_latency_mean_ms": 0.039304
     },
     {
       "drifted": "disc_temperature",
@@ -346,9 +346,9 @@
       "leven_result": "oil_temperature_c",
       "regex_correct": true,
       "regex_result": "brake_temp",
-      "bert_latency_mean_ms": 9.606118,
-      "leven_latency_mean_ms": 0.439406,
-      "regex_latency_mean_ms": 0.036997
+      "bert_latency_mean_ms": 9.706714,
+      "leven_latency_mean_ms": 0.449801,
+      "regex_latency_mean_ms": 0.038342
     },
     {
       "drifted": "motor_thermal_c",
@@ -360,9 +360,9 @@
       "leven_result": "g_force_lateral",
       "regex_correct": true,
       "regex_result": "engine_temp",
-      "bert_latency_mean_ms": 8.86117,
-      "leven_latency_mean_ms": 0.520125,
-      "regex_latency_mean_ms": 0.017783
+      "bert_latency_mean_ms": 8.036254,
+      "leven_latency_mean_ms": 0.508158,
+      "regex_latency_mean_ms": 0.015931
     },
     {
       "drifted": "downforce_newtons",
@@ -374,9 +374,9 @@
       "leven_result": "g_force_lateral",
       "regex_correct": true,
       "regex_result": "aero_load",
-      "bert_latency_mean_ms": 8.178025,
-      "leven_latency_mean_ms": 0.479292,
-      "regex_latency_mean_ms": 0.031892
+      "bert_latency_mean_ms": 7.745654,
+      "leven_latency_mean_ms": 0.477963,
+      "regex_latency_mean_ms": 0.033843
     },
     {
       "drifted": "lubricant_thermal_deg",
@@ -388,9 +388,9 @@
       "leven_result": "coolant_temperature_c",
       "regex_correct": true,
       "regex_result": "oil_temperature_c",
-      "bert_latency_mean_ms": 12.209568,
-      "leven_latency_mean_ms": 0.613337,
-      "regex_latency_mean_ms": 0.044351
+      "bert_latency_mean_ms": 11.717276,
+      "leven_latency_mean_ms": 0.617346,
+      "regex_latency_mean_ms": 0.046147
     },
     {
       "drifted": "gas_reserve_pct",
@@ -402,9 +402,9 @@
       "leven_result": "oil_pressure_psi",
       "regex_correct": true,
       "regex_result": "fuel_level_percent",
-      "bert_latency_mean_ms": 10.624079,
-      "leven_latency_mean_ms": 0.521992,
-      "regex_latency_mean_ms": 0.027529
+      "bert_latency_mean_ms": 10.194131,
+      "leven_latency_mean_ms": 0.516551,
+      "regex_latency_mean_ms": 0.027031
     },
     {
       "drifted": "driver_pulse_bpm",
@@ -416,9 +416,9 @@
       "leven_result": "oil_pressure_psi",
       "regex_correct": true,
       "regex_result": "heart_rate",
-      "bert_latency_mean_ms": 10.939669,
-      "leven_latency_mean_ms": 0.53135,
-      "regex_latency_mean_ms": 0.060807
+      "bert_latency_mean_ms": 9.676107,
+      "leven_latency_mean_ms": 0.531396,
+      "regex_latency_mean_ms": 0.058083
     },
     {
       "drifted": "fuel_tank_remaining",
@@ -430,9 +430,9 @@
       "leven_result": "brake_temp",
       "regex_correct": true,
       "regex_result": "fuel_level_percent",
-      "bert_latency_mean_ms": 9.088854,
-      "leven_latency_mean_ms": 0.571121,
-      "regex_latency_mean_ms": 0.058392
+      "bert_latency_mean_ms": 8.163835,
+      "leven_latency_mean_ms": 0.56541,
+      "regex_latency_mean_ms": 0.060797
     },
     {
       "drifted": "car.telemetry.speed_kph",
@@ -444,9 +444,9 @@
       "leven_result": "coolant_temperature_c",
       "regex_correct": true,
       "regex_result": "speed",
-      "bert_latency_mean_ms": 11.458407,
-      "leven_latency_mean_ms": 0.634504,
-      "regex_latency_mean_ms": 0.058835
+      "bert_latency_mean_ms": 11.607118,
+      "leven_latency_mean_ms": 0.638358,
+      "regex_latency_mean_ms": 0.060032
     },
     {
       "drifted": "sensor.engine.rpm",
@@ -458,9 +458,9 @@
       "leven_result": "engine_temp",
       "regex_correct": true,
       "regex_result": "rpm",
-      "bert_latency_mean_ms": 9.470061,
-      "leven_latency_mean_ms": 0.522599,
-      "regex_latency_mean_ms": 0.065232
+      "bert_latency_mean_ms": 10.001665,
+      "leven_latency_mean_ms": 0.523212,
+      "regex_latency_mean_ms": 0.067735
     },
     {
       "drifted": "telemetry.brake.front.psi",
@@ -472,9 +472,9 @@
       "leven_result": "brake_pressure_front",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 11.182901,
-      "leven_latency_mean_ms": 0.634626,
-      "regex_latency_mean_ms": 0.088583
+      "bert_latency_mean_ms": 9.27749,
+      "leven_latency_mean_ms": 0.614703,
+      "regex_latency_mean_ms": 0.076392
     },
     {
       "drifted": "vehicle.tyre.pressure",
@@ -486,9 +486,9 @@
       "leven_result": "tyre_pressure",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 10.214446,
-      "leven_latency_mean_ms": 0.617485,
-      "regex_latency_mean_ms": 0.074774
+      "bert_latency_mean_ms": 9.74281,
+      "leven_latency_mean_ms": 0.612412,
+      "regex_latency_mean_ms": 0.072696
     },
     {
       "drifted": "daq.ecu.canbus_raw",
@@ -500,9 +500,9 @@
       "leven_result": "ecu_canbus",
       "regex_correct": true,
       "regex_result": "ecu_canbus",
-      "bert_latency_mean_ms": 10.87024,
-      "leven_latency_mean_ms": 0.469664,
-      "regex_latency_mean_ms": 0.058335
+      "bert_latency_mean_ms": 10.536079,
+      "leven_latency_mean_ms": 0.477578,
+      "regex_latency_mean_ms": 0.059329
     },
     {
       "drifted": "car.driver.heart_rate",
@@ -514,9 +514,9 @@
       "leven_result": "heart_rate",
       "regex_correct": true,
       "regex_result": "heart_rate",
-      "bert_latency_mean_ms": 14.011007,
-      "leven_latency_mean_ms": 0.612876,
-      "regex_latency_mean_ms": 0.073568
+      "bert_latency_mean_ms": 11.898646,
+      "leven_latency_mean_ms": 0.602494,
+      "regex_latency_mean_ms": 0.071279
     },
     {
       "drifted": "sig_0x3F_lat",
@@ -528,9 +528,9 @@
       "leven_result": "g_force_lateral",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 11.409364,
-      "leven_latency_mean_ms": 0.358442,
-      "regex_latency_mean_ms": 0.069986
+      "bert_latency_mean_ms": 12.081108,
+      "leven_latency_mean_ms": 0.380132,
+      "regex_latency_mean_ms": 0.084044
     },
     {
       "drifted": "sys_clutch_val",
@@ -542,9 +542,9 @@
       "leven_result": "clutch_position",
       "regex_correct": true,
       "regex_result": "clutch_position",
-      "bert_latency_mean_ms": 10.819836,
-      "leven_latency_mean_ms": 0.425725,
-      "regex_latency_mean_ms": 0.055151
+      "bert_latency_mean_ms": 11.667495,
+      "leven_latency_mean_ms": 0.436901,
+      "regex_latency_mean_ms": 0.063486
     },
     {
       "drifted": "ch12_analog_psi",
@@ -556,9 +556,9 @@
       "leven_result": "ecu_canbus",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 10.99997,
-      "leven_latency_mean_ms": 0.455521,
-      "regex_latency_mean_ms": 0.075522
+      "bert_latency_mean_ms": 11.694017,
+      "leven_latency_mean_ms": 0.460843,
+      "regex_latency_mean_ms": 0.079949
     },
     {
       "drifted": "pid_0x0C_rev",
@@ -570,9 +570,9 @@
       "leven_result": "heart_rate",
       "regex_correct": true,
       "regex_result": "rpm",
-      "bert_latency_mean_ms": 11.282147,
-      "leven_latency_mean_ms": 0.343046,
-      "regex_latency_mean_ms": 0.065408
+      "bert_latency_mean_ms": 12.201836,
+      "leven_latency_mean_ms": 0.361203,
+      "regex_latency_mean_ms": 0.083424
     },
     {
       "drifted": "ecu_raw_0xA1",
@@ -584,9 +584,9 @@
       "leven_result": "ecu_canbus",
       "regex_correct": true,
       "regex_result": "ecu_canbus",
-      "bert_latency_mean_ms": 12.289686,
-      "leven_latency_mean_ms": 0.435026,
-      "regex_latency_mean_ms": 0.081499
+      "bert_latency_mean_ms": 12.733715,
+      "leven_latency_mean_ms": 0.440826,
+      "regex_latency_mean_ms": 0.080808
     },
     {
       "drifted": "speed_mph",
@@ -598,9 +598,9 @@
       "leven_result": "speed",
       "regex_correct": true,
       "regex_result": "speed",
-      "bert_latency_mean_ms": 9.326667,
-      "leven_latency_mean_ms": 0.353322,
-      "regex_latency_mean_ms": 0.054076
+      "bert_latency_mean_ms": 9.495818,
+      "leven_latency_mean_ms": 0.3573,
+      "regex_latency_mean_ms": 0.054905
     },
     {
       "drifted": "tyre_pressure_bar",
@@ -612,9 +612,9 @@
       "leven_result": "tyre_pressure",
       "regex_correct": true,
       "regex_result": "tyre_pressure",
-      "bert_latency_mean_ms": 8.24886,
-      "leven_latency_mean_ms": 0.502307,
-      "regex_latency_mean_ms": 0.017856
+      "bert_latency_mean_ms": 8.969637,
+      "leven_latency_mean_ms": 0.510788,
+      "regex_latency_mean_ms": 0.022821
     },
     {
       "drifted": "oil_temp_fahrenheit",
@@ -626,9 +626,9 @@
       "leven_result": "oil_temperature_c",
       "regex_correct": true,
       "regex_result": "oil_temperature_c",
-      "bert_latency_mean_ms": 9.686546,
-      "leven_latency_mean_ms": 0.578151,
-      "regex_latency_mean_ms": 0.048945
+      "bert_latency_mean_ms": 10.010399,
+      "leven_latency_mean_ms": 0.569186,
+      "regex_latency_mean_ms": 0.049529
     },
     {
       "drifted": "brake_temp_kelvin",
@@ -640,9 +640,9 @@
       "leven_result": "brake_temp",
       "regex_correct": true,
       "regex_result": "brake_temp",
-      "bert_latency_mean_ms": 10.888196,
-      "leven_latency_mean_ms": 0.472803,
-      "regex_latency_mean_ms": 0.033063
+      "bert_latency_mean_ms": 11.217214,
+      "leven_latency_mean_ms": 0.470571,
+      "regex_latency_mean_ms": 0.033574
     },
     {
       "drifted": "coolant_temp_f",
@@ -654,9 +654,9 @@
       "leven_result": "coolant_temperature_c",
       "regex_correct": true,
       "regex_result": "coolant_temperature_c",
-      "bert_latency_mean_ms": 11.424818,
-      "leven_latency_mean_ms": 0.460025,
-      "regex_latency_mean_ms": 0.050143
+      "bert_latency_mean_ms": 11.600742,
+      "leven_latency_mean_ms": 0.482551,
+      "regex_latency_mean_ms": 0.060997
     },
     {
       "drifted": "engine_temp_kelvin",
@@ -668,9 +668,9 @@
       "leven_result": "engine_temp",
       "regex_correct": true,
       "regex_result": "engine_temp",
-      "bert_latency_mean_ms": 10.716439,
-      "leven_latency_mean_ms": 0.47769,
-      "regex_latency_mean_ms": 0.029724
+      "bert_latency_mean_ms": 11.692757,
+      "leven_latency_mean_ms": 0.477333,
+      "regex_latency_mean_ms": 0.032408
     },
     {
       "drifted": "lateral_force_g",
@@ -682,9 +682,9 @@
       "leven_result": "oil_temperature_c",
       "regex_correct": true,
       "regex_result": "g_force_lateral",
-      "bert_latency_mean_ms": 9.408765,
-      "leven_latency_mean_ms": 0.502611,
-      "regex_latency_mean_ms": 0.047336
+      "bert_latency_mean_ms": 10.291646,
+      "leven_latency_mean_ms": 0.513469,
+      "regex_latency_mean_ms": 0.054228
     },
     {
       "drifted": "front_brake_pressure",
@@ -696,9 +696,9 @@
       "leven_result": "brake_pressure_rear",
       "regex_correct": true,
       "regex_result": "brake_pressure_front",
-      "bert_latency_mean_ms": 8.371076,
-      "leven_latency_mean_ms": 0.551674,
-      "regex_latency_mean_ms": 0.024695
+      "bert_latency_mean_ms": 8.713,
+      "leven_latency_mean_ms": 0.552206,
+      "regex_latency_mean_ms": 0.028047
     },
     {
       "drifted": "rear_brake_pressure",
@@ -710,9 +710,9 @@
       "leven_result": "brake_pressure_rear",
       "regex_correct": true,
       "regex_result": "brake_pressure_rear",
-      "bert_latency_mean_ms": 8.438394,
-      "leven_latency_mean_ms": 0.520554,
-      "regex_latency_mean_ms": 0.028829
+      "bert_latency_mean_ms": 8.836871,
+      "leven_latency_mean_ms": 0.526093,
+      "regex_latency_mean_ms": 0.031535
     },
     {
       "drifted": "angle_steering",
@@ -724,9 +724,9 @@
       "leven_result": "steering_angle",
       "regex_correct": true,
       "regex_result": "steering_angle",
-      "bert_latency_mean_ms": 8.208042,
-      "leven_latency_mean_ms": 0.45656,
-      "regex_latency_mean_ms": 0.044332
+      "bert_latency_mean_ms": 8.049615,
+      "leven_latency_mean_ms": 0.454882,
+      "regex_latency_mean_ms": 0.041867
     },
     {
       "drifted": "position_clutch",
@@ -738,9 +738,9 @@
       "leven_result": "clutch_position",
       "regex_correct": true,
       "regex_result": "clutch_position",
-      "bert_latency_mean_ms": 8.366844,
-      "leven_latency_mean_ms": 0.427975,
-      "regex_latency_mean_ms": 0.050528
+      "bert_latency_mean_ms": 8.674464,
+      "leven_latency_mean_ms": 0.423981,
+      "regex_latency_mean_ms": 0.052004
     },
     {
       "drifted": "eng_vel_rev_min",
@@ -752,9 +752,9 @@
       "leven_result": "fuel_level_percent",
       "regex_correct": true,
       "regex_result": "rpm",
-      "bert_latency_mean_ms": 9.340122,
-      "leven_latency_mean_ms": 0.491226,
-      "regex_latency_mean_ms": 0.068378
+      "bert_latency_mean_ms": 10.046644,
+      "leven_latency_mean_ms": 0.496264,
+      "regex_latency_mean_ms": 0.072199
     },
     {
       "drifted": "brk_frnt_psi",
@@ -766,9 +766,9 @@
       "leven_result": "brake_temp",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 10.88743,
-      "leven_latency_mean_ms": 0.446065,
-      "regex_latency_mean_ms": 0.071732
+      "bert_latency_mean_ms": 12.158377,
+      "leven_latency_mean_ms": 0.466332,
+      "regex_latency_mean_ms": 0.086458
     },
     {
       "drifted": "lube_press_pounds",
@@ -780,9 +780,9 @@
       "leven_result": "oil_pressure_psi",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 10.527867,
-      "leven_latency_mean_ms": 0.498638,
-      "regex_latency_mean_ms": 0.075751
+      "bert_latency_mean_ms": 12.295714,
+      "leven_latency_mean_ms": 0.544903,
+      "regex_latency_mean_ms": 0.100947
     },
     {
       "drifted": "aero_dwnfrc_kn",
@@ -794,9 +794,9 @@
       "leven_result": "aero_load",
       "regex_correct": true,
       "regex_result": "aero_load",
-      "bert_latency_mean_ms": 10.666272,
-      "leven_latency_mean_ms": 0.467669,
-      "regex_latency_mean_ms": 0.065462
+      "bert_latency_mean_ms": 11.545928,
+      "leven_latency_mean_ms": 0.485431,
+      "regex_latency_mean_ms": 0.072862
     },
     {
       "drifted": "cool_h2o_temp",
@@ -808,9 +808,9 @@
       "leven_result": "coolant_temperature_c",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 10.718281,
-      "leven_latency_mean_ms": 0.418708,
-      "regex_latency_mean_ms": 0.074908
+      "bert_latency_mean_ms": 11.823638,
+      "leven_latency_mean_ms": 0.42758,
+      "regex_latency_mean_ms": 0.082003
     },
     {
       "drifted": "spid",
@@ -822,9 +822,9 @@
       "leven_result": "speed",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 9.27576,
-      "leven_latency_mean_ms": 0.23203,
-      "regex_latency_mean_ms": 0.067161
+      "bert_latency_mean_ms": 9.517101,
+      "leven_latency_mean_ms": 0.232643,
+      "regex_latency_mean_ms": 0.067856
     },
     {
       "drifted": "rpm_val",
@@ -836,9 +836,9 @@
       "leven_result": "rpm",
       "regex_correct": true,
       "regex_result": "rpm",
-      "bert_latency_mean_ms": 8.056358,
-      "leven_latency_mean_ms": 0.340981,
-      "regex_latency_mean_ms": 0.057857
+      "bert_latency_mean_ms": 8.35951,
+      "leven_latency_mean_ms": 0.338551,
+      "regex_latency_mean_ms": 0.059083
     },
     {
       "drifted": "prs_tyr",
@@ -850,9 +850,9 @@
       "leven_result": "brake_pressure_rear",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 8.230081,
-      "leven_latency_mean_ms": 0.354346,
-      "regex_latency_mean_ms": 0.060814
+      "bert_latency_mean_ms": 8.052649,
+      "leven_latency_mean_ms": 0.345357,
+      "regex_latency_mean_ms": 0.059778
     },
     {
       "drifted": "v_max",
@@ -864,9 +864,9 @@
       "leven_result": "aero_load",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 7.826489,
-      "leven_latency_mean_ms": 0.30416,
-      "regex_latency_mean_ms": 0.059224
+      "bert_latency_mean_ms": 8.428976,
+      "leven_latency_mean_ms": 0.292496,
+      "regex_latency_mean_ms": 0.065067
     },
     {
       "drifted": "combustion_heat",
@@ -878,9 +878,9 @@
       "leven_result": "clutch_position",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 8.325122,
-      "leven_latency_mean_ms": 0.466204,
-      "regex_latency_mean_ms": 0.065792
+      "bert_latency_mean_ms": 8.039305,
+      "leven_latency_mean_ms": 0.457869,
+      "regex_latency_mean_ms": 0.065242
     },
     {
       "drifted": "inertial_force",
@@ -892,9 +892,9 @@
       "leven_result": "heart_rate",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 8.536694,
-      "leven_latency_mean_ms": 0.468493,
-      "regex_latency_mean_ms": 0.063639
+      "bert_latency_mean_ms": 8.628894,
+      "leven_latency_mean_ms": 0.481196,
+      "regex_latency_mean_ms": 0.068907
     },
     {
       "drifted": "fluid_depth",
@@ -906,9 +906,9 @@
       "leven_result": "fuel_level_percent",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 8.116946,
-      "leven_latency_mean_ms": 0.418987,
-      "regex_latency_mean_ms": 0.065793
+      "bert_latency_mean_ms": 8.182319,
+      "leven_latency_mean_ms": 0.410217,
+      "regex_latency_mean_ms": 0.063758
     },
     {
       "drifted": "telemetry.oil.temp",
@@ -920,9 +920,9 @@
       "leven_result": "engine_temp",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 15.019253,
-      "leven_latency_mean_ms": 0.611314,
-      "regex_latency_mean_ms": 0.112208
+      "bert_latency_mean_ms": 9.540157,
+      "leven_latency_mean_ms": 0.493682,
+      "regex_latency_mean_ms": 0.072071
     },
     {
       "drifted": "id_0xFE_gear",
@@ -934,9 +934,9 @@
       "leven_result": "gear_engaged",
       "regex_correct": true,
       "regex_result": "gear_engaged",
-      "bert_latency_mean_ms": 18.267707,
-      "leven_latency_mean_ms": 0.471172,
-      "regex_latency_mean_ms": 0.101503
+      "bert_latency_mean_ms": 11.968099,
+      "leven_latency_mean_ms": 0.427407,
+      "regex_latency_mean_ms": 0.073583
     },
     {
       "drifted": "max_v_ms",
@@ -948,9 +948,569 @@
       "leven_result": "oil_pressure_psi",
       "regex_correct": false,
       "regex_result": "unknown",
-      "bert_latency_mean_ms": 17.502093,
-      "leven_latency_mean_ms": 0.503342,
-      "regex_latency_mean_ms": 0.094712
+      "bert_latency_mean_ms": 9.331824,
+      "leven_latency_mean_ms": 0.339944,
+      "regex_latency_mean_ms": 0.066447
+    },
+    {
+      "drifted": "speeed_kph",
+      "expected": "speed",
+      "type": "Typo",
+      "bert_correct": false,
+      "bert_result": "ecu_canbus",
+      "leven_correct": true,
+      "leven_result": "speed",
+      "regex_correct": true,
+      "regex_result": "speed",
+      "bert_latency_mean_ms": 9.421361,
+      "leven_latency_mean_ms": 0.369072,
+      "regex_latency_mean_ms": 0.068854
+    },
+    {
+      "drifted": "r.p.m",
+      "expected": "rpm",
+      "type": "Typo",
+      "bert_correct": false,
+      "bert_result": "gear_engaged",
+      "leven_correct": true,
+      "leven_result": "rpm",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 9.838981,
+      "leven_latency_mean_ms": 0.26799,
+      "regex_latency_mean_ms": 0.070831
+    },
+    {
+      "drifted": "throtel",
+      "expected": "throttle",
+      "type": "Typo",
+      "bert_correct": true,
+      "bert_result": "throttle",
+      "leven_correct": true,
+      "leven_result": "throttle",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 9.637467,
+      "leven_latency_mean_ms": 0.346504,
+      "regex_latency_mean_ms": 0.069421
+    },
+    {
+      "drifted": "brk_tmp",
+      "expected": "brake_temp",
+      "type": "Typo",
+      "bert_correct": true,
+      "bert_result": "brake_temp",
+      "leven_correct": true,
+      "leven_result": "brake_temp",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 9.126862,
+      "leven_latency_mean_ms": 0.345832,
+      "regex_latency_mean_ms": 0.065511
+    },
+    {
+      "drifted": "eng_tmp",
+      "expected": "engine_temp",
+      "type": "Typo",
+      "bert_correct": true,
+      "bert_result": "engine_temp",
+      "leven_correct": true,
+      "leven_result": "engine_temp",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 8.349893,
+      "leven_latency_mean_ms": 0.303803,
+      "regex_latency_mean_ms": 0.062125
+    },
+    {
+      "drifted": "vel",
+      "expected": "speed",
+      "type": "Abbreviation",
+      "bert_correct": false,
+      "bert_result": "gear_engaged",
+      "leven_correct": false,
+      "leven_result": "aero_load",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 8.175415,
+      "leven_latency_mean_ms": 0.234731,
+      "regex_latency_mean_ms": 0.062324
+    },
+    {
+      "drifted": "t_press",
+      "expected": "tyre_pressure",
+      "type": "Abbreviation",
+      "bert_correct": false,
+      "bert_result": "oil_pressure_psi",
+      "leven_correct": true,
+      "leven_result": "tyre_pressure",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 8.002828,
+      "leven_latency_mean_ms": 0.331769,
+      "regex_latency_mean_ms": 0.063401
+    },
+    {
+      "drifted": "st_ang",
+      "expected": "steering_angle",
+      "type": "Abbreviation",
+      "bert_correct": false,
+      "bert_result": "heart_rate",
+      "leven_correct": true,
+      "leven_result": "steering_angle",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 8.935874,
+      "leven_latency_mean_ms": 0.31323,
+      "regex_latency_mean_ms": 0.068737
+    },
+    {
+      "drifted": "clt_pos",
+      "expected": "clutch_position",
+      "type": "Abbreviation",
+      "bert_correct": false,
+      "bert_result": "ecu_canbus",
+      "leven_correct": true,
+      "leven_result": "clutch_position",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 9.486793,
+      "leven_latency_mean_ms": 0.345261,
+      "regex_latency_mean_ms": 0.076506
+    },
+    {
+      "drifted": "f_lvl",
+      "expected": "fuel_level_percent",
+      "type": "Abbreviation",
+      "bert_correct": false,
+      "bert_result": "tyre_pressure",
+      "leven_correct": true,
+      "leven_result": "fuel_level_percent",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 8.326579,
+      "leven_latency_mean_ms": 0.256142,
+      "regex_latency_mean_ms": 0.062444
+    },
+    {
+      "drifted": "rate_of_travel",
+      "expected": "speed",
+      "type": "Synonym",
+      "bert_correct": false,
+      "bert_result": "heart_rate",
+      "leven_correct": false,
+      "leven_result": "g_force_lateral",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 8.745194,
+      "leven_latency_mean_ms": 0.484318,
+      "regex_latency_mean_ms": 0.073356
+    },
+    {
+      "drifted": "crankshaft_velocity",
+      "expected": "rpm",
+      "type": "Synonym",
+      "bert_correct": false,
+      "bert_result": "heart_rate",
+      "leven_correct": false,
+      "leven_result": "fuel_level_percent",
+      "regex_correct": false,
+      "regex_result": "speed",
+      "bert_latency_mean_ms": 8.857322,
+      "leven_latency_mean_ms": 0.552758,
+      "regex_latency_mean_ms": 0.043431
+    },
+    {
+      "drifted": "accelerator_input",
+      "expected": "throttle",
+      "type": "Synonym",
+      "bert_correct": false,
+      "bert_result": "heart_rate",
+      "leven_correct": false,
+      "leven_result": "coolant_temperature_c",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 8.582886,
+      "leven_latency_mean_ms": 0.50686,
+      "regex_latency_mean_ms": 0.073581
+    },
+    {
+      "drifted": "rotor_temperature",
+      "expected": "brake_temp",
+      "type": "Synonym",
+      "bert_correct": true,
+      "bert_result": "brake_temp",
+      "leven_correct": false,
+      "leven_result": "oil_temperature_c",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 9.868797,
+      "leven_latency_mean_ms": 0.567847,
+      "regex_latency_mean_ms": 0.077562
+    },
+    {
+      "drifted": "cylinder_head_temp",
+      "expected": "engine_temp",
+      "type": "Synonym",
+      "bert_correct": true,
+      "bert_result": "engine_temp",
+      "leven_correct": true,
+      "leven_result": "engine_temp",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 10.078962,
+      "leven_latency_mean_ms": 0.548215,
+      "regex_latency_mean_ms": 0.081018
+    },
+    {
+      "drifted": "vertical_aero_dynamic",
+      "expected": "aero_load",
+      "type": "Synonym",
+      "bert_correct": true,
+      "bert_result": "aero_load",
+      "leven_correct": true,
+      "leven_result": "aero_load",
+      "regex_correct": true,
+      "regex_result": "aero_load",
+      "bert_latency_mean_ms": 9.972643,
+      "leven_latency_mean_ms": 0.639004,
+      "regex_latency_mean_ms": 0.069172
+    },
+    {
+      "drifted": "rubber_inflation",
+      "expected": "tyre_pressure",
+      "type": "Synonym",
+      "bert_correct": true,
+      "bert_result": "tyre_pressure",
+      "leven_correct": false,
+      "leven_result": "clutch_position",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 8.173182,
+      "leven_latency_mean_ms": 0.537288,
+      "regex_latency_mean_ms": 0.067289
+    },
+    {
+      "drifted": "cardiac_frequency",
+      "expected": "heart_rate",
+      "type": "Synonym",
+      "bert_correct": true,
+      "bert_result": "heart_rate",
+      "leven_correct": false,
+      "leven_result": "coolant_temperature_c",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 8.653023,
+      "leven_latency_mean_ms": 0.506507,
+      "regex_latency_mean_ms": 0.070972
+    },
+    {
+      "drifted": "side_g_force",
+      "expected": "g_force_lateral",
+      "type": "Synonym",
+      "bert_correct": true,
+      "bert_result": "g_force_lateral",
+      "leven_correct": true,
+      "leven_result": "g_force_lateral",
+      "regex_correct": true,
+      "regex_result": "g_force_lateral",
+      "bert_latency_mean_ms": 8.561,
+      "leven_latency_mean_ms": 0.391868,
+      "regex_latency_mean_ms": 0.04979
+    },
+    {
+      "drifted": "combustible_quantity",
+      "expected": "fuel_level_percent",
+      "type": "Synonym",
+      "bert_correct": true,
+      "bert_result": "fuel_level_percent",
+      "leven_correct": false,
+      "leven_result": "clutch_position",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 8.163612,
+      "leven_latency_mean_ms": 0.545479,
+      "regex_latency_mean_ms": 0.068706
+    },
+    {
+      "drifted": "f1.car.speed",
+      "expected": "speed",
+      "type": "Namespace",
+      "bert_correct": true,
+      "bert_result": "speed",
+      "leven_correct": true,
+      "leven_result": "speed",
+      "regex_correct": true,
+      "regex_result": "speed",
+      "bert_latency_mean_ms": 8.82224,
+      "leven_latency_mean_ms": 0.40545,
+      "regex_latency_mean_ms": 0.05455
+    },
+    {
+      "drifted": "moteur.regime.rpm",
+      "expected": "rpm",
+      "type": "Namespace",
+      "bert_correct": true,
+      "bert_result": "rpm",
+      "leven_correct": false,
+      "leven_result": "oil_pressure_psi",
+      "regex_correct": true,
+      "regex_result": "rpm",
+      "bert_latency_mean_ms": 9.283529,
+      "leven_latency_mean_ms": 0.5038,
+      "regex_latency_mean_ms": 0.070362
+    },
+    {
+      "drifted": "freins.temp.avant",
+      "expected": "brake_temp",
+      "type": "Namespace",
+      "bert_correct": true,
+      "bert_result": "brake_temp",
+      "leven_correct": false,
+      "leven_result": "engine_temp",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 11.422011,
+      "leven_latency_mean_ms": 0.532082,
+      "regex_latency_mean_ms": 0.086068
+    },
+    {
+      "drifted": "pneus.pression.fl",
+      "expected": "tyre_pressure",
+      "type": "Namespace",
+      "bert_correct": false,
+      "bert_result": "oil_pressure_psi",
+      "leven_correct": false,
+      "leven_result": "brake_pressure_front",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 11.258182,
+      "leven_latency_mean_ms": 0.478369,
+      "regex_latency_mean_ms": 0.089953
+    },
+    {
+      "drifted": "chassis.lateral.g",
+      "expected": "g_force_lateral",
+      "type": "Namespace",
+      "bert_correct": true,
+      "bert_result": "g_force_lateral",
+      "leven_correct": true,
+      "leven_result": "g_force_lateral",
+      "regex_correct": true,
+      "regex_result": "g_force_lateral",
+      "bert_latency_mean_ms": 9.55684,
+      "leven_latency_mean_ms": 0.490342,
+      "regex_latency_mean_ms": 0.050611
+    },
+    {
+      "drifted": "id_0x123_spd",
+      "expected": "speed",
+      "type": "Obfuscated",
+      "bert_correct": false,
+      "bert_result": "ecu_canbus",
+      "leven_correct": true,
+      "leven_result": "speed",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 9.858758,
+      "leven_latency_mean_ms": 0.380143,
+      "regex_latency_mean_ms": 0.078565
+    },
+    {
+      "drifted": "can_msg_revs",
+      "expected": "rpm",
+      "type": "Obfuscated",
+      "bert_correct": false,
+      "bert_result": "ecu_canbus",
+      "leven_correct": false,
+      "leven_result": "coolant_temperature_c",
+      "regex_correct": true,
+      "regex_result": "rpm",
+      "bert_latency_mean_ms": 11.568694,
+      "leven_latency_mean_ms": 0.471074,
+      "regex_latency_mean_ms": 0.081043
+    },
+    {
+      "drifted": "sensor_45_throt",
+      "expected": "throttle",
+      "type": "Obfuscated",
+      "bert_correct": false,
+      "bert_result": "rpm",
+      "leven_correct": true,
+      "leven_result": "throttle",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 11.15821,
+      "leven_latency_mean_ms": 0.494738,
+      "regex_latency_mean_ms": 0.084714
+    },
+    {
+      "drifted": "bit_7_brake",
+      "expected": "brake_temp",
+      "type": "Obfuscated",
+      "bert_correct": true,
+      "bert_result": "brake_temp",
+      "leven_correct": true,
+      "leven_result": "brake_temp",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 9.227886,
+      "leven_latency_mean_ms": 0.396976,
+      "regex_latency_mean_ms": 0.072172
+    },
+    {
+      "drifted": "analog_oil_p",
+      "expected": "oil_pressure_psi",
+      "type": "Obfuscated",
+      "bert_correct": false,
+      "bert_result": "oil_temperature_c",
+      "leven_correct": true,
+      "leven_result": "oil_pressure_psi",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 8.270701,
+      "leven_latency_mean_ms": 0.388354,
+      "regex_latency_mean_ms": 0.067896
+    },
+    {
+      "drifted": "speed_knots",
+      "expected": "speed",
+      "type": "Unit Variant",
+      "bert_correct": true,
+      "bert_result": "speed",
+      "leven_correct": true,
+      "leven_result": "speed",
+      "regex_correct": true,
+      "regex_result": "speed",
+      "bert_latency_mean_ms": 8.224787,
+      "leven_latency_mean_ms": 0.382833,
+      "regex_latency_mean_ms": 0.050596
+    },
+    {
+      "drifted": "tyre_psi",
+      "expected": "tyre_pressure",
+      "type": "Unit Variant",
+      "bert_correct": true,
+      "bert_result": "tyre_pressure",
+      "leven_correct": true,
+      "leven_result": "tyre_pressure",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 8.090403,
+      "leven_latency_mean_ms": 0.341414,
+      "regex_latency_mean_ms": 0.063981
+    },
+    {
+      "drifted": "oil_temp_rankine",
+      "expected": "oil_temperature_c",
+      "type": "Unit Variant",
+      "bert_correct": true,
+      "bert_result": "oil_temperature_c",
+      "leven_correct": true,
+      "leven_result": "oil_temperature_c",
+      "regex_correct": true,
+      "regex_result": "oil_temperature_c",
+      "bert_latency_mean_ms": 9.575517,
+      "leven_latency_mean_ms": 0.521853,
+      "regex_latency_mean_ms": 0.049626
+    },
+    {
+      "drifted": "coolant_temp_celsius",
+      "expected": "coolant_temperature_c",
+      "type": "Unit Variant",
+      "bert_correct": true,
+      "bert_result": "coolant_temperature_c",
+      "leven_correct": true,
+      "leven_result": "coolant_temperature_c",
+      "regex_correct": true,
+      "regex_result": "coolant_temperature_c",
+      "bert_latency_mean_ms": 11.665054,
+      "leven_latency_mean_ms": 0.584511,
+      "regex_latency_mean_ms": 0.063151
+    },
+    {
+      "drifted": "fuel_liters",
+      "expected": "fuel_level_percent",
+      "type": "Unit Variant",
+      "bert_correct": true,
+      "bert_result": "fuel_level_percent",
+      "leven_correct": true,
+      "leven_result": "fuel_level_percent",
+      "regex_correct": true,
+      "regex_result": "fuel_level_percent",
+      "bert_latency_mean_ms": 9.307449,
+      "leven_latency_mean_ms": 0.44059,
+      "regex_latency_mean_ms": 0.064213
+    },
+    {
+      "drifted": "temperature_brake",
+      "expected": "brake_temp",
+      "type": "Reorder",
+      "bert_correct": true,
+      "bert_result": "brake_temp",
+      "leven_correct": false,
+      "leven_result": "oil_temperature_c",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 8.118457,
+      "leven_latency_mean_ms": 0.460078,
+      "regex_latency_mean_ms": 0.066855
+    },
+    {
+      "drifted": "pressure_oil",
+      "expected": "oil_pressure_psi",
+      "type": "Reorder",
+      "bert_correct": true,
+      "bert_result": "oil_pressure_psi",
+      "leven_correct": true,
+      "leven_result": "oil_pressure_psi",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 8.627489,
+      "leven_latency_mean_ms": 0.411042,
+      "regex_latency_mean_ms": 0.070143
+    },
+    {
+      "drifted": "force_g_side",
+      "expected": "g_force_lateral",
+      "type": "Reorder",
+      "bert_correct": true,
+      "bert_result": "g_force_lateral",
+      "leven_correct": true,
+      "leven_result": "g_force_lateral",
+      "regex_correct": false,
+      "regex_result": "unknown",
+      "bert_latency_mean_ms": 8.118807,
+      "leven_latency_mean_ms": 0.452756,
+      "regex_latency_mean_ms": 0.065067
+    },
+    {
+      "drifted": "rate_heart",
+      "expected": "heart_rate",
+      "type": "Reorder",
+      "bert_correct": true,
+      "bert_result": "heart_rate",
+      "leven_correct": true,
+      "leven_result": "heart_rate",
+      "regex_correct": true,
+      "regex_result": "heart_rate",
+      "bert_latency_mean_ms": 7.825483,
+      "leven_latency_mean_ms": 0.398993,
+      "regex_latency_mean_ms": 0.050953
+    },
+    {
+      "drifted": "v_max_units_mph",
+      "expected": "speed",
+      "type": "Compound",
+      "bert_correct": true,
+      "bert_result": "speed",
+      "leven_correct": false,
+      "leven_result": "brake_temp",
+      "regex_correct": true,
+      "regex_result": "speed",
+      "bert_latency_mean_ms": 9.733085,
+      "leven_latency_mean_ms": 0.493057,
+      "regex_latency_mean_ms": 0.071064
     }
   ]
 }
