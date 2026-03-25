@@ -104,8 +104,12 @@ Validated across eight runtime targets with three independent runs per profile, 
 |---|---|---:|---:|---:|
 | NVIDIA B200 (Blackwell) | Linux + CUDA | 3,600,000 | 0.007 ms | **0.9994** |
 | NVIDIA H200 NVL (Hopper) | Linux + CUDA | 3,600,000 | **0.013 ms** | **0.9993** |
-| Apple M4 | macOS (MPS) | 3,600,000 | **0.003 ms** | **0.9995** |
+| NVIDIA RTX PRO 6000 Ada | Linux + CUDA | 3,600,000 | 0.006 ms | **0.9995** |
+| NVIDIA RTX 5090 | Linux + CUDA | 3,600,000 | 0.010 ms | 0.9994 |
+| NVIDIA GTX 1660 Ti | Linux + CUDA | 3,600,000 | 0.019 ms | 0.9995 |
 | AMD Radeon RX 7900 XT | Linux + ROCm | 3,600,000 | 0.007 ms | 0.9994 |
+| Apple M4 | macOS (MPS) | 3,600,000 | **0.003 ms** | **0.9995** |
+| Intel Core i5-12600K | x86 Fallback | 3,600,000 | N/A* | 0.9995 |
 
 ### 4. Concurrency & Team Scaling
 This profile validates the ability to handle two simultaneous telemetry streams on a single shared GPU.
