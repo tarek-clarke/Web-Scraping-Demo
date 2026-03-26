@@ -111,6 +111,9 @@ High-volume simulation of extreme schema entropy using the `DriftSimulator`.
 ### 3. Cross-Platform Hardware Benchmarks
 Validated across eight runtime targets with three independent runs per profile, measuring tail latency (p95) and resilience under 5% injected chaos.
 
+> [!NOTE]
+> **Performance Baseline**: All hardware and concurrency benchmarks below represent the **Tier 2 (BERT Semantic Inference)** processing latency. This is the computational "Deep Inference" baseline and does not include the near-zero O(1) latency of Tier 1 (Verified Cache) or the manual Tier 3 (HITL) intervention.
+
 | Runtime Target | Platform | Total Packets | p95 Latency (Mean) | Resilience Score |
 |---|---|---:|---:|---:|
 | NVIDIA B200 (Blackwell) | Linux + CUDA | 3,600,000 | 0.007 ms | **0.9994** |
