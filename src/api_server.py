@@ -17,21 +17,18 @@ Usage::
 
 from __future__ import annotations
 
-import glob
 import json
 import logging
-import os
 import random
-import subprocess
 import sys
+import threading
 import time
-from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 # ---------------------------------------------------------------------------
@@ -50,8 +47,6 @@ from src.audit_log import ComplianceAuditLog  # noqa: E402
 from src.slo import SLOTracker  # noqa: E402
 
 logger = logging.getLogger(__name__)
-
-import threading
 
 # ---------------------------------------------------------------------------
 # Application State — thread-safe lazy initialisation singletons
@@ -210,7 +205,6 @@ def get_metrics():
 def get_slo_status():
     """Current SLO evaluation based on live metrics."""
     breaker = _get_breaker()
-    audit = _get_audit()
 
     cb_metrics = breaker.metrics
     dlq_depth = breaker.dlq.depth()
@@ -412,7 +406,7 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
 
-    print(f"🏎️  Resilient RAP Framework — Control Plane")
+    print("🏎️  Resilient RAP Framework — Control Plane")
     print(f"   Dashboard: http://{args.host}:{args.port}/dashboard")
     print(f"   API Docs:  http://{args.host}:{args.port}/docs")
 
