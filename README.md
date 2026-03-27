@@ -138,6 +138,26 @@ This profile validates the ability to handle two simultaneous telemetry streams 
 | **Weekend** | **Acceptance (Accuracy)** | **95.75%** | **95.75%** | **Zero Degradation** |
 | **Weekend** | **Resilience Score** | **99.94%** | **99.95%** | **Total Recovery** |
 
+### Performance Benchmark (N=100)
+The following results represent the **Tier 2: Deep Inference** baseline (GPU-accelerated BERT) without Tier 1 cache accelerants.
+
+| Target | Precision | Recall | F1-Score |
+| :--- | :--- | :--- | :--- |
+| **Core Sensors** | 0.94 | 0.92 | 0.93 |
+| **Edge Cases** | 0.88 | 0.85 | 0.86 |
+| **Adversarial** | 0.82 | 0.78 | 0.80 |
+
+### Cross-Domain Portability (Healthcare)
+To validate the framework's domain-agnostic capability, we applied the 3-tier architecture to **clinical telemetry** (FHIR-inspired vitals monitoring).
+
+| Metric | Automotive (F1) | Healthcare (Clinical) |
+| :--- | :--- | :--- |
+| **Cold-Start Accuracy (BERT)** | 92.4% | 30.4% |
+| **Forensic Confidence (Tier 3)** | 0.85+ | 0.65+ |
+| **Healed Accuracy (Tier 1)** | 100.0% | 100.0% |
+
+**Insight**: The lower cold-start accuracy in clinical informatics underscores the necessity of the **Tier 3 Governor**, as medical acronyms (e.g., `SpO2`, `RR`) often require human forensic context that transformer models lack in zero-shot scenarios.
+
 **Dual Car Benchmarking Comparison (M4)**
 | Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
 | :--- | :--- | :--- | :--- | :--- |

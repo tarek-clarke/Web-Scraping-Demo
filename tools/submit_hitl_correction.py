@@ -50,11 +50,6 @@ def main():
     if not args.drifted or not args.canonical:
         parser.print_help()
         sys.exit(1)
-    
-    if args.canonical not in CANONICAL_SCHEMA:
-        print(f"Error: '{args.canonical}' is not in the canonical schema.")
-        print(f"Available: {CANONICAL_SCHEMA}")
-        sys.exit(1)
         
     manager = HITLFeedbackManager()
     manager.add_correction(args.drifted, args.canonical)
