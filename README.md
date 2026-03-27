@@ -158,7 +158,7 @@ The following results represent the **Tier 2: Deep Inference** baseline (GPU-acc
 | **Weekend** | **Resilience Score** | **99.95%** | **99.78%** | **Stable Recovery** |
 
 ### Cross-Domain Portability (Healthcare)
-To validate the framework's domain-agnostic capability, we applied the 3-tier architecture to **clinical telemetry** (FHIR-inspired vitals monitoring).
+To validate the framework's domain-agnostic capability, I applied the 3-tier architecture to **clinical telemetry** (FHIR-inspired vitals monitoring).
 
 | Metric | Automotive (F1) | Healthcare (Clinical) |
 | :--- | :--- | :--- |
