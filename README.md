@@ -147,6 +147,16 @@ The following results represent the **Tier 2: Deep Inference** baseline (GPU-acc
 | **Edge Cases** | 0.88 | 0.85 | 0.86 |
 | **Adversarial** | 0.82 | 0.78 | 0.80 |
 
+
+
+**Dual Car Benchmarking Comparison (M4)**
+| Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
+| :--- | :--- | :--- | :--- | :--- |
+| **Weekend** | Total Packets | 3,600,000 | 7,200,000 | 2x Extreme Load |
+| **Weekend** | p95 Latency | 0.003 ms | 0.005 ms | No measurable overhead |
+| **Weekend** | **Acceptance (Accuracy)** | **95.75%** | **95.70%** | **-0.05% fluctuation** |
+| **Weekend** | **Resilience Score** | **99.95%** | **99.78%** | **Stable Recovery** |
+
 ### Cross-Domain Portability (Healthcare)
 To validate the framework's domain-agnostic capability, we applied the 3-tier architecture to **clinical telemetry** (FHIR-inspired vitals monitoring).
 
@@ -157,14 +167,6 @@ To validate the framework's domain-agnostic capability, we applied the 3-tier ar
 | **Healed Accuracy (Tier 1)** | 100.0% | 100.0% |
 
 **Insight**: The lower cold-start accuracy in clinical informatics underscores the necessity of the **Tier 3 Governor**, as medical acronyms (e.g., `SpO2`, `RR`) often require human forensic context that transformer models lack in zero-shot scenarios.
-
-**Dual Car Benchmarking Comparison (M4)**
-| Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
-| :--- | :--- | :--- | :--- | :--- |
-| **Weekend** | Total Packets | 3,600,000 | 7,200,000 | 2x Extreme Load |
-| **Weekend** | p95 Latency | 0.003 ms | 0.005 ms | No measurable overhead |
-| **Weekend** | **Acceptance (Accuracy)** | **95.75%** | **95.70%** | **-0.05% fluctuation** |
-| **Weekend** | **Resilience Score** | **99.95%** | **99.78%** | **Stable Recovery** |
 
 ---
 
