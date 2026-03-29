@@ -87,6 +87,9 @@ The framework has been validated across eight runtime targets with three indepen
 
 ### Cross-Platform Validation Results
 
+> [!NOTE]
+> **Base Frequency**: Unless otherwise specified in the High-Frequency matrices below, all standard benchmarks are executed at a baseline telemetry frequency of **100 Hz**.
+
 #### Profile: Sprint (30,000 packets)
 | Runtime Target | Platform | Total Packets | Acceptance Rate (Mean) | p95 Latency (Mean) | Resilience Score (Mean) | Breaker (GPU) | Breaker (CPU) |
 |---|---|---:|---:|---:|---:|---|---|
