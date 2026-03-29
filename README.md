@@ -195,27 +195,50 @@ The following matrices validate stability across synthetic frequencies (1kHz to 
 
 ---
 
-## Quick Start
+## Quick Start: High-Frequency Validation Suite
 
+Follow these steps to replicate the sub-millisecond p95 latency benchmarks on your local hardware.
+
+### 1. Environment Setup
 ```bash
-# 1. Setup Environment
+# Initialize virtual environment and dependencies
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# 2. Build Accelerated Ingest Kernels
+# Build accelerated C++ ingestion kernels for Tier 2 BERT inference
 python3 setup.py build_ext --inplace
+```
 
-# 3. Run Validation Suite
-PYTHONPATH="." python3 experiments/run_phd_validation.py
+### 2. Execute Validation Profiles
+```bash
+# Run 1kHz Sprint Validation (30,000 packets)
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000 --packets 30000 --output-suffix _sprint_1000hz
+
+# Run 1MHz Weekend Endurance Validation (3.6M packets)
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000000 --packets 3600000 --output-suffix _weekend_1mhz
+```
+
+### 3. Launch Real-Time Dashboard
+To monitor the ingestion stream, circuit-breaker status, and autonomous repairs in real-time, launch the Terminal User Interface:
+```bash
+python3 tools/tui_replayer.py
 ```
 
 ---
 
-## Observability Dashboard & API
+## Real-Time Observability
 
-- **Dashboard**: `http://localhost:5050/dashboard`
-- **API Docs**: `http://localhost:5050/docs`
+The framework includes a Terminal User Interface (TUI) dashboard for monitoring ingestion health, schema drift detection, and autonomous "Self-Healing" repairs.
+
+<img width="1146" height="413" alt="TUI Dashboard Screenshot" src="https://github.com/user-attachments/assets/98fff2e6-2f66-46fa-809a-f47b9c9acf34" />
+
+---
+
+## Observability Dashboard and API
+
+- **TUI Dashboard**: Launch via `python3 tools/tui_replayer.py`.
+- **API Documentation**: Access via `http://localhost:5050/docs` summarizing pipeline health and Gat SLOs.
 
 ---
 
