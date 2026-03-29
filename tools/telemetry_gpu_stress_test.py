@@ -984,6 +984,7 @@ class TelemetryGPUStressTest:
         output_suffix: str = "",
         diagnostic: bool = False,
         enable_kafka: bool = False,
+        frequency: float = 100.0,
         kafka_bootstrap_servers: Optional[List[str]] = None,
         kafka_topic_repairable: str = "dlq-repairable",
         kafka_topic_repaired: str = "dlq-repaired",
@@ -993,6 +994,8 @@ class TelemetryGPUStressTest:
         self.chaos = ChaosInjector(chaos_rate, profile=chaos_profile)
         self._chaos_profile = self.chaos.profile
         self.diagnostic = diagnostic
+        self.frequency = frequency
+        self.SENSOR_PACKET_INTERVAL_MS = 1000.0 / max(1.0, frequency)
 
         # GPU setup
         self.device = get_gpu_device()
@@ -2112,6 +2115,10 @@ def main():
         help="Chaos injection rate 0.0–1.0 (default: 0.12)",
     )
     parser.add_argument(
+        "--frequency", type=float, default=100.0,
+        help="Aggregate telemetry frequency in Hz (default: 100.0)",
+    )
+    parser.add_argument(
         "--chaos-profile",
         type=str,
         default="balanced",
@@ -2175,6 +2182,7 @@ def main():
         packets = args.packets
         chaos = args.chaos
         threshold = args.threshold
+        frequency = args.frequency
 
     if not args.preserve_sqlite:
         deleted = TelemetryGPUStressTest.clear_sqlite_artifacts()
@@ -2185,6 +2193,7 @@ def main():
         chaos_rate=chaos,
         chaos_profile=args.chaos_profile,
         breaker_threshold=threshold,
+        frequency=frequency,
         output_suffix=args.output_suffix,
         diagnostic=args.diagnostic,
         enable_kafka=args.enable_kafka,
