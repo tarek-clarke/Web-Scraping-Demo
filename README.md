@@ -127,7 +127,7 @@ The following matrices validate the framework's stability across synthetic frequ
 | **Weekend (3.6M total)** | 1,000,000 Hz (1MHz) | **0.005 ms** | 0.9969 | ✅ RELIABLE |
 
 > [!TIP]
-> **Performance Amortization**: p95 latency actually improves during high-volume 'Weekend' runs (0.004ms) compared to short 'Standard' runs (0.012ms), demonstrating the efficiency of the framework's GPU-accelerated batching kernels once warmed.
+> **Performance Amortization**: p95 latency actually improves during high-volume 'Weekend' runs (0.004ms) compared to short 'Standard' runs (0.009ms), demonstrating the efficiency of the framework's GPU-accelerated batching kernels once warmed.
 
 #### High-Frequency Stability Matrix (AMD Radeon RX 7900 XT)
 | Profile | Target Frequency | p95 Latency | Resilience Score | Status |
