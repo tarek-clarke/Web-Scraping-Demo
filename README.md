@@ -74,33 +74,43 @@ flowchart TD
 
 ---
 
-## Research Highlights
+## Quick Start: High-Frequency Validation Suite
 
-### 1. The Resilience Delta (CPU vs. GPU)
-Under high-stress conditions, standard CPU-only telemetry stacks consistently trip the circuit breaker and cease processing. This framework introduces a GPU-accelerated semantic safety net that repairs 100% of schema drift on-the-fly, maintaining zero downtime across all high-end NVIDIA architectures including Blackwell, Hopper, and Ada.
+Follow these steps to replicate the sub-millisecond p95 latency benchmarks on your local hardware.
 
-### 2. Reconciliation Ablation Study (BERT vs. Traditional)
-A critical challenge in modern telemetry is **Sensor Name Drift** (e.g., from oil_temp to lubricant_thermal_deg). This framework justifies the use of BERT-based semantic reconciliation by comparing it against character-distance (Levenshtein) and rule-based (Regex) methods.
+### 1. Environment Setup
+```bash
+# Initialize virtual environment and dependencies
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 
-| Algorithm | Mean Accuracy | Avg Latency | Key Performance Gap |
-| :--- | :--- | :--- | :--- |
-| **BERT (all-MiniLM-L6-v2)** | **100.0%** | **~0.012 ms** | **Passes 100% of Synonym Drift** (e.g., *gas_reserve_pct*) |
-| Levenshtein (Distance) | 28.6% | ~0.001 ms | Fails 100% of Synonyms; only detects typos. |
-| Regex (Pattern Matching) | 85.7% | < 0.001 ms | Brilliant for known keywords; brittle for new sensor names. |
+# Build accelerated C++ ingestion kernels for Tier 2 BERT inference
+python3 setup.py build_ext --inplace
+```
 
-**Technical Conclusion:** While BERT introduces a slight latency overhead (+0.011 ms), it eliminates the 71.4% data loss floor seen in character-distance methods, ensuring zero-loss sensor attribution in evolving telemetry environments.
+### 2. Execute Validation Profiles
+```bash
+# Run 1kHz Sprint Validation (30,000 packets)
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000 --packets 30000 --output-suffix _sprint_1000hz
 
-#### 3. Cross-Domain Portability (Healthcare)
-To validate the framework's domain-agnostic capability, I applied the 3-tier architecture to **clinical telemetry** (FHIR-inspired vitals monitoring).
+# Run 1MHz Weekend Endurance Validation (3.6M packets)
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000000 --packets 3600000 --output-suffix _weekend_1mhz
+```
 
-| Metric | Automotive (F1) | Healthcare (Clinical) |
-| :--- | :--- | :--- |
-| **Cold-Start Accuracy (BERT)** | 92.4% | 30.4% |
-| **Forensic Confidence (Tier 3)** | 0.85+ | 0.65+ |
-| **Healed Accuracy (Tier 1)** | 100.0% | 100.0% |
+### 3. Launch Real-Time Dashboard
+To monitor the ingestion stream, circuit-breaker status, and autonomous repairs in real-time, launch the Terminal User Interface:
+```bash
+python3 tools/tui_replayer.py
+```
 
-> [!TIP]
-> **Clinical Insight**: The lower cold-start accuracy in clinical informatics underscores the necessity of the **Tier 3 Governor**, as medical acronyms (e.g., SpO2, RR) often require human forensic context that transformer models lack in zero-shot scenarios.
+---
+
+## Real-Time Observability
+
+The framework includes a Terminal User Interface (TUI) dashboard for monitoring ingestion health, schema drift detection, and autonomous "Self-Healing" repairs.
+
+<img width="1146" height="413" alt="TUI Dashboard Screenshot" src="https://github.com/user-attachments/assets/98fff2e6-2f66-46fa-809a-f47b9c9acf34" />
 
 ---
 
@@ -180,6 +190,36 @@ The following matrices validate stability across synthetic frequencies (1kHz to 
 
 ---
 
+## Research Highlights
+
+### 1. The Resilience Delta (CPU vs. GPU)
+Under high-stress conditions, standard CPU-only telemetry stacks consistently trip the circuit breaker and cease processing. This framework introduces a GPU-accelerated semantic safety net that repairs 100% of schema drift on-the-fly, maintaining zero downtime across all high-end NVIDIA architectures including Blackwell, Hopper, and Ada.
+
+### 2. Reconciliation Ablation Study (BERT vs. Traditional)
+A critical challenge in modern telemetry is **Sensor Name Drift** (e.g., from oil_temp to lubricant_thermal_deg). This framework justifies the use of BERT-based semantic reconciliation by comparing it against character-distance (Levenshtein) and rule-based (Regex) methods.
+
+| Algorithm | Mean Accuracy | Avg Latency | Key Performance Gap |
+| :--- | :--- | :--- | :--- |
+| **BERT (all-MiniLM-L6-v2)** | **100.0%** | **~0.012 ms** | **Passes 100% of Synonym Drift** (e.g., *gas_reserve_pct*) |
+| Levenshtein (Distance) | 28.6% | ~0.001 ms | Fails 100% of Synonyms; only detects typos. |
+| Regex (Pattern Matching) | 85.7% | < 0.001 ms | Brilliant for known keywords; brittle for new sensor names. |
+
+**Technical Conclusion:** While BERT introduces a slight latency overhead (+0.011 ms), it eliminates the 71.4% data loss floor seen in character-distance methods, ensuring zero-loss sensor attribution in evolving telemetry environments.
+
+#### 3. Cross-Domain Portability (Healthcare)
+To validate the framework's domain-agnostic capability, I applied the 3-tier architecture to **clinical telemetry** (FHIR-inspired vitals monitoring).
+
+| Metric | Automotive (F1) | Healthcare (Clinical) |
+| :--- | :--- | :--- |
+| **Cold-Start Accuracy (BERT)** | 92.4% | 30.4% |
+| **Forensic Confidence (Tier 3)** | 0.85+ | 0.65+ |
+| **Healed Accuracy (Tier 1)** | 100.0% | 100.0% |
+
+> [!TIP]
+> **Clinical Insight**: The lower cold-start accuracy in clinical informatics underscores the necessity of the **Tier 3 Governor**, as medical acronyms (e.g., SpO2, RR) often require human forensic context that transformer models lack in zero-shot scenarios.
+
+---
+
 ## Real-World Use Cases
 
 ### Formula 1 & Elite Motorsport
@@ -195,43 +235,16 @@ The following matrices validate stability across synthetic frequencies (1kHz to 
 
 ---
 
-## Quick Start: High-Frequency Validation Suite
+## Limitations and Future Work
 
-Follow these steps to replicate the sub-millisecond p95 latency benchmarks on your local hardware.
+### Current Limitations
+- **Latency Budget**: While p95 is excellent, the ~10µs BERT overhead at 1MHz makes single-threaded real-time ingestion tight; multi-threading is required for higher throughput.
+- **Cold-Start Domains**: Zero-shot accuracy is lower in highly specialized domains (e.g., Clinical Informatics) without Tier 1 cache warm-up.
 
-### 1. Environment Setup
-```bash
-# Initialize virtual environment and dependencies
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# Build accelerated C++ ingestion kernels for Tier 2 BERT inference
-python3 setup.py build_ext --inplace
-```
-
-### 2. Execute Validation Profiles
-```bash
-# Run 1kHz Sprint Validation (30,000 packets)
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000 --packets 30000 --output-suffix _sprint_1000hz
-
-# Run 1MHz Weekend Endurance Validation (3.6M packets)
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000000 --packets 3600000 --output-suffix _weekend_1mhz
-```
-
-### 3. Launch Real-Time Dashboard
-To monitor the ingestion stream, circuit-breaker status, and autonomous repairs in real-time, launch the Terminal User Interface:
-```bash
-python3 tools/tui_replayer.py
-```
-
----
-
-## Real-Time Observability
-
-The framework includes a Terminal User Interface (TUI) dashboard for monitoring ingestion health, schema drift detection, and autonomous "Self-Healing" repairs.
-
-<img width="1146" height="413" alt="TUI Dashboard Screenshot" src="https://github.com/user-attachments/assets/98fff2e6-2f66-46fa-809a-f47b9c9acf34" />
+### Future Work
+- **On-Device Quantization**: Implementing INT8/GGUF quantization for BERT to enable microsecond-level inference on low-power edge devices.
+- **RL-Guided Repairs**: Using Reinforcement Learning to optimize Tier 3 HITL triggers and reduce expert-intervention frequency.
+- **Multi-Modal Reconciliation**: Extending the RAP pipeline to reconcile visual (Video/FLIR) and textual (Log) telemetry streams.
 
 ---
 
@@ -249,19 +262,6 @@ Quality gates triggered on every push:
 - **Coverage**: `pytest-cov` (**75% minimum**)
 - **Stress Test**: Chaos engine (1,000 packets @ 15% corruption)
 - **Forensic Audit**: Batch hash-chain integrity verification
-
----
-
-## Limitations and Future Work
-
-### Current Limitations
-- **Latency Budget**: While p95 is excellent, the ~10µs BERT overhead at 1MHz makes single-threaded real-time ingestion tight; multi-threading is required for higher throughput.
-- **Cold-Start Domains**: Zero-shot accuracy is lower in highly specialized domains (e.g., Clinical Informatics) without Tier 1 cache warm-up.
-
-### Future Work
-- **On-Device Quantization**: Implementing INT8/GGUF quantization for BERT to enable microsecond-level inference on low-power edge devices.
-- **RL-Guided Repairs**: Using Reinforcement Learning to optimize Tier 3 HITL triggers and reduce expert-intervention frequency.
-- **Multi-Modal Reconciliation**: Extending the RAP pipeline to reconcile visual (Video/FLIR) and textual (Log) telemetry streams.
 
 ---
 
