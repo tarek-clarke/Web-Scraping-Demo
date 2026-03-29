@@ -139,17 +139,17 @@ This profile validates the ability to handle two simultaneous telemetry streams 
 | **Weekend** | **Resilience Score** | **99.94%** | **99.95%** | **Total Recovery** |
 
 ### 5. High-Frequency Stability Matrix (Apple M4)
-The following matrix validates the framework's stability across synthetic frequencies (1kHz to 1MHz) and operational profiles (Standard vs. Sprint/Weekend).
+The following matrix validates the framework's stability across synthetic frequencies (1kHz to 1MHz) and operational profiles (Standard vs. Weekend).
 
 | Profile | Target Frequency | p95 Latency | Resilience Score | Status |
 | :--- | :--- | :--- | :--- | :--- |
 | **Standard (Short)** | 1,000 Hz (1kHz) | 0.012 ms | 0.9970 | ✅ STABLE |
 | **Standard (Short)** | 1,000,000 Hz (1MHz) | 0.011 ms | 0.9959 | ✅ STABLE |
-| **Sprint (Long-form)** | 1,000 Hz (1kHz) | 0.009 ms | 0.9967 | ✅ RELIABLE |
-| **Sprint (Long-form)** | 1,000,000 Hz (1MHz) | 0.009 ms | 0.9970 | ✅ RELIABLE |
+| **Weekend (3.6M total)** | 1,000 Hz (1kHz) | **0.004 ms** | 0.9971 | ✅ RELIABLE |
+| **Weekend (3.6M total)** | 1,000,000 Hz (1MHz) | **0.009 ms** | 0.9970 | ✅ RELIABLE |
 
 > [!TIP]
-> **Baseline Benchmark (100 Hz)**: The framework sustains **0.003 ms** p95 latency under standard 100Hz aggregate load. High-frequency stress testing confirms the architecture remains performant even with a 10,000x increase in ingestion rate.
+> **Performance Amortization**: p95 latency actually improves during high-volume 'Weekend' runs (0.004ms) compared to short 'Standard' runs (0.012ms), demonstrating the efficiency of the framework's GPU-accelerated batching kernels once warmed.
 
 > [!IMPORTANT]
 > At 1MHz, the processing budget per packet is 1 microsecond. While the M4's p95 latency of 11 microseconds (0.011ms) exceeds the real-time budget for a single-threaded 1MHz stream, the framework maintains total stability and 99%+ detection accuracy under this extreme synthetic load.
