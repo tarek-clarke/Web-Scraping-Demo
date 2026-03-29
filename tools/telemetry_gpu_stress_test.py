@@ -2099,8 +2099,22 @@ class TelemetryGPUStressTest:
 
 
 # ---------------------------------------------------------------------------
-# Entry point
-# ---------------------------------------------------------------------------
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Resilient RAP Framework - GPU Telemetry Stress Test")
+    parser.add_argument("--packets", type=int, default=1000, help="Packets per session")
+    parser.add_argument("--chaos", type=float, default=0.12, help="Chaos injection rate (0.0-1.0)")
+    parser.add_argument("--chaos-profile", type=str, default="balanced", help="Chaos profile name")
+    parser.add_argument("--threshold", type=int, default=5, help="Circuit breaker threshold")
+    parser.add_argument("--output-suffix", type=str, default="", help="Suffix for output files")
+    parser.add_argument("--diagnostic", action="store_true", help="Enable diagnostic missed-detection analysis")
+    parser.add_argument("--enable-kafka", action="store_true", help="Enable Kafka DLQ integration")
+    parser.add_argument("--kafka-servers", type=str, default="localhost:9092", help="Comma-separated Kafka bootstrap servers")
+    parser.add_argument("--kafka-topic-repairable", type=str, default="dlq-repairable")
+    parser.add_argument("--kafka-topic-repaired", type=str, default="dlq-repaired")
+    parser.add_argument("--kafka-topic-non-repairable", type=str, default="dlq-non-repairable")
+    parser.add_argument("--preserve-sqlite", action="store_true", help="Do not clear SQLite artifacts before run")
+    parser.add_argument("--showcase", action="store_true", help="Run in simplified showcase mode")
     parser.add_argument(
         "--frequency", type=float, default=100.0,
         help="Target packet frequency in Hz (default: 100.0)",
@@ -2143,11 +2157,9 @@ class TelemetryGPUStressTest:
         kafka_topic_repairable=args.kafka_topic_repairable,
         kafka_topic_repaired=args.kafka_topic_repaired,
         kafka_topic_non_repairable=args.kafka_topic_non_repairable,
-        frequency_hz=args.frequency,
     )
 
     report = test.run()
-
     return 0 if "✅" in report.verdict else 1
 
 

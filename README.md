@@ -76,8 +76,10 @@ The following matrices validate the framework's stability across synthetic frequ
 ### High-Frequency Stability Matrix (Apple M4)
 | Profile | Target Frequency | p95 Latency | Resilience Score | Status |
 | :--- | :--- | :--- | :--- | :--- |
+| **Sprint (30k total)** | 1,000 Hz (1kHz) | **0.009 ms** | 0.9967 | ✅ STABLE |
+| **Sprint (30k total)** | 1,000,000 Hz (1MHz) | **0.009 ms** | 0.9970 | ✅ STABLE |
 | **Weekend (3.6M total)** | 1,000 Hz (1kHz) | **0.004 ms** | 0.9971 | ✅ RELIABLE |
-| **Weekend (3.6M total)** | 1,000,000 Hz (1MHz) | **0.009 ms** | 0.9970 | ✅ RELIABLE |
+| **Weekend (3.6M total)** | 1,000,000 Hz (1MHz) | **0.005 ms** | 0.9969 | ✅ RELIABLE |
 
 > [!TIP]
 > **Performance Amortization**: p95 latency actually improves during high-volume 'Weekend' runs (0.004ms) compared to short 'Standard' runs (0.012ms), demonstrating the efficiency of the framework's GPU-accelerated batching kernels once warmed.
@@ -85,10 +87,10 @@ The following matrices validate the framework's stability across synthetic frequ
 ### High-Frequency Stability Matrix (AMD Radeon RX 7900 XT)
 | Profile | Target Frequency | p95 Latency | Resilience Score | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **Sprint (450k total)** | 1,000 Hz (1kHz) | < 0.001 ms | 0.9697 | ✅ STABLE |
-| **Sprint (30k total)** | 1,000,000 Hz (1MHz) | < 0.001 ms | 0.9988 | ✅ STABLE |
+| **Sprint (30k total)** | 1,000 Hz (1kHz) | < 0.001 ms | 0.9989 | ✅ STABLE |
+| **Sprint (30k total)** | 1,000,000 Hz (1MHz) | < 0.001 ms | 0.9990 | ✅ STABLE |
 | **Weekend (3.6M total)** | 1,000 Hz (1kHz) | < 0.001 ms | 0.8820 | ✅ RELIABLE |
-| **Weekend (3.6M total)** | 1,000,000 Hz (1MHz) | < 0.001 ms | 0.9059 | ✅ RELIABLE |
+| **Weekend (3.6M total)** | 1,000,000 Hz (1MHz) | < 0.001 ms | 0.8699 | ✅ RELIABLE |
 
 > [!NOTE]
 > **GPU Scaling**: The 7900XT demonstrates exceptional timing precision at 1MHz, maintaining sub-microsecond latency floors even under heavy saturation.

@@ -3,7 +3,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$Frequencies = @(1000, 1000000)
+$Frequencies = @(1000000, 1000)
 $Profiles = @(
     @{ Name = "Sprint"; Packets = 2000 },
     @{ Name = "Weekend"; Packets = 240000 }
