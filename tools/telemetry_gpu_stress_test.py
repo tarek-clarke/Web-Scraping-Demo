@@ -969,10 +969,9 @@ class TelemetryGPUStressTest:
     _SCHEMA_DRIFT_SUFFIXES = (
         "_v2", "_v3", "_new", "_alt", "_canbus", "_raw", "_temp",
     )
-    SENSOR_PACKET_INTERVAL_MS = 10.0
+    SENSOR_PACKET_INTERVAL_MS = 10.0  # Default 100Hz
     CADENCE_TOLERANCE = 3.0
     SENSOR_DROPOUT_SKIP_SLOTS = 4
-
     def __init__(
         self,
         packets_per_session: int = 1000,
@@ -994,8 +993,8 @@ class TelemetryGPUStressTest:
         self.chaos = ChaosInjector(chaos_rate, profile=chaos_profile)
         self._chaos_profile = self.chaos.profile
         self.diagnostic = diagnostic
+        self.packet_interval_ms = 1000.0 / max(1.0, frequency)
         self.frequency = frequency
-        self.SENSOR_PACKET_INTERVAL_MS = 1000.0 / max(1.0, frequency)
 
         # GPU setup
         self.device = get_gpu_device()
@@ -1117,7 +1116,7 @@ class TelemetryGPUStressTest:
         return random.random() < 0.95
 
     def _build_sensor_cadence_baselines(self) -> Dict[str, float]:
-        baseline_ms = len(SENSORS) * self.SENSOR_PACKET_INTERVAL_MS
+        baseline_ms = len(SENSORS) * self.packet_interval_ms
         return {sensor_name: baseline_ms for sensor_name, *_ in SENSORS}
 
     @staticmethod
@@ -1208,7 +1207,7 @@ class TelemetryGPUStressTest:
         session_timestamps: deque[str] = deque(maxlen=100)
         session_start_ms = time.time() * 1000.0
         sensor_phase_ms = {
-            sensor_name: idx * self.SENSOR_PACKET_INTERVAL_MS
+            sensor_name: idx * self.packet_interval_ms
             for idx, (sensor_name, *_rest) in enumerate(SENSORS)
         }
         sensor_emit_counts = {sensor_name: 0 for sensor_name, *_rest in SENSORS}
@@ -2102,71 +2101,9 @@ class TelemetryGPUStressTest:
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
-def main():
-    parser = argparse.ArgumentParser(
-        description="Telemetry Platform GPU-Accelerated Triple-Header Stress Test"
-    )
-    parser.add_argument(
-        "--packets", type=int, default=1000,
-        help="Packets per session (default: 1000)",
-    )
-    parser.add_argument(
-        "--chaos", type=float, default=0.12,
-        help="Chaos injection rate 0.0–1.0 (default: 0.12)",
-    )
     parser.add_argument(
         "--frequency", type=float, default=100.0,
-        help="Aggregate telemetry frequency in Hz (default: 100.0)",
-    )
-    parser.add_argument(
-        "--chaos-profile",
-        type=str,
-        default="balanced",
-        choices=list(CHAOS_PROFILES.keys()),
-        help="Chaos mode profile (default: balanced)",
-    )
-    parser.add_argument(
-        "--threshold", type=int, default=5,
-        help="Circuit-breaker failure threshold (default: 5)",
-    )
-    parser.add_argument(
-        "--showcase", action="store_true",
-        help="Showcase mode: tuned for live demo (1000 pkt, 10%% chaos, fast)",
-    )
-    parser.add_argument(
-        "--output-suffix", type=str, default="",
-        help="Optional suffix token for output filenames (e.g. sprint, M4, 7900XT)",
-    )
-    parser.add_argument(
-        "--diagnostic", action="store_true",
-        help="Enable fault injection diagnostic tracking (off by default)",
-    )
-    parser.add_argument(
-        "--preserve-sqlite", action="store_true",
-        help="Preserve stress-test SQLite DB/WAL/SHM files between runs",
-    )
-    parser.add_argument(
-        "--enable-kafka", action="store_true",
-        help="Enable Kafka DLQ 3-stream routing (requires kafka-python)",
-    )
-    parser.add_argument(
-        "--kafka-servers", type=str, default="localhost:9092",
-        help=(
-            "Comma-separated Kafka bootstrap servers "
-            "(default: localhost:9092). Only used when --enable-kafka is set."
-        ),
-    )
-    parser.add_argument(
-        "--kafka-topic-repairable", type=str, default="dlq-repairable",
-        help="Kafka topic for quarantined-but-repairable DLQ packets",
-    )
-    parser.add_argument(
-        "--kafka-topic-repaired", type=str, default="dlq-repaired",
-        help="Kafka topic for successfully repaired DLQ packets",
-    )
-    parser.add_argument(
-        "--kafka-topic-non-repairable", type=str, default="dlq-non-repairable",
-        help="Kafka topic for non-repairable (max-retry) DLQ packets",
+        help="Target packet frequency in Hz (default: 100.0)",
     )
     args = parser.parse_args()
 
@@ -2174,6 +2111,7 @@ def main():
         packets = 1000
         chaos = 0.10
         threshold = 5
+        frequency = 100.0
         console.print(
             "[bold bright_white on dark_red]  GPU SHOWCASE MODE  "
             "[/bold bright_white on dark_red]\n"
@@ -2205,6 +2143,7 @@ def main():
         kafka_topic_repairable=args.kafka_topic_repairable,
         kafka_topic_repaired=args.kafka_topic_repaired,
         kafka_topic_non_repairable=args.kafka_topic_non_repairable,
+        frequency_hz=args.frequency,
     )
 
     report = test.run()
