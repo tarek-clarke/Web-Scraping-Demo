@@ -167,16 +167,20 @@ This profile validates the ability to handle two simultaneous telemetry streams 
 #### Dual Car Benchmarking Comparison (Apple M4)
 | Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
 | :--- | :--- | :--- | :--- | :--- |
+| **Sprint** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
+| **Sprint** | p95 Latency | < 0.004 ms | < 0.006 ms | No measurable overhead |
 | **Weekend** | Total Packets | 3,600,000 | 7,200,000 | 2x Extreme Load |
 | **Weekend** | p95 Latency | 0.003 ms | 0.005 ms | No measurable overhead |
-| **Weekend** | Resilience Score | 0.9995 | 0.9978 | [STABLE] |
+| **Both** | Resilience Score | 0.9995 | 0.9978 | [STABLE] |
 
 #### Dual Car Benchmarking Comparison (AMD 7900XT)
 | Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
 | :--- | :--- | :--- | :--- | :--- |
+| **Sprint** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
+| **Sprint** | p95 Latency | < 0.010 ms | < 0.010 ms | Negligible overhead |
 | **Weekend** | Total Packets | 3,600,000 | 7,200,000 | 2x Extreme Load |
 | **Weekend** | p95 Latency | 0.007 ms | ~0.008 ms | +0.001 ms overhead |
-| **Weekend** | Resilience Score | 0.9994 | 0.9995 | [STABLE] |
+| **Both** | Resilience Score | 0.9994 | 0.9995 | [STABLE] |
 
 ### 3. High-Frequency Stability Analysis
 The following matrices validate stability across synthetic frequencies (1kHz to 1MHz) for elite hardware architectures.
