@@ -26,6 +26,7 @@ jobs:
       - name: Run domain agnosticism test
         id: test
         run: |
+          mkdir -p data
           python3 << 'EOF'
           import sys, json, subprocess
           from datetime import datetime
