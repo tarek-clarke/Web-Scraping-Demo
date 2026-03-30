@@ -12,6 +12,9 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: write
+
 jobs:
   test-domain:
     runs-on: ubuntu-latest
@@ -81,4 +84,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/data/domain-tests/ || true
           git commit -m "test: domain agnosticism results for ${{ github.event.inputs.domain_name }}" --allow-empty || true
-          git push origin main || echo "Git push failed (may be OK for this workflow)"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main || echo "Push failed (may be OK)"
