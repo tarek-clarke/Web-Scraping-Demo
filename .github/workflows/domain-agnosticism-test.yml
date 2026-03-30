@@ -43,33 +43,42 @@ jobs:
           DOMAIN_NAME: ${{ github.event.inputs.domain_name }}
           PYTHONPATH: "."
         run: |
+          mkdir -p docs/data/domain-tests
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          FILENAME="docs/data/domain-tests/${DOMAIN_NAME}-${TIMESTAMP}.json"
+          
           echo "Testing domain: $DOMAIN_NAME"
           echo "API Endpoint: $API_ENDPOINT"
+          
+          # Run pytest and capture result
           echo "Running pytest..."
-          pytest tests/ -v --tb=short --timeout=120 -x 2>&1 | head -50 || true
-          echo "Test execution completed"
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: domain-test-${{ github.event.inputs.domain_name }}-${{ github.run_number }}
-          path: domain_test_result.json
-          retention-days: 90
-
-      - name: Save results to docs for dashboard
-        if: always()
-        run: |
-          mkdir -p docs/data/domain-tests
-          FILENAME="docs/data/domain-tests/${{ github.event.inputs.domain_name }}-$(date +%Y%m%d-%H%M%S).json"
-          mv domain_test_result.json "$FILENAME"
+          pytest tests/ -v --tb=short --timeout=120 -x > /tmp/test_output.txt 2>&1
+          TEST_RESULT=$?
+          
+          TEST_OUTPUT=$(head -20 /tmp/test_output.txt)
+          
+          # Create JSON result file
+          cat > "$FILENAME" << EOF
+          {
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "api_endpoint": "$API_ENDPOINT",
+            "domain_name": "$DOMAIN_NAME",
+            "commit_sha": "${{ github.sha }}",
+            "commit_ref": "${{ github.ref }}",
+            "status": $([ $TEST_RESULT -eq 0 ] && echo '"passed"' || echo '"failed"'),
+            "exit_code": $TEST_RESULT,
+            "test_output": "pytest execution completed"
+          }
+          EOF
+          
           echo "Results saved to: $FILENAME"
+          cat "$FILENAME"
 
       - name: Commit results to repo
         if: always()
         run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/data/domain-tests/ || true
-          git commit -m "test: domain agnosticism results for ${{ github.event.inputs.domain_name }}" || true
-          git push origin main || true
+          git commit -m "test: domain agnosticism results for ${{ github.event.inputs.domain_name }}" --allow-empty || true
+          git push origin main || echo "Git push failed (may be OK for this workflow)"
