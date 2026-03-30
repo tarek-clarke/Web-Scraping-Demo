@@ -10,6 +10,9 @@ on:
         description: 'Domain name for adaptation'
         required: true
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -26,7 +29,7 @@ jobs:
       - name: Run domain agnosticism test
         id: test
         run: |
-          mkdir -p data
+          mkdir -p data docs/data/domain-tests
           python3 << 'EOF'
           import sys, json, subprocess
           from datetime import datetime
@@ -97,18 +100,25 @@ jobs:
             "overall_confidence": round(min(confidence, 0.99), 3),
             "api_response_sample": api_response
           }
+
+          ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+          result_file = f"docs/data/domain-tests/{ts}_passed.json"
           
           with open("data/domain_test_result.json", "w") as f:
+            json.dump(results, f, indent=2)
+
+          with open(result_file, "w") as f:
             json.dump(results, f, indent=2)
           
           print(f"\n✓ Test passed - confidence: {results['overall_confidence']:.1%}")
           print(f"  Transformations: {len(transformations)}")
+          print(f"  Stored: {result_file}")
           EOF
       
       - name: Commit and push results
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
-          git add data/domain_test_result.json 2>/dev/null || true
+          git add data/domain_test_result.json docs/data/domain-tests/*.json 2>/dev/null || true
           git commit -m "test: domain agnosticism test result for ${{ inputs.domain_name }}" || true
           git push origin main || echo "Push skipped"
