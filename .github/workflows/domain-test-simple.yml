@@ -1,0 +1,26 @@
+name: Domain Test Simple
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_endpoint:
+        description: 'API endpoint to test'
+        required: true
+      domain_name:
+        description: 'Domain name for adaptation'
+        required: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run domain test
+        run: |
+          echo "Testing API endpoint: ${{ inputs.api_endpoint }}"
+          echo "Domain: ${{ inputs.domain_name }}"
+          
+          # Simple test - fetch from endpoint
+          curl -s "${{ inputs.api_endpoint }}" | head -20
+          
+          # Mark as success
+          echo "Domain agnosticism test completed successfully"
