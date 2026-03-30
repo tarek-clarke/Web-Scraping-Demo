@@ -861,21 +861,29 @@
 
             try {
                 // Trigger workflow via GitHub API
-                const response = await fetch('https://api.github.com/repos/tarek-clarke/resilient-rap-framework/actions/workflows/domain-agnosticism-test.yml/dispatches', {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/vnd.github+json',
-                        'Authorization': `Bearer ${token}`,
-                        'X-GitHub-Api-Version': '2022-11-28'
-                    },
-                    body: JSON.stringify({
-                        ref: 'main',
-                        inputs: {
-                            api_endpoint: endpoint,
-                            domain_name: domain
-                        }
-                    })
-                });
+                // Using workflow ID (can be name or ID)
+                const workflowId = 'domain-agnosticism-test.yml';
+                const owner = 'tarek-clarke';
+                const repo = 'resilient-rap-framework';
+                
+                const response = await fetch(
+                    `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/dispatches`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/vnd.github+json',
+                            'Authorization': `Bearer ${token}`,
+                            'X-GitHub-Api-Version': '2022-11-28'
+                        },
+                        body: JSON.stringify({
+                            ref: 'main',
+                            inputs: {
+                                api_endpoint: endpoint,
+                                domain_name: domain
+                            }
+                        })
+                    }
+                );
 
                 if (response.ok) {
                     // Update rate limit
@@ -893,8 +901,13 @@
                     // Load test results after delay
                     setTimeout(loadDomainTestResults, 3000);
                 } else {
-                    const err = await response.json();
-                    statusEl.textContent = `❌ Failed to trigger test: ${err.message || response.statusText}`;
+                    const err = await response.json().catch(() => ({ message: response.statusText }));
+                    console.error('Workflow trigger failed:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        error: err
+                    });
+                    statusEl.textContent = `❌ Failed to trigger test: ${err.message || response.statusText} (Status: ${response.status})`;
                     statusEl.className = 'error';
                 }
             } catch (err) {
