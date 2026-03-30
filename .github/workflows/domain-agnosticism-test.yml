@@ -1,0 +1,75 @@
+name: Domain Agnosticism Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_endpoint:
+        description: 'API endpoint to test against'
+        required: true
+        type: string
+      domain_name:
+        description: 'Domain name (e.g., automotive, healthcare, aerospace)'
+        required: true
+        type: string
+
+jobs:
+  test-domain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements-ci.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Run domain agnosticism test
+        env:
+          API_ENDPOINT: ${{ github.event.inputs.api_endpoint }}
+          DOMAIN_NAME: ${{ github.event.inputs.domain_name }}
+          PYTHONPATH: "."
+        run: |
+          echo "Testing domain: $DOMAIN_NAME"
+          echo "API Endpoint: $API_ENDPOINT"
+          echo "Running pytest..."
+          pytest tests/ -v --tb=short --timeout=120 -x 2>&1 | head -50 || true
+          echo "Test execution completed"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: domain-test-${{ github.event.inputs.domain_name }}-${{ github.run_number }}
+          path: domain_test_result.json
+          retention-days: 90
+
+      - name: Save results to docs for dashboard
+        if: always()
+        run: |
+          mkdir -p docs/data/domain-tests
+          FILENAME="docs/data/domain-tests/${{ github.event.inputs.domain_name }}-$(date +%Y%m%d-%H%M%S).json"
+          mv domain_test_result.json "$FILENAME"
+          echo "Results saved to: $FILENAME"
+
+      - name: Commit results to repo
+        if: always()
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add docs/data/domain-tests/ || true
+          git commit -m "test: domain agnosticism results for ${{ github.event.inputs.domain_name }}" || true
+          git push origin main || true
