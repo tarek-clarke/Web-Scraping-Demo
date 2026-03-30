@@ -99,18 +99,30 @@ PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000000 --
 ```
 
 ### 3. Launch Real-Time Dashboard
-To monitor the ingestion stream, circuit-breaker status, and autonomous repairs in real-time, launch the Terminal User Interface:
+To monitor the ingestion stream, circuit-breaker status, and autonomous repairs in real-time, launch the browser-based observability dashboard:
 ```bash
-python3 tools/tui_replayer.py
+# Linux/macOS
+PYTHONPATH="." python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050
+
+# Windows PowerShell
+$env:PYTHONPATH="."; python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050
 ```
+Then open `http://localhost:5050/dashboard` in any browser.
 
 ---
 
 ## Real-Time Observability
 
-The framework includes a Terminal User Interface (TUI) dashboard for monitoring ingestion health, schema drift detection, and autonomous "Self-Healing" repairs.
+The framework includes a browser-based observability dashboard for monitoring ingestion health, schema drift detection, and autonomous "Self-Healing" repairs.
 
-<img width="1146" height="413" alt="TUI Dashboard Screenshot" src="https://github.com/user-attachments/assets/98fff2e6-2f66-46fa-809a-f47b9c9acf34" />
+![Observability Dashboard](assets/dashboard_demo.png)
+
+### Dashboard Features
+- **Circuit Breaker State** — colour-coded indicator (green = CLOSED, yellow = HALF_OPEN, red = OPEN)
+- **DLQ Depth** — line graph tracking quarantined packets over time
+- **Edge Buffer** — utilisation progress bar with pending/synced counters
+- **SLO Badges** — pass/fail for all 6 service level objectives
+- **Auto-refresh** — polls every 3 seconds, no manual reload needed
 
 ---
 
@@ -250,8 +262,47 @@ To validate the framework's domain-agnostic capability, I applied the 3-tier arc
 
 ## Observability Dashboard and API
 
-- **TUI Dashboard**: Launch via `python3 tools/tui_replayer.py`.
-- **API Documentation**: Access via `http://localhost:5050/docs` summarizing pipeline health and Gat SLOs.
+A FastAPI-powered REST API exposes the pipeline's health, metrics, and operational controls, with a built-in real-time dashboard.
+
+### Setup
+
+```bash
+# Install API dependencies (included in requirements.txt)
+pip install fastapi uvicorn[standard] httpx
+
+# Start the server
+PYTHONPATH="." python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050       # Linux/macOS
+$env:PYTHONPATH="."; python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050  # Windows PowerShell
+```
+
+Once running:
+- **Dashboard**: http://localhost:5050/dashboard — real-time dark-mode UI with Chart.js graphs
+- **API Docs (Swagger)**: http://localhost:5050/docs — interactive endpoint explorer
+
+### Endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/health` | GET | Liveness and readiness probe (circuit breaker, buffer, audit) |
+| `/metrics` | GET | Live circuit breaker state, DLQ depth, buffer utilisation |
+| `/slo` | GET | Real-time SLO evaluation against 6 production budgets |
+| `/reports` | GET | List all benchmark report JSON files |
+| `/reports/{id}` | GET | Fetch a specific benchmark report |
+| `/run` | POST | Trigger a 20-packet smoke test through the pipeline |
+| `/run/chaos` | POST | Trigger a 20-packet chaos test (15% corruption) |
+| `/circuit-breaker/reset` | POST | Manual circuit breaker reset to CLOSED |
+| `/dashboard` | GET | Serve the observability dashboard UI |
+
+### Example Usage
+
+```bash
+curl http://localhost:5050/health                      # Check pipeline health
+curl http://localhost:5050/metrics                     # View live metrics
+curl -X POST http://localhost:5050/run                 # Trigger smoke test (20 packets)
+curl -X POST http://localhost:5050/run/chaos           # Trigger chaos test (20 packets)
+curl -X POST http://localhost:5050/circuit-breaker/reset  # Reset circuit breaker
+curl http://localhost:5050/reports                      # List benchmark reports
+```
 
 ---
 
