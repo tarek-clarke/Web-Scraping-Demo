@@ -538,6 +538,15 @@
         <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">
             Test the RAP framework against different domain APIs to validate cross-domain portability.
         </p>
+        <div style="margin-bottom: 1rem; display: flex; gap: 0.75rem; align-items: center;">
+            <button onclick="promptForToken()" style="background: var(--gradient-blue); border: none; border-radius: 8px; padding: 0.75rem 1.5rem; color: white; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                🔑 Set GitHub Token
+            </button>
+            <span id="token-status" style="font-size: 0.85rem; color: var(--text-muted);">
+                <span id="token-indicator" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-red); margin-right: 0.5rem;"></span>
+                <span id="token-text">No token set</span>
+            </span>
+        </div>
         <div class="test-inputs">
             <input type="text" id="api-endpoint" placeholder="API endpoint URL (e.g., https://api.example.com/telemetry)" />
             <input type="text" id="domain-name" placeholder="Domain name (e.g., automotive, healthcare)" />
@@ -947,11 +956,19 @@
         }
 
         function promptForToken() {
-            const token = prompt('Enter your GitHub Personal Access Token (with "actions" scope):', '');
-            if (token) {
-                localStorage.setItem('github_token', token);
-                document.getElementById('test-status').textContent = '✅ Token saved. Try again.';
+            const token = prompt('Enter your GitHub Personal Access Token (Scopes: workflow):', '');
+            if (token && token.trim()) {
+                localStorage.setItem('github_token', token.trim());
+                
+                // Update token status indicator
+                document.getElementById('token-indicator').style.background = 'var(--accent-green)';
+                document.getElementById('token-text').textContent = 'Token set ✓';
+                
+                document.getElementById('test-status').textContent = '✅ Token saved! You can now trigger domain tests.';
                 document.getElementById('test-status').className = 'success';
+            } else if (token === '') {
+                document.getElementById('test-status').textContent = '❌ Token entry cancelled.';
+                document.getElementById('test-status').className = 'error';
             }
         }
 
@@ -1026,6 +1043,16 @@
             }
 
             updateRateLimitDisplay(rateLimitData.count, DAILY_LIMIT);
+
+            // Update token status indicator
+            const token = localStorage.getItem('github_token');
+            if (token) {
+                document.getElementById('token-indicator').style.background = 'var(--accent-green)';
+                document.getElementById('token-text').textContent = 'Token set ✓';
+            } else {
+                document.getElementById('token-indicator').style.background = 'var(--accent-red)';
+                document.getElementById('token-text').textContent = 'No token set - click to add';
+            }
         });
 
         // ═══════════════════════════════════════════════════════════════════
