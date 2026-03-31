@@ -1,20 +1,20 @@
 {
-  "timestamp": "2026-03-31T00:45:41.008107+00:00",
-  "api_endpoint": "https://jsonplaceholder.typicode.com/todos/1",
-  "domain": "smart-grid",
+  "timestamp": "2026-03-31T00:48:26.821533+00:00",
+  "api_endpoint": "https://jsonplaceholder.typicode.com/posts/5",
+  "domain": "basketball",
   "status": "success",
   "transformations": [
     {
-      "original": "v_rms",
-      "mapped": "voltage_rms",
-      "confidence": 0.98
+      "original": "fg_pct",
+      "mapped": "field_goal_percentage",
+      "confidence": 0.97
     },
     {
-      "original": "f_hz",
-      "mapped": "frequency_hertz",
-      "confidence": 0.96
+      "original": "reb_cnt",
+      "mapped": "rebounds",
+      "confidence": 0.95
     }
   ],
-  "overall_confidence": 0.97,
-  "api_response_sample": "{\n  \"userId\": 1,\n  \"id\": 1,\n  \"title\": \"delectus aut autem\",\n  \"completed\": false\n}"
+  "overall_confidence": 0.96,
+  "api_response_sample": "{\n  \"userId\": 1,\n  \"id\": 5,\n  \"title\": \"nesciunt quas odio\",\n  \"body\": \"repudiandae veniam quaerat sunt sed\\nalias aut fugiat sit autem sed est\\nvoluptatem omnis possimus esse voluptatibus quis\\nest aut tenetur dolor neque\"\n}"
 }
