@@ -13,6 +13,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -116,20 +119,84 @@ jobs:
           print(f"  Transformations: {len(transformations)}")
           print(f"  Stored: {result_file}")
           EOF
-      
-      - name: Commit and push results
+
+      - name: Publish results to repository (no git push)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git add data/domain_test_result.json docs/data/domain-tests/*.json 2>/dev/null || true
-          git diff --cached --quiet && echo "No result changes to commit" && exit 0
-          git commit -m "test: domain agnosticism test result for ${{ inputs.domain_name }}"
-          git pull --rebase origin main
-          git push origin HEAD:main
+          python3 << 'EOF'
+          import os
+          import glob
+          import json
+          import base64
+          import urllib.request
+          import urllib.error
+
+          token = os.environ["GITHUB_TOKEN"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+
+          files = sorted(glob.glob("docs/data/domain-tests/*_passed.json"))
+          if not files:
+            raise SystemExit("No result file found in docs/data/domain-tests")
+
+          latest = files[-1]
+          latest_name = os.path.basename(latest)
+
+          def put_file(path, local_path, message):
+            with open(local_path, "rb") as f:
+              content_b64 = base64.b64encode(f.read()).decode("utf-8")
+
+            payload = {
+              "message": message,
+              "content": content_b64,
+              "branch": "main",
+            }
+
+            # For updates, include current sha if file exists
+            get_req = urllib.request.Request(
+              f"https://api.github.com/repos/{repo}/contents/{path}",
+              headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "User-Agent": "rap-domain-test-workflow",
+              },
+              method="GET",
+            )
+            try:
+              with urllib.request.urlopen(get_req) as resp:
+                current = json.loads(resp.read().decode("utf-8"))
+                if isinstance(current, dict) and current.get("sha"):
+                  payload["sha"] = current["sha"]
+            except urllib.error.HTTPError as e:
+              if e.code != 404:
+                raise
+
+            put_req = urllib.request.Request(
+              f"https://api.github.com/repos/{repo}/contents/{path}",
+              data=json.dumps(payload).encode("utf-8"),
+              headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "Content-Type": "application/json",
+                "User-Agent": "rap-domain-test-workflow",
+              },
+              method="PUT",
+            )
+            with urllib.request.urlopen(put_req) as resp:
+              print(f"Published {path} (HTTP {resp.status})")
+
+          put_file(
+            f"docs/data/domain-tests/{latest_name}",
+            latest,
+            f"test: domain agnosticism result {latest_name}",
+          )
+          put_file(
+            "data/domain_test_result.json",
+            "data/domain_test_result.json",
+            f"test: latest domain agnosticism result ({latest_name})",
+          )
+          EOF
 
       - name: Upload result artifact (fallback)
         if: always()
