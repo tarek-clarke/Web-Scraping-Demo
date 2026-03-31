@@ -542,6 +542,9 @@
             <button onclick="promptForToken()" style="background: var(--gradient-blue); border: none; border-radius: 8px; padding: 0.75rem 1.5rem; color: white; font-weight: 600; cursor: pointer; transition: all 0.3s;">
                 🔑 Set GitHub Token
             </button>
+            <button onclick="resetRateLimit()" style="background: var(--accent-yellow); border: none; border-radius: 8px; padding: 0.5rem 1rem; color: #111; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                ♻️ Reset Quota
+            </button>
             <span id="token-status" style="font-size: 0.85rem; color: var(--text-muted);">
                 <span id="token-indicator" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-red); margin-right: 0.5rem;"></span>
                 <span id="token-text">No token set</span>
@@ -1054,6 +1057,46 @@
                 document.getElementById('token-text').textContent = 'No token set - click to add';
             }
         });
+
+        // Allow user to reset the daily quota only if token validates with GitHub
+        async function resetRateLimit() {
+            const statusEl = document.getElementById('test-status');
+            const token = localStorage.getItem('github_token');
+            if (!token) {
+                statusEl.textContent = '❌ GitHub token not set. Reset requires authentication.';
+                statusEl.className = 'error';
+                return;
+            }
+
+            statusEl.textContent = '⏳ Validating token...';
+            statusEl.className = 'loading';
+
+            try {
+                const resp = await fetch('https://api.github.com/user', {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
+                });
+
+                if (!resp.ok) {
+                    statusEl.textContent = `❌ Token validation failed (status ${resp.status}).`; 
+                    statusEl.className = 'error';
+                    return;
+                }
+
+                // Token valid — clear local quota
+                const rateLimitKey = 'rap_domain_test_rate_limit';
+                localStorage.removeItem(rateLimitKey);
+                const rateLimitData = { last: 0, count: 0, reset: Date.now() };
+                localStorage.setItem(rateLimitKey, JSON.stringify(rateLimitData));
+                updateRateLimitDisplay(0, 20);
+                const user = await resp.json();
+                statusEl.textContent = `✅ Daily quota reset for ${user.login}.`;
+                statusEl.className = 'success';
+
+            } catch (err) {
+                statusEl.textContent = `❌ Token validation error: ${err.message}`;
+                statusEl.className = 'error';
+            }
+        }
 
         // ═══════════════════════════════════════════════════════════════════
         // BERT Reconciliation Visualization
