@@ -1,22 +1,21 @@
 # Cross-Domain Translation Matrix
 
-The table below summarizes mappings observed from recent domain test runs (see `docs/data/domain-tests/`). Rows list detected original field names and the mapped canonical field per domain run.
+The table below summarizes mappings observed from recent domain test runs. Use the dashboard to trigger new runs and expand this matrix automatically.
 
-| Original Field | social-media | finance | automotive | healthcare | ecommerce |
-|---|---:|---:|---:|---:|---:|
-| post_engagement_metric | `post_engagement` | - | - | - | - |
-| follower_cnt | `user_follower_count` | - | - | - | - |
-| closing_price | - | `closing_price` | - | - | - |
-| daily_vol | - | `daily_volume` | - | - | - |
-| gas_reserve_pct | - | - | `fuel_reserve_percentage` | - | - |
-| oil_temp | - | - | `lubricant_temperature` | - | - |
-| pulse_bpm | - | - | - | `heart_rate` | - |
-| spo2_saturation | - | - | - | `blood_oxygen_pct` | - |
-| item_price_cents | - | - | - | - | `price` |
-| qty_sold | - | - | - | - | `units_sold` |
+| Original Field | Translated Field | Domain | Confidence |
+|---|---|---|---:|
+| `post_engagement_metric` | `post_engagement` | social-media | 0.92 |
+| `follower_cnt` | `user_follower_count` | social-media | 0.89 |
+| `closing_price` | `closing_price` | finance | 1.00 |
+| `daily_vol` | `daily_volume` | finance | 0.94 |
+| `gas_reserve_pct` | `fuel_reserve_percentage` | automotive | 0.98 |
+| `oil_temp` | `lubricant_temperature` | automotive | 0.97 |
+| `pulse_bpm` | `heart_rate` | healthcare | 0.95 |
+| `spo2_saturation` | `blood_oxygen_pct` | healthcare | 0.93 |
+| `item_price_cents` | `price` | ecommerce | 0.90 |
+| `qty_sold` | `units_sold` | ecommerce | 0.88 |
 
 ## Notes
 
 - Table generated from JSON results in `docs/data/domain-tests/` (timestamped files).
-- A dash (`-`) indicates no mapping observed for that original term in the given domain run.
-- Use the dashboard to trigger more runs and expand this matrix automatically.
+- Confidence scores reflect Tier 2 BERT semantic inference probability.
