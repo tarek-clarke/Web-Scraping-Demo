@@ -1,7 +1,7 @@
 # Resilient Analytical Pipeline (RAP) Framework
 
 ![Status](https://img.shields.io/badge/Status-Production--Ready-brightgreen)
-![Licence](https://img.shields.io/badge/Licence-PolyForm%20Non-commercial-red.svg)
+![Licence](https://img.shields.io/badge/Licence-PolyForm%20Non--commercial-red.svg)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-yellow)
 ![Docker](https://img.shields.io/badge/Docker-Enterprise--Hardened-blue)
 
