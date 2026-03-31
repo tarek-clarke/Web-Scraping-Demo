@@ -35,6 +35,20 @@
    - Confidence scores for each mapping
    - Tier classification (Cache vs. BERT vs. Human Review)
 
+## Quick Start
+
+1. **Open the [Dashboard](./index.html)**
+2. **Test Domain Agnosticism**:
+   - Set your GitHub token: Click "Set token" and paste a personal access token
+   - Enter API endpoint: `https://api.example.com/telemetry`
+   - Enter domain name: `automotive` or `healthcare`
+   - Click **▶ Test Domain**
+
+3. **View Results**:
+   - BERT reconciliation transformations
+   - Confidence scores for each mapping
+   - Tier classification (Cache vs. BERT vs. Human Review)
+
 ## Rate Limits
 
 - **60 seconds** between tests (per session)
@@ -52,6 +66,10 @@ See performance across hardware platforms in [README.md](../README.md#performanc
 ## GitHub Repository
 
 📦 [resilient-rap-framework](https://github.com/tarek-clarke/resilient-rap-framework)
+
+## Cross-Domain Translations
+
+See the detailed cross-domain translation matrix: [TRANSLATIONS.md](./TRANSLATIONS.md)
 
 ## License
 
