@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-03-31T00:14:26.117750Z",
-  "api_endpoint": "https://finnhub.io/api/v1/quote?symbol=AAPL&token=demo",
-  "domain": "finance",
+  "timestamp": "2026-03-31T00:16:08.911521Z",
+  "api_endpoint": "https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&hourly=temperature_2m",
+  "domain": "weather",
   "status": "success",
   "transformations": [
     {
@@ -16,5 +16,5 @@
     }
   ],
   "overall_confidence": 0.82,
-  "api_response_sample": "{\"error\":\"Invalid API key.\"}"
+  "api_response_sample": "{\"latitude\":51.51147,\"longitude\":-0.13078308,\"generationtime_ms\":0.054836273193359375,\"utc_offset_seconds\":0,\"timezone\":\"GMT\",\"timezone_abbreviation\":\"GMT\",\"elevation\":16.0,\"hourly_units\":{\"time\":\"iso8601\",\"temperature_2m\":\"\u00b0C\"},\"hourly\":{\"time\":[\"2026-03-31T00:00\",\"2026-03-31T01:00\",\"2026-03-31T02:"
 }
