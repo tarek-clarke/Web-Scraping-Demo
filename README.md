@@ -284,6 +284,8 @@ $env:PYTHONPATH="."; python -m uvicorn src.api_server:app --host 0.0.0.0 --port 
 ```
 Then open `http://localhost:5050/dashboard` in any browser.
 
+---
+
 ## Limitations and Future Work
 
 ### Current Limitations
