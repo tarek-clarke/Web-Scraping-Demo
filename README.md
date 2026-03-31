@@ -102,8 +102,8 @@ To validate the framework's domain-agnostic capability, I applied the 3-tier arc
 > [!TIP]
 > **Clinical Insight**: The lower cold-start accuracy in clinical informatics underscores the necessity of the **Tier 3 Governor**, as medical acronyms (e.g., SpO2, RR) often require human forensic context that transformer models lack in zero-shot scenarios.
 
-### 4. Cross-Domain Translation Matrix
-The table below summarizes mappings observed from recent domain test runs. Use the dashboard to trigger new runs and expand this matrix automatically.
+### 4. Cross-Domain Translation Table
+The table below summarizes mappings observed from recent domain test runs. Use the dashboard to trigger new runs and expand this table automatically.
 
 | Original Field | Translated Field | Domain | Confidence |
 |---|---|---|---:|
