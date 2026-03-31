@@ -129,6 +129,8 @@ The table below summarizes mappings observed from recent domain test runs. Use t
 | `yd_gain` | `yards_gained` | football | 0.92 |
 | `fg_pct` | `field_goal_percentage` | basketball | 0.97 |
 | `reb_cnt` | `rebounds` | basketball | 0.95 |
+| `hr_cnt` | `home_runs` | baseball | 0.96 |
+| `era_val` | `earned_run_average` | baseball | 0.94 |
 | `item_price_cents` | `price` | ecommerce | 0.90 |
 | `qty_sold` | `units_sold` | ecommerce | 0.88 |
 

@@ -13,7 +13,8 @@ tests = [
     {"api":"https://jsonplaceholder.typicode.com/posts/2","domain":"hockey"},
     {"api":"https://jsonplaceholder.typicode.com/posts/3","domain":"soccer"},
     {"api":"https://jsonplaceholder.typicode.com/posts/4","domain":"football"},
-    {"api":"https://jsonplaceholder.typicode.com/posts/5","domain":"basketball"}
+    {"api":"https://jsonplaceholder.typicode.com/posts/5","domain":"basketball"},
+    {"api":"https://jsonplaceholder.typicode.com/posts/6","domain":"baseball"}
 ]
 
 # Simple deterministic mapping per domain to simulate translator
@@ -65,6 +66,10 @@ domain_mappings = {
     "basketball":[
         {"original":"fg_pct","mapped":"field_goal_percentage","confidence":0.97},
         {"original":"reb_cnt","mapped":"rebounds","confidence":0.95}
+    ],
+    "baseball":[
+        {"original":"hr_cnt","mapped":"home_runs","confidence":0.96},
+        {"original":"era_val","mapped":"earned_run_average","confidence":0.94}
     ]
 }
 
