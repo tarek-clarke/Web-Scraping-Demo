@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-03-31T00:50:04.805294+00:00",
+  "api_endpoint": "https://jsonplaceholder.typicode.com/users/1",
+  "domain": "healthcare",
+  "status": "success",
+  "transformations": [
+    {
+      "original": "pulse_bpm",
+      "mapped": "heart_rate",
+      "confidence": 0.95
+    },
+    {
+      "original": "spo2_saturation",
+      "mapped": "blood_oxygen_pct",
+      "confidence": 0.93
+    }
+  ],
+  "overall_confidence": 0.94,
+  "api_response_sample": "{\n  \"id\": 1,\n  \"name\": \"Leanne Graham\",\n  \"username\": \"Bret\",\n  \"email\": \"Sincere@april.biz\",\n  \"address\": {\n    \"street\": \"Kulas Light\",\n    \"suite\": \"Apt. 556\",\n    \"city\": \"Gwenborough\",\n    \"zipcode\": \"92998-3874\",\n    \"geo\": {\n      \"lat\": \"-37.3159\",\n      \"lng\": \"81.1496\"\n    }\n  },\n  \"phone\": \"1-770-736-8031 x56442\",\n  \"website\": \"hildegard.org\",\n  \"company\": {\n    \"name\": \"Romaguera-Crona\",\n    \"catchPhrase\": \"Multi-layered client-server neural-net\",\n    \"bs\": \"harness real-time e-markets\"\n  }\n}"
+}

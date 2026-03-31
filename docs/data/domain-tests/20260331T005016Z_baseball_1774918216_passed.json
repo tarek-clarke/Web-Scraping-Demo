@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-03-31T00:50:16.059173+00:00",
+  "api_endpoint": "https://jsonplaceholder.typicode.com/posts/6",
+  "domain": "baseball",
+  "status": "success",
+  "transformations": [
+    {
+      "original": "hr_cnt",
+      "mapped": "home_runs",
+      "confidence": 0.96
+    },
+    {
+      "original": "era_val",
+      "mapped": "earned_run_average",
+      "confidence": 0.94
+    }
+  ],
+  "overall_confidence": 0.95,
+  "api_response_sample": "{\n  \"userId\": 1,\n  \"id\": 6,\n  \"title\": \"dolorem eum magni eos aperiam quia\",\n  \"body\": \"ut aspernatur corporis harum nihil quis provident sequi\\nmollitia nobis aliquid molestiae\\nperspiciatis et ea nemo ab reprehenderit accusantium quas\\nvoluptate dolores velit et doloremque molestiae\"\n}"
+}

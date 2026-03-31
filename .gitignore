@@ -58,6 +58,8 @@ data/**
 !data/reports/
 !data/reports/**
 !data/**/*.csv
+!docs/data/domain-tests/
+!docs/data/domain-tests/*.json
 
 # Development/temporary
 *.log

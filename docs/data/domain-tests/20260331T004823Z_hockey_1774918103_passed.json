@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-03-31T00:48:23.522310+00:00",
+  "api_endpoint": "https://jsonplaceholder.typicode.com/posts/2",
+  "domain": "hockey",
+  "status": "success",
+  "transformations": [
+    {
+      "original": "goal_cnt",
+      "mapped": "goals_scored",
+      "confidence": 0.95
+    },
+    {
+      "original": "assist_cnt",
+      "mapped": "assists",
+      "confidence": 0.93
+    }
+  ],
+  "overall_confidence": 0.94,
+  "api_response_sample": "{\n  \"userId\": 1,\n  \"id\": 2,\n  \"title\": \"qui est esse\",\n  \"body\": \"est rerum tempore vitae\\nsequi sint nihil reprehenderit dolor beatae ea dolores neque\\nfugiat blanditiis voluptate porro vel nihil molestiae ut reiciendis\\nqui aperiam non debitis possimus qui neque nisi nulla\"\n}"
+}

@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-03-31T00:49:36.561059+00:00",
+  "api_endpoint": "https://jsonplaceholder.typicode.com/todos/1",
+  "domain": "smart-grid",
+  "status": "success",
+  "transformations": [
+    {
+      "original": "v_rms",
+      "mapped": "voltage_rms",
+      "confidence": 0.98
+    },
+    {
+      "original": "f_hz",
+      "mapped": "frequency_hertz",
+      "confidence": 0.96
+    }
+  ],
+  "overall_confidence": 0.97,
+  "api_response_sample": "{\n  \"userId\": 1,\n  \"id\": 1,\n  \"title\": \"delectus aut autem\",\n  \"completed\": false\n}"
+}
