@@ -1,4 +1,5 @@
 # --- Python Core ---
+.claude/
 .venv/
 venv/
 env/
