@@ -1,6 +1,6 @@
-# Cross-Domain Translation Matrix
+# Cross-Domain Translation Table
 
-The table below summarizes mappings observed from recent domain test runs. Use the dashboard to trigger new runs and expand this matrix automatically.
+The table below summarizes mappings observed from recent domain test runs. Use the dashboard to trigger new runs and expand this table automatically.
 
 | Original Field | Translated Field | Domain | Confidence |
 |---|---|---|---:|
