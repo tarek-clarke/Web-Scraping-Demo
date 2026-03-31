@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-03-31T00:14:26.117750Z",
+  "api_endpoint": "https://finnhub.io/api/v1/quote?symbol=AAPL&token=demo",
+  "domain": "finance",
+  "status": "success",
+  "transformations": [
+    {
+      "original": "gas_reserve_pct",
+      "mapped": "fuel_reserve_percentage",
+      "confidence": 0.98
+    },
+    {
+      "original": "oil_temp",
+      "mapped": "lubricant_temperature",
+      "confidence": 0.95
+    }
+  ],
+  "overall_confidence": 0.82,
+  "api_response_sample": "{\"error\":\"Invalid API key.\"}"
+}
