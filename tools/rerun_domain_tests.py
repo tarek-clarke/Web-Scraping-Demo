@@ -9,7 +9,11 @@ tests = [
     {"api":"https://jsonplaceholder.typicode.com/users/1","domain":"healthcare"},
     {"api":"https://api.open-meteo.com/v1/forecast?latitude=45.4215&longitude=-75.6972&current_weather=true","domain":"weather"},
     {"api":"https://api.spacexdata.com/v4/launches/latest","domain":"aerospace"},
-    {"api":"https://jsonplaceholder.typicode.com/todos/1","domain":"smart-grid"}
+    {"api":"https://jsonplaceholder.typicode.com/todos/1","domain":"smart-grid"},
+    {"api":"https://jsonplaceholder.typicode.com/posts/2","domain":"hockey"},
+    {"api":"https://jsonplaceholder.typicode.com/posts/3","domain":"soccer"},
+    {"api":"https://jsonplaceholder.typicode.com/posts/4","domain":"football"},
+    {"api":"https://jsonplaceholder.typicode.com/posts/5","domain":"basketball"}
 ]
 
 # Simple deterministic mapping per domain to simulate translator
@@ -45,6 +49,22 @@ domain_mappings = {
     "smart-grid":[
         {"original":"v_rms","mapped":"voltage_rms","confidence":0.98},
         {"original":"f_hz","mapped":"frequency_hertz","confidence":0.96}
+    ],
+    "hockey":[
+        {"original":"goal_cnt","mapped":"goals_scored","confidence":0.95},
+        {"original":"assist_cnt","mapped":"assists","confidence":0.93}
+    ],
+    "soccer":[
+        {"original":"shots_on_target","mapped":"shots_on_goal","confidence":0.96},
+        {"original":"possession_pct","mapped":"possession_percentage","confidence":0.98}
+    ],
+    "football":[
+        {"original":"td_run","mapped":"rushing_touchdowns","confidence":0.94},
+        {"original":"yd_gain","mapped":"yards_gained","confidence":0.92}
+    ],
+    "basketball":[
+        {"original":"fg_pct","mapped":"field_goal_percentage","confidence":0.97},
+        {"original":"reb_cnt","mapped":"rebounds","confidence":0.95}
     ]
 }
 

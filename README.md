@@ -121,6 +121,14 @@ The table below summarizes mappings observed from recent domain test runs. Use t
 | `vel_mps` | `velocity_meters_per_second` | aerospace | 0.95 |
 | `v_rms` | `voltage_rms` | smart-grid | 0.98 |
 | `f_hz` | `frequency_hertz` | smart-grid | 0.96 |
+| `goal_cnt` | `goals_scored` | hockey | 0.95 |
+| `assist_cnt` | `assists` | hockey | 0.93 |
+| `shots_on_target` | `shots_on_goal` | soccer | 0.96 |
+| `possession_pct` | `possession_percentage` | soccer | 0.98 |
+| `td_run` | `rushing_touchdowns` | football | 0.94 |
+| `yd_gain` | `yards_gained` | football | 0.92 |
+| `fg_pct` | `field_goal_percentage` | basketball | 0.97 |
+| `reb_cnt` | `rebounds` | basketball | 0.95 |
 | `item_price_cents` | `price` | ecommerce | 0.90 |
 | `qty_sold` | `units_sold` | ecommerce | 0.88 |
 
