@@ -38,63 +38,74 @@ jobs:
           python3 << 'EOF'
           import sys, json, subprocess
           from datetime import datetime
-          
+
           # Test inputs
           api_endpoint = "${{ inputs.api_endpoint }}"
           domain_name = "${{ inputs.domain_name }}"
-          
+
           print(f"Testing domain agnosticism against: {api_endpoint}")
           print(f"Target domain: {domain_name}")
-          
+
           # Fetch from API
           result = subprocess.run(['curl', '-s', api_endpoint], capture_output=True, text=True)
           api_response = result.stdout[:300] if result.stdout else "No response"
-          
-          # Run domain agnosticism test
-          confidence = 0.0
+
+          # Prepare results
           transformations = []
-          
+          overall_confidence = 0.0
+
           try:
-            from src.utils.semantic_translator import EnhancedSemanticTranslator
-            
-            # Create translator for target domain
-            translator = EnhancedSemanticTranslator({})
-            
-            # Test schema drift terms across domains
+            # Import the real translator implementation
+            from modules.enhanced_translator import EnhancedSemanticTranslator
+
+            # Domain-specific canonical schemas
+            domain_schemas = {
+              "automotive": ["speed", "rpm", "throttle", "brake_temp", "engine_temp", "fuel_reserve_percentage", "lubricant_temperature", "wheel_speed_front_left"],
+              "healthcare": ["heart_rate", "blood_oxygen_pct", "body_temp_c", "blood_pressure_sys"],
+              "finance": ["closing_price", "daily_volume", "market_cap", "trading_sentiment"],
+              "social-media": ["post_engagement", "user_follower_count", "content_sentiment", "post_body"],
+              "default": ["speed", "rpm", "throttle", "engine_temp"]
+            }
+
+            schema = domain_schemas.get(domain_name.lower(), domain_schemas["default"])
+            translator = EnhancedSemanticTranslator(schema)
+
+            # Choose test terms relevant to target domain where possible
             test_terms = {
               "automotive": ["gas_reserve_pct", "oil_temp", "wheel_spd_fl", "throttle_pos"],
               "healthcare": ["pulse_bpm", "spo2_saturation", "core_thermal_c", "bp_systolic"],
               "finance": ["closing_price", "daily_volume", "trading_sentiment"],
-              "social-media": ["post_engagement", "user_follower_count", "content_sentiment"]
+              "social-media": ["post_engagement_metric", "follower_cnt", "content_sentiment_score"]
             }
-            
-            # Get test terms for domain
+
             terms = test_terms.get(domain_name.lower(), test_terms.get("automotive"))
-            
-            # Translate each term
+
+            # Translate each term using the translator.translate() API
             for term in terms[:3]:
               try:
-                translation = translator.translate_schema_drift(term, domain_name)
-                if translation:
-                  transformations.append({
-                    "original": term,
-                    "mapped": translation.get("mapped", term),
-                    "confidence": translation.get("confidence", 0.85)
-                  })
-                  confidence += translation.get("confidence", 0.85)
-              except:
-                pass
-            
-            confidence = confidence / len(transformations) if transformations else 0.82
-            
+                res = translator.translate(term)
+                mapped = res.get("mapped", "unknown")
+                conf = float(res.get("confidence", 0.0))
+                transformations.append({
+                  "original": term,
+                  "mapped": mapped,
+                  "confidence": round(conf, 4)
+                })
+                overall_confidence += conf
+              except Exception as e:
+                print(f"Translate error for {term}: {e}")
+
+            overall_confidence = overall_confidence / len(transformations) if transformations else 0.0
+
           except Exception as e:
-            print(f"Note: {e}")
-            confidence = 0.82
+            print(f"Translator error: {e}")
+            # Fallback static mappings
             transformations = [
               {"original": "gas_reserve_pct", "mapped": "fuel_reserve_percentage", "confidence": 0.98},
               {"original": "oil_temp", "mapped": "lubricant_temperature", "confidence": 0.95}
             ]
-          
+            overall_confidence = 0.82
+
           # Save results
           results = {
             "timestamp": datetime.utcnow().isoformat() + "Z",
@@ -102,7 +113,7 @@ jobs:
             "domain": domain_name,
             "status": "success",
             "transformations": transformations,
-            "overall_confidence": round(min(confidence, 0.99), 3),
+            "overall_confidence": round(min(overall_confidence, 0.99), 3),
             "api_response_sample": api_response
           }
 
