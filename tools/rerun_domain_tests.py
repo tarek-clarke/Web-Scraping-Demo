@@ -7,8 +7,9 @@ tests = [
     {"api":"https://finnhub.io/api/v1/quote?symbol=AAPL&token=demo","domain":"finance"},
     {"api":"https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&hourly=temperature_2m","domain":"automotive"},
     {"api":"https://jsonplaceholder.typicode.com/users/1","domain":"healthcare"},
-    {"api":"https://fakestoreapi.com/products/1","domain":"ecommerce"},
-    {"api":"https://api.open-meteo.com/v1/forecast?latitude=45.4215&longitude=-75.6972&current_weather=true","domain":"weather"}
+    {"api":"https://api.open-meteo.com/v1/forecast?latitude=45.4215&longitude=-75.6972&current_weather=true","domain":"weather"},
+    {"api":"https://api.spacexdata.com/v4/launches/latest","domain":"aerospace"},
+    {"api":"https://jsonplaceholder.typicode.com/todos/1","domain":"smart-grid"}
 ]
 
 # Simple deterministic mapping per domain to simulate translator
@@ -36,6 +37,14 @@ domain_mappings = {
     "weather":[
         {"original":"temp_c","mapped":"temperature_celsius","confidence":0.96},
         {"original":"wind_speed_kph","mapped":"wind_speed_kph","confidence":0.94}
+    ],
+    "aerospace":[
+        {"original":"alt_m","mapped":"altitude_meters","confidence":0.97},
+        {"original":"vel_mps","mapped":"velocity_meters_per_second","confidence":0.95}
+    ],
+    "smart-grid":[
+        {"original":"v_rms","mapped":"voltage_rms","confidence":0.98},
+        {"original":"f_hz","mapped":"frequency_hertz","confidence":0.96}
     ]
 }
 

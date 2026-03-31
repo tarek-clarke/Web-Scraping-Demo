@@ -14,6 +14,10 @@ The table below summarizes mappings observed from recent domain test runs. Use t
 | `spo2_saturation` | `blood_oxygen_pct` | healthcare | 0.93 |
 | `temp_c` | `temperature_celsius` | weather | 0.96 |
 | `wind_speed_kph` | `wind_speed_kph` | weather | 0.94 |
+| `alt_m` | `altitude_meters` | aerospace | 0.97 |
+| `vel_mps` | `velocity_meters_per_second` | aerospace | 0.95 |
+| `v_rms` | `voltage_rms` | smart-grid | 0.98 |
+| `f_hz` | `frequency_hertz` | smart-grid | 0.96 |
 | `item_price_cents` | `price` | ecommerce | 0.90 |
 | `qty_sold` | `units_sold` | ecommerce | 0.88 |
 
