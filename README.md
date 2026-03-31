@@ -102,6 +102,26 @@ To validate the framework's domain-agnostic capability, I applied the 3-tier arc
 > [!TIP]
 > **Clinical Insight**: The lower cold-start accuracy in clinical informatics underscores the necessity of the **Tier 3 Governor**, as medical acronyms (e.g., SpO2, RR) often require human forensic context that transformer models lack in zero-shot scenarios.
 
+### 4. Cross-Domain Translation Matrix
+The table below summarizes mappings observed from recent domain test runs. Use the dashboard to trigger new runs and expand this matrix automatically.
+
+| Original Field | social-media | finance | automotive | healthcare | ecommerce |
+|---|---:|---:|---:|---:|---:|
+| post_engagement_metric | `post_engagement` | - | - | - | - |
+| follower_cnt | `user_follower_count` | - | - | - | - |
+| closing_price | - | `closing_price` | - | - | - |
+| daily_vol | - | `daily_volume` | - | - | - |
+| gas_reserve_pct | - | - | `fuel_reserve_percentage` | - | - |
+| oil_temp | - | - | `lubricant_temperature` | - | - |
+| pulse_bpm | - | - | - | `heart_rate` | - |
+| spo2_saturation | - | - | - | `blood_oxygen_pct` | - |
+| item_price_cents | - | - | - | - | `price` |
+| qty_sold | - | - | - | - | `units_sold` |
+
+Notes:
+- Table generated from JSON results in `docs/data/domain-tests/` (timestamped files).
+- A dash (-) indicates no mapping observed for that original term in the given domain run.
+
 ---
 
 ## Performance & Scaling Validation
@@ -206,35 +226,28 @@ The framework includes a browser-based observability dashboard for monitoring in
 ![Observability Dashboard](assets/dashboard_demo.png)
 
 ### Dashboard Features
-- **Circuit Breaker State** — colour-coded indicator (green = CLOSED, yellow = HALF_OPEN, red = OPEN)
-- **DLQ Depth** — line graph tracking quarantined packets over time
-- **Edge Buffer** — utilisation progress bar with pending/synced counters
-- **SLO Badges** — pass/fail for all 6 service level objectives
-- **Auto-refresh** — polls every 3 seconds, no manual reload needed
+- **Circuit Breaker State**: Colour-coded status indicator (green: CLOSED, yellow: HALF_OPEN, red: OPEN).
+- **DLQ Depth**: Live tracking of quarantined packets over time.
+- **Edge Buffer**: Progress indicators for SQLite WAL utilisation and sync status.
+- **SLO Monitoring**: Real-time evaluation of all 6 service level objectives.
+- **Autonomous Repairs**: Live visualization of Tier 2 and Tier 3 reconciliation events.
+- **Auto-Refresh**: Polls every 3 seconds for persistent real-time accuracy.
 
-## Cross-Domain Translation Matrix
+### Operational API Endpoints
+A FastAPI-powered REST API exposes the pipeline's health, metrics, and operational controls.
 
-The table below summarizes mappings observed from recent domain test runs (see `docs/data/domain-tests/`). Rows list detected original field names and the mapped canonical field per domain run.
+| Endpoint | Method | Description |
+|---|---|---|
+| `/health` | GET | Liveness and readiness probe status. |
+| `/metrics` | GET | Live circuit breaker state and buffer utilisation. |
+| `/slo` | GET | Real-time SLO evaluation against 6 production budgets. |
+| `/reports` | GET | List and fetch specific benchmark report JSONs. |
+| `/run` | POST | Trigger smoke or chaos tests through the pipeline. |
+| `/run/chaos` | POST | Trigger a 20-packet chaos test (15% corruption). |
+| `/circuit-breaker/reset` | POST | Manual circuit breaker reset to CLOSED. |
+| `/dashboard` | GET | Serve the browser-based observability UI. |
 
-| Original Field | social-media | finance | automotive | healthcare | ecommerce |
-|---|---:|---:|---:|---:|---:|
-| post_engagement_metric | `post_engagement` | - | - | - | - |
-| follower_cnt | `user_follower_count` | - | - | - | - |
-| closing_price | - | `closing_price` | - | - | - |
-| daily_vol | - | `daily_volume` | - | - | - |
-| gas_reserve_pct | - | - | `fuel_reserve_percentage` | - | - |
-| oil_temp | - | - | `lubricant_temperature` | - | - |
-| pulse_bpm | - | - | - | `heart_rate` | - |
-| spo2_saturation | - | - | - | `blood_oxygen_pct` | - |
-| item_price_cents | - | - | - | - | `price` |
-| qty_sold | - | - | - | - | `units_sold` |
-
-Notes:
-- Table generated from JSON results in `docs/data/domain-tests/` (timestamped files).
-- A dash (`-`) indicates no mapping observed for that original term in the given domain run.
-- Use the dashboard to trigger more runs and expand this matrix automatically.
-
----
+Once the server is running (see Quick Start), access the **Interactive API Docs** at `http://localhost:5050/docs`.
 
 ## Quick Start: High-Frequency Validation Suite
 
@@ -270,54 +283,6 @@ PYTHONPATH="." python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050
 $env:PYTHONPATH="."; python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050
 ```
 Then open `http://localhost:5050/dashboard` in any browser.
-
----
-
-## Observability Dashboard and API
-
-A FastAPI-powered REST API exposes the pipeline's health, metrics, and operational controls, with a built-in real-time dashboard.
-
-### Setup
-
-```bash
-# Install API dependencies (included in requirements.txt)
-pip install fastapi uvicorn[standard] httpx
-
-# Start the server
-PYTHONPATH="." python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050       # Linux/macOS
-$env:PYTHONPATH="."; python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050  # Windows PowerShell
-```
-
-Once running:
-- **Dashboard**: http://localhost:5050/dashboard — real-time dark-mode UI with Chart.js graphs
-- **API Docs (Swagger)**: http://localhost:5050/docs — interactive endpoint explorer
-
-### Endpoints
-
-| Endpoint | Method | Description |
-|---|---|---|
-| `/health` | GET | Liveness and readiness probe (circuit breaker, buffer, audit) |
-| `/metrics` | GET | Live circuit breaker state, DLQ depth, buffer utilisation |
-| `/slo` | GET | Real-time SLO evaluation against 6 production budgets |
-| `/reports` | GET | List all benchmark report JSON files |
-| `/reports/{id}` | GET | Fetch a specific benchmark report |
-| `/run` | POST | Trigger a 20-packet smoke test through the pipeline |
-| `/run/chaos` | POST | Trigger a 20-packet chaos test (15% corruption) |
-| `/circuit-breaker/reset` | POST | Manual circuit breaker reset to CLOSED |
-| `/dashboard` | GET | Serve the observability dashboard UI |
-
-### Example Usage
-
-```bash
-curl http://localhost:5050/health                      # Check pipeline health
-curl http://localhost:5050/metrics                     # View live metrics
-curl -X POST http://localhost:5050/run                 # Trigger smoke test (20 packets)
-curl -X POST http://localhost:5050/run/chaos           # Trigger chaos test (20 packets)
-curl -X POST http://localhost:5050/circuit-breaker/reset  # Reset circuit breaker
-curl http://localhost:5050/reports                      # List benchmark reports
-```
-
----
 
 ## Limitations and Future Work
 
