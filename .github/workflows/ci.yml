@@ -82,7 +82,7 @@ jobs:
           PYTHONPATH: "."
         timeout-minutes: 10
         run: |
-          timeout 300 python tools/telemetry_stress_test.py --packets 1000 --chaos 0.15
+          timeout 300 python tools/telemetry_gpu_stress_test.py --packets 1000 --chaos 0.15
 
       - name: Upload stress-test artefacts
         if: always()
