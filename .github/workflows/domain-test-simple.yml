@@ -36,7 +36,7 @@ jobs:
         run: |
           mkdir -p data docs/data/domain-tests
           python3 << 'EOF'
-          import sys, json, subprocess
+          import sys, json, subprocess, os
           from datetime import datetime
 
           # Test inputs
@@ -118,7 +118,10 @@ jobs:
           }
 
           ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
-          result_file = f"docs/data/domain-tests/{ts}_passed.json"
+          run_id = os.environ.get('GITHUB_RUN_ID', 'local')
+          # sanitize domain for filename
+          san_domain = ''.join(c if (c.isalnum() or c in '-_') else '-' for c in domain_name.lower())
+          result_file = f"docs/data/domain-tests/{ts}_{san_domain}_{run_id}_passed.json"
           
           with open("data/domain_test_result.json", "w") as f:
             json.dump(results, f, indent=2)
