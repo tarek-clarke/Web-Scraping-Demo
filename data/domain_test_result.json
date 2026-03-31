@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-03-31T00:10:22.276865Z",
-  "api_endpoint": "https://jsonplaceholder.typicode.com/posts/1",
-  "domain": "social",
+  "timestamp": "2026-03-31T00:14:26.117750Z",
+  "api_endpoint": "https://finnhub.io/api/v1/quote?symbol=AAPL&token=demo",
+  "domain": "finance",
   "status": "success",
   "transformations": [
     {
@@ -16,5 +16,5 @@
     }
   ],
   "overall_confidence": 0.82,
-  "api_response_sample": "{\n  \"userId\": 1,\n  \"id\": 1,\n  \"title\": \"sunt aut facere repellat provident occaecati excepturi optio reprehenderit\",\n  \"body\": \"quia et suscipit\\nsuscipit recusandae consequuntur expedita et cum\\nreprehenderit molestiae ut ut quas totam\\nnostrum rerum est autem sunt rem eveniet architecto\"\n}"
+  "api_response_sample": "{\"error\":\"Invalid API key.\"}"
 }
