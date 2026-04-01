@@ -1,7 +1,7 @@
 # Resilient Analytical Pipeline (RAP) Framework
 
 ![Status](https://img.shields.io/badge/Status-Production--Ready-brightgreen)
-[![Licence: MIT](https://img.shields.io/badge/Licence-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Licence](https://img.shields.io/badge/Licence-PolyForm%20Non--commercial-red.svg)](LICENSE)
 [![CI](https://github.com/tarek-clarke/resilient-rap-framework/actions/workflows/ci.yml/badge.svg)](https://github.com/tarek-clarke/resilient-rap-framework/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-yellow)
 ![Docker](https://img.shields.io/badge/Docker-Enterprise--Hardened-blue)
