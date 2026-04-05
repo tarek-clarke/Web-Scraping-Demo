@@ -31,7 +31,13 @@ data/**
 !data/generators/**
 !data/reports/
 !data/reports/**
+!data/solo/
+!data/solo/**
+!data/team/
+!data/team/**
 !data/**/*.csv
+!data/**/*.json
+!data/**/*.txt
 
 # Research Data (Domain Validation)
 !docs/data/domain-tests/
