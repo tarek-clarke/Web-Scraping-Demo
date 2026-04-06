@@ -1,0 +1,20 @@
+{
+  "device_name": "Apple Metal (MPS)",
+  "vram_gb": "shared",
+  "hip_version": "",
+  "tuning_profile": "cpu_original",
+  "semantic_threshold": 0.45,
+  "anomaly_sigma_threshold": 3.0,
+  "breaker_failure_threshold": 5,
+  "breaker_recovery_timeout": 2.0,
+  "total_embeddings_computed": 150,
+  "total_semantic_resolutions": 150,
+  "total_semantic_recovered": 2,
+  "total_anomaly_detections": 7,
+  "total_batch_embedding_time_ms": 367.97,
+  "total_batch_anomaly_time_ms": 470.22,
+  "total_hash_verification_time_ms": 100.76,
+  "mean_embedding_batch_ms": 24.5315,
+  "mean_anomaly_batch_ms": 31.3482,
+  "gpu_utilisation_estimate": "cpu-fallback"
+}

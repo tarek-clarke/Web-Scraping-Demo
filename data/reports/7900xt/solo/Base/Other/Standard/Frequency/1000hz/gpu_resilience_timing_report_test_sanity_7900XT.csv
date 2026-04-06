@@ -1,0 +1,5 @@
+packet_id,session,sensor,chaos_type,event_type,latency_ms,detected_or_recovered
+e1bfd85f968c,silverstone_FP2,engine_temp,string_in_numeric,detection,0.0,True
+618765fe34b3,budapest_FP1,aero_load,sensor_dropout,detection,0.0,True
+e1bfd85f968c,,,dlq_repair,repair,0.0,False
+618765fe34b3,,,dlq_repair,repair,0.0,False

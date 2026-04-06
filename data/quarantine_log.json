@@ -1,0 +1,86 @@
+[
+    {
+        "original": "sat_vitals",
+        "suggested": "systolic_bp",
+        "confidence": 0.3689,
+        "timestamp": "2026-03-27T03:20:02Z"
+    },
+    {
+        "original": "lower_bp",
+        "suggested": "systolic_bp",
+        "confidence": 0.6273,
+        "timestamp": "2026-03-27T03:20:02Z"
+    },
+    {
+        "original": "breaths_per_min",
+        "suggested": "respiratory_rate",
+        "confidence": 0.596,
+        "timestamp": "2026-03-27T03:20:02Z"
+    },
+    {
+        "original": "sys_mmHg",
+        "suggested": "systolic_bp",
+        "confidence": 0.4907,
+        "timestamp": "2026-03-27T03:20:02Z"
+    },
+    {
+        "original": "respiration_observed",
+        "suggested": "respiratory_rate",
+        "confidence": 0.5356,
+        "timestamp": "2026-03-27T03:20:02Z"
+    },
+    {
+        "original": "rate_observed",
+        "suggested": "respiratory_rate",
+        "confidence": 0.5397,
+        "timestamp": "2026-03-27T03:20:02Z"
+    },
+    {
+        "original": "dia_mmHg",
+        "suggested": "diastolic_bp",
+        "confidence": 0.5086,
+        "timestamp": "2026-03-27T03:20:02Z"
+    },
+    {
+        "original": "resp_rate",
+        "suggested": "respiratory_rate",
+        "confidence": 0.5741,
+        "timestamp": "2026-03-27T03:20:02Z"
+    },
+    {
+        "original": "upper_bp",
+        "suggested": "systolic_bp",
+        "confidence": 0.5705,
+        "timestamp": "2026-03-27T03:20:02Z"
+    },
+    {
+        "original": "hr_bpm",
+        "suggested": "systolic_bp",
+        "confidence": 0.5173,
+        "timestamp": "2026-03-27T03:20:02Z"
+    },
+    {
+        "original": "sp02_percent",
+        "suggested": "spo2",
+        "confidence": 0.5235,
+        "timestamp": "2026-03-27T03:20:02Z"
+    },
+    {
+        "original": "RR",
+        "suggested": "diastolic_bp",
+        "confidence": 0.2649,
+        "timestamp": "2026-03-27T03:20:02Z"
+    },
+    {
+        "original": "o2_saturation",
+        "suggested": "spo2",
+        "confidence": 0.3494,
+        "timestamp": "2026-03-27T03:20:03Z"
+    },
+    {
+        "original": "HR",
+        "suggested": "heart_rate",
+        "confidence": 0.3039,
+        "timestamp": "2026-03-27T03:20:04Z"
+    }
+]

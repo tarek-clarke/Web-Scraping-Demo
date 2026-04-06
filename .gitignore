@@ -57,9 +57,9 @@ node_modules/
 *.zip
 *.so
 *.so.*
-data/*.sqlite
-data/*.sqlite-wal
-data/*.sqlite-shm
+data/**/*.sqlite
+data/**/*.sqlite-wal
+data/**/*.sqlite-shm
 
 # fast_ingest C++ extension build artifacts
 fast_ingest_hip.cpp

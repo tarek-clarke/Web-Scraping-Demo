@@ -1,0 +1,20 @@
+{
+  "device_name": "NVIDIA H200 NVL",
+  "vram_gb": 139.8,
+  "hip_version": "None",
+  "tuning_profile": "gpu_speed",
+  "semantic_threshold": 0.4,
+  "anomaly_sigma_threshold": 3.5,
+  "breaker_failure_threshold": 8,
+  "breaker_recovery_timeout": 1.0,
+  "total_embeddings_computed": 30000,
+  "total_semantic_resolutions": 30000,
+  "total_semantic_recovered": 17,
+  "total_anomaly_detections": 919,
+  "total_batch_embedding_time_ms": 72.29,
+  "total_batch_anomaly_time_ms": 104.9,
+  "total_hash_verification_time_ms": 785.69,
+  "mean_embedding_batch_ms": 0.3012,
+  "mean_anomaly_batch_ms": 0.4371,
+  "gpu_utilisation_estimate": "active"
+}

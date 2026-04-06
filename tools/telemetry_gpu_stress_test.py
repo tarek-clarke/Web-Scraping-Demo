@@ -186,38 +186,41 @@ def _detect_hardware_suffix(gpu_info: Optional[Dict[str, Any]] = None) -> str:
     return _sanitize_suffix_token(name.upper()) or _detect_cpu_suffix()
 
 
-def _resolve_hardware_output_dir(base_dir: str | Path, hardware_suffix: str) -> Path:
-    hardware_dir = _sanitize_suffix_token(hardware_suffix) or "CPU"
-    return Path(base_dir) / hardware_dir
+def _resolve_next_run_dir(base_hw_dir: Path) -> Tuple[Path, str]:
+    """Find the next available RunN folder in the hardware directory."""
+    run_idx = 1
+    while True:
+        run_name = f"Run{run_idx}"
+        candidate = base_hw_dir / run_name
+        # If folder doesn't exist, this is our run
+        if not candidate.exists():
+            return candidate, run_name
+        
+        # If folder exists, but is empty (or only has .DS_Store), we can use it
+        contents = [f for f in os.listdir(candidate) if f not in (".DS_Store", ".gitkeep")]
+        if not contents:
+            return candidate, run_name
+            
+        run_idx += 1
 
 
-def _build_output_suffix(output_suffix: str, hardware_suffix: str) -> str:
+def _build_output_suffix(user_suffix: str, hardware_suffix: str, run_name: str) -> str:
+    """Build the filename suffix including hardware and run number."""
     normalized_hw = _sanitize_suffix_token(hardware_suffix) or "CPU"
-    raw = (output_suffix or "").strip().strip("_")
+    raw = (user_suffix or "").strip().strip("_")
+    
+    # Base parts: _HARDWARE_RUN_
     if not raw:
-        return f"_{normalized_hw}"
+        return f"_{normalized_hw}_{run_name}_"
 
     normalized_raw = _sanitize_suffix_token(raw).upper()
+    # Don't duplicate hardware if already in user suffix
     if normalized_hw.upper() not in normalized_raw:
         raw = f"{raw}_{normalized_hw}"
-    return f"_{raw}"
+    
+    return f"_{raw}_{run_name}_"
 
 
-def _increment_suffix_if_needed(output_dir: Path, base_suffix: str) -> str:
-    """If a report with the current suffix already exists, append _Run2, _Run3, etc."""
-    # We check for the main JSON report file as the existence indicator
-    check_file = output_dir / f"telemetry_gpu_stress_test_report{base_suffix}.json"
-    if not check_file.exists():
-        return base_suffix
-
-    # Try _Run2, _Run3...
-    run_idx = 2
-    while True:
-        candidate = f"{base_suffix}_Run{run_idx}"
-        check_file = output_dir / f"telemetry_gpu_stress_test_report{candidate}.json"
-        if not check_file.exists():
-            return candidate
-        run_idx += 1
 
 
 # ---------------------------------------------------------------------------
@@ -972,6 +975,7 @@ class TelemetryGPUStressTest:
     SENSOR_PACKET_INTERVAL_MS = 10.0  # Default 100Hz
     CADENCE_TOLERANCE = 3.0
     SENSOR_DROPOUT_SKIP_SLOTS = 4
+
     def __init__(
         self,
         packets_per_session: int = 1000,
@@ -979,7 +983,7 @@ class TelemetryGPUStressTest:
         chaos_profile: str = "balanced",
         breaker_threshold: int = 5,
         breaker_recovery: float = 2.0,
-        output_dir: str = "data/reports",
+        output_dir: str = "data",
         output_suffix: str = "",
         diagnostic: bool = False,
         enable_kafka: bool = False,
@@ -988,25 +992,58 @@ class TelemetryGPUStressTest:
         kafka_topic_repairable: str = "dlq-repairable",
         kafka_topic_repaired: str = "dlq-repaired",
         kafka_topic_non_repairable: str = "dlq-non-repairable",
+        is_team: bool = False,
+        session_folder: str = "Weekend",
+        profile_folder: str = "Standard",
     ):
         self.packets_per_session = packets_per_session
+        self.chaos_rate = chaos_rate
+        self.chaos_profile = chaos_profile
+        self.diagnostic = diagnostic
+        self.frequency = frequency
+        self.packet_interval_ms = 1000.0 / max(1.0, frequency)
         self.chaos = ChaosInjector(chaos_rate, profile=chaos_profile)
         self._chaos_profile = self.chaos.profile
-        self.diagnostic = diagnostic
-        self.packet_interval_ms = 1000.0 / max(1.0, frequency)
-        self.frequency = frequency
+        self.is_team = is_team
 
         # GPU setup
         self.device = get_gpu_device()
         self._gpu_info = gpu_info_dict(self.device)
-        auto_suffix = _detect_hardware_suffix(self._gpu_info)
-        self.hardware_suffix = auto_suffix
-        self.output_suffix = _build_output_suffix(output_suffix, self.hardware_suffix)
-        self.output_dir = _resolve_hardware_output_dir(output_dir, self.hardware_suffix)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.hardware_suffix = _detect_hardware_suffix(self._gpu_info)
 
-        # Handle repeat runs (increment suffix if file exists)
-        self.output_suffix = _increment_suffix_if_needed(self.output_dir, self.output_suffix)
+        # 1. Resolve basic structure: data/{solo|team}/{hardware}
+        category = "team" if is_team else "solo"
+        base_hw_dir = Path(output_dir) / category / self.hardware_suffix
+        base_hw_dir.mkdir(parents=True, exist_ok=True)
+
+        # 2. Find/Create next Run folder
+        self.run_dir, self.run_name = _resolve_next_run_dir(base_hw_dir)
+        self.run_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Pre-create session folders for internal consistency
+        (self.run_dir / "Sprint").mkdir(exist_ok=True)
+        (self.run_dir / "Weekend").mkdir(exist_ok=True)
+        
+        # 3. Apply deep nesting: RunX/{Session}/{Profile}/Frequency/{FreqLabel}/
+        freq_label = f"{int(frequency)}hz" if frequency < 1000000 else "1mhz"
+        
+        # Pre-create session folders for internal consistency
+        sprint_dir = self.run_dir / "Sprint"
+        weekend_dir = self.run_dir / "Weekend"
+        sprint_dir.mkdir(exist_ok=True)
+        weekend_dir.mkdir(exist_ok=True)
+        
+        # Determine current output target
+        target_session_dir = self.run_dir / session_folder
+        self.output_dir = target_session_dir / profile_folder / "Frequency" / freq_label
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Pre-create frequency symmetrical folders for the current session/profile
+        (target_session_dir / profile_folder / "Frequency" / "1mhz").mkdir(parents=True, exist_ok=True)
+        (target_session_dir / profile_folder / "Frequency" / "1000hz").mkdir(parents=True, exist_ok=True)
+
+        # 4. Build output suffix (e.g. _Run1_)
+        self.output_suffix = _build_output_suffix(output_suffix, self.hardware_suffix, self.run_name)
 
         # Threshold profiles:
         # - GPU active: tuned for throughput/speed
@@ -1054,7 +1091,7 @@ class TelemetryGPUStressTest:
         self.breaker = TelemetryCircuitBreaker(
             failure_threshold=self._breaker_threshold,
             recovery_timeout=self._breaker_recovery,
-            dlq_path=f"data/gpu_stress_dlq{self.output_suffix}.sqlite",
+            dlq_path=str(self.output_dir / f"gpu_stress_dlq{self.output_suffix}.sqlite"),
             enable_kafka=enable_kafka,
             kafka_bootstrap_servers=kafka_bootstrap_servers,
             kafka_topic_repairable=kafka_topic_repairable,
@@ -1062,10 +1099,10 @@ class TelemetryGPUStressTest:
             kafka_topic_non_repairable=kafka_topic_non_repairable,
         )
         self.buffer = TracksideEdgeBuffer(
-            db_path=f"data/gpu_stress_edge_buffer{self.output_suffix}.sqlite",
+            db_path=str(self.output_dir / f"gpu_stress_edge_buffer{self.output_suffix}.sqlite"),
             sync_callback=self._mock_cloud_sync,
         )
-        self.audit = ComplianceAuditLog(db_path=f"data/gpu_stress_audit{self.output_suffix}.sqlite")
+        self.audit = ComplianceAuditLog(db_path=str(self.output_dir / f"gpu_stress_audit{self.output_suffix}.sqlite"))
         self.geo = GeoFence(audit_log=self.audit)
         self.sensor_cadence_baselines = self._build_sensor_cadence_baselines()
         self.breaker.configure_cadence_monitor(
@@ -2115,11 +2152,21 @@ def main():
     parser.add_argument("--kafka-topic-non-repairable", type=str, default="dlq-non-repairable")
     parser.add_argument("--preserve-sqlite", action="store_true", help="Do not clear SQLite artifacts before run")
     parser.add_argument("--showcase", action="store_true", help="Run in simplified showcase mode")
-    parser.add_argument(
-        "--frequency", type=float, default=100.0,
+    parser.add_argument("--team", action="store_true", help="Store results in the data/team/ directory")
+    parser.add_argument("--solo", action="store_true", default=True, help="Store results in data/solo/ (default)")
+    parser.add_argument("--session", type=str, choices=["Weekend", "Sprint", "Other"], default="Weekend",
+        help="Category for Level 4 folder (default: Weekend)",
+    )
+    parser.add_argument("--profile-tag", type=str, choices=["Realistic", "UltraLow", "Standard"], default="Standard",
+        help="Category for Level 5 folder (default: Standard)",
+    )
+    parser.add_argument("--frequency", type=float, default=100.0,
         help="Target packet frequency in Hz (default: 100.0)",
     )
     args = parser.parse_args()
+
+    # Determine team status
+    is_team = args.team
 
     if args.showcase:
         packets = 1000
@@ -2157,6 +2204,9 @@ def main():
         kafka_topic_repairable=args.kafka_topic_repairable,
         kafka_topic_repaired=args.kafka_topic_repaired,
         kafka_topic_non_repairable=args.kafka_topic_non_repairable,
+        is_team=is_team,
+        session_folder=args.session,
+        profile_folder=args.profile_tag,
     )
 
     report = test.run()
