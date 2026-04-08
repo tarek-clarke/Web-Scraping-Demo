@@ -331,3 +331,27 @@ Quality gates triggered on every push:
 - **ADRs**: Key decisions are documented in `docs/adr/`.
 - **Licence**: PolyForm Non-commercial Licence 1.0.0.
 - **Contact**: Tarek Clarke (tclarke91@proton.me)
+
+---
+
+## LLM Chaos Comparison
+
+I added an optional LLM-driven chaos mode that can use a local model through LM Studio or an Ollama-style endpoint. The current default model is `gemma-4-e4b-it`.
+
+### Comparison Summary
+
+| Mode | Behaviour | Current Test Result |
+|---|---|---|
+| Original chaos | Uniform random mode selection with fixed mutation values | Baseline |
+| New LLM chaos | Samples a startup plan from the local model, then injects chaos from that plan | Fell back to the default plan in the smoke test |
+
+### What the smoke test showed
+
+- I ran a side-by-side sample of the original random injector and the new `--chaos-strategy llm` injector.
+- With LM Studio pointed at `http://127.0.0.1:1234`, the planner still returned the default plan, so the new path behaved the same as the original in that run.
+- On 5,000 samples with the same seed, both paths produced identical chaos counts and identical example corruptions.
+
+### Practical takeaway
+
+- If LM Studio returns a valid JSON plan, the new path can bias chaos mode selection and mutation ranges/tokens.
+- If the model is unavailable or the response is not usable, the framework safely falls back to the original random chaos behaviour.

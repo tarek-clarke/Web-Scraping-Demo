@@ -86,6 +86,7 @@ from src.circuit_breaker import (  # noqa: E402
 from src.local_persistence import TracksideEdgeBuffer, BufferedPacket  # noqa: E402
 from src.geo_fence import GeoFence  # noqa: E402
 from src.audit_log import ComplianceAuditLog  # noqa: E402
+from src.llm_chaos import LLMChaosPlan, LLMChaosPlanner  # noqa: E402
 from src.middleware.tracing import RequestContext  # noqa: E402
 from src.slo import SLOTracker  # noqa: E402
 
@@ -387,11 +388,37 @@ CHAOS_PROFILES: Dict[str, List[str]] = {
 # Chaos Injector (identical to CPU version)
 # ---------------------------------------------------------------------------
 class ChaosInjector:
-    def __init__(self, chaos_rate: float = 0.12, profile: str = "balanced"):
+    def __init__(
+        self,
+        chaos_rate: float = 0.12,
+        profile: str = "balanced",
+        strategy: str = "random",
+        llm_model: str = "gemma-4-e4b-it",
+        llm_endpoint: str = "http://localhost:11434/api/generate",
+        llm_timeout_ms: int = 8000,
+        llm_temperature: float = 0.7,
+    ):
         self.chaos_rate = chaos_rate
         self.profile = profile if profile in CHAOS_PROFILES else "balanced"
+        self.strategy = strategy if strategy in {"random", "llm"} else "random"
         self.active_modes = CHAOS_PROFILES[self.profile]
         self.events_injected: Dict[str, int] = defaultdict(int)
+        self.plan = LLMChaosPlan(
+            mode_weights={m: 1.0 / len(self.active_modes) for m in self.active_modes}
+        )
+
+        if self.strategy == "llm":
+            planner = LLMChaosPlanner(
+                model=llm_model,
+                endpoint=llm_endpoint,
+                timeout_ms=llm_timeout_ms,
+                temperature=llm_temperature,
+            )
+            self.plan = planner.build_plan(
+                profile=self.profile,
+                modes=self.active_modes,
+                sensors=CANONICAL_SCHEMA,
+            )
 
     def maybe_corrupt(
         self,
@@ -402,21 +429,32 @@ class ChaosInjector:
         if random.random() > self.chaos_rate:
             return sensor, value, None, None
 
-        mode = random.choice(self.active_modes)
+        mode = random.choices(
+            self.active_modes,
+            weights=[self.plan.mode_weights.get(m, 0.0) for m in self.active_modes],
+            k=1,
+        )[0]
         self.events_injected[mode] += 1
 
         if mode == "null_value":
             return sensor, None, mode, None
         elif mode == "string_in_numeric":
+            tokens = self.plan.string_tokens or ["OVERHEAT", "ERR_DECODE", "NaN_text", "---"]
             if self.profile == "repair_focus":
-                return sensor, random.choice(["forty_two", "sensor_err", "invalid_float", "temp_bad"]), mode, None
-            return sensor, random.choice(["OVERHEAT", "ERR_DECODE", "NaN_text", "---"]), mode, None
+                repair_tokens = [
+                    token for token in tokens if any(ch.islower() for ch in token)
+                ] or ["forty_two", "sensor_err", "invalid_float", "temp_bad"]
+                return sensor, random.choice(repair_tokens), mode, None
+            return sensor, random.choice(tokens), mode, None
         elif mode == "bit_flip_high":
-            return sensor, value * random.uniform(100, 1000), mode, None
+            lo, hi = self.plan.high_flip_range
+            return sensor, value * random.uniform(lo, hi), mode, None
         elif mode == "bit_flip_low":
-            return sensor, -abs(value) * random.uniform(10, 100), mode, None
+            lo, hi = self.plan.low_flip_range
+            return sensor, -abs(value) * random.uniform(lo, hi), mode, None
         elif mode == "schema_drift":
-            drifted = sensor + random.choice(["_v2", "_new", "_alt", "_canbus", "_raw"])
+            suffixes = self.plan.schema_suffixes or ["_v2", "_new", "_alt", "_canbus", "_raw"]
+            drifted = sensor + random.choice(suffixes)
             return drifted, value, mode, None
         elif mode == "duplicate_timestamp":
             duplicate_ts = random.choice(prior_timestamps) if prior_timestamps else None
@@ -981,6 +1019,11 @@ class TelemetryGPUStressTest:
         packets_per_session: int = 1000,
         chaos_rate: float = 0.12,
         chaos_profile: str = "balanced",
+        chaos_strategy: str = "random",
+        llm_model: str = "gemma-4-e4b-it",
+        llm_endpoint: str = "http://localhost:11434/api/generate",
+        llm_timeout_ms: int = 8000,
+        llm_temperature: float = 0.7,
         breaker_threshold: int = 5,
         breaker_recovery: float = 2.0,
         output_dir: str = "data",
@@ -999,10 +1042,19 @@ class TelemetryGPUStressTest:
         self.packets_per_session = packets_per_session
         self.chaos_rate = chaos_rate
         self.chaos_profile = chaos_profile
+        self.chaos_strategy = chaos_strategy
         self.diagnostic = diagnostic
         self.frequency = frequency
         self.packet_interval_ms = 1000.0 / max(1.0, frequency)
-        self.chaos = ChaosInjector(chaos_rate, profile=chaos_profile)
+        self.chaos = ChaosInjector(
+            chaos_rate,
+            profile=chaos_profile,
+            strategy=chaos_strategy,
+            llm_model=llm_model,
+            llm_endpoint=llm_endpoint,
+            llm_timeout_ms=llm_timeout_ms,
+            llm_temperature=llm_temperature,
+        )
         self._chaos_profile = self.chaos.profile
         self.is_team = is_team
 
@@ -1075,7 +1127,8 @@ class TelemetryGPUStressTest:
         )
         console.print(
             f"[dim]Chaos profile: {self._chaos_profile} | "
-            f"modes={', '.join(self.chaos.active_modes)}[/dim]"
+            f"modes={', '.join(self.chaos.active_modes)} | "
+            f"strategy={self.chaos.strategy} | plan={self.chaos.plan.source}[/dim]"
         )
 
         # GPU workloads
@@ -2142,6 +2195,16 @@ def main():
     parser.add_argument("--packets", type=int, default=1000, help="Packets per session")
     parser.add_argument("--chaos", type=float, default=0.12, help="Chaos injection rate (0.0-1.0)")
     parser.add_argument("--chaos-profile", type=str, default="balanced", help="Chaos profile name")
+    parser.add_argument("--chaos-strategy", type=str, choices=["random", "llm"], default="random",
+        help="Chaos mode strategy (default: random)")
+    parser.add_argument("--llm-model", type=str, default="gemma-4-e4b-it",
+        help="Local lightweight model for --chaos-strategy llm")
+    parser.add_argument("--llm-endpoint", type=str, default="http://localhost:11434/api/generate",
+        help="LLM HTTP endpoint (default: Ollama generate API)")
+    parser.add_argument("--llm-timeout-ms", type=int, default=8000,
+        help="LLM timeout in milliseconds")
+    parser.add_argument("--llm-temperature", type=float, default=0.7,
+        help="LLM sampling temperature")
     parser.add_argument("--threshold", type=int, default=5, help="Circuit breaker threshold")
     parser.add_argument("--output-suffix", type=str, default="", help="Suffix for output files")
     parser.add_argument("--diagnostic", action="store_true", help="Enable diagnostic missed-detection analysis")
@@ -2191,6 +2254,11 @@ def main():
         packets_per_session=packets,
         chaos_rate=chaos,
         chaos_profile=args.chaos_profile,
+        chaos_strategy=args.chaos_strategy,
+        llm_model=args.llm_model,
+        llm_endpoint=args.llm_endpoint,
+        llm_timeout_ms=args.llm_timeout_ms,
+        llm_temperature=args.llm_temperature,
         breaker_threshold=threshold,
         frequency=frequency,
         output_suffix=args.output_suffix,

@@ -67,6 +67,7 @@ from src.circuit_breaker import (  # noqa: E402
 from src.local_persistence import TracksideEdgeBuffer, BufferedPacket  # noqa: E402
 from src.geo_fence import GeoFence  # noqa: E402
 from src.audit_log import ComplianceAuditLog  # noqa: E402
+from src.llm_chaos import LLMChaosPlan, LLMChaosPlanner  # noqa: E402
 from src.middleware.tracing import RequestContext  # noqa: E402
 from src.slo import SLOTracker  # noqa: E402
 
@@ -206,9 +207,32 @@ CHAOS_MODES = [
 class ChaosInjector:
     """Generates realistic sensor corruption events."""
 
-    def __init__(self, chaos_rate: float = 0.12):
+    def __init__(
+        self,
+        chaos_rate: float = 0.12,
+        strategy: str = "random",
+        llm_model: str = "gemma-4-e4b-it",
+        llm_endpoint: str = "http://localhost:11434/api/generate",
+        llm_timeout_ms: int = 8000,
+        llm_temperature: float = 0.7,
+    ):
         self.chaos_rate = chaos_rate
+        self.strategy = strategy if strategy in {"random", "llm"} else "random"
         self.events_injected: Dict[str, int] = defaultdict(int)
+        self.plan = LLMChaosPlan(mode_weights={m: 1.0 / len(CHAOS_MODES) for m in CHAOS_MODES})
+
+        if self.strategy == "llm":
+            planner = LLMChaosPlanner(
+                model=llm_model,
+                endpoint=llm_endpoint,
+                timeout_ms=llm_timeout_ms,
+                temperature=llm_temperature,
+            )
+            self.plan = planner.build_plan(
+                profile="balanced",
+                modes=CHAOS_MODES,
+                sensors=[s[0] for s in SENSORS],
+            )
 
     def maybe_corrupt(
         self, sensor: str, value: float
@@ -219,20 +243,28 @@ class ChaosInjector:
         if random.random() > self.chaos_rate:
             return sensor, value, None
 
-        mode = random.choice(CHAOS_MODES)
+        mode = random.choices(
+            CHAOS_MODES,
+            weights=[self.plan.mode_weights.get(m, 0.0) for m in CHAOS_MODES],
+            k=1,
+        )[0]
         self.events_injected[mode] += 1
 
         if mode == "null_value":
             return sensor, None, mode
         elif mode == "string_in_numeric":
-            return sensor, random.choice(["OVERHEAT", "ERR_DECODE", "NaN", "---"]), mode
+            tokens = self.plan.string_tokens or ["OVERHEAT", "ERR_DECODE", "NaN", "---"]
+            return sensor, random.choice(tokens), mode
         elif mode == "bit_flip_high":
-            return sensor, value * random.uniform(100, 1000), mode
+            lo, hi = self.plan.high_flip_range
+            return sensor, value * random.uniform(lo, hi), mode
         elif mode == "bit_flip_low":
-            return sensor, -abs(value) * random.uniform(10, 100), mode
+            lo, hi = self.plan.low_flip_range
+            return sensor, -abs(value) * random.uniform(lo, hi), mode
         elif mode == "schema_drift":
             # Rename the sensor to simulate firmware change
-            drifted = sensor + random.choice(["_v2", "_new", "_alt", "_canbus", "_raw"])
+            suffixes = self.plan.schema_suffixes or ["_v2", "_new", "_alt", "_canbus", "_raw"]
+            drifted = sensor + random.choice(suffixes)
             return drifted, value, mode
         elif mode == "duplicate_timestamp":
             return sensor, value, mode  # handled at packet level
@@ -347,13 +379,25 @@ class TelemetryStressTest:
         self,
         packets_per_session: int = 1000,
         chaos_rate: float = 0.12,
+        chaos_strategy: str = "random",
+        llm_model: str = "gemma-4-e4b-it",
+        llm_endpoint: str = "http://localhost:11434/api/generate",
+        llm_timeout_ms: int = 1200,
+        llm_temperature: float = 0.7,
         breaker_threshold: int = 5,
         breaker_recovery: float = 2.0,
         output_dir: str = "data/reports",
         output_suffix: str = "",
     ):
         self.packets_per_session = packets_per_session
-        self.chaos = ChaosInjector(chaos_rate)
+        self.chaos = ChaosInjector(
+            chaos_rate,
+            strategy=chaos_strategy,
+            llm_model=llm_model,
+            llm_endpoint=llm_endpoint,
+            llm_timeout_ms=llm_timeout_ms,
+            llm_temperature=llm_temperature,
+        )
         auto_suffix = _detect_cpu_suffix()
         self.hardware_suffix = auto_suffix
         chosen = (output_suffix.strip() or auto_suffix).lstrip("_")
@@ -398,6 +442,9 @@ class TelemetryStressTest:
             style="on dark_red",
             box=box.DOUBLE_EDGE,
         ))
+        console.print(
+            f"[dim]Chaos strategy: {self.chaos.strategy} | plan={self.chaos.plan.source}[/dim]"
+        )
         console.print()
 
         total_sessions = sum(len(rw.sessions) for rw in TRIPLE_HEADER)
@@ -1020,6 +1067,26 @@ def main():
         help="Chaos injection rate 0.0–1.0 (default: 0.12)"
     )
     parser.add_argument(
+        "--chaos-strategy", type=str, choices=["random", "llm"], default="random",
+        help="Chaos mode selection strategy (default: random)",
+    )
+    parser.add_argument(
+        "--llm-model", type=str, default="gemma-4-e4b-it",
+        help="Local lightweight model for --chaos-strategy llm (default: gemma-4-e4b-it)",
+    )
+    parser.add_argument(
+        "--llm-endpoint", type=str, default="http://localhost:11434/api/generate",
+        help="LLM HTTP endpoint (default: Ollama generate endpoint)",
+    )
+    parser.add_argument(
+        "--llm-timeout-ms", type=int, default=8000,
+        help="LLM request timeout in milliseconds (default: 8000)",
+    )
+    parser.add_argument(
+        "--llm-temperature", type=float, default=0.7,
+        help="LLM sampling temperature (default: 0.7)",
+    )
+    parser.add_argument(
         "--threshold", type=int, default=5,
         help="Circuit-breaker failure threshold (default: 5)"
     )
@@ -1046,6 +1113,11 @@ def main():
     test = TelemetryStressTest(
         packets_per_session=packets,
         chaos_rate=chaos,
+        chaos_strategy=args.chaos_strategy,
+        llm_model=args.llm_model,
+        llm_endpoint=args.llm_endpoint,
+        llm_timeout_ms=args.llm_timeout_ms,
+        llm_temperature=args.llm_temperature,
         breaker_threshold=threshold,
         output_suffix=args.output_suffix,
     )
