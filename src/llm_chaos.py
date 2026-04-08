@@ -27,6 +27,32 @@ class LLMChaosPlan:
     source: str = "default"
 
 
+_DEFAULT_PROFILE_PRESETS = {
+    "balanced": {
+        "weights": None,
+        "schema_suffixes": ["_v2", "_new", "_alt", "_canbus", "_raw"],
+        "string_tokens": ["OVERHEAT", "ERR_DECODE", "NaN_text", "---"],
+        "high_flip_range": (100.0, 1000.0),
+        "low_flip_range": (10.0, 100.0),
+    },
+    "aggressive": {
+        "weights": {
+            "schema_drift": 0.36,
+            "string_in_numeric": 0.24,
+            "bit_flip_high": 0.18,
+            "bit_flip_low": 0.10,
+            "sensor_dropout": 0.06,
+            "duplicate_timestamp": 0.04,
+            "null_value": 0.02,
+        },
+        "schema_suffixes": ["_v9", "_corrupt", "_shadow", "_legacy", "_raw", "_broken"],
+        "string_tokens": ["INVALID_SCHEMA", "BERT_FAIL", "DRIFT_EXCEEDED", "NULLPTR", "@@@"],
+        "high_flip_range": (250.0, 5000.0),
+        "low_flip_range": (50.0, 500.0),
+    },
+}
+
+
 class LLMChaosPlanner:
     """Creates fault-distribution plans from a local lightweight model (e.g. Gemma)."""
 
@@ -43,7 +69,7 @@ class LLMChaosPlanner:
         self.temperature = float(temperature)
 
     def build_plan(self, profile: str, modes: Sequence[str], sensors: Sequence[str]) -> LLMChaosPlan:
-        default = LLMChaosPlan(mode_weights=self._uniform_weights(modes), source="default")
+        default = self._default_plan(profile, modes)
         prompt = self._build_prompt(profile=profile, modes=modes, sensors=sensors)
         try:
             output = self._query_llm(prompt)
@@ -64,12 +90,18 @@ class LLMChaosPlanner:
     def _build_prompt(self, profile: str, modes: Sequence[str], sensors: Sequence[str]) -> str:
         mode_text = ", ".join(modes)
         sensor_text = ", ".join(sensors[:10])
+        aggressiveness = (
+            "Favor adversarial, hard-to-reconcile corruption that stresses semantic matching and BERT-like repair."
+            if profile.lower() == "aggressive"
+            else "Keep the plan realistic and representative of mixed telemetry faults."
+        )
         return (
             "You are generating a chaos-injection plan for telemetry stress testing. "
             "Return strictly valid JSON only. No markdown.\n"
             "Use these allowed modes: " + mode_text + ".\n"
             f"Chaos profile: {profile}.\n"
             f"Sensor examples: {sensor_text}.\n"
+            f"Profile guidance: {aggressiveness}\n"
             "JSON schema:\n"
             "{"
             "\"mode_weights\": {\"mode\": number},"
@@ -80,6 +112,27 @@ class LLMChaosPlanner:
             "}\n"
             "Rules: mode_weights keys must be subset of allowed modes; weights positive; "
             "ranges must be [min,max] with min<max; keep values realistic for chaos testing."
+        )
+
+    def _default_plan(self, profile: str, modes: Sequence[str]) -> LLMChaosPlan:
+        preset = _DEFAULT_PROFILE_PRESETS.get(profile.lower(), _DEFAULT_PROFILE_PRESETS["balanced"])
+        weights = preset.get("weights")
+        if weights is None:
+            weights = self._uniform_weights(modes)
+        else:
+            weights = {m: float(weights[m]) for m in modes if m in weights}
+            if not weights:
+                weights = self._uniform_weights(modes)
+            total = sum(weights.values()) or 1.0
+            weights = {k: v / total for k, v in weights.items()}
+
+        return LLMChaosPlan(
+            mode_weights=weights,
+            schema_suffixes=list(preset["schema_suffixes"]),
+            string_tokens=list(preset["string_tokens"]),
+            high_flip_range=tuple(preset["high_flip_range"]),
+            low_flip_range=tuple(preset["low_flip_range"]),
+            source="default",
         )
 
     def _query_llm(self, prompt: str) -> str:
@@ -178,7 +231,7 @@ class LLMChaosPlanner:
                 except Exception:
                     continue
         if not cleaned_weights:
-            cleaned_weights = self._uniform_weights(modes)
+            return self._default_plan(data.get("profile", "balanced"), modes)
         total = sum(cleaned_weights.values()) or 1.0
         cleaned_weights = {k: v / total for k, v in cleaned_weights.items()}
 

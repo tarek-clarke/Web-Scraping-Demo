@@ -340,18 +340,24 @@ I added an optional LLM-driven chaos mode that can use a local model through LM 
 
 ### Comparison Summary
 
-| Mode | Behaviour | Current Test Result |
-|---|---|---|
-| Original chaos | Uniform random mode selection with fixed mutation values | Baseline |
-| New LLM chaos | Samples a startup plan from the local model, then injects chaos from that plan | Fell back to the default plan in the smoke test |
+| Run | Packets | Acceptance | Rejected | Chaos | DLQ | p95 Latency | Corruption Detection | Resilience |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Standard baseline | 30,000 | 95.81% | 1,256 | 1,513 | 1,190 | 0.005 ms | 76.92% | 99.98% |
+| Aggressive + Gemma mean | 30,000 | 92.38% | 2,285 | 3,590 | 2,219 | 0.021 ms | 63.65% | 99.98% |
 
 ### What the smoke test showed
 
-- I ran a side-by-side sample of the original random injector and the new `--chaos-strategy llm` injector.
-- With LM Studio pointed at `http://127.0.0.1:1234`, the planner still returned the default plan, so the new path behaved the same as the original in that run.
-- On 5,000 samples with the same seed, both paths produced identical chaos counts and identical example corruptions.
+- I compared the archived 30k standard sprint run against the mean of three corrected 30k aggressive Gemma runs.
+- The aggressive runs used `--chaos-profile aggressive` and `--chaos-strategy llm` with `gemma-4-e4b-it`.
+- Aggressive chaos shifted strongly toward schema drift and string corruption: the mean schema-drift count rose from 251 to 1,300, and string-in-numeric rose from 190 to 867.
+- The aggressive runs are now normalized under [data/solo/M4/aggressive/Run1](data/solo/M4/aggressive/Run1), [data/solo/M4/aggressive/Run2](data/solo/M4/aggressive/Run2), and [data/solo/M4/aggressive/Run3](data/solo/M4/aggressive/Run3).
 
 ### Practical takeaway
 
 - If LM Studio returns a valid JSON plan, the new path can bias chaos mode selection and mutation ranges/tokens.
 - If the model is unavailable or the response is not usable, the framework safely falls back to the original random chaos behaviour.
+- The aggressive profile is the right choice when you want the Gemma-backed run to stress the BERT reconciliation path harder than the standard baseline.
+
+### Aggressive mode
+
+For heavier BERT stress, run the GPU suite with `--chaos-profile aggressive` alongside `--chaos-strategy llm`. That profile biases toward schema drift, adversarial string corruption, and wider numeric flips so the semantic reconciler has to work harder, and it stores runs under `data/solo/M4/aggressive/...` by default.

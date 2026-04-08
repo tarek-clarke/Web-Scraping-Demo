@@ -386,6 +386,7 @@ CHAOS_PROFILES: Dict[str, List[str]] = {
         "duplicate_timestamp",
         "string_in_numeric",
     ],
+    "aggressive": CHAOS_MODES,
 }
 
 
@@ -1063,7 +1064,8 @@ class TelemetryGPUStressTest:
         )
         self._chaos_profile = self.chaos.profile
         self.is_team = is_team
-        self.model_folder = _sanitize_folder_token(model_folder or (llm_model if chaos_strategy == "llm" else ""))
+        default_folder = "aggressive" if chaos_profile == "aggressive" else (llm_model if chaos_strategy == "llm" else "")
+        self.model_folder = _sanitize_folder_token(model_folder or default_folder)
 
         # GPU setup
         self.device = get_gpu_device()
@@ -2203,7 +2205,7 @@ def main():
     parser = argparse.ArgumentParser(description="Resilient RAP Framework - GPU Telemetry Stress Test")
     parser.add_argument("--packets", type=int, default=1000, help="Packets per session")
     parser.add_argument("--chaos", type=float, default=0.12, help="Chaos injection rate (0.0-1.0)")
-    parser.add_argument("--chaos-profile", type=str, default="balanced", help="Chaos profile name")
+    parser.add_argument("--chaos-profile", type=str, default="balanced", help="Chaos profile name (balanced, repair_focus, aggressive)")
     parser.add_argument("--chaos-strategy", type=str, choices=["random", "llm"], default="random",
         help="Chaos mode strategy (default: random)")
     parser.add_argument("--llm-model", type=str, default="gemma-4-e4b-it",
