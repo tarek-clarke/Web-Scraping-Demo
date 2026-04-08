@@ -222,6 +222,11 @@ def _build_output_suffix(user_suffix: str, hardware_suffix: str, run_name: str) 
     return f"_{raw}_{run_name}_"
 
 
+def _sanitize_folder_token(raw: str) -> str:
+    token = re.sub(r"[^A-Za-z0-9._-]+", "", raw or "")
+    return token[:80]
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -1038,6 +1043,7 @@ class TelemetryGPUStressTest:
         is_team: bool = False,
         session_folder: str = "Weekend",
         profile_folder: str = "Standard",
+        model_folder: str = "",
     ):
         self.packets_per_session = packets_per_session
         self.chaos_rate = chaos_rate
@@ -1057,6 +1063,7 @@ class TelemetryGPUStressTest:
         )
         self._chaos_profile = self.chaos.profile
         self.is_team = is_team
+        self.model_folder = _sanitize_folder_token(model_folder or (llm_model if chaos_strategy == "llm" else ""))
 
         # GPU setup
         self.device = get_gpu_device()
@@ -1066,6 +1073,8 @@ class TelemetryGPUStressTest:
         # 1. Resolve basic structure: data/{solo|team}/{hardware}
         category = "team" if is_team else "solo"
         base_hw_dir = Path(output_dir) / category / self.hardware_suffix
+        if self.model_folder:
+            base_hw_dir = base_hw_dir / self.model_folder
         base_hw_dir.mkdir(parents=True, exist_ok=True)
 
         # 2. Find/Create next Run folder
@@ -2223,6 +2232,9 @@ def main():
     parser.add_argument("--profile-tag", type=str, choices=["Realistic", "UltraLow", "Standard"], default="Standard",
         help="Category for Level 5 folder (default: Standard)",
     )
+    parser.add_argument("--model-folder", type=str, default="",
+        help="Optional folder name under hardware (defaults to the LLM model name when --chaos-strategy llm)",
+    )
     parser.add_argument("--frequency", type=float, default=100.0,
         help="Target packet frequency in Hz (default: 100.0)",
     )
@@ -2275,6 +2287,7 @@ def main():
         is_team=is_team,
         session_folder=args.session,
         profile_folder=args.profile_tag,
+        model_folder=args.model_folder,
     )
 
     report = test.run()

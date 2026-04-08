@@ -1,0 +1,16 @@
+session_name,circuit,packets_sent,packets_accepted,packets_rejected,chaos_injected,breaker_trips,breaker_final_state,dlq_depth,buffer_pending,latency_p50_ms,latency_p95_ms,latency_p99_ms,geo_scrubbed,duration_s,gpu_semantic_resolutions,gpu_semantic_recovered,gpu_anomaly_detections,gpu_batch_embedding_ms,gpu_batch_anomaly_ms,gpu_device_name,gpu_vram_gb,gpu_hip_version,gpu_utilisation_estimate
+spielberg_FP1,spielberg,30000,27002,2998,3559,0,CLOSED,2998,174,0.005,0.022,0.043,600,0.0,30000,530,2002,1397.336131002703,1671.633170007226,Apple Metal (MPS),shared,,cpu-fallback
+spielberg_FP2,spielberg,30000,23147,6853,3714,1,CLOSED,9851,183,0.005,0.025,0.172,600,0.0,30000,565,2106,7.721956984823919,1638.7559220038384,Apple Metal (MPS),shared,,cpu-fallback
+spielberg_FP3,spielberg,30000,26930,3070,3603,0,CLOSED,12921,178,0.005,0.026,0.039,600,0.0,30000,516,2088,6.718072993862734,1516.1448220005695,Apple Metal (MPS),shared,,cpu-fallback
+spielberg_QUALI,spielberg,30000,26942,3058,3581,0,CLOSED,15979,179,0.005,0.027,0.042,600,0.0,30000,496,2016,6.680548007352627,1281.6862839872556,Apple Metal (MPS),shared,,cpu-fallback
+spielberg_RACE,spielberg,30000,26944,3056,3584,0,CLOSED,19035,179,0.005,0.028,0.059,600,0.0,30000,515,2060,7.788243992763455,1631.086294000852,Apple Metal (MPS),shared,,cpu-fallback
+silverstone_FP1,silverstone,30000,26086,3914,3543,1,OPEN,22949,0,0.005,0.03,0.091,600,0.0,30000,490,2121,8.26807699741039,1511.7122940018817,Apple Metal (MPS),shared,,cpu-fallback
+silverstone_FP2,silverstone,30000,22058,7942,3614,1,CLOSED,30891,175,0.005,0.033,0.195,600,0.0,30000,518,2049,8.729717994356179,1567.57770099739,Apple Metal (MPS),shared,,cpu-fallback
+silverstone_FP3,silverstone,30000,26939,3061,3563,0,CLOSED,33952,172,0.005,0.028,0.052,600,0.0,30000,480,2044,7.621415000357956,1360.334510993198,Apple Metal (MPS),shared,,cpu-fallback
+silverstone_QUALI,silverstone,30000,27041,2959,3512,0,CLOSED,36911,181,0.005,0.028,0.052,600,0.0,30000,527,2036,7.632624994585058,1322.6333409957078,Apple Metal (MPS),shared,,cpu-fallback
+silverstone_RACE,silverstone,30000,26981,3019,3575,0,CLOSED,39930,184,0.005,0.03,0.062,600,0.0,30000,539,2123,7.934373988973675,1475.1055759952578,Apple Metal (MPS),shared,,cpu-fallback
+budapest_FP1,budapest,30000,26944,3056,3594,0,CLOSED,42986,178,0.005,0.032,0.066,600,0.0,30000,511,2013,8.15690400213498,1415.0306609981271,Apple Metal (MPS),shared,,cpu-fallback
+budapest_FP2,budapest,30000,26861,3139,3673,0,CLOSED,46125,182,0.005,0.029,0.052,600,0.0,30000,500,2157,7.534959013355547,1445.990758004882,Apple Metal (MPS),shared,,cpu-fallback
+budapest_FP3,budapest,30000,26971,3029,3556,0,CLOSED,49154,181,0.005,0.029,0.048,600,0.0,30000,503,2032,7.095286000549095,1324.503875002847,Apple Metal (MPS),shared,,cpu-fallback
+budapest_QUALI,budapest,30000,26853,3147,3668,0,CLOSED,52301,176,0.005,0.029,0.049,600,0.0,30000,507,2106,7.112624003639212,1298.1971389872342,Apple Metal (MPS),shared,,cpu-fallback
+budapest_RACE,budapest,30000,26946,3054,3563,0,CLOSED,55355,181,0.005,0.029,0.045,600,0.0,30000,487,2010,6.909831996381399,1335.4554910047227,Apple Metal (MPS),shared,,cpu-fallback
