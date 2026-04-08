@@ -33,6 +33,43 @@ The Resilient RAP framework solves the **"Semantic Gap"**:
 
 ---
 
+## Quick Start: High-Frequency Validation Suite
+
+Follow these steps to replicate the sub-millisecond p95 latency benchmarks on your local hardware.
+
+### 1. Environment Setup
+```bash
+# Initialize virtual environment and dependencies
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Build accelerated C++ ingestion kernels for Tier 2 BERT inference
+python3 setup.py build_ext --inplace
+```
+
+### 2. Execute Validation Profiles
+```bash
+# Run 1kHz Sprint Validation (30,000 packets)
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000 --packets 30000 --output-suffix _sprint_1000hz
+
+# Run 1MHz Weekend Endurance Validation (3.6M packets)
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000000 --packets 3600000 --output-suffix _weekend_1mhz
+```
+
+### 3. Launch Real-Time Dashboard
+To monitor the ingestion stream, circuit-breaker status, and autonomous repairs in real-time, launch the browser-based observability dashboard:
+```bash
+# Linux/macOS
+PYTHONPATH="." python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050
+
+# Windows PowerShell
+$env:PYTHONPATH="."; python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050
+```
+Then open `http://localhost:5050/dashboard` in any browser.
+
+---
+
 ## System Architecture: 3-Tier Resilient Reconciliation
 
 The architecture prioritizes edge autonomy and "Self-Healing" resilience. Inbound telemetry is validated against a 3-tier reconciliation stack before forensic auditing.
@@ -219,6 +256,34 @@ The following matrices validate stability across synthetic frequencies (1kHz to 
 > [!TIP]
 > **Performance Amortization**: p95 latency on the M4 actually improves during high-volume 'Weekend' runs (0.004ms) compared to short 'Sprint' runs (0.009ms), demonstrating the efficiency of the framework's GPU-accelerated batching kernels once warm.
 
+### 4. LLM Chaos Comparison
+
+I added an optional LLM-driven chaos mode that can use a local model through LM Studio or an Ollama-style endpoint. The current default model is `gemma-4-e4b-it`.
+
+#### Comparison Summary
+
+| Run | Packets | Acceptance | Rejected | Chaos | DLQ | p95 Latency | Corruption Detection | Resilience |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Standard baseline | 30,000 | 95.81% | 1,256 | 1,513 | 1,190 | 0.005 ms | 76.92% | 99.98% |
+| Aggressive + Gemma mean | 30,000 | 92.38% | 2,285 | 3,590 | 2,219 | 0.021 ms | 63.65% | 99.98% |
+
+#### What the smoke test showed
+
+- I compared the archived 30k standard sprint run against the mean of three corrected 30k aggressive Gemma runs.
+- The aggressive runs used `--chaos-profile aggressive` and `--chaos-strategy llm` with `gemma-4-e4b-it`.
+- Aggressive chaos shifted strongly toward schema drift and string corruption: the mean schema-drift count rose from 251 to 1,300, and string-in-numeric rose from 190 to 867.
+- The aggressive runs are now normalized under [data/solo/M4/aggressive/Run1](data/solo/M4/aggressive/Run1), [data/solo/M4/aggressive/Run2](data/solo/M4/aggressive/Run2), and [data/solo/M4/aggressive/Run3](data/solo/M4/aggressive/Run3).
+
+#### Practical takeaway
+
+- If LM Studio returns a valid JSON plan, the new path can bias chaos mode selection and mutation ranges/tokens.
+- If the model is unavailable or the response is not usable, the framework safely falls back to the original random chaos behaviour.
+- The aggressive profile is the right choice when you want the Gemma-backed run to stress the BERT reconciliation path harder than the standard baseline.
+
+#### Aggressive mode
+
+For heavier BERT stress, run the GPU suite with `--chaos-profile aggressive` alongside `--chaos-strategy llm`. That profile biases toward schema drift, adversarial string corruption, and wider numeric flips so the semantic reconciler has to work harder, and it stores runs under `data/solo/M4/aggressive/...` by default.
+
 ---
 
 ## Real-World Use Cases
@@ -266,41 +331,6 @@ A FastAPI-powered REST API exposes the pipeline's health, metrics, and operation
 
 Once the server is running (see Quick Start), access the **Interactive API Docs** at `http://localhost:5050/docs`.
 
-## Quick Start: High-Frequency Validation Suite
-
-Follow these steps to replicate the sub-millisecond p95 latency benchmarks on your local hardware.
-
-### 1. Environment Setup
-```bash
-# Initialize virtual environment and dependencies
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# Build accelerated C++ ingestion kernels for Tier 2 BERT inference
-python3 setup.py build_ext --inplace
-```
-
-### 2. Execute Validation Profiles
-```bash
-# Run 1kHz Sprint Validation (30,000 packets)
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000 --packets 30000 --output-suffix _sprint_1000hz
-
-# Run 1MHz Weekend Endurance Validation (3.6M packets)
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000000 --packets 3600000 --output-suffix _weekend_1mhz
-```
-
-### 3. Launch Real-Time Dashboard
-To monitor the ingestion stream, circuit-breaker status, and autonomous repairs in real-time, launch the browser-based observability dashboard:
-```bash
-# Linux/macOS
-PYTHONPATH="." python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050
-
-# Windows PowerShell
-$env:PYTHONPATH="."; python -m uvicorn src.api_server:app --host 0.0.0.0 --port 5050
-```
-Then open `http://localhost:5050/dashboard` in any browser.
-
 ---
 
 ## Limitations and Future Work
@@ -331,33 +361,3 @@ Quality gates triggered on every push:
 - **ADRs**: Key decisions are documented in `docs/adr/`.
 - **Licence**: PolyForm Non-commercial Licence 1.0.0.
 - **Contact**: Tarek Clarke (tclarke91@proton.me)
-
----
-
-## LLM Chaos Comparison
-
-I added an optional LLM-driven chaos mode that can use a local model through LM Studio or an Ollama-style endpoint. The current default model is `gemma-4-e4b-it`.
-
-### Comparison Summary
-
-| Run | Packets | Acceptance | Rejected | Chaos | DLQ | p95 Latency | Corruption Detection | Resilience |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Standard baseline | 30,000 | 95.81% | 1,256 | 1,513 | 1,190 | 0.005 ms | 76.92% | 99.98% |
-| Aggressive + Gemma mean | 30,000 | 92.38% | 2,285 | 3,590 | 2,219 | 0.021 ms | 63.65% | 99.98% |
-
-### What the smoke test showed
-
-- I compared the archived 30k standard sprint run against the mean of three corrected 30k aggressive Gemma runs.
-- The aggressive runs used `--chaos-profile aggressive` and `--chaos-strategy llm` with `gemma-4-e4b-it`.
-- Aggressive chaos shifted strongly toward schema drift and string corruption: the mean schema-drift count rose from 251 to 1,300, and string-in-numeric rose from 190 to 867.
-- The aggressive runs are now normalized under [data/solo/M4/aggressive/Run1](data/solo/M4/aggressive/Run1), [data/solo/M4/aggressive/Run2](data/solo/M4/aggressive/Run2), and [data/solo/M4/aggressive/Run3](data/solo/M4/aggressive/Run3).
-
-### Practical takeaway
-
-- If LM Studio returns a valid JSON plan, the new path can bias chaos mode selection and mutation ranges/tokens.
-- If the model is unavailable or the response is not usable, the framework safely falls back to the original random chaos behaviour.
-- The aggressive profile is the right choice when you want the Gemma-backed run to stress the BERT reconciliation path harder than the standard baseline.
-
-### Aggressive mode
-
-For heavier BERT stress, run the GPU suite with `--chaos-profile aggressive` alongside `--chaos-strategy llm`. That profile biases toward schema drift, adversarial string corruption, and wider numeric flips so the semantic reconciler has to work harder, and it stores runs under `data/solo/M4/aggressive/...` by default.
