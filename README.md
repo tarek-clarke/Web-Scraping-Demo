@@ -191,6 +191,7 @@ The framework has been validated across eight runtime targets with three indepen
 | Runtime Target | Platform | Total Packets | p95 Latency (Mean) | Resilience Score | Status |
 |---|---|---:|---:|---:|---|
 | NVIDIA B200 (Blackwell) | Linux + CUDA | 30,000 | 0.008 ms | 0.9996 | [STABLE] |
+| NVIDIA GH200 | Linux + CUDA | 30,000 | 0.022 ms | 0.9991 | [STABLE] |
 | NVIDIA H200 NVL (Hopper) | Linux + CUDA | 30,000 | **0.006 ms** | 0.9995 | [STABLE] |
 | NVIDIA RTX PRO 6000 Ada | Linux + CUDA | 30,000 | 0.007 ms | 0.9996 | [STABLE] |
 | NVIDIA RTX 5090 | Linux + CUDA | 30,000 | 0.011 ms | 0.9996 | [STABLE] |
@@ -203,6 +204,7 @@ The framework has been validated across eight runtime targets with three indepen
 | Runtime Target | Platform | Total Packets | p95 Latency (Mean) | Resilience Score | Status |
 |---|---|---:|---:|---:|---|
 | NVIDIA B200 (Blackwell) | Linux + CUDA | 3,600,000 | 0.007 ms | **0.9994** | [RELIABLE] |
+| NVIDIA GH200 | Linux + CUDA | 3,600,000 | 0.025 ms | 0.9991 | [RELIABLE] |
 | NVIDIA H200 NVL (Hopper) | Linux + CUDA | 3,600,000 | **0.013 ms** | **0.9993** | [RELIABLE] |
 | NVIDIA RTX PRO 6000 Ada | Linux + CUDA | 3,600,000 | 0.006 ms | **0.9995** | [RELIABLE] |
 | NVIDIA RTX 5090 | Linux + CUDA | 3,600,000 | 0.010 ms | 0.9994 | [RELIABLE] |
@@ -215,6 +217,15 @@ The framework has been validated across eight runtime targets with three indepen
 
 ### 2. Concurrency & Team Scaling
 This profile validates the ability to handle two simultaneous telemetry streams on a single shared GPU.
+
+#### Dual Car Benchmarking Comparison (NVIDIA GH200)
+| Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
+| :--- | :--- | :--- | :--- | :--- |
+| **Sprint** | Total Packets | 30,000 | 60,000 (30k/car) | 2x Load |
+| **Sprint** | p95 Latency | < 0.023 ms | < 0.023 ms | No measurable overhead |
+| **Weekend** | Total Packets | 3,600,000 | 7,200,000 | 2x Extreme Load |
+| **Weekend** | p95 Latency | 0.025 ms | ~0.026 ms | +0.001 ms overhead |
+| **Both** | Resilience Score | 0.9991 | 0.9991 | [STABLE] |
 
 #### Dual Car Benchmarking Comparison (Apple M4)
 | Profile | Metric | 1-Car (Normal) | 2-Car (Team) | Comparison |
@@ -236,6 +247,14 @@ This profile validates the ability to handle two simultaneous telemetry streams 
 
 ### 3. High-Frequency Stability Analysis
 The following matrices validate stability across synthetic frequencies (1kHz to 1MHz) for elite hardware architectures.
+
+#### Stability Matrix: NVIDIA GH200
+| Profile | Target Frequency | p95 Latency | Resilience Score | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Sprint (30k total)** | 1,000 Hz (1kHz) | 0.022 ms | 0.9988 | [STABLE] |
+| **Sprint (30k total)** | 1,000,000 Hz (1MHz) | 0.022 ms | 0.9988 | [STABLE] |
+| **Weekend (3.6M total)** | 1,000 Hz (1kHz) | 0.024 ms | 0.9991 | [RELIABLE] |
+| **Weekend (3.6M total)** | 1,000,000 Hz (1MHz) | 0.025 ms | 0.9991 | [RELIABLE] |
 
 #### Stability Matrix: Apple M4
 | Profile | Target Frequency | p95 Latency | Resilience Score | Status |
