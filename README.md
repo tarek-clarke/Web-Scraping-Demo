@@ -33,9 +33,9 @@ The Resilient RAP framework solves the **"Semantic Gap"**:
 
 ---
 
-## Quick Start: High-Frequency Validation Suite
+## Quick Start: Performance & Scaling Validation Suites
 
-Follow these steps to replicate the sub-millisecond p95 latency benchmarks on your local hardware.
+Follow these steps to replicate the sub-millisecond p95 latency benchmarks on your local hardware across all validation profiles.
 
 ### 1. Environment Setup
 ```bash
@@ -49,12 +49,47 @@ python3 setup.py build_ext --inplace
 ```
 
 ### 2. Execute Validation Profiles
-```bash
-# Run 1kHz Sprint Validation (30,000 packets)
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000 --packets 30000 --output-suffix _sprint_1000hz
 
-# Run 1MHz Weekend Endurance Validation (3.6M packets)
-PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000000 --packets 3600000 --output-suffix _weekend_1mhz
+**Note:** The `--packets` argument denotes *packets per session* across 15 standard sessions. For example, `--packets 2000` translates to 30,000 total packets.
+
+#### Profile 1: Cross-Platform Baseline (100 Hz)
+```bash
+# Run Sprint Benchmark (30,000 total packets @ 5% chaos)
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _sprint
+
+# Run Race Weekend Benchmark (3.6M total packets @ 5% chaos)
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 240000 --chaos 0.05 --output-suffix _weekend
+```
+
+#### Profile 2: Concurrency & Team Scaling (Dual Car)
+```bash
+# Run Team Sprint (2 cars, 30k packets each, 60k total)
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.05 --team --output-suffix _team_sprint
+
+# Run Team Weekend (2 cars, 3.6M packets each, 7.2M total)
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 240000 --chaos 0.05 --team --output-suffix _team_weekend
+```
+
+#### Profile 3: High-Frequency Stability Analysis (1kHz - 1MHz)
+```bash
+# Run 1kHz Sprint Validation
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000 --packets 2000 --chaos 0.05 --output-suffix _sprint_1000hz
+
+# Run 1MHz Weekend Endurance Validation
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000000 --packets 240000 --chaos 0.05 --output-suffix _weekend_1mhz
+```
+
+#### Profile 4: LLM Chaos Comparison
+```bash
+# Run Aggressive LLM Chaos baseline sprint
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos-profile aggressive --chaos-strategy llm --llm-model gemma-4-e4b-it --output-suffix _llm_chaos_sprint
+```
+
+#### Automated Benchmark Suite (Smart Loop)
+If you are running on a cloud instance (like an NVIDIA B300) or headless server, you can use the built-in smart loop to automatically execute **all** profiles 3 times, compute the p95 latency floors, and archive the outputs to `data/reports/`:
+```bash
+# Auto-detects hardware and loops the entire validation suite until 3 runs are complete
+./tools/run_smart_loop.sh
 ```
 
 ### 3. Launch Real-Time Dashboard
