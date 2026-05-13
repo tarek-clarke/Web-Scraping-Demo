@@ -42,10 +42,21 @@ Follow these steps to replicate the sub-millisecond p95 latency benchmarks on yo
 # Initialize virtual environment and dependencies
 python3 -m venv .venv
 source .venv/bin/activate
+pip install --upgrade pip
 pip install -r requirements.txt
 
 # Build accelerated C++ ingestion kernels for Tier 2 BERT inference
 python3 setup.py build_ext --inplace
+```
+
+#### Using micromamba
+If you prefer `micromamba` for environment management, activate the environment with:
+```bash
+micromamba activate rap-env
+```
+Or execute a single command inside the environment with:
+```bash
+micromamba run -n rap-env mycommand
 ```
 
 ### 2. Execute Validation Profiles
