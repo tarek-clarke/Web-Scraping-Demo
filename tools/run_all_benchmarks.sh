@@ -80,6 +80,20 @@ run_benchmark 'PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packe
 # Diagnostic Deep-Dive (High-friction fault load)
 run_benchmark 'PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 4000 --chaos 0.12 --chaos-profile balanced --diagnostic --output-suffix _diagnostic' "Diagnostic"
 
+# High Frequency Stress Tests
+run_benchmark 'PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.05 --frequency 1000 --output-suffix _sprint_1000hz' "1000Hz Sprint"
+run_benchmark 'PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 50000 --chaos 0.05 --frequency 1000000 --output-suffix _sprint_1mhz' "1MHz Sprint"
+
+# Dual Car / Team Simulation (Parallel Execution)
+echo "▶ Running Dual Car Team Test"
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _team_car1 &
+PID1=$!
+PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packets 2000 --chaos 0.05 --output-suffix _team_car2 &
+PID2=$!
+wait $PID1
+wait $PID2
+echo "✅ Dual Car Team Test Complete"
+
 # Engine temperature stress test (7900XT / M4-compatible)
 run_benchmark 'PYTHONPATH="." python3 tools/stress_test_engine_temp.py' "Engine temperature stress test"
 
