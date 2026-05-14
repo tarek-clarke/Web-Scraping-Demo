@@ -1,0 +1,11 @@
+MaxDiskWrite  0.08M 0.00M 
+Job ID: 925165
+State: COMPLETED (exit code 0)
+Nodelist: ada1
+Cores per node: 8
+CPU Utilized: 00:00:23
+CPU Efficiency: 7.57% of 00:05:04 core-walltime
+Job Wall-clock time: 00:00:38
+Memory Utilized: 695.59 MB
+Memory Efficiency: 2.12% of 32.00 GB
+Command=/gpfs/mariana/home/tarekc/resilient-rap-framework/submit_smart_loop.sh

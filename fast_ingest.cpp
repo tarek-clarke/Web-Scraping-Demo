@@ -1,3 +1,5 @@
+#include <c10/cuda/CUDAStream.h>
+#include <c10/cuda/CUDAGuard.h>
 /**
  * fast_ingest.cpp
  * ---------------
@@ -46,9 +48,9 @@
 
 #ifndef FAST_INGEST_CPU_ONLY
 // ── GPU headers (ROCm/HIP or CUDA) ──────────────────────────────────────
-#include <ATen/cuda/CUDAContext.h>      // at::cuda::getCurrentCUDAStream()
-#include <c10/cuda/CUDAStream.h>        // at::cuda::CUDAStream, getStreamFromPool()
-#include <c10/cuda/CUDAGuard.h>         // at::cuda::CUDAStreamGuard
+#include <ATen/cuda/CUDAContext.h>      // c10::cuda::getCurrentCUDAStream()
+#include <c10/cuda/CUDAStream.h>        // c10::cuda::CUDAStream, getStreamFromPool()
+#include <c10/cuda/CUDAGuard.h>         // c10::cuda::CUDAStreamGuard
 
 // ROCm/HIP compatibility ─ PyTorch's CUDAExtension already compiles with
 // HIP headers; we include hip_runtime.h only if the HIP platform target is set.
@@ -146,8 +148,8 @@ torch::Tensor alloc_pinned(int64_t n) {
  * the H→D copy before lower-priority work queued on default streams.
  */
 #ifndef FAST_INGEST_CPU_ONLY
-inline at::cuda::CUDAStream ingest_stream_high_priority() {
-    return at::cuda::getStreamFromPool(/*isHighPriority=*/true);
+inline c10::cuda::CUDAStream ingest_stream_high_priority() {
+    return c10::cuda::getStreamFromPool(/*isHighPriority=*/true);
 }
 #endif
 
@@ -237,8 +239,8 @@ torch::Tensor normalize(const std::vector<float>& packet,
 
 #ifndef FAST_INGEST_CPU_ONLY
         // Acquire a non-default high-priority ingest stream.
-        at::cuda::CUDAStream ingest_s = ingest_stream_high_priority();
-        at::cuda::CUDAStreamGuard guard(ingest_s);
+        c10::cuda::CUDAStream ingest_s = ingest_stream_high_priority();
+        c10::cuda::CUDAStreamGuard guard(ingest_s);
 
         // Step 2 — async H→D copy (non_blocking=true: no CPU spin-wait).
         torch::Tensor device_t = host_t.to(
@@ -362,12 +364,12 @@ torch::Tensor ingest_batch(const std::vector<std::vector<float>>& packets,
     );
 
     // ── Async H→D + normalization on high-priority ingest stream ──────────
-    at::cuda::CUDAStream ingest_s = ingest_stream_high_priority();
+    c10::cuda::CUDAStream ingest_s = ingest_stream_high_priority();
     torch::Tensor normalized;
 
     {
         pybind11::gil_scoped_release release;
-        at::cuda::CUDAStreamGuard guard(ingest_s);
+        c10::cuda::CUDAStreamGuard guard(ingest_s);
 
         torch::Tensor device_t = host_t.to(
             at::device(at::kCUDA).dtype(at::kFloat),
@@ -415,7 +417,7 @@ torch::Tensor ingest_batch(const std::vector<std::vector<float>>& packets,
 void sync() {
     pybind11::gil_scoped_release release;
     // Synchronize the entire device — covers all streams including ingest_s.
-    at::cuda::device_synchronize();
+    c10::cuda::device_synchronize();
 }
 
 // ---------------------------------------------------------------------------
@@ -503,7 +505,7 @@ public:
         // every iteration.  unsqueeze(0) → {1, N} so broadcasting applies
         // across all B rows of the batch.
         {
-            at::cuda::CUDAStreamGuard guard(stream_);
+            c10::cuda::CUDAStreamGuard guard(stream_);
             
             // Pad lo/hi to STATIC_PACKET_LENGTH with identity values
             std::vector<float> lo_padded(N_, 0.0f);
@@ -681,7 +683,7 @@ private:
             // Release the GIL for the heavy GPU work — matches the pattern
             // in ingest_batch() and normalize().
             pybind11::gil_scoped_release release;
-            at::cuda::CUDAStreamGuard guard(stream_);
+            c10::cuda::CUDAStreamGuard guard(stream_);
 
             // Async H→D copy on the persistent high-priority stream.
             torch::Tensor device_t = host_t.to(
@@ -708,7 +710,7 @@ private:
     torch::Tensor hi_t_;     // {1, N} cached on device
     torch::Tensor range_t_;  // {1, N} cached on device
 
-    at::cuda::CUDAStream stream_;   // persistent high-priority stream
+    c10::cuda::CUDAStream stream_;   // persistent high-priority stream
     torch::Tensor last_result_;     // most recent auto-flush result
 };
 
