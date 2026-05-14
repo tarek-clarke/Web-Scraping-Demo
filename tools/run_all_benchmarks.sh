@@ -90,6 +90,24 @@ python3 tools/organize_data.py
 # 6. Finalization & Automated Push
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 REPORT_DIR="data/reports/$HARDWARE_NAME"
+RUN_STATE_DIR="$REPORT_DIR/_meta/completed_runs"
+mkdir -p "$RUN_STATE_DIR"
+RUN_INDEX="${RAP_RUN_INDEX:-}"
+if [ -z "$RUN_INDEX" ]; then
+        RUN_INDEX=$(find "$RUN_STATE_DIR" -maxdepth 1 -type f -name 'run_*.json' 2>/dev/null | wc -l | tr -d ' ')
+        RUN_INDEX=$((RUN_INDEX + 1))
+fi
+
+RUN_MARKER="$RUN_STATE_DIR/run_$(printf '%03d' "$RUN_INDEX").json"
+cat > "$RUN_MARKER" <<EOF
+{
+    "hardware": "$HARDWARE_NAME",
+    "run_index": $RUN_INDEX,
+    "timestamp": "$TIMESTAMP",
+    "backend": "${RAP_BUILD_BACKEND:-unknown}",
+    "status": "complete"
+}
+EOF
 
 echo "📦 Packaging Results..."
 tar -czf ${HARDWARE_NAME}_results_${TIMESTAMP}.tar.gz $REPORT_DIR/
