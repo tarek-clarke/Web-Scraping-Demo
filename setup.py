@@ -31,6 +31,7 @@ Licensed under the PolyForm Noncommercial License 1.0.0.
 
 import os
 import sys
+import re
 from pathlib import Path
 
 import torch
@@ -51,9 +52,48 @@ from setuptools import setup
 # GPU hardware is not accessible (e.g. WSL2 with AMD ROCm).
 FORCE_CPU: bool = os.environ.get("FORCE_CPU", "0") == "1"
 
-IS_ROCM: bool = (not FORCE_CPU) and getattr(torch.version, "hip", None) is not None
-IS_CUDA: bool = (not FORCE_CPU) and (not IS_ROCM) and (CUDA_HOME is not None or
-                                    torch.cuda.is_available())
+def _mps_available() -> bool:
+    backends = getattr(torch, "backends", None)
+    mps_backend = getattr(backends, "mps", None) if backends is not None else None
+    return bool(mps_backend and hasattr(mps_backend, "is_available") and mps_backend.is_available())
+
+
+def _detect_backend() -> str:
+    if FORCE_CPU:
+        return "cpu"
+    if getattr(torch.version, "hip", None) is not None:
+        return "rocm"
+    if CUDA_HOME is not None or torch.cuda.is_available():
+        return "cuda"
+    if _mps_available():
+        return "mps"
+    return "cpu"
+
+
+def _cuda_arch_flags_from_list(arch_list: str) -> list[str]:
+    flags: list[str] = []
+    for token in re.split(r"[;,\s]+", arch_list or ""):
+        token = token.strip()
+        if not token:
+            continue
+
+        cleaned = token.replace("+PTX", "").replace("+ptx", "")
+        match = re.fullmatch(r"(\d+)(?:\.(\d+))?(?:[a-z])?", cleaned)
+        if not match:
+            continue
+
+        major = match.group(1)
+        minor = match.group(2) or "0"
+        sm = f"{major}{minor}"
+        flags.append(f"--generate-code=arch=compute_{sm},code=sm_{sm}")
+
+    return flags
+
+
+BUILD_BACKEND = _detect_backend()
+IS_ROCM: bool = BUILD_BACKEND == "rocm"
+IS_CUDA: bool = BUILD_BACKEND == "cuda"
+IS_MPS: bool = BUILD_BACKEND == "mps"
 
 ROCM_PATH: str = os.environ.get("ROCM_PATH", "/opt/rocm")
 
@@ -70,6 +110,9 @@ if IS_ROCM:
 elif IS_CUDA:
     print(f"[fast_ingest/setup.py] Backend: CUDA  "
           f"({torch.version.cuda})  CUDA_HOME={CUDA_HOME}", flush=True)
+elif IS_MPS:
+    print("[fast_ingest/setup.py] Backend: Apple Silicon MPS  "
+          "(building CPU-compatible extension stub)", flush=True)
 else:
     print("[fast_ingest/setup.py] WARNING: No GPU backend detected — "
           "building CPU-only stub (no pinned-memory / stream support).",
@@ -117,18 +160,16 @@ if IS_ROCM:
         # "-v",
     ]
 elif IS_CUDA:
-    NVCC_FLAGS = [
-        "-O3",
-        "--use_fast_math",
-        # Modern Architecture Targets
-        "--generate-code=arch=compute_100,code=sm_100", # RTX B6000 (Blackwell)
-        "--generate-code=arch=compute_90,code=sm_90",   # H100 / H200 (Hopper)
-        "--generate-code=arch=compute_89,code=sm_89",   # RTX 40xx (Ada)
-        "--generate-code=arch=compute_86,code=sm_86",   # RTX 30xx (Ampere)
-        "--generate-code=arch=compute_80,code=sm_80",   # A100
-        "--generate-code=arch=compute_75,code=sm_75",   # RTX 20xx (Turing)
-        "--generate-code=arch=compute_70,code=sm_70",   # V100
-    ]
+    env_arch_list = os.environ.get("TORCH_CUDA_ARCH_LIST", "").strip()
+    arch_flags = _cuda_arch_flags_from_list(env_arch_list)
+    if not arch_flags:
+        arch_flags = [
+            "--generate-code=arch=compute_89,code=sm_89",   # L40 / RTX 4090 (Ada)
+            "--generate-code=arch=compute_80,code=sm_80",   # A100 (Ampere)
+            "--generate-code=arch=compute_90,code=sm_90",   # H100 / H200 (Hopper)
+        ]
+
+    NVCC_FLAGS = ["-O3", "--use_fast_math"] + arch_flags
 else:
     NVCC_FLAGS = []
 

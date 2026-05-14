@@ -15,10 +15,27 @@ fi
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
 
+# Detect the host accelerator/compiler setup before dependency installation.
+if [ -f ./init_phd_env.sh ]; then
+    # shellcheck disable=SC1091
+    source ./init_phd_env.sh
+fi
+
 # 2. Dependencies
 echo "🔗 Installing/Verifying Dependencies..."
 python3 -m pip install -r requirements.txt
-python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+
+case "${RAP_BUILD_BACKEND:-cpu}" in
+    cuda)
+        python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+        ;;
+    rocm)
+        python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2
+        ;;
+    mps|cpu|*)
+        python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+        ;;
+esac
 
 # 3. Build Extensions
 echo "🏭 Building C++ Ingest Extensions..."
