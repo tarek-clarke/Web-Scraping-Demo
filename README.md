@@ -49,19 +49,30 @@ pip install -r requirements.txt
 python3 setup.py build_ext --inplace
 ```
 
-#### Using micromamba
-If you prefer `micromamba` for environment management, activate the environment with:
+#### Generic HPC / Cluster Setup
+For NVIDIA, AMD ROCm, or Apple Silicon systems, use the hardware-aware bootstrap:
 ```bash
+source ./init_phd_env.sh
 micromamba activate rap-env
+python3 setup.py build_ext --inplace
 ```
-Or execute a single command inside the environment with:
+
+If you just want to run the suite, the main entrypoint is one command:
 ```bash
-micromamba run -n rap-env mycommand
+./tools/run_smart_loop.sh
+```
+
+On Slurm clusters, submit the matching template instead:
+```bash
+sbatch configs/slurm/l40.conf
+# or use the A100 preset as the closest datacenter template
 ```
 
 ### 2. Execute Validation Profiles
 
 **Note:** The `--packets` argument denotes *packets per session* across 15 standard sessions. For example, `--packets 2000` translates to 30,000 total packets.
+
+These explicit profile commands are optional examples; for most runs, the smart loop or Slurm template above is the recommended path.
 
 #### Profile 1: Cross-Platform Baseline (100 Hz)
 ```bash
