@@ -66,6 +66,10 @@ run_benchmark 'PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --packe
 # Engine temperature stress test (7900XT / M4-compatible)
 run_benchmark 'PYTHONPATH="." python3 tools/stress_test_engine_temp.py' "Engine temperature stress test"
 
+# 5b. Canonicalize benchmark output layout to match archived reports
+echo "🗂️ Organizing benchmark files into canonical data/reports layout..."
+python3 tools/organize_data.py
+
 # 6. Finalization & Automated Push
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 REPORT_DIR="data/reports/$HARDWARE_NAME"

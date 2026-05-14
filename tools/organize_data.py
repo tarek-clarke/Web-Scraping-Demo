@@ -1,63 +1,98 @@
 import os
-import shutil
 import re
+import shutil
+from pathlib import Path
 
-def organize_data():
-    base_data_dir = "data"
-    team_reports_dir = "team reports"
-    target_data_dir = "data"
-    
-    # Ensure targets exist
-    os.makedirs(os.path.join(target_data_dir, "solo"), exist_ok=True)
-    os.makedirs(os.path.join(target_data_dir, "team"), exist_ok=True)
-    
-    # 1. Gather all files in data/ root
-    ignore_files = {".DS_Store", ".gitkeep", "audit_log.sqlite", "domain_test_result.json", "hitl_feedback.json", "quarantine_log.json", "dlq.sqlite", "edge_buffer.sqlite"}
-    solo_files = [f for f in os.listdir(base_data_dir) if os.path.isfile(os.path.join(base_data_dir, f)) and f not in ignore_files]
-    
-    # 2. Gather all files in team reports/ recursive
-    team_files = []
-    if os.path.exists(team_reports_dir):
-        for root, dirs, files in os.walk(team_reports_dir):
-            for f in files:
-                if f not in ignore_files:
-                    team_files.append(os.path.join(root, f))
-            
-    def get_dest(src_file, is_team):
-        filename = os.path.basename(src_file)
-        
-        # Categorize by hardware
-        hardware = "Misc"
-        if "7900XT" in filename:
-            hardware = "7900XT"
-        elif "M4" in filename:
-            hardware = "M4"
-        elif "APPLEMETALMPS" in filename or "MPS" in filename:
-            hardware = "APPLEMETALMPS"
-            
-        # Categorize by Run
-        run_match = re.search(r"Run_?(\d+)", filename, re.IGNORECASE)
-        run_folder = f"Run{run_match.group(1)}" if run_match else "Base"
-        
-        category = "team" if (is_team or re.search(r"Team", filename, re.IGNORECASE)) else "solo"
-        
-        target_dir = os.path.join(target_data_dir, category, hardware, run_folder)
-        os.makedirs(target_dir, exist_ok=True)
-        return os.path.join(target_dir, filename)
 
-    # Move solo files
-    for f in solo_files:
-        src = os.path.join(base_data_dir, f)
-        dest = get_dest(src, False)
-        print(f"Moving {src} -> {dest}")
-        shutil.move(src, dest)
-        
-    # Move team files
-    for f in team_files:
-        src = f
-        dest = get_dest(src, True)
-        print(f"Moving {src} -> {dest}")
-        shutil.move(src, dest)
+IGNORE_FILES = {
+    ".DS_Store",
+    ".gitkeep",
+    "audit_log.sqlite",
+    "domain_test_result.json",
+    "hitl_feedback.json",
+    "quarantine_log.json",
+    "dlq.sqlite",
+    "edge_buffer.sqlite",
+}
+
+
+def _clean_filename(filename: str) -> str:
+    cleaned = re.sub(r"_Run\d+_?", "_", filename)
+    cleaned = re.sub(r"__+", "_", cleaned)
+    return cleaned.replace("_.", ".")
+
+
+def _find_folder_name(parts: tuple[str, ...], choices: set[str], default: str) -> str:
+    for part in parts:
+        if part in choices:
+            return part
+    return default
+
+
+def _canonical_destination(source_path: Path) -> Path | None:
+    if not source_path.is_file() or source_path.name in IGNORE_FILES:
+        return None
+
+    parts = source_path.parts
+    if "data" not in parts:
+        return None
+
+    data_index = parts.index("data")
+    if len(parts) <= data_index + 2:
+        return None
+
+    category = parts[data_index + 1]
+    hardware = parts[data_index + 2]
+
+    session_folder = _find_folder_name(parts, {"Sprint", "Weekend"}, "Weekend").lower()
+    profile_folder = _find_folder_name(parts, {"Standard", "Realistic", "UltraLow"}, "Standard")
+
+    frequency_folder = "100hz"
+    for part in parts:
+        lowered = part.lower()
+        if lowered in {"100hz", "1000hz", "1mhz"}:
+            frequency_folder = lowered
+            break
+
+    canonical_name = _clean_filename(source_path.name)
+    destination_dir = Path("data") / "reports" / hardware / category / session_folder / frequency_folder / profile_folder
+    return destination_dir / canonical_name
+
+
+def organize_data() -> None:
+    source_roots = [Path("data/solo"), Path("data/team")]
+    moved = 0
+
+    for source_root in source_roots:
+        if not source_root.exists():
+            continue
+
+        for source_path in source_root.rglob("*"):
+            destination_path = _canonical_destination(source_path)
+            if destination_path is None:
+                continue
+
+            destination_path.parent.mkdir(parents=True, exist_ok=True)
+            if destination_path.exists():
+                print(f"Skipping existing file: {destination_path}")
+                continue
+
+            print(f"Moving {source_path} -> {destination_path}")
+            shutil.move(str(source_path), str(destination_path))
+            moved += 1
+
+    for source_root in source_roots:
+        if not source_root.exists():
+            continue
+        for root, dirs, files in os.walk(source_root, topdown=False):
+            if not dirs and not files:
+                try:
+                    os.rmdir(root)
+                except OSError:
+                    pass
+
+    print(f"Organized {moved} benchmark file(s) into data/reports/.")
+
 
 if __name__ == "__main__":
     organize_data()

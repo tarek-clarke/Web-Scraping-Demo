@@ -14,9 +14,9 @@ HW_DIR="data/reports/$HW_NAME/"
 # Ensure the directory exists so ls doesn't fail
 mkdir -p "$HW_DIR"
 
-# Count the number of base sprint reports to determine total suite completions.
+# Count the number of canonical sprint reports to determine total suite completions.
 # Note: We must be specific so we don't catch 'sprint_repairfocus' or 'sprint_ultralow' files.
-EXISTING=$(ls ${HW_DIR}telemetry_gpu_stress_test_report_sprint_${HW_NAME}*.json 2>/dev/null | wc -l)
+EXISTING=$(find "$HW_DIR/solo/sprint/100hz/Standard" -maxdepth 1 -type f -name 'telemetry_gpu_stress_test_report_sprint_100hz_run*.json' 2>/dev/null | wc -l)
 
 REMAINDER=$((TARGET_RUNS - EXISTING))
 
