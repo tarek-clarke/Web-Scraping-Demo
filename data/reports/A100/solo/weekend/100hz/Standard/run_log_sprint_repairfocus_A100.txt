@@ -37,7 +37,7 @@ Schema embeddings shape: torch.Size([10, 384]) on cuda:0
     Budapest QUALI    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
     Budapest RACE     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
 
-Embedding Cache: 29,847 hits / 30,000 lookups (99.5% hit rate)
+Embedding Cache: 29,841 hits / 30,000 lookups (99.5% hit rate)
 
 
                        GPU Triple-Header Session Results                        
@@ -45,43 +45,43 @@ Embedding Cache: 29,847 hits / 30,000 lookups (99.5% hit rate)
 │      │      │      │      │       │   CB │ CB    │     │  p95 │   GPU │  GPU │
 │ Ses… │ Sent │ Acc… │ Rej… │ Chaos │ Tri… │ State │ DLQ │ (ms) │ Embe… │ Anom │
 ├──────┼──────┼──────┼──────┼───────┼──────┼───────┼─────┼──────┼───────┼──────┤
-│ spi… │ 2000 │ 1990 │   10 │    13 │    0 │ CLOS… │  10 │ 0.01 │  2000 │   62 │
+│ spi… │ 2000 │ 1990 │   10 │    12 │    0 │ CLOS… │  10 │ 0.01 │  2000 │   59 │
 ├──────┼──────┼──────┼──────┼───────┼──────┼───────┼─────┼──────┼───────┼──────┤
-│ spi… │ 2000 │ 1992 │    8 │    11 │    0 │ CLOS… │  18 │ 0.01 │  2000 │   59 │
+│ spi… │ 2000 │ 1994 │    6 │    11 │    0 │ CLOS… │  16 │ 0.01 │  2000 │   63 │
 ├──────┼──────┼──────┼──────┼───────┼──────┼───────┼─────┼──────┼───────┼──────┤
-│ spi… │ 2000 │ 1993 │    7 │    12 │    0 │ CLOS… │  25 │ 0.01 │  2000 │   64 │
+│ spi… │ 2000 │ 1994 │    6 │     8 │    0 │ CLOS… │  22 │ 0.01 │  2000 │   60 │
 ├──────┼──────┼──────┼──────┼───────┼──────┼───────┼─────┼──────┼───────┼──────┤
-│ spi… │ 2000 │ 1993 │    7 │     9 │    0 │ CLOS… │  32 │ 0.01 │  2000 │   66 │
+│ spi… │ 2000 │ 1992 │    8 │    10 │    0 │ CLOS… │  30 │ 0.01 │  2000 │   61 │
 ├──────┼──────┼──────┼──────┼───────┼──────┼───────┼─────┼──────┼───────┼──────┤
-│ spi… │ 2000 │ 1999 │    1 │     5 │    0 │ CLOS… │  33 │ 0.01 │  2000 │   59 │
+│ spi… │ 2000 │ 1992 │    8 │    11 │    0 │ CLOS… │  38 │ 0.01 │  2000 │   61 │
 ├──────┼──────┼──────┼──────┼───────┼──────┼───────┼─────┼──────┼───────┼──────┤
-│ sil… │ 2000 │ 1990 │   10 │    14 │    0 │ CLOS… │  43 │ 0.01 │  2000 │   64 │
+│ sil… │ 2000 │ 1993 │    7 │    11 │    0 │ CLOS… │  45 │ 0.01 │  2000 │   63 │
 ├──────┼──────┼──────┼──────┼───────┼──────┼───────┼─────┼──────┼───────┼──────┤
-│ sil… │ 2000 │ 1994 │    6 │     9 │    0 │ CLOS… │  49 │ 0.01 │  2000 │   72 │
+│ sil… │ 2000 │ 1993 │    7 │    10 │    0 │ CLOS… │  52 │ 0.01 │  2000 │   64 │
 ├──────┼──────┼──────┼──────┼───────┼──────┼───────┼─────┼──────┼───────┼──────┤
-│ sil… │ 2000 │ 1992 │    8 │    13 │    0 │ CLOS… │  57 │ 0.01 │  2000 │   58 │
+│ sil… │ 2000 │ 1992 │    8 │    12 │    0 │ CLOS… │  60 │ 0.01 │  2000 │   59 │
 ├──────┼──────┼──────┼──────┼───────┼──────┼───────┼─────┼──────┼───────┼──────┤
-│ sil… │ 2000 │ 1995 │    5 │     5 │    0 │ CLOS… │  62 │ 0.01 │  2000 │   64 │
+│ sil… │ 2000 │ 1989 │   11 │    14 │    0 │ CLOS… │  71 │ 0.01 │  2000 │   75 │
 ├──────┼──────┼──────┼──────┼───────┼──────┼───────┼─────┼──────┼───────┼──────┤
-│ sil… │ 2000 │ 1990 │   10 │    14 │    0 │ CLOS… │  72 │ 0.01 │  2000 │   65 │
+│ sil… │ 2000 │ 1994 │    6 │     8 │    0 │ CLOS… │  77 │ 0.01 │  2000 │   59 │
 ├──────┼──────┼──────┼──────┼───────┼──────┼───────┼─────┼──────┼───────┼──────┤
-│ bud… │ 2000 │ 1996 │    4 │     7 │    0 │ CLOS… │  76 │ 0.01 │  2000 │   56 │
+│ bud… │ 2000 │ 1996 │    4 │     8 │    0 │ CLOS… │  81 │ 0.01 │  2000 │   63 │
 ├──────┼──────┼──────┼──────┼───────┼──────┼───────┼─────┼──────┼───────┼──────┤
-│ bud… │ 2000 │ 1993 │    7 │    11 │    0 │ CLOS… │  83 │ 0.01 │  2000 │   69 │
+│ bud… │ 2000 │ 1993 │    7 │    12 │    0 │ CLOS… │  88 │ 0.01 │  2000 │   55 │
 ├──────┼──────┼──────┼──────┼───────┼──────┼───────┼─────┼──────┼───────┼──────┤
-│ bud… │ 2000 │ 1991 │    9 │    11 │    0 │ CLOS… │  92 │ 0.01 │  2000 │   70 │
+│ bud… │ 2000 │ 1992 │    8 │    10 │    0 │ CLOS… │  96 │ 0.01 │  2000 │   59 │
 ├──────┼──────┼──────┼──────┼───────┼──────┼───────┼─────┼──────┼───────┼──────┤
-│ bud… │ 2000 │ 1994 │    6 │     6 │    0 │ CLOS… │  98 │ 0.01 │  2000 │   61 │
+│ bud… │ 2000 │ 1992 │    8 │    13 │    0 │ CLOS… │ 104 │ 0.01 │  2000 │   59 │
 ├──────┼──────┼──────┼──────┼───────┼──────┼───────┼─────┼──────┼───────┼──────┤
-│ bud… │ 2000 │ 1991 │    9 │    10 │    0 │ CLOS… │ 107 │ 0.01 │  2000 │   62 │
+│ bud… │ 2000 │ 1990 │   10 │    13 │    0 │ CLOS… │ 114 │ 0.01 │  2000 │   69 │
 ╰──────┴──────┴──────┴──────┴───────┴──────┴───────┴─────┴──────┴───────┴──────╯
    Chaos Injection Breakdown   
                                
   Chaos Mode            Count  
  ───────────────────────────── 
   duplicate_timestamp      59  
-  string_in_numeric        48  
-  schema_drift             43  
+  string_in_numeric        55  
+  schema_drift             49  
                                
                      🖥️  GPU Workload Summary                      
 ╔═════════════════════════════════════╤═══════════════════════════╗
@@ -101,35 +101,35 @@ Embedding Cache: 29,847 hits / 30,000 lookups (99.5% hit rate)
 ╟─────────────────────────────────────┼───────────────────────────╢
 ║ Semantic Resolutions                │                    30,000 ║
 ╟─────────────────────────────────────┼───────────────────────────╢
-║ Schema-Drift Recovered (GPU)        │                        43 ║
+║ Schema-Drift Recovered (GPU)        │                        49 ║
 ╟─────────────────────────────────────┼───────────────────────────╢
-║ Tensor Anomalies Detected           │                       951 ║
+║ Tensor Anomalies Detected           │                       929 ║
 ╟─────────────────────────────────────┼───────────────────────────╢
 ║                                     │                           ║
 ╟─────────────────────────────────────┼───────────────────────────╢
-║ Total Embedding Time                │                  114.1 ms ║
+║ Total Embedding Time                │                  137.6 ms ║
 ╟─────────────────────────────────────┼───────────────────────────╢
-║ Mean Embedding Batch                │                   0.48 ms ║
+║ Mean Embedding Batch                │                   0.57 ms ║
 ╟─────────────────────────────────────┼───────────────────────────╢
-║ Total Anomaly Detection Time        │                  185.5 ms ║
+║ Total Anomaly Detection Time        │                  147.3 ms ║
 ╟─────────────────────────────────────┼───────────────────────────╢
-║ Mean Anomaly Batch                  │                   0.77 ms ║
+║ Mean Anomaly Batch                  │                   0.61 ms ║
 ╟─────────────────────────────────────┼───────────────────────────╢
-║ Total Hash Verification Time        │                1,924.8 ms ║
+║ Total Hash Verification Time        │                1,955.7 ms ║
 ╚═════════════════════════════════════╧═══════════════════════════╝
 ╭──────────────────────────   GPU FINAL ASSESSMENT   ──────────────────────────╮
 │ Resilience Score:         100.00%                                            │
 │ Clean-Data Throughput:    100.00%                                            │
-│ Corruption Detection:     71.33%                                             │
+│ Corruption Detection:     69.94%                                             │
 │ Breaker Trips:            0                                                  │
-│ DLQ Quarantined:          56                                                 │
+│ DLQ Quarantined:          63                                                 │
 │ DLQ Reprocessed:          51 recovered                                       │
 │ Drain Batches:            136 cycles                                         │
 │ Audit Log Entries:        2400                                               │
 │ Audit Chain Intact:       True                                               │
 │ p95 Latency:              0.01 ms                                            │
 │ GPU Embeddings:           30,000                                             │
-│ GPU Anomaly Detections:   951                                                │
+│ GPU Anomaly Detections:   929                                                │
 │                                                                              │
 │ VERDICT: RACE-READY ✅                                                       │
 ╰──────────────────────────────────────────────────────────────────────────────╯
@@ -137,55 +137,55 @@ Embedding Cache: 29,847 hits / 30,000 lookups (99.5% hit rate)
 ╔════════════════════════════════╤══════════════════════╤══════════════════════╗
 ║ Metric                         │            Detection │               Repair ║
 ╟────────────────────────────────┼──────────────────────┼──────────────────────╢
-║ Events                         │                  150 │                  107 ║
+║ Events                         │                  163 │                  114 ║
 ╟────────────────────────────────┼──────────────────────┼──────────────────────╢
-║ Success Rate                   │              100.00% │               47.66% ║
+║ Success Rate                   │              100.00% │               44.74% ║
 ╟────────────────────────────────┼──────────────────────┼──────────────────────╢
-║ Mean Latency                   │            0.0058 ms │            0.0183 ms ║
+║ Mean Latency                   │            0.0056 ms │            0.0189 ms ║
 ╟────────────────────────────────┼──────────────────────┼──────────────────────╢
-║ Std Deviation                  │            0.0017 ms │            0.0137 ms ║
+║ Std Deviation                  │            0.0015 ms │            0.0151 ms ║
 ╟────────────────────────────────┼──────────────────────┼──────────────────────╢
-║ Min                            │            0.0033 ms │            0.0062 ms ║
+║ Min                            │            0.0031 ms │            0.0061 ms ║
 ╟────────────────────────────────┼──────────────────────┼──────────────────────╢
-║ p50 (Median)                   │            0.0061 ms │            0.0201 ms ║
+║ p50 (Median)                   │            0.0060 ms │            0.0205 ms ║
 ╟────────────────────────────────┼──────────────────────┼──────────────────────╢
-║ p95                            │            0.0076 ms │            0.0346 ms ║
+║ p95                            │            0.0073 ms │            0.0428 ms ║
 ╟────────────────────────────────┼──────────────────────┼──────────────────────╢
-║ p99                            │            0.0111 ms │                    — ║
+║ p99                            │            0.0091 ms │                    — ║
 ╟────────────────────────────────┼──────────────────────┼──────────────────────╢
-║ Max                            │            0.0154 ms │            0.1127 ms ║
+║ Max                            │            0.0094 ms │            0.1273 ms ║
 ╟────────────────────────────────┼──────────────────────┼──────────────────────╢
-║ 95% CI (Mean)                  │  [0.0055, 0.0061] ms │  [0.0157, 0.0209] ms ║
+║ 95% CI (Mean)                  │  [0.0054, 0.0058] ms │  [0.0161, 0.0217] ms ║
 ╚════════════════════════════════╧══════════════════════╧══════════════════════╝
 ╭──────────────────────   RESILIENCE TIMING ASSESSMENT   ──────────────────────╮
-│ Anomalies Injected:      150                                                 │
-│ Anomalies Caught:        150                                                 │
+│ Anomalies Injected:      163                                                 │
+│ Anomalies Caught:        163                                                 │
 │ Detection Rate:          100.00%                                             │
-│ Mean Detection Speed:    0.0058 ms                                           │
-│ p95 Detection Speed:     0.0076 ms                                           │
-│ 95% CI (Detection):      [0.0055, 0.0061] ms                                 │
-│ DLQ Repairs Attempted:   107                                                 │
+│ Mean Detection Speed:    0.0056 ms                                           │
+│ p95 Detection Speed:     0.0073 ms                                           │
+│ 95% CI (Detection):      [0.0054, 0.0058] ms                                 │
+│ DLQ Repairs Attempted:   114                                                 │
 │ DLQ Repairs Recovered:   51                                                  │
-│ Repair Rate:             47.66%                                              │
-│ Mean Repair Speed:       0.0183 ms                                           │
+│ Repair Rate:             44.74%                                              │
+│ Mean Repair Speed:       0.0189 ms                                           │
 │ Confidence Level:        95%                                                 │
-│ Sample Size:             257                                                 │
+│ Sample Size:             277                                                 │
 │                                                                              │
 │ TIMING VERDICT: SUB-MILLISECOND DETECTION ✅                                 │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
 GPU CSV exported → 
-data/solo/A100/Run3/Weekend/Standard/Frequency/100hz/telemetry_gpu_stress_test_r
-esults_sprint_repairfocus_A100_Run3_.csv
+data/solo/A100/Run17/Weekend/Standard/Frequency/100hz/telemetry_gpu_stress_test_
+results_sprint_repairfocus_A100_Run17_.csv
 GPU JSON exported → 
-data/solo/A100/Run3/Weekend/Standard/Frequency/100hz/telemetry_gpu_stress_test_r
-eport_sprint_repairfocus_A100_Run3_.json
+data/solo/A100/Run17/Weekend/Standard/Frequency/100hz/telemetry_gpu_stress_test_
+report_sprint_repairfocus_A100_Run17_.json
 GPU metrics exported → 
-data/solo/A100/Run3/Weekend/Standard/Frequency/100hz/telemetry_gpu_metrics_sprin
-t_repairfocus_A100_Run3_.json
+data/solo/A100/Run17/Weekend/Standard/Frequency/100hz/telemetry_gpu_metrics_spri
+nt_repairfocus_A100_Run17_.json
 GPU timing CSV exported → 
-data/solo/A100/Run3/Weekend/Standard/Frequency/100hz/gpu_resilience_timing_repor
-t_sprint_repairfocus_A100_Run3_.csv
+data/solo/A100/Run17/Weekend/Standard/Frequency/100hz/gpu_resilience_timing_repo
+rt_sprint_repairfocus_A100_Run17_.csv
 GPU timing JSON exported → 
-data/solo/A100/Run3/Weekend/Standard/Frequency/100hz/gpu_resilience_timing_repor
-t_sprint_repairfocus_A100_Run3_.json
+data/solo/A100/Run17/Weekend/Standard/Frequency/100hz/gpu_resilience_timing_repo
+rt_sprint_repairfocus_A100_Run17_.json
