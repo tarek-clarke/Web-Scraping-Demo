@@ -4,14 +4,15 @@
 #SBATCH --gres=gpu:A100:1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=128G
-#SBATCH --time=12:00:00
+#SBATCH --time=04:00:00
 #SBATCH --output=benchmark_output_%j.txt
 #SBATCH --error=benchmark_error_%j.txt
 
 echo "🚀 Starting RAP Framework Benchmark on $HOSTNAME"
 
-# 1. Load the exact Spack compilers we found
-module load rocky8-spack
+# 1. Load the updated TalTech modules and our compilers
+module load rocky8/all
+module load rocky8-spack/master
 module load gcc/10.3.0-gcc-8.5.0-abqv
 module load gcc/12.4.0-gcc-10.3.0-ujfh
 

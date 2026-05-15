@@ -1,0 +1,5 @@
+
+The following have been reloaded with a version change:
+  1) gcc/10.3.0-gcc-8.5.0-abqv => gcc/12.4.0-gcc-10.3.0-ujfh
+
+W0514 16:27:22.773000 738842 .venv/lib/python3.12/site-packages/torch/utils/cpp_extension.py:659] Attempted to use ninja as the BuildExtension backend but we could not find ninja.. Falling back to using the slow distutils backend.

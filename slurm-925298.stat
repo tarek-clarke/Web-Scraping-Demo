@@ -1,0 +1,11 @@
+MaxDiskWrite  178196.87M 0.00M 
+Job ID: 925298
+State: COMPLETED (exit code 0)
+Nodelist: amp2
+Cores per node: 16
+CPU Utilized: 00:58:03
+CPU Efficiency: 3.36% of 1-04:50:08 core-walltime
+Job Wall-clock time: 01:48:08
+Memory Utilized: 2.28 GB
+Memory Efficiency: 1.78% of 128.00 GB
+Command=/gpfs/mariana/home/tarekc/resilient-rap-framework/a100_benchmark.slurm

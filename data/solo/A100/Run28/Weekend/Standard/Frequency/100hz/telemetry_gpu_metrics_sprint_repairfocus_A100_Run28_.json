@@ -1,0 +1,20 @@
+{
+  "device_name": "NVIDIA A100-SXM4-80GB",
+  "vram_gb": 79.25,
+  "hip_version": "None",
+  "tuning_profile": "gpu_speed",
+  "semantic_threshold": 0.4,
+  "anomaly_sigma_threshold": 3.5,
+  "breaker_failure_threshold": 8,
+  "breaker_recovery_timeout": 1.0,
+  "total_embeddings_computed": 30000,
+  "total_semantic_resolutions": 30000,
+  "total_semantic_recovered": 42,
+  "total_anomaly_detections": 933,
+  "total_batch_embedding_time_ms": 195.18,
+  "total_batch_anomaly_time_ms": 255.56,
+  "total_hash_verification_time_ms": 2285.75,
+  "mean_embedding_batch_ms": 0.8133,
+  "mean_anomaly_batch_ms": 1.0649,
+  "gpu_utilisation_estimate": "active"
+}
