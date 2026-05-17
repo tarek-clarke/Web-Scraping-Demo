@@ -1,0 +1,11 @@
+MaxDiskWrite  0.05M 0.00M 
+Job ID: 925730
+State: CANCELLED (exit code 0)
+Nodelist: amp1
+Cores per node: 16
+CPU Utilized: 00:00:42
+CPU Efficiency: 4.38% of 00:16:00 core-walltime
+Job Wall-clock time: 00:01:00
+Memory Utilized: 477.58 MB
+Memory Efficiency: 0.36% of 128.00 GB
+Command=/gpfs/mariana/home/tarekc/resilient-rap-framework/run_profiles.slurm

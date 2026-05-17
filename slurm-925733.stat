@@ -1,0 +1,11 @@
+MaxDiskWrite  0.00M 0.00M 
+Job ID: 925733
+State: FAILED (exit code 2)
+Nodelist: green24
+Cores per node: 2
+CPU Utilized: 00:00:00
+CPU Efficiency: 0.00% of 00:00:02 core-walltime
+Job Wall-clock time: 00:00:01
+Memory Utilized: 3.13 MB
+Memory Efficiency: 0.16% of 1.95 GB
+Command=nvidia-smi
