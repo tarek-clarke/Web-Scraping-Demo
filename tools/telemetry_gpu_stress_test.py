@@ -1091,11 +1091,18 @@ class TelemetryGPUStressTest:
         self.run_dir = self.output_dir
         self.run_name = ""
 
-        # 2. Build output suffix (format: _{session}_{profile}_{frequency}_{gpu})
+        # 2. Build output suffix (format: _{session}_{profile}_{frequency}_{run}_{gpu})
         freq_str = f"{int(frequency)}hz" if frequency < 1000000 else "1mhz"
         profile_str = f"{chaos_profile}" if chaos_profile and chaos_profile != "balanced" else "standard"
         session_inferred = "sprint" if "_sprint" in output_suffix.lower() else "weekend"
-        self.output_suffix = f"_{session_inferred}_{profile_str}_{freq_str}_{self.hardware_suffix}"
+        # Extract run number if present (e.g., _sprint_run1 -> run1)
+        run_num = ""
+        if "run" in output_suffix.lower():
+            import re
+            match = re.search(r'run(\d+)', output_suffix.lower())
+            if match:
+                run_num = f"_run{match.group(1)}"
+        self.output_suffix = f"_{session_inferred}_{profile_str}_{freq_str}{run_num}_{self.hardware_suffix}"
 
         # Threshold profiles:
         # - GPU active: tuned for throughput/speed
