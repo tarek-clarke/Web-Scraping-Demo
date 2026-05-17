@@ -168,21 +168,27 @@ def _detect_hardware_suffix(gpu_info: Optional[Dict[str, Any]] = None) -> str:
 
     # Common compact aliases for dashboard-friendly filenames.
     upper_name = name.upper()
+    
+    # Extract full GPU name with VRAM (e.g., A100-SXM4-40GB)
+    if "A100" in upper_name:
+        # Try to extract model variant and VRAM
+        match = re.search(r"A100(?:-\w+)?-(\d+)GB", upper_name)
+        if match:
+            return f"A100-{match.group(1)}GB"
+        return "A100"
     if "7900" in upper_name and "XT" in upper_name:
         return "7900XT"
     if "MI300" in upper_name:
         return "MI300"
     if "MI250" in upper_name:
         return "MI250"
-    if "RTX" in upper_name:
-        m = re.search(r"RTX\s*(\d{3,4})", upper_name)
-        return f"RTX{m.group(1)}" if m else "RTX"
-    if "A100" in upper_name:
-        return "A100"
     if "H200" in upper_name:
         return "H200"
     if "H100" in upper_name:
         return "H100"
+    if "RTX" in upper_name:
+        m = re.search(r"RTX\s*(\d{3,4})", upper_name)
+        return f"RTX{m.group(1)}" if m else "RTX"
 
     return _sanitize_suffix_token(name.upper()) or _detect_cpu_suffix()
 
