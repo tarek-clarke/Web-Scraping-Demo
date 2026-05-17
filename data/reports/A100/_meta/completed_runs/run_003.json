@@ -1,7 +1,0 @@
-{
-    "hardware": "A100",
-    "run_index": 3,
-    "timestamp": "20260514_235058",
-    "backend": "cuda",
-    "status": "complete"
-}
