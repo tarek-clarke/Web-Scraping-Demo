@@ -1072,6 +1072,12 @@ class TelemetryGPUStressTest:
         self._gpu_info = gpu_info_dict(self.device)
         self.hardware_suffix = _detect_hardware_suffix(self._gpu_info)
 
+        # Infer session from output_suffix if it contains sprint/weekend
+        inferred_session = "Weekend"
+        if "_sprint" in output_suffix.lower():
+            inferred_session = "Sprint"
+        session_folder = inferred_session if inferred_session != "Weekend" else session_folder
+
         # 1. Resolve basic structure: data/reports/{hardware}/{solo|team}/{session}/{profile}/{frequency}
         category = "team" if is_team else "solo"
         freq_label = f"{int(frequency)}hz" if frequency < 1000000 else "1mhz"
@@ -1085,8 +1091,11 @@ class TelemetryGPUStressTest:
         self.run_dir = self.output_dir
         self.run_name = ""
 
-        # 2. Build output suffix
-        self.output_suffix = _build_output_suffix(output_suffix, self.hardware_suffix, "")
+        # 2. Build output suffix (format: _{session}_{profile}_{frequency}_{gpu})
+        freq_str = f"{int(frequency)}hz" if frequency < 1000000 else "1mhz"
+        profile_str = f"{chaos_profile}" if chaos_profile and chaos_profile != "balanced" else "standard"
+        session_inferred = "sprint" if "_sprint" in output_suffix.lower() else "weekend"
+        self.output_suffix = f"_{session_inferred}_{profile_str}_{freq_str}_{self.hardware_suffix}"
 
         # Threshold profiles:
         # - GPU active: tuned for throughput/speed
