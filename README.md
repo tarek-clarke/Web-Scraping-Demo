@@ -103,7 +103,7 @@ PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000000 --
 # Run 1kHz Weekend Validation
 PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000 --packets 240000 --chaos 0.05 --output-suffix _weekend_1000hz
 
-# Run 1MHz Sprint Endurance Validation
+# Run 1MHz Weekend Endurance Validation
 PYTHONPATH="." python3 tools/telemetry_gpu_stress_test.py --frequency 1000000 --packets 240000 --chaos 0.05 --output-suffix _weekend_1000hz
 ```
 
