@@ -1072,41 +1072,21 @@ class TelemetryGPUStressTest:
         self._gpu_info = gpu_info_dict(self.device)
         self.hardware_suffix = _detect_hardware_suffix(self._gpu_info)
 
-        # 1. Resolve basic structure: data/{solo|team}/{hardware}
+        # 1. Resolve basic structure: data/reports/{hardware}/{solo|team}/{session}/{profile}/{frequency}
         category = "team" if is_team else "solo"
-        base_hw_dir = Path(output_dir) / category / self.hardware_suffix
-        if self.model_folder:
-            base_hw_dir = base_hw_dir / self.model_folder
-        base_hw_dir.mkdir(parents=True, exist_ok=True)
-
-        # 2. Find/Create next Run folder
-        self.run_dir, self.run_name = _resolve_next_run_dir(base_hw_dir)
-        self.run_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Pre-create session folders for internal consistency
-        (self.run_dir / "Sprint").mkdir(exist_ok=True)
-        (self.run_dir / "Weekend").mkdir(exist_ok=True)
-        
-        # 3. Apply deep nesting: RunX/{Session}/{Profile}/Frequency/{FreqLabel}/
         freq_label = f"{int(frequency)}hz" if frequency < 1000000 else "1mhz"
         
-        # Pre-create session folders for internal consistency
-        sprint_dir = self.run_dir / "Sprint"
-        weekend_dir = self.run_dir / "Weekend"
-        sprint_dir.mkdir(exist_ok=True)
-        weekend_dir.mkdir(exist_ok=True)
+        base_dir = Path(output_dir) / "reports" / self.hardware_suffix / category / session_folder / profile_folder / freq_label
+        if self.model_folder:
+            base_dir = Path(output_dir) / "reports" / self.hardware_suffix / category / self.model_folder / session_folder / profile_folder / freq_label
         
-        # Determine current output target
-        target_session_dir = self.run_dir / session_folder
-        self.output_dir = target_session_dir / profile_folder / "Frequency" / freq_label
+        self.output_dir = base_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Pre-create frequency symmetrical folders for the current session/profile
-        (target_session_dir / profile_folder / "Frequency" / "1mhz").mkdir(parents=True, exist_ok=True)
-        (target_session_dir / profile_folder / "Frequency" / "1000hz").mkdir(parents=True, exist_ok=True)
+        self.run_dir = self.output_dir
+        self.run_name = ""
 
-        # 4. Build output suffix (e.g. _Run1_)
-        self.output_suffix = _build_output_suffix(output_suffix, self.hardware_suffix, self.run_name)
+        # 2. Build output suffix
+        self.output_suffix = _build_output_suffix(output_suffix, self.hardware_suffix, "")
 
         # Threshold profiles:
         # - GPU active: tuned for throughput/speed
