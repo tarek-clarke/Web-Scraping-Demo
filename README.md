@@ -38,64 +38,88 @@ To achieve massive speedups (over **100×** relative to pure Python loops), the 
 
 ---
 
-## Quickstart Instructions for New Platforms
+## Offline Local Quickstart
 
-Follow these instructions when logging into a new platform (e.g. Vast.ai, RunPod, Lambda Labs, or a local server) to automatically detect hardware, compile dependencies, and run evaluation matrix sweeps.
+Use this when you want the fastest local run with offline Gemma and BERT.
+Set `GEMMA_LOCAL_PATH` to your local Gemma 4 E4B checkpoint directory first; BERT already loads from the local Hugging Face cache.
 
-### One-Command Quickstart
-Copy and paste this single command to clone, initialize, and execute the entire suite in one go:
+### macOS / Linux
 
 ```bash
-git clone -b semantic_only https://github.com/tarek-clarke/resilient-rap-framework.git && cd resilient-rap-framework && python3 -m venv venv && source venv/bin/activate && python3 bootstrap.py --bootstrap && python3 run_all.py
+export GEMMA_LOCAL_PATH="/path/to/gemma-4-e4b"
+git clone -b semantic_only https://github.com/tarek-clarke/resilient-rap-framework.git
+cd resilient-rap-framework
+python3 -m venv venv
+source venv/bin/activate
+python3 bootstrap.py --bootstrap
+python3 run_all.py
 ```
 
-### Step-by-Step Instructions
+### Windows PowerShell
 
-### 1. Repository Setup & Virtual Environment
+```powershell
+$env:GEMMA_LOCAL_PATH="C:\path\to\gemma-4-e4b"
+git clone -b semantic_only https://github.com/tarek-clarke/resilient-rap-framework.git
+Set-Location resilient-rap-framework
+py -3 -m venv venv
+. .\venv\Scripts\Activate.ps1
+py -3 bootstrap.py --bootstrap
+py -3 run_all.py
+```
+
+### Windows Command Prompt
+
+```bat
+set GEMMA_LOCAL_PATH=C:\path\to\gemma-4-e4b
+git clone -b semantic_only https://github.com/tarek-clarke/resilient-rap-framework.git
+cd resilient-rap-framework
+py -3 -m venv venv
+venv\Scripts\activate.bat
+py -3 bootstrap.py --bootstrap
+py -3 run_all.py
+```
+
+### Existing Workspace
+
+If you already cloned the repo and have your `.venv`, the quick path is:
+
+```bash
+export GEMMA_LOCAL_PATH="/path/to/gemma-4-e4b"
+source .venv/bin/activate
+python3 bootstrap.py --bootstrap
+python3 run_all.py
+```
+
+### What Happens
+
+- Gemma loads from your local checkpoint only.
+- BERT loads from the local Hugging Face cache only.
+- Bootstrap validates local model artifacts and compiles the C++ extension.
+- `run_all.py` resumes completed work automatically, so reruns are safe.
+
+### Step-by-Step Setup
+
 Ensure you have Python 3.10+ and a standard C++ compiler (`g++`, `clang++`, or `MSVC`) installed.
 
 ```bash
-# Clone the repository and navigate to it
-cd resilient-rap-framework
-
 # Create and activate a clean virtual environment
-python -o -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 2. Auto-Bootstrap Phase (First Launch)
-The system is equipped with a cloud-optimized automated bootstrap script (`bootstrap.py`). 
+Run bootstrap to validate the local models and compile the C++ extension:
 
-Run the bootstrap to auto-detect hardware and compile the C++ extension in-place:
 ```bash
-python bootstrap.py --bootstrap
+python3 bootstrap.py --bootstrap
 ```
 
-#### What Bootstrap Automatically Accomplishes:
-* **Cloud Detection**: Auto-detects the host platform (Vast.ai, RunPod, Lambda Labs, Spheron, Lumi, or Local).
-* **Hardware Backend Mapping**: Queries and configures the optimized acceleration API:
-  - **NVIDIA GPU**: CUDA backend setup
-  - **AMD GPU**: ROCm backend setup
-  - **Intel GPU**: Intel GPU execution mapping
-  - **Apple Silicon**: Apple Silicon MPS backend mapping
-  - **CPU**: Clean CPU-only fallback
-* **Intelligent PyTorch Wheels**: Installs the precise pre-compiled PyTorch wheel match to avoid compiling PyTorch or ROCm/CUDA components from source.
-* **C++ Module Compilation**: Compiles the native C++ pybind11 extension (`cpp_accel.so`) in-place via:
-  ```bash
-  python setup.py build_ext --inplace
-  ```
-* **Weights Pre-Caching**: Configures SentenceTransformers (`all-MiniLM-L6-v2`) in `local_files_only=True` mode, preventing network latency and timeouts on offline servers.
+Run the suite:
 
-### 3. Running the Evaluation Suite
-To execute the optimized 216-run execution matrix, run:
 ```bash
-python run_all.py
+python3 run_all.py
 ```
 
-* **Stunning Visual Estimates Chart**: On startup, the pipeline runner displays hardware metadata alongside a side-by-side projected completion chart (comparing C++ accelerated speeds to raw Python speeds).
-* **Self-Healing Run Resumption**: The pipeline is fully incremental; if it is interrupted, running `python run_all.py` again will automatically detect completed runs and skip them.
-* **Summary Metrics**: At the conclusion of the suite, the pipeline calculates unified execution times and dumps structured results to `summary.json` within your specific hardware directory.
+### Output Directories
 
-### 4. Output Directories
-* **Drift Logs**: All individual packet mutations are logged directly in `logs/drift_events.json` and `logs/drift_events.csv`.
-* **Execution Metrics**: Detailed metrics per run are stored under `results/<Hardware_Backend>/<Platform>/`.
+- **Drift Logs**: Individual packet mutations are logged in `logs/drift_events.json` and `logs/drift_events.csv`.
+- **Execution Metrics**: Detailed metrics per run are stored under `results/<Hardware_Backend>/<Platform>/`.
