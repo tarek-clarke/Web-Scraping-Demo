@@ -54,6 +54,9 @@ class ExperimentRunner:
         self.comparer = SchemaComparer(self.bert, self.gemma)
         self.logger = DriftLogger()
 
+        # Controlled externally (e.g. run_all.py) to force rerunning even if result files exist
+        self.force_rerun = False
+
         # Map API keys to instances
         self.apis = {
             "finnhub": FinnhubAPI(),
@@ -89,8 +92,8 @@ class ExperimentRunner:
         json_path = os.path.join(dir_path, f"run_{run_number}.json")
         csv_path = os.path.join(dir_path, f"run_{run_number}.csv")
         
-        # Check if files exist (3-run rule check)
-        if os.path.exists(json_path) and os.path.exists(csv_path):
+        # Check if files exist (3-run rule check) unless force_rerun is set
+        if not self.force_rerun and os.path.exists(json_path) and os.path.exists(csv_path):
             print(f"[Runner] Run {run_number} for {api_name} under {chaos_strategy}/{chaos_level} already exists. Skipping.")
             with open(json_path, "r") as f:
                 return json.load(f)

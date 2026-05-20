@@ -53,6 +53,12 @@ python3 bootstrap.py --bootstrap
 python3 run_all.py
 ```
 
+Tip: to force re-running existing completed runs (overwrite results), use:
+
+```bash
+python3 run_all.py --force-rerun
+```
+
 Windows PowerShell:
 
 ```powershell

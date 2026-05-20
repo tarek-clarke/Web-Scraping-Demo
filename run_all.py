@@ -49,6 +49,10 @@ def run_evaluation_pipeline():
 
     # Enforce optimized execution matrix (72 configurations, 3-run rule, total 216 runs)
     runner = ExperimentRunner()
+    # Allow forcing reruns even when run outputs already exist
+    if "--force-rerun" in sys.argv:
+        runner.force_rerun = True
+        print("[Pipeline] Force rerun enabled: existing run outputs will be overwritten.")
     
     packet_profiles = ["short", "long"]
     frequency_profiles = ["100hz"]
