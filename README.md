@@ -139,6 +139,59 @@ Run the suite:
 python3 run_all.py
 ```
 
+## Troubleshooting: ROCm / AMD GPU diagnostics
+
+If `bootstrap.py` reports `CPU fallback` on a machine with an AMD GPU (e.g. RX 7900 XT), use these checks and quick fixes:
+
+1) Basic system probes
+
+```bash
+which rocminfo || echo "rocminfo not found"
+which rocm-smi || echo "rocm-smi not found"
+ls -ld /opt/rocm || echo "/opt/rocm missing"
+
+lspci -nnk | grep -iA6 -E "amd|radeon|vga"
+for d in /sys/class/drm/card*/device/vendor; do echo "$d: $(cat $d 2>/dev/null || echo missing)"; done
+```
+
+2) Python / PyTorch probe
+
+```bash
+python3 - <<'PY'
+import sys
+try:
+	import torch
+	print('torch', torch.__version__)
+	print('torch.version.hip', getattr(getattr(torch, 'version', None), 'hip', None))
+	print('cuda available', getattr(torch.cuda, 'is_available', lambda: False)())
+except Exception as e:
+	print('torch import error:', e, file=sys.stderr)
+PY
+```
+
+3) Immediate bootstrap workaround (force ROCm)
+
+```bash
+# env override
+export FORCE_HARDWARE=rocm
+python3 bootstrap.py --bootstrap
+
+# or CLI flag
+python3 bootstrap.py --bootstrap --force-rocm
+```
+
+4) Installing ROCm PyTorch wheels (if needed)
+
+```bash
+source venv/bin/activate
+pip uninstall -y torch torchvision torchaudio
+pip install --prefer-binary --index-url https://download.pytorch.org/whl/rocm6.0 torch torchvision torchaudio
+```
+
+5) Want automatic detection improvements?
+
+`bootstrap.py` now includes extra sysfs and lspci checks, but if you want more verbose diagnostics printed during detection or additional heuristics, open an issue or ask me to patch it further.
+
 ### Output Directories
 
 - **Drift Logs**: Individual packet mutations are logged in `logs/drift_events.json` and `logs/drift_events.csv`.
