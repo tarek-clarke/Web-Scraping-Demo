@@ -90,6 +90,30 @@ python3 bootstrap.py --bootstrap
 python3 run_all.py
 ```
 
+### Cloud VM / SSH Shell
+
+If you are already inside a cloud VM or remote shell, paste this:
+
+```bash
+export GEMMA_LOCAL_PATH="/path/to/gemma-4-e4b"
+cd /path/to/resilient-rap-framework
+source .venv/bin/activate
+python3 bootstrap.py --bootstrap
+python3 run_all.py
+```
+
+### Notebook / Web Terminal
+
+If the environment gives you a notebook cell or browser terminal, use:
+
+```bash
+export GEMMA_LOCAL_PATH="/path/to/gemma-4-e4b"
+%cd /path/to/resilient-rap-framework
+source .venv/bin/activate
+python3 bootstrap.py --bootstrap
+python3 run_all.py
+```
+
 ### What Happens
 
 - Gemma loads from your local checkpoint only.
