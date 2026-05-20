@@ -186,28 +186,26 @@ def install_pytorch(hardware):
         return False # Not freshly installed
 
     print(f"[Bootstrap] PyTorch not found or incompatible. Installing correct build for hardware: {hardware}...")
-    
-    # Standard index-urls
+
+    # Standard index-urls (single selection only)
     cuda_url = "https://download.pytorch.org/whl/cu121"
     rocm_url = "https://download.pytorch.org/whl/rocm6.0"
     cpu_url = "https://download.pytorch.org/whl/cpu"
-    
-    cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary"]
-    
+
+    # Build a single, unambiguous pip command per backend to avoid pip contacting multiple indexes.
     if hardware == "NVIDIA CUDA":
-        cmd.extend(["torch", "torchvision", "torchaudio", "--index-url", cuda_url])
+        cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", cuda_url, "torch", "torchvision", "torchaudio"]
     elif hardware == "AMD ROCm":
-        cmd.extend(["torch", "torchvision", "torchaudio", "--index-url", rocm_url])
+        cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", rocm_url, "torch", "torchvision", "torchaudio"]
     elif hardware == "Intel GPU":
-        # Intel GPU often uses CPU torch base + IPEX or standard CPU torch
-        cmd.extend(["torch", "torchvision", "torchaudio", "--index-url", cpu_url])
+        cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", cpu_url, "torch", "torchvision", "torchaudio"]
     elif hardware == "Apple Silicon MPS":
-        # Standard wheels on macOS support MPS natively
-        cmd.extend(["torch", "torchvision", "torchaudio"])
+        # Standard wheels on macOS support MPS natively; do not add extra indexes
+        cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "torch", "torchvision", "torchaudio"]
     else: # CPU fallback
-        cmd.extend(["torch", "torchvision", "torchaudio", "--index-url", cpu_url])
-        
-    print(f"[Bootstrap] Running: {' '.join(cmd)}")
+        cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", cpu_url, "torch", "torchvision", "torchaudio"]
+
+    print(f"[Bootstrap] Running: {' '.join(cmd[:6])} ...")
     subprocess.run(cmd, check=True)
     
     if hardware == "Intel GPU":
@@ -224,25 +222,36 @@ def install_required_libraries(hardware):
     """
     Installs other required libraries if missing, avoiding source builds.
     """
-    packages = ["pybind11", "sentence-transformers", "transformers", "accelerate", "optimum", "numpy", "pandas", "scipy", "httpx"]
-    
+    # Base packages required for the framework across platforms
+    base_packages = ["pybind11", "sentence-transformers", "transformers", "accelerate", "optimum", "numpy", "pandas", "scipy", "httpx"]
+
+    # Select optional packages depending on detected hardware.
+    # Avoid installing CUDA-specific tooling when non-NVIDIA backends are detected.
+    optional_packages = []
+    if hardware == "NVIDIA CUDA":
+        # vLLM and Triton are CUDA-oriented and should only be installed for NVIDIA
+        optional_packages.extend(["vllm"])
+    elif hardware == "AMD ROCm":
+        # ROCm users: avoid CUDA-only packages (vllm/triton). Recommend users install ROCm-compatible
+        # alternatives manually if desired. Keep base packages only.
+        optional_packages.extend([])
+    elif hardware == "Apple Silicon MPS":
+        # MPS uses standard CPU/MacOS wheels; skip CUDA-only libs
+        optional_packages.extend([])
+    elif hardware == "CPU fallback":
+        # For CPU-only, prefer CPU-friendly backends like llama-cpp-python
+        optional_packages.extend(["llama-cpp-python"])
+
+    packages = base_packages + optional_packages
+
     # Check what is missing
     missing = [pkg for pkg in packages if not is_library_installed(pkg)]
-    
-    gpu_available = hardware in ["NVIDIA CUDA", "AMD ROCm"]
-    
-    if gpu_available:
-        if not is_library_installed("vllm"):
-            missing.append("vllm")
-    elif hardware == "CPU fallback":
-        if not is_library_installed("llama-cpp-python"):
-            missing.append("llama-cpp-python")
             
     if not missing:
         print("[Bootstrap] All library dependencies are already installed.")
         return False # No fresh installs needed
         
-    print(f"[Bootstrap] Installing missing dependencies: {missing}...")
+    print(f"[Bootstrap] Installing missing dependencies for backend '{hardware}': {missing}...")
     # Add --prefer-binary and --only-binary to avoid slow source compilations
     cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--only-binary=:all:"]
     cmd.extend(missing)
