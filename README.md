@@ -38,25 +38,11 @@ To achieve massive speedups (over **100×** relative to pure Python loops), the 
 
 ---
 
-## Offline Local Quickstart
+## Quickstart
 
-Use this when you want the fastest local run with offline Gemma and BERT.
-Bootstrap downloads Gemma 4 E4B from `google/gemma-4-E4B` into your local Hugging Face cache automatically, and Gemma auto-detects that cached checkpoint on later runs. Set `GEMMA_LOCAL_PATH` only if you want to pin a specific location.
+This quickstart covers local and cloud setups. `bootstrap.py` auto-detects the hardware backend (CUDA, ROCm, Apple MPS, or CPU) and installs appropriate PyTorch builds and dependencies. To override detection use the CLI flags `--force-cuda`, `--force-rocm`, `--force-mps`, or `--force-cpu`, or set the `FORCE_HARDWARE` environment variable to `cuda`, `rocm`, `mps`, or `cpu`.
 
-### macOS / Linux
-
-```bash
-git clone -b semantic_only https://github.com/tarek-clarke/resilient-rap-framework.git
-cd resilient-rap-framework
-python3 -m venv venv
-source venv/bin/activate
-python3 bootstrap.py --bootstrap
-python3 run_all.py
-```
-
-### Ubuntu / AMD 7900XT
-
-Use this on Ubuntu instances with an AMD Radeon RX 7900 XT GPU and ROCm installed.
+Common steps (Linux/macOS):
 
 ```bash
 git clone -b semantic_only https://github.com/tarek-clarke/resilient-rap-framework.git
@@ -67,9 +53,7 @@ python3 bootstrap.py --bootstrap
 python3 run_all.py
 ```
 
-If ROCm is already installed, bootstrap will detect the AMD ROCm backend automatically and use the GPU path during model setup.
-
-### Windows PowerShell
+Windows PowerShell:
 
 ```powershell
 git clone -b semantic_only https://github.com/tarek-clarke/resilient-rap-framework.git
@@ -80,56 +64,52 @@ py -3 bootstrap.py --bootstrap
 py -3 run_all.py
 ```
 
-### Windows Command Prompt
+Quick smoke tests (faster than running full matrix):
 
-```bat
-git clone -b semantic_only https://github.com/tarek-clarke/resilient-rap-framework.git
-cd resilient-rap-framework
-py -3 -m venv venv
-venv\Scripts\activate.bat
-py -3 bootstrap.py --bootstrap
-py -3 run_all.py
-```
-
-### Existing Workspace
-
-If you already cloned the repo and have your `.venv`, the quick path is:
+Run a single experiment stream:
 
 ```bash
-source .venv/bin/activate
-python3 bootstrap.py --bootstrap
-python3 run_all.py
+python3 - <<'PY'
+from tests.run_experiments import ExperimentRunner
+r = ExperimentRunner()
+res = r.run_single_stream(
+	api_name="finnhub",
+	packet_profile="short",
+	frequency_profile="100hz",
+	chaos_strategy="json",
+	chaos_level="low",
+	run_number=1,
+	concurrency=1
+)
+print(res)
+PY
 ```
 
-### Cloud VM / SSH Shell
-
-If you are already inside a cloud VM or remote shell, paste this:
+Run a single Gemma inference to verify model load and latency:
 
 ```bash
-cd /path/to/resilient-rap-framework
-source .venv/bin/activate
-python3 bootstrap.py --bootstrap
-python3 run_all.py
+python3 - <<'PY'
+from models.gemma_offline import GemmaModel
+import time, json
+g = GemmaModel()
+t0 = time.time()
+out = g.predict_semantic_match(["timestamp","value","id"], "ts")
+print(json.dumps(out, indent=2))
+print("elapsed:", time.time()-t0)
+PY
 ```
 
-### Notebook / Web Terminal
+Notes:
+- For Ubuntu + AMD 7900XT install ROCm before running bootstrap so the script can detect and select ROCm-compatible PyTorch wheels.
+- For NVIDIA GPUs install CUDA drivers and ensure `nvidia-smi` is available; `bootstrap.py` will pick an appropriate CUDA wheel.
+- On Apple Silicon, MPS is used automatically when available.
+- If you want to pin a specific local Gemma checkpoint, set the `GEMMA_LOCAL_PATH` environment variable.
 
-If the environment gives you a notebook cell or browser terminal, use:
-
-```bash
-%cd /path/to/resilient-rap-framework
-source .venv/bin/activate
-python3 bootstrap.py --bootstrap
-python3 run_all.py
-```
-
-### What Happens
-
-- Gemma loads from your local checkpoint only.
-- Bootstrap fetches Gemma 4 E4B from `google/gemma-4-E4B` into the local cache, and Gemma auto-detects the cached checkpoint when `GEMMA_LOCAL_PATH` is unset.
-- BERT loads from the local Hugging Face cache only.
-- Bootstrap validates local model artifacts and compiles the C++ extension.
-- `run_all.py` resumes completed work automatically, so reruns are safe.
+What happens during `--bootstrap`:
+- Gemma is downloaded into your local Hugging Face cache (google/gemma-4-E4B) and validated if not already present.
+- `sentence-transformers/all-MiniLM-L6-v2` is cached locally.
+- The C++ acceleration layer is built in-place.
+- Required Python dependencies are installed into the active virtual environment.
 
 ### Step-by-Step Setup
 
