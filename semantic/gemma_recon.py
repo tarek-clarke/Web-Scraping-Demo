@@ -1,5 +1,5 @@
 import time
-from models.gemma_model import GemmaModel
+from models.gemma_offline import GemmaModel
 
 class GemmaReconciler:
     def __init__(self, gemma_model: GemmaModel = None):

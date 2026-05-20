@@ -12,7 +12,7 @@ except ImportError:
 
 from models.device_selector import get_device_info
 from models.bert_model import BERTModel
-from models.gemma_model import GemmaModel
+from models.gemma_offline import GemmaModel
 from chaos.strategy import select_chaos
 from drift_logging.drift_logger import DriftLogger
 from resilience.scoring import ResilienceScoring

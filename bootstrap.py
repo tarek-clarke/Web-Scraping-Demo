@@ -238,14 +238,17 @@ def cache_model_weights():
 
     # 2. Gemma-4 E4B
     try:
-        print("[Bootstrap] Downloading google/gemma-4-E4B...")
+        gemma_local_path = os.getenv("GEMMA_LOCAL_PATH")
+        if not gemma_local_path:
+            raise FileNotFoundError("GEMMA_LOCAL_PATH is not set")
+
+        print(f"[Bootstrap] Validating local Gemma checkpoint at {gemma_local_path}...")
         from transformers import AutoModelForCausalLM
-        AutoTokenizer.from_pretrained("google/gemma-4-E4B")
-        AutoModelForCausalLM.from_pretrained("google/gemma-4-E4B")
-        print("[Bootstrap] google/gemma-4-E4B successfully cached.")
+        AutoTokenizer.from_pretrained(gemma_local_path, local_files_only=True)
+        AutoModelForCausalLM.from_pretrained(gemma_local_path, local_files_only=True)
+        print("[Bootstrap] Local Gemma checkpoint validated.")
     except Exception as e:
-        # Expected fallback: google/gemma-4-E4B is a gated model or offline, so we handle it gracefully
-        print(f"[Bootstrap] Note: google/gemma-4-E4B is not publicly accessible or offline. GemmaModel will use API/Local-rules fallback during runs.")
+        print(f"[Bootstrap] Warning: local Gemma checkpoint validation failed ({e}).")
 
 def run_bootstrap(force=False):
     """

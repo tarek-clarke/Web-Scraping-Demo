@@ -3,7 +3,7 @@ from semantic.regex_recon import RegexReconciler
 from semantic.bert_recon import BERTReconciler
 from semantic.gemma_recon import GemmaReconciler
 from models.bert_model import BERTModel
-from models.gemma_model import GemmaModel
+from models.gemma_offline import GemmaModel
 
 class SchemaComparer:
     def __init__(self, bert_model: BERTModel = None, gemma_model: GemmaModel = None):

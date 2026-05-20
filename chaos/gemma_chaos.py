@@ -1,5 +1,5 @@
 import random
-from models.gemma_model import GemmaModel
+from models.gemma_offline import GemmaModel
 
 class GemmaChaos:
     def __init__(self, probability: float, gemma_model: GemmaModel = None):
