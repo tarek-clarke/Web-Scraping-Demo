@@ -42,6 +42,38 @@ To achieve massive speedups (over **100×** relative to pure Python loops), the 
 
 This quickstart covers local and cloud setups. `bootstrap.py` auto-detects the hardware backend (CUDA, ROCm, Apple MPS, or CPU) and installs appropriate PyTorch builds and dependencies. To override detection use the CLI flags `--force-cuda`, `--force-rocm`, `--force-mps`, or `--force-cpu`, or set the `FORCE_HARDWARE` environment variable to `cuda`, `rocm`, `mps`, or `cpu`.
 
+### Recommended: Ubuntu 24.04 + AMD RDNA3 / ROCm
+
+Use Python 3.11 and a fresh venv if you are on Ubuntu 24.04 with an AMD GPU:
+
+```bash
+sudo apt update
+sudo apt install -y software-properties-common
+sudo add-apt-repository -y ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install -y python3.11 python3.11-venv python3.11-dev
+
+cd resilient-rap-framework
+rm -rf venv
+python3.11 -m venv venv
+source venv/bin/activate
+
+python3 bootstrap.py --bootstrap --force-rocm
+python3 run_all.py --force-rerun
+```
+
+### Recommended: macOS / Apple Silicon
+
+```bash
+cd resilient-rap-framework
+rm -rf venv
+python3 -m venv venv
+source venv/bin/activate
+
+python3 bootstrap.py --bootstrap --force-mps
+python3 run_all.py --force-rerun
+```
+
 Common steps (Linux/macOS):
 
 ```bash
@@ -119,7 +151,7 @@ What happens during `--bootstrap`:
 
 ### Step-by-Step Setup
 
-Ensure you have Python 3.10+ and a standard C++ compiler (`g++`, `clang++`, or `MSVC`) installed.
+Ensure you have Python 3.11+ and a standard C++ compiler (`g++`, `clang++`, or `MSVC`) installed.
 
 ```bash
 # Create and activate a clean virtual environment
@@ -142,6 +174,28 @@ python3 run_all.py
 ## Troubleshooting: ROCm / AMD GPU diagnostics
 
 If `bootstrap.py` reports `CPU fallback` on a machine with an AMD GPU (e.g. RX 7900 XT), use these checks and quick fixes:
+
+### Ubuntu 24.04 + AMD RDNA3 recommended setup
+
+If you are on Ubuntu 24.04 and ROCm keeps falling back to CPU, set up the environment in this order:
+
+```bash
+sudo apt install -y software-properties-common
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install -y python3.11 python3.11-venv python3.11-dev
+
+rm -rf venv
+python3.11 -m venv venv
+source venv/bin/activate
+
+# Install AMD's official ROCm stack if the distro ROCm packages are incomplete
+# then reboot so the HIP runtime and kernel modules load.
+
+python3 bootstrap.py --bootstrap --force-rocm
+```
+
+If `torch.version.hip` is still `None`, verify that `/opt/rocm/bin/rocminfo` and `/opt/rocm/bin/rocm-smi` exist and are able to see the GPU before re-running bootstrap.
 
 1) Basic system probes
 
