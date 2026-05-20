@@ -189,14 +189,40 @@ def install_pytorch(hardware):
 
     # Standard index-urls (single selection only)
     cuda_url = "https://download.pytorch.org/whl/cu121"
-    rocm_url = "https://download.pytorch.org/whl/rocm6.0"
+    rocm_multiarch_url = "https://rocm.nightlies.amd.com/whl-multi-arch/"
+    rocm_perfamily_urls = [
+        "https://rocm.nightlies.amd.com/v2/gfx110X-all/",
+        "https://rocm.nightlies.amd.com/v2/gfx120X-all/",
+        "https://rocm.nightlies.amd.com/v2/gfx94X-dcgpu/",
+        "https://rocm.nightlies.amd.com/v2/gfx950-dcgpu/",
+    ]
     cpu_url = "https://download.pytorch.org/whl/cpu"
 
     # Build a single, unambiguous pip command per backend to avoid pip contacting multiple indexes.
     if hardware == "NVIDIA CUDA":
         cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", cuda_url, "torch", "torchvision", "torchaudio"]
     elif hardware == "AMD ROCm":
-        cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", rocm_url, "torch", "torchvision", "torchaudio"]
+        # Try multi-arch index first (supports all GPUs via device extras)
+        cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", rocm_multiarch_url, "torch[device-all]", "torchvision[device-all]", "torchaudio"]
+        print(f"[Bootstrap] Trying ROCm multi-arch wheel index: {rocm_multiarch_url}")
+        try:
+            subprocess.run(cmd, check=True)
+            return True
+        except subprocess.CalledProcessError as exc:
+            print(f"[Bootstrap] ROCm multi-arch install failed; trying per-family indexes...")
+            # Fall back to per-family indexes (no device extras needed)
+            for pf_url in rocm_perfamily_urls:
+                cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", pf_url, "torch", "torchvision", "torchaudio"]
+                print(f"[Bootstrap] Trying ROCm per-family wheel index: {pf_url}")
+                try:
+                    subprocess.run(cmd, check=True)
+                    return True
+                except subprocess.CalledProcessError:
+                    print(f"[Bootstrap] ROCm per-family install failed for {pf_url}; trying next...")
+            print("[Bootstrap] No ROCm wheel was available for this Python/platform. Falling back to CPU wheels so bootstrap can continue.")
+            cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", cpu_url, "torch", "torchvision", "torchaudio"]
+            subprocess.run(cmd, check=True)
+            return True
     elif hardware == "Intel GPU":
         cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", cpu_url, "torch", "torchvision", "torchaudio"]
     elif hardware == "Apple Silicon MPS":

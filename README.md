@@ -102,6 +102,8 @@ py -3 bootstrap.py --bootstrap
 py -3 run_all.py
 ```
 
+On Windows, the suite can run with CPU, CUDA, or ROCm backends when the installed AMD driver and PyTorch stack expose ROCm support. The bootstrap now tries newer ROCm wheel indexes first, then falls back to older compatible releases if needed.
+
 Quick smoke tests (faster than running full matrix):
 
 Run a single experiment stream:
