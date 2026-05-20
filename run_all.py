@@ -24,6 +24,29 @@ def run_evaluation_pipeline():
     print(f" Cloud Environment : {device_info['cloud'].upper()}")
     print("="*80 + "\n")
 
+    # Provide an option to erase previous runs. Use CLI flag to skip prompt.
+    erase_flag = "--erase-existing" in sys.argv or "--force-erase" in sys.argv
+    results_root = f"results/{hardware_model}/{cloud}"
+    if erase_flag:
+        if os.path.exists(results_root):
+            import shutil
+            print(f"[Runner] Removing existing results at {results_root} (flag provided).")
+            shutil.rmtree(results_root)
+    else:
+        try:
+            # Interactive prompt to ask user whether to clear previous runs
+            resp = input(f"Erase existing results at {results_root}? This will delete previous runs. [y/N]: ")
+            if resp.strip().lower() in ("y", "yes"):
+                import shutil
+                if os.path.exists(results_root):
+                    print(f"[Runner] Removing existing results at {results_root}.")
+                    shutil.rmtree(results_root)
+                else:
+                    print(f"[Runner] No existing results found at {results_root}.")
+        except Exception:
+            # Non-interactive environments may raise; continue without deleting
+            pass
+
     # Enforce optimized execution matrix (72 configurations, 3-run rule, total 216 runs)
     runner = ExperimentRunner()
     
