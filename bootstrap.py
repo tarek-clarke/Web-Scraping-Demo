@@ -238,15 +238,28 @@ def cache_model_weights():
 
     # 2. Gemma-4 E4B
     try:
-        gemma_local_path = os.getenv("GEMMA_LOCAL_PATH")
-        if not gemma_local_path:
-            raise FileNotFoundError("GEMMA_LOCAL_PATH is not set")
+        from models.gemma_local import GemmaLocal
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        gemma_repo_id = "google/gemma-4-E4B"
+
+        gemma_local_path = GemmaLocal.discover_local_path()
+
+        if gemma_local_path is None:
+            print(f"[Bootstrap] Downloading {gemma_repo_id} into the local Hugging Face cache...")
+            AutoTokenizer.from_pretrained(gemma_repo_id)
+            AutoModelForCausalLM.from_pretrained(gemma_repo_id)
+            gemma_local_path = GemmaLocal.discover_local_path()
+
+        if gemma_local_path is None:
+            raise FileNotFoundError(
+                f"Gemma checkpoint could not be discovered after downloading {gemma_repo_id}."
+            )
 
         print(f"[Bootstrap] Validating local Gemma checkpoint at {gemma_local_path}...")
-        from transformers import AutoModelForCausalLM
         AutoTokenizer.from_pretrained(gemma_local_path, local_files_only=True)
         AutoModelForCausalLM.from_pretrained(gemma_local_path, local_files_only=True)
-        print("[Bootstrap] Local Gemma checkpoint validated.")
+        print("[Bootstrap] Local Gemma checkpoint validated and cached.")
     except Exception as e:
         print(f"[Bootstrap] Warning: local Gemma checkpoint validation failed ({e}).")
 

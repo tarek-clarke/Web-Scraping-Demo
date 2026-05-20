@@ -7,7 +7,6 @@ No API endpoints or HTTP requests are used.
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from typing import Sequence
 
@@ -18,14 +17,6 @@ class GemmaModel(GemmaLocal):
     """Backwards-compatible offline Gemma wrapper."""
 
     def __init__(self, local_path: str | Path | None = None):
-        if local_path is None:
-            local_path = os.getenv("GEMMA_LOCAL_PATH")
-        if not local_path:
-            raise ValueError(
-                "A local Gemma checkpoint is required. Set GEMMA_LOCAL_PATH "
-                "or pass local_path explicitly."
-            )
-
         super().__init__(local_path=local_path)
         self.backend = "local"
 

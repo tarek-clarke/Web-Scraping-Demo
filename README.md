@@ -41,12 +41,11 @@ To achieve massive speedups (over **100×** relative to pure Python loops), the 
 ## Offline Local Quickstart
 
 Use this when you want the fastest local run with offline Gemma and BERT.
-Set `GEMMA_LOCAL_PATH` to your local Gemma 4 E4B checkpoint directory first; BERT already loads from the local Hugging Face cache.
+Bootstrap downloads Gemma 4 E4B from `google/gemma-4-E4B` into your local Hugging Face cache automatically, and Gemma auto-detects that cached checkpoint on later runs. Set `GEMMA_LOCAL_PATH` only if you want to pin a specific location.
 
 ### macOS / Linux
 
 ```bash
-export GEMMA_LOCAL_PATH="/path/to/gemma-4-e4b"
 git clone -b semantic_only https://github.com/tarek-clarke/resilient-rap-framework.git
 cd resilient-rap-framework
 python3 -m venv venv
@@ -55,10 +54,24 @@ python3 bootstrap.py --bootstrap
 python3 run_all.py
 ```
 
+### Ubuntu / AMD 7900XT
+
+Use this on Ubuntu instances with an AMD Radeon RX 7900 XT GPU and ROCm installed.
+
+```bash
+git clone -b semantic_only https://github.com/tarek-clarke/resilient-rap-framework.git
+cd resilient-rap-framework
+python3 -m venv venv
+source venv/bin/activate
+python3 bootstrap.py --bootstrap
+python3 run_all.py
+```
+
+If ROCm is already installed, bootstrap will detect the AMD ROCm backend automatically and use the GPU path during model setup.
+
 ### Windows PowerShell
 
 ```powershell
-$env:GEMMA_LOCAL_PATH="C:\path\to\gemma-4-e4b"
 git clone -b semantic_only https://github.com/tarek-clarke/resilient-rap-framework.git
 Set-Location resilient-rap-framework
 py -3 -m venv venv
@@ -70,7 +83,6 @@ py -3 run_all.py
 ### Windows Command Prompt
 
 ```bat
-set GEMMA_LOCAL_PATH=C:\path\to\gemma-4-e4b
 git clone -b semantic_only https://github.com/tarek-clarke/resilient-rap-framework.git
 cd resilient-rap-framework
 py -3 -m venv venv
@@ -84,7 +96,6 @@ py -3 run_all.py
 If you already cloned the repo and have your `.venv`, the quick path is:
 
 ```bash
-export GEMMA_LOCAL_PATH="/path/to/gemma-4-e4b"
 source .venv/bin/activate
 python3 bootstrap.py --bootstrap
 python3 run_all.py
@@ -95,7 +106,6 @@ python3 run_all.py
 If you are already inside a cloud VM or remote shell, paste this:
 
 ```bash
-export GEMMA_LOCAL_PATH="/path/to/gemma-4-e4b"
 cd /path/to/resilient-rap-framework
 source .venv/bin/activate
 python3 bootstrap.py --bootstrap
@@ -107,7 +117,6 @@ python3 run_all.py
 If the environment gives you a notebook cell or browser terminal, use:
 
 ```bash
-export GEMMA_LOCAL_PATH="/path/to/gemma-4-e4b"
 %cd /path/to/resilient-rap-framework
 source .venv/bin/activate
 python3 bootstrap.py --bootstrap
@@ -117,6 +126,7 @@ python3 run_all.py
 ### What Happens
 
 - Gemma loads from your local checkpoint only.
+- Bootstrap fetches Gemma 4 E4B from `google/gemma-4-E4B` into the local cache, and Gemma auto-detects the cached checkpoint when `GEMMA_LOCAL_PATH` is unset.
 - BERT loads from the local Hugging Face cache only.
 - Bootstrap validates local model artifacts and compiles the C++ extension.
 - `run_all.py` resumes completed work automatically, so reruns are safe.

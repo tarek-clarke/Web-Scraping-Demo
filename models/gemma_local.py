@@ -7,9 +7,10 @@ files available on disk.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import ClassVar, List, Optional
 
 
 @dataclass(frozen=True)
@@ -49,9 +50,16 @@ class GemmaLocal:
         "model.safetensors.index.json",
         "pytorch_model.bin.index.json",
     )
+    DEFAULT_CACHE_ROOTS: ClassVar[tuple[Path, ...]] = (
+        Path.home() / ".cache/huggingface/hub",
+        Path.home() / ".cache/huggingface",
+        Path.home() / ".cache",
+        Path.home() / "Library/Caches/huggingface/hub",
+        Path.home() / "Library/Caches/huggingface",
+    )
 
     def __init__(self, local_path: str | Path):
-        self.local_path = Path(local_path).expanduser().resolve()
+        self.local_path = self.resolve_local_path(local_path)
         self.model_dir: Optional[Path] = None
         self.tokenizer = None
         self.model = None
@@ -72,6 +80,81 @@ class GemmaLocal:
 
         self.model_dir = artifacts.model_dir
         self._load_model()
+
+    @classmethod
+    def resolve_local_path(cls, local_path: str | Path | None = None) -> Path:
+        """Resolve a Gemma checkpoint path from an explicit or discovered location."""
+
+        if local_path:
+            return Path(local_path).expanduser().resolve()
+
+        env_path = os.getenv("GEMMA_LOCAL_PATH")
+        if env_path:
+            return Path(env_path).expanduser().resolve()
+
+        discovered_path = cls.discover_local_path()
+        if discovered_path is not None:
+            return discovered_path
+
+        raise FileNotFoundError(
+            "Could not auto-detect a local Gemma checkpoint. "
+            "Set GEMMA_LOCAL_PATH or pass local_path explicitly."
+        )
+
+    @classmethod
+    def discover_local_path(cls) -> Path | None:
+        """Search common Hugging Face cache locations for a Gemma checkpoint."""
+
+        search_roots: list[Path] = []
+
+        for env_var in ("HF_HOME", "HUGGINGFACE_HUB_CACHE", "TRANSFORMERS_CACHE", "XDG_CACHE_HOME"):
+            env_value = os.getenv(env_var)
+            if env_value:
+                search_roots.append(Path(env_value).expanduser())
+
+        search_roots.extend(cls.DEFAULT_CACHE_ROOTS)
+
+        seen_roots: set[Path] = set()
+        for root in search_roots:
+            resolved_root = root.expanduser()
+            if resolved_root in seen_roots or not resolved_root.exists():
+                continue
+            seen_roots.add(resolved_root)
+
+            discovered = cls._discover_in_cache_root(resolved_root)
+            if discovered is not None:
+                return discovered
+
+        return None
+
+    @classmethod
+    def _discover_in_cache_root(cls, root: Path) -> Path | None:
+        """Find the newest complete Gemma checkpoint beneath a cache root."""
+
+        if cls._is_complete_model_directory(root):
+            return root.resolve()
+
+        candidate_dirs: list[Path] = []
+
+        snapshots_dir = root / "snapshots"
+        if snapshots_dir.is_dir():
+            snapshot_dirs = [p for p in snapshots_dir.iterdir() if p.is_dir()]
+            snapshot_dirs.sort(key=lambda path: path.stat().st_mtime, reverse=True)
+            candidate_dirs.extend(snapshot_dirs)
+
+        for config_path in root.rglob(cls.REQUIRED_CONFIG_FILE):
+            candidate_dir = config_path.parent
+            candidate_name = str(candidate_dir).lower()
+            if "gemma" not in candidate_name:
+                continue
+            if candidate_dir not in candidate_dirs:
+                candidate_dirs.append(candidate_dir)
+
+        for candidate_dir in candidate_dirs:
+            if cls._is_complete_model_directory(candidate_dir):
+                return candidate_dir.resolve()
+
+        return None
 
     def _resolve_model_artifacts(self, root: Path) -> ModelArtifacts:
         """Resolve a usable model directory from the provided path.
@@ -123,31 +206,34 @@ class GemmaLocal:
         best = candidates[0]
         return ModelArtifacts(model_dir=best, missing=self._missing_artifacts(best))
 
-    def _is_complete_model_directory(self, model_dir: Path) -> bool:
+    @classmethod
+    def _is_complete_model_directory(cls, model_dir: Path) -> bool:
         """Quick check for the presence of the expected model artifacts."""
 
-        return not self._missing_artifacts(model_dir)
+        return not cls._missing_artifacts(model_dir)
 
-    def _missing_artifacts(self, model_dir: Path) -> List[str]:
+    @classmethod
+    def _missing_artifacts(cls, model_dir: Path) -> List[str]:
         """Return a list of missing required files for the checkpoint."""
 
         missing: List[str] = []
 
-        if not (model_dir / self.REQUIRED_CONFIG_FILE).is_file():
-            missing.append(self.REQUIRED_CONFIG_FILE)
+        if not (model_dir / cls.REQUIRED_CONFIG_FILE).is_file():
+            missing.append(cls.REQUIRED_CONFIG_FILE)
 
-        if not any((model_dir / marker).is_file() for marker in self.REQUIRED_TOKENIZER_MARKERS):
+        if not any((model_dir / marker).is_file() for marker in cls.REQUIRED_TOKENIZER_MARKERS):
             missing.append("tokenizer artifact (tokenizer.json or tokenizer.model)")
 
-        if not self._has_weights(model_dir):
+        if not cls._has_weights(model_dir):
             missing.append("model weights (.safetensors or .bin)")
 
         return missing
 
-    def _has_weights(self, model_dir: Path) -> bool:
+    @classmethod
+    def _has_weights(cls, model_dir: Path) -> bool:
         """Check for a full or sharded weight set in the model directory."""
 
-        if any((model_dir / marker).is_file() for marker in self.REQUIRED_WEIGHT_MARKERS[:2]):
+        if any((model_dir / marker).is_file() for marker in cls.REQUIRED_WEIGHT_MARKERS[:2]):
             return True
 
         # Sharded checkpoints use an index file plus shard files.
