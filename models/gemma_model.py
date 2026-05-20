@@ -9,24 +9,52 @@ class GemmaModel:
         self.device_info = get_device_info()
         self.api_base = os.getenv("GEMMA_API_BASE", "http://localhost:1234/v1")
         self.api_key = os.getenv("GEMMA_API_KEY", "lm-studio")
-        self.model_name = os.getenv("GEMMA_MODEL_NAME", "gemma-4")
+        self.model_name = os.getenv("GEMMA_MODEL_NAME", "gemma-4-E4B")
         
-        self.hf_model_path = "google/gemma-4"
+        self.hf_model_path = "google/gemma-4-E4B"
         self.tokenizer = None
         self.model = None
         self.backend = "mock"
         
         self._initialize()
 
+    # Known identifiers and substrings for Gemma 4 E4B model variants
+    _GEMMA4_E4B_HINTS = ["gemma-4-e4b", "gemma4-e4b", "gemma-4-E4B", "gemma4e4b"]
+
     def _initialize(self):
-        # 1. Try to ping local API endpoint
+        # 1. Try to ping local API endpoint and auto-discover the correct model
         try:
             # Short timeout to avoid blocking
             response = httpx.get(f"{self.api_base}/models", headers={"Authorization": f"Bearer {self.api_key}"}, timeout=2.0)
             if response.status_code == 200:
-                self.backend = "api"
-                print(f"[GEMMA] Initialized successfully using Local API Backend ({self.api_base}).")
-                return
+                data = response.json()
+                available_models = [m.get("id", "") for m in data.get("data", [])]
+                
+                # Try exact match first
+                if self.model_name in available_models:
+                    self.backend = "api"
+                    print(f"[GEMMA] Initialized successfully using Local API Backend ({self.api_base}), model: {self.model_name}")
+                    return
+                
+                # Auto-discover: find a loaded model whose ID contains a Gemma 4 E4B hint
+                matched = None
+                for model_id in available_models:
+                    model_id_lower = model_id.lower()
+                    for hint in self._GEMMA4_E4B_HINTS:
+                        if hint.lower() in model_id_lower:
+                            matched = model_id
+                            break
+                    if matched:
+                        break
+                
+                if matched:
+                    print(f"[GEMMA] Auto-discovered Gemma 4 E4B model as '{matched}' on Local API Backend ({self.api_base}).")
+                    self.model_name = matched
+                    self.backend = "api"
+                    return
+                
+                # API is reachable but no Gemma 4 E4B model was found
+                print(f"[GEMMA] Local API is reachable but no Gemma 4 E4B model found. Available models: {available_models}")
         except Exception:
             pass
 

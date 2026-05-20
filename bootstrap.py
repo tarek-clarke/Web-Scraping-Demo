@@ -236,16 +236,16 @@ def cache_model_weights():
     except Exception as e:
         print(f"[Bootstrap] Warning: Failed to pre-cache MiniLM ({e}).")
 
-    # 2. Gemma-4
+    # 2. Gemma-4 E4B
     try:
-        print("[Bootstrap] Downloading google/gemma-4...")
+        print("[Bootstrap] Downloading google/gemma-4-E4B...")
         from transformers import AutoModelForCausalLM
-        AutoTokenizer.from_pretrained("google/gemma-4")
-        AutoModelForCausalLM.from_pretrained("google/gemma-4")
-        print("[Bootstrap] google/gemma-4 successfully cached.")
+        AutoTokenizer.from_pretrained("google/gemma-4-E4B")
+        AutoModelForCausalLM.from_pretrained("google/gemma-4-E4B")
+        print("[Bootstrap] google/gemma-4-E4B successfully cached.")
     except Exception as e:
-        # Expected fallback: google/gemma-4 is a gated model or offline, so we handle it gracefully
-        print(f"[Bootstrap] Note: google/gemma-4 is not publicly accessible or offline. GemmaModel will use API/Local-rules fallback during runs.")
+        # Expected fallback: google/gemma-4-E4B is a gated model or offline, so we handle it gracefully
+        print(f"[Bootstrap] Note: google/gemma-4-E4B is not publicly accessible or offline. GemmaModel will use API/Local-rules fallback during runs.")
 
 def run_bootstrap(force=False):
     """

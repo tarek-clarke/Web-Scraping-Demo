@@ -7,7 +7,7 @@ class GemmaReconciler:
 
     def reconcile(self, canonical_keys: list, query_key: str) -> dict:
         """
-        Uses Gemma-4 to predict the matching canonical key.
+        Uses Gemma-4 E4B to predict the matching canonical key.
         Confidence: Softmax/probability confidence score parsed from Gemma output.
         """
         start_time = time.perf_counter()
