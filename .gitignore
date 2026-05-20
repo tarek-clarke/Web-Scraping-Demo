@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+build/
+*.so
+*.pyd
+.DS_Store
+.initialized
