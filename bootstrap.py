@@ -3,6 +3,8 @@ import sys
 import time
 import json
 import socket
+import glob
+import re
 import platform
 import subprocess
 import importlib.util
@@ -77,6 +79,27 @@ def detect_hardware_backend():
         pass
     if os.path.exists("/opt/rocm"):
         return "AMD ROCm"
+
+    # Extra: check DRM sysfs vendor entries for AMD vendor id (0x1002)
+    try:
+        for path in glob.glob('/sys/class/drm/card*/device/vendor'):
+            try:
+                with open(path, 'r') as f:
+                    v = f.read().strip().lower()
+                    if v.startswith('0x1002') or v == '1002':
+                        return "AMD ROCm"
+            except Exception:
+                continue
+    except Exception:
+        pass
+
+    # Extra: fallback to parsing lspci output for AMD vendor id 1002
+    try:
+        out = subprocess.check_output(['lspci', '-nn'], text=True, stderr=subprocess.DEVNULL)
+        if re.search(r'\[1002:', out, re.IGNORECASE):
+            return "AMD ROCm"
+    except Exception:
+        pass
         
     # Intel GPU check
     try:
@@ -91,6 +114,36 @@ def detect_hardware_backend():
         return "Apple Silicon MPS"
         
     return "CPU fallback"
+
+def parse_forced_hardware_from_argv_or_env(argv=None):
+    """
+    Allows callers to force a hardware backend via CLI flags or env var.
+    Flags: --force-cuda, --force-rocm, --force-mps, --force-cpu
+    Env var: FORCE_HARDWARE (values: cuda, rocm, mps, cpu)
+    """
+    argv = argv or sys.argv
+    if "--force-cuda" in argv:
+        return "NVIDIA CUDA"
+    if "--force-rocm" in argv:
+        return "AMD ROCm"
+    if "--force-mps" in argv:
+        return "Apple Silicon MPS"
+    if "--force-cpu" in argv:
+        return "CPU fallback"
+
+    env_val = os.getenv("FORCE_HARDWARE")
+    if env_val:
+        v = env_val.strip().lower()
+        if v in ("cuda", "nvidia"):
+            return "NVIDIA CUDA"
+        if v in ("rocm", "amd"):
+            return "AMD ROCm"
+        if v in ("mps", "apple", "arm"):
+            return "Apple Silicon MPS"
+        if v in ("cpu", "fallback"):
+            return "CPU fallback"
+
+    return None
 
 def is_library_installed(lib_name):
     """
@@ -278,7 +331,13 @@ def run_bootstrap(force=False):
     
     # 1. Cloud & Hardware Detection
     cloud = detect_cloud_platform()
-    hardware = detect_hardware_backend()
+    # Allow overriding detection via CLI flags or FORCE_HARDWARE env
+    forced = parse_forced_hardware_from_argv_or_env()
+    if forced:
+        hardware = forced
+        print(f"[Bootstrap] Hardware backend forced via flag/env: {hardware}")
+    else:
+        hardware = detect_hardware_backend()
     
     print(f"[Bootstrap] Cloud Environment Detected : {cloud.upper()}")
     print(f"[Bootstrap] Hardware Backend Detected  : {hardware.upper()}")
@@ -328,4 +387,5 @@ def run_bootstrap(force=False):
 if __name__ == "__main__":
     # If run as script
     force_boot = "--bootstrap" in sys.argv
+    # Pass through force-hardware flags if present (detected inside run_bootstrap)
     run_bootstrap(force=force_boot)
