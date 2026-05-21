@@ -2,6 +2,8 @@ import os
 import sys
 import time
 import json
+from collections import defaultdict
+from pathlib import Path
 from models.device_selector import get_device_info
 from tests.run_experiments import ExperimentRunner
 
@@ -98,6 +100,17 @@ def run_evaluation_pipeline():
     # 36 configs are "short", 36 are "long"
     n_short_runs = 36 * 3
     n_long_runs = 36 * 3
+
+    history_estimates = _load_historical_profile_estimates(results_root, packet_profiles)
+    historical_short = history_estimates["short"]["average_sec"]
+    historical_long = history_estimates["long"]["average_sec"]
+
+    if historical_short is not None and historical_long is not None:
+        est_short_sec = float(historical_short)
+        est_long_sec = float(historical_long)
+        estimate_source = "historical completed runs"
+    else:
+        estimate_source = "backend fallback defaults"
     
     projected_sec = (n_short_runs * est_short_sec) + (n_long_runs * est_long_sec)
     projected_hours = projected_sec / 3600.0
@@ -114,8 +127,8 @@ def run_evaluation_pipeline():
     print(f" Configurations   : {total_configs} distinct configs (3 runs each, total {total_runs} streams)")
     print("-"*80)
     print(" ESTIMATED TIME PER RUN BY PROFILE:")
-    print(f"  - Sprint Profile (30k packets)  : ~{est_short_sec:.2f} seconds")
-    print(f"  - Weekend Profile (3M packets) : ~{est_long_sec:.2f} seconds")
+    print(f"  - Short Profile (30k packets)   : ~{est_short_sec:.2f} seconds")
+    print(f"  - Long Profile (3M packets)     : ~{est_long_sec:.2f} seconds")
     print("-"*80)
     print(" PROJECTED PIPELINE COMPLETION TIME COMPARISON:")
     

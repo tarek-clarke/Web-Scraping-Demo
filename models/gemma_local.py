@@ -281,6 +281,9 @@ class GemmaLocal:
         ``AutoModelForCausalLM.from_pretrained`` path is used.
         """
 
+        from models.torch_compat import ensure_transformers_import_compatibility
+
+        ensure_transformers_import_compatibility()
         import torch
         from models.torch_compat import ensure_transformers_import_compatibility
         from transformers import AutoModelForCausalLM, AutoTokenizer
