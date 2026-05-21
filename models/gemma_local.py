@@ -258,6 +258,9 @@ class GemmaLocal:
     def _load_model(self) -> None:
         """Load tokenizer and causal language model from the local checkpoint."""
 
+        from models.torch_compat import ensure_transformers_import_compatibility
+
+        ensure_transformers_import_compatibility()
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 

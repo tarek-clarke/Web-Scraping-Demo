@@ -17,25 +17,15 @@ class GemmaModel(GemmaLocal):
     """Backwards-compatible offline Gemma wrapper."""
 
     def __init__(self, local_path: str | Path | None = None):
-        self._fallback_mode = False
         compatible, reason = self._check_transformers_compatibility(local_path)
         if not compatible:
-            self.backend = "heuristic_fallback"
-            self._fallback_mode = True
-            self._load_error = reason
-            print(f"[GemmaModel] Warning: local Gemma unavailable, using heuristic fallback ({reason}).")
-            return
+            raise RuntimeError(f"Local Gemma checkpoint is unavailable: {reason}")
 
         try:
             super().__init__(local_path=local_path)
             self.backend = "local"
         except Exception as exc:
-            # Keep the pipeline runnable even when the local Gemma checkpoint
-            # cannot be loaded by the current transformers build.
-            self.backend = "heuristic_fallback"
-            self._fallback_mode = True
-            self._load_error = str(exc)
-            print(f"[GemmaModel] Warning: local Gemma unavailable, using heuristic fallback ({exc}).")
+            raise RuntimeError(f"Failed to load local Gemma checkpoint: {exc}") from exc
 
     @staticmethod
     def _check_transformers_compatibility(local_path: str | Path | None):
@@ -78,37 +68,12 @@ class GemmaModel(GemmaLocal):
         return True, "ok"
 
     def query(self, prompt: str, temperature: float = 0.7, max_tokens: int = 256) -> str:
-        if self._fallback_mode:
-            return self._heuristic_query(prompt)
         return self.generate(prompt, max_new_tokens=max_tokens, temperature=temperature)
-
-    def _heuristic_query(self, prompt: str) -> str:
-        p = (prompt or "").lower()
-        if "snake_case" in p:
-            return "semantic_alias_field"
-        if "paraphrase" in p:
-            return "semantic paraphrase generated locally"
-        return "semantic_fallback"
 
     def predict_semantic_match(self, canonical_keys: Sequence[str], query_key: str) -> dict:
         canonical_list = list(canonical_keys)
         if not canonical_list:
             return {"match": "unknown", "confidence": 0.0}
-
-        if self._fallback_mode:
-            query_norm = (query_key or "").strip().lower().replace("_", " ")
-            best = canonical_list[0]
-            best_score = -1
-            for candidate in canonical_list:
-                c_norm = str(candidate).strip().lower().replace("_", " ")
-                token_overlap = len(set(query_norm.split()) & set(c_norm.split()))
-                char_overlap = len(set(query_norm) & set(c_norm))
-                score = token_overlap * 3 + char_overlap
-                if score > best_score:
-                    best = candidate
-                    best_score = score
-            confidence = 0.35 if best_score <= 0 else min(0.75, 0.35 + best_score * 0.03)
-            return {"match": best, "confidence": confidence}
 
         prompt = (
             f"Given a list of canonical API schema fields: {canonical_list}\n"
