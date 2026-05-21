@@ -1,8 +1,13 @@
-"""Offline Gemma 4 E4B loader for macOS Apple Silicon (MPS).
+"""Offline Gemma 4 E4B loader — supports macOS MPS, Cloud CUDA, and Windows ROCm.
 
-This module provides a small production-oriented wrapper around a locally
-cached Gemma checkpoint. It never performs network calls and only loads from
-files available on disk.
+This module provides a production-oriented wrapper around a locally cached
+Gemma checkpoint. It never performs network calls and only loads from files
+available on disk.
+
+On Windows ROCm, the safetensors Rust mmap implementation crashes at the
+C++ level when reading tensor data. We detect this at load time and fall
+back to a pure-Python file I/O loader (``models.safetensors_loader``) that
+reads tensors individually without memory-mapping.
 """
 
 from __future__ import annotations
@@ -244,22 +249,43 @@ class GemmaLocal:
 
         return False
 
+    @staticmethod
+    def _is_windows_rocm() -> bool:
+        """Return True when running on Windows with a ROCm PyTorch build."""
+        import sys
+        import torch
+        return (
+            sys.platform == "win32"
+            and torch.cuda.is_available()
+            and "+rocm" in torch.__version__
+        )
+
     def _select_device(self):
-        """Prefer MPS on Apple Silicon, then CUDA, then CPU."""
+        """Prefer MPS on Apple Silicon, then CUDA/ROCm, then CPU."""
 
         import torch
 
         if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
             return torch.device("mps"), torch.float16
         if torch.cuda.is_available():
-            return torch.device("cuda"), torch.float16
+            # For AMD ROCm and Cloud CUDA, native bfloat16 is fully supported and preferred
+            return torch.device("cuda"), torch.bfloat16
         return torch.device("cpu"), torch.float32
 
     def _load_model(self) -> None:
-        """Load tokenizer and causal language model from the local checkpoint."""
+        """Load tokenizer and causal language model from the local checkpoint.
+
+        On Windows ROCm, the safetensors mmap implementation crashes at the C++
+        level. We detect that condition and use a pure-Python file-I/O loader
+        instead. On all other platforms (MPS, Cloud CUDA, CPU) the standard
+        ``AutoModelForCausalLM.from_pretrained`` path is used.
+        """
 
         import torch
+        from models.torch_compat import ensure_transformers_import_compatibility
         from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        ensure_transformers_import_compatibility()
 
         self.device, self.torch_dtype = self._select_device()
 
@@ -268,17 +294,94 @@ class GemmaLocal:
             local_files_only=True,
         )
 
-        self.model = AutoModelForCausalLM.from_pretrained(
-            str(self.model_dir),
-            local_files_only=True,
-            torch_dtype=self.torch_dtype,
-        )
-        self.model.to(self.device)
-        self.model.eval()
-
-        # Ensure generation works even if the tokenizer has no pad token.
         if self.tokenizer.pad_token is None and self.tokenizer.eos_token is not None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
+
+        if self._is_windows_rocm():
+            self._load_model_no_mmap()
+        else:
+            self._load_model_standard()
+
+        self.model.eval()
+
+    def _load_model_standard(self) -> None:
+        """Standard from_pretrained path used on MPS and Cloud CUDA."""
+        import torch
+        from transformers import AutoModelForCausalLM
+
+        load_kwargs: dict = {
+            "local_files_only": True,
+            "low_cpu_mem_usage": True,
+            "dtype": self.torch_dtype,
+        }
+
+        # Use device_map to stream weights directly to VRAM on GPU environments
+        if self.device.type == "cuda":
+            load_kwargs["device_map"] = "auto"
+
+        self.model = AutoModelForCausalLM.from_pretrained(
+            str(self.model_dir),
+            **load_kwargs,
+        )
+
+        # Manually transfer when device_map was not used (MPS / CPU)
+        if self.device.type != "cuda":
+            self.model.to(self.device)
+
+    def _load_model_no_mmap(self) -> None:
+        """Windows ROCm path: bypass safetensors mmap via pure-Python file I/O.
+
+        The Rust safetensors mmap implementation panics at the C++ level on
+        Windows ROCm. This path reads each tensor individually using Python's
+        built-in ``open`` / ``seek`` / ``read``, then loads the resulting
+        state dict into an empty model shell created with accelerate's
+        ``init_empty_weights`` context manager.
+        """
+        import gc
+        import torch
+        from pathlib import Path
+        from accelerate import init_empty_weights
+        from transformers import AutoConfig, AutoModelForCausalLM
+        from models.safetensors_loader import load_safetensors_no_mmap
+
+        config = AutoConfig.from_pretrained(str(self.model_dir), local_files_only=True)
+
+        with init_empty_weights():
+            self.model = AutoModelForCausalLM.from_config(config)
+
+        # Find the safetensors weight file
+        model_dir = Path(self.model_dir)
+        st_file = model_dir / "model.safetensors"
+        if not st_file.is_file():
+            # Sharded checkpoint: load all shards
+            index_file = model_dir / "model.safetensors.index.json"
+            if not index_file.is_file():
+                raise FileNotFoundError(
+                    f"No model.safetensors or index file found in {model_dir}"
+                )
+            import json
+            with open(index_file, "r", encoding="utf-8") as fh:
+                index = json.load(fh)
+            shard_files = sorted(set(index["weight_map"].values()))
+            state_dict: dict = {}
+            for shard in shard_files:
+                shard_dict = load_safetensors_no_mmap(
+                    model_dir / shard,
+                    device=str(self.device),
+                    target_dtype=self.torch_dtype,
+                )
+                state_dict.update(shard_dict)
+        else:
+            state_dict = load_safetensors_no_mmap(
+                st_file,
+                device=str(self.device),
+                target_dtype=self.torch_dtype,
+            )
+
+        self.model.load_state_dict(state_dict, strict=False, assign=True)
+        del state_dict
+        gc.collect()
+        torch.cuda.empty_cache()
 
     def generate(
         self,

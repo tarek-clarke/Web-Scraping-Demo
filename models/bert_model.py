@@ -1,5 +1,6 @@
 import time
 from models.device_selector import get_device_info
+from models.torch_compat import ensure_transformers_import_compatibility
 
 class BERTModel:
     def __init__(self):
@@ -20,6 +21,7 @@ class BERTModel:
 
     def _initialize(self):
         try:
+            ensure_transformers_import_compatibility()
             import torch
             from transformers import AutoTokenizer, AutoModel
             
