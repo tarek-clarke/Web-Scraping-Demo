@@ -55,7 +55,7 @@ print(f"\n{'='*50}")
 print("  Running pipeline...")
 print(f"{'='*50}\n")
 
-exit_code = run(f"{sys.executable} run_all.py")
+exit_code = run(f"{sys.executable} run_all.py --erase-existing")
 
 # ── Commit and push results ───────────────────────────────────────────────────
 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -66,7 +66,7 @@ print(f"  Pipeline finished: {status}")
 print("  Committing and pushing results...")
 print(f"{'='*50}\n")
 
-run("git add -A")
+run("git add results/ logs/ summary.json")
 run(f'git commit -m "results({platform.system().lower()}): overnight run {timestamp} [{status}]"')
 run(f"git push origin {branch}")
 
