@@ -27,7 +27,10 @@ class ExperimentRunner:
   el=int((time.perf_counter()-st)*1000000);tp=np*1000000//max(1,el);tp=min(tp,th*1000000);dd=de*1000//max(1,td);rs=dr*1000//max(1,de);al=[la for vals in lt.values() for la in vals];al.sort();p95=al[len(al)*95//100]if al else 5000;ls=min(1000,10000//max(1,p95));rl=ResilienceScoring.calculate_scores(throughput_pps=tp//1000,target_hz=th,detection_rate=dd/1000,recovery_score=rs/1000,p95_latency_ms=p95//1000,baseline_p95_ms=10);tt=int((time.perf_counter()-st)*1000000);bi={}
   if os.path.exists('.initialized'):
    with open('.initialized') as f: bi=json.load(f)
-  bs2='cached';if bi.get('fresh_install') is True:bs2='fresh_install';bt=int(bi.get('bootstrap_duration_sec',0)*1000000)
+  bs2 = 'cached'
+  if bi.get('fresh_install') is True:
+      bs2 = 'fresh_install'
+  bt = int(bi.get('bootstrap_duration_sec', 0) * 1000000)
   sd='gpu' if s.h in['CUDA','ROCM','MPS'] else 'cpu';hb=s.d.get('hardware_backend','CPU fallback');ad={'NVIDIA CUDA':'CUDA','AMD ROCm':'ROCm','Intel GPU':'IntelGPU','Apple Silicon MPS':'MPS','CPU fallback':'CPU'}.get(hb,'CPU')
   r={'timestamp':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'api':an,'run_number':rn,'packet_profile':pp,'frequency_profile':fp,'chaos_strategy':cs,'chaos_level':cl,'concurrency':cn,'throughput_pps':tp//1000000,'total_packets':np,'elapsed_seconds':el//1000000,'total_runtime_sec':tt//1000000,'selected_device':sd,'actual_device':ad,'hardware_model':s.d['model'],'cloud_platform':s.c,'bootstrap_status':bs2,'bootstrap_initialization_time':bt,'total_drift_events':td,'detection_rate':dd,'recovery_score':rs,'p95_latency_ms':p95//1000,'latency_score':ls,'resilience_P':rl['P'],'resilience_P2':rl['P2'],'averages':{'levenshtein_latency':sum(lt['le'])//max(1,len(lt['le'])),'regex_latency':sum(lt['re'])//max(1,len(lt['re'])),'bert_latency':sum(lt['be'])//max(1,len(lt['be'])),'gemma_latency':sum(lt['ge'])//max(1,len(lt['ge'])),'levenshtein_confidence':sum(cnf['le'])//max(1,len(cnf['le'])),'regex_confidence':sum(cnf['re'])//max(1,len(cnf['re'])),'bert_confidence':sum(cnf['be'])//max(1,len(cnf['be'])),'gemma_confidence':sum(cnf['ge'])//max(1,len(cnf['ge']))}}
   with open(jp,'w') as f: json.dump(r,f)
