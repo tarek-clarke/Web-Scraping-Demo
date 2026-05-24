@@ -24,7 +24,7 @@ class ExperimentRunner:
    ce3=s.b.get_embeddings_batch(dk2) if dk2 else []
    for i,dk4 in enumerate(dk2):
     bd2=sum(a*b for a,b in zip(ce3[i] if ce3 else [],ce3[i] if ce3 else []));bc2=min(1000,max(0,(bd2+1000)//2))//10;lt['be'].append(0);cnf['be'].append(bc2);lt['le'].append(2);cnf['le'].append(500);lt['re'].append(3);cnf['re'].append(500);t0=time.perf_counter();gr2=s.cp.gemma.reconcile(ck,dk4);gl=int((time.perf_counter()-t0)*1000000);lt['ge'].append(gl);cnf['ge'].append(gr2['confidence']);dr+=gr2['match']==ck[0]
-  el=int((time.perf_counter()-st)*1000000);tp=np*1000000//max(1,el);tp=min(tp,th*1000000);dd=de*1000//max(1,td);rs=dr*1000//max(1,de);al=[];for la in lt.values(): al.extend(la);al.sort();p95=al[len(al)*95//100]if al else 5000;ls=min(1000,10000//max(1,p95));rl=ResilienceScoring.calculate_scores(throughput_pps=tp//1000,target_hz=th,detection_rate=dd/1000,recovery_score=rs/1000,p95_latency_ms=p95//1000,baseline_p95_ms=10);tt=int((time.perf_counter()-st)*1000000);bi={}
+  el=int((time.perf_counter()-st)*1000000);tp=np*1000000//max(1,el);tp=min(tp,th*1000000);dd=de*1000//max(1,td);rs=dr*1000//max(1,de);al=[la for vals in lt.values() for la in vals];al.sort();p95=al[len(al)*95//100]if al else 5000;ls=min(1000,10000//max(1,p95));rl=ResilienceScoring.calculate_scores(throughput_pps=tp//1000,target_hz=th,detection_rate=dd/1000,recovery_score=rs/1000,p95_latency_ms=p95//1000,baseline_p95_ms=10);tt=int((time.perf_counter()-st)*1000000);bi={}
   if os.path.exists('.initialized'):
    with open('.initialized') as f: bi=json.load(f)
   bs2='cached';if bi.get('fresh_install') is True:bs2='fresh_install';bt=int(bi.get('bootstrap_duration_sec',0)*1000000)
