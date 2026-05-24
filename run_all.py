@@ -7,6 +7,24 @@ from pathlib import Path
 from models.device_selector import get_device_info
 from tests.run_experiments import ExperimentRunner
 
+
+def _load_historical_profile_estimates(results_root, packet_profiles):
+    """Load historical average runtime per packet profile from previous summary files."""
+    estimates = {"short": {"average_sec": None}, "long": {"average_sec": None}}
+    for profile in packet_profiles:
+        summary_path = os.path.join(results_root, profile, "summary.json")
+        if os.path.exists(summary_path):
+            try:
+                with open(summary_path, "r") as f:
+                    data = json.load(f)
+                avg_sec = data.get("average_runtime_sec")
+                if avg_sec is not None:
+                    estimates[profile]["average_sec"] = float(avg_sec)
+            except Exception:
+                pass
+    return estimates
+
+
 def run_evaluation_pipeline():
     # Force bootstrap if passed via cmd line arguments
     force_bootstrap = "--bootstrap" in sys.argv
