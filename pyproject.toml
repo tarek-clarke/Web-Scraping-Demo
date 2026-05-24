@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "resilient-rap"
+version = "0.1.0"
+description = "Semantic Drift Evaluation Pipeline"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pandas",
+    "requests",
+    "python-dotenv",
+    "tqdm",
+    "scikit-learn",
+    "sentence-transformers",
+    "transformers",
+    "accelerate",
+    "huggingface-hub",
+    "torch; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "torch; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "torch; sys_platform == 'win32' and platform_machine == 'AMD64'",
+    "torch-directml; sys_platform == 'win32' and platform_machine == 'AMD64'",
+]
+
+[tool.uv]
+# Use uv's index resolution to avoid cross-platform contamination
+index-url = "https://pypi.org/simple"
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-mps"
+url = "https://download.pytorch.org/whl/mps"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+# Linux x86_64 → CUDA 12.1
+torch = [
+    { index = "pytorch-cu121", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+    { index = "pytorch-mps", marker = "sys_platform == 'darwin' and platform_machine == 'arm64'" },
+    { index = "pytorch-cpu", marker = "sys_platform == 'win32' and platform_machine == 'AMD64'" },
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["*"]

@@ -32,6 +32,12 @@ def detect_cloud_platform():
 def detect_hardware_backend():
     """
     Detects hardware backend using system checks.
+    Returns one of:
+        "NVIDIA CUDA"
+        "AMD ROCm"
+        "Intel GPU"
+        "Apple Silicon MPS"
+        "CPU fallback"
     """
     system = platform.system()
     machine = platform.machine().lower()
@@ -40,13 +46,17 @@ def detect_hardware_backend():
     # Try importing torch to inspect hardware directly if available
     try:
         import torch
+        # NVIDIA CUDA
         if torch.cuda.is_available():
-            if hasattr(torch.version, "hip") and torch.version.hip is not None:
+            # Check if it's actually AMD ROCm via HIP
+            if hasattr(torch.version, 'hip') and torch.version.hip is not None:
                 return "AMD ROCm"
             return "NVIDIA CUDA"
-        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        # Apple Silicon MPS
+        if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
             return "Apple Silicon MPS"
-        elif hasattr(torch, "xpu") and torch.xpu.is_available():
+        # Intel GPU (XPU)
+        if hasattr(torch, 'xpu') and torch.xpu.is_available():
             return "Intel GPU"
     except ImportError:
         pass
