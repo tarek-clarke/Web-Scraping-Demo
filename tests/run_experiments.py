@@ -8,16 +8,22 @@ class ExperimentRunner:
    for e in cr['batched_logs']: s.l.log_event(an,rn,cs,pr,e['drift_type'],e['original_field'],e['mutated_field'],e['metadata'])
    dk=[e['drifted_key'] for e in cr['reconciler_outcomes']];ce2=s.b.get_embeddings_batch(dk) if dk else []
    for i,e in enumerate(cr['reconciler_outcomes']):
-    dk=e['drifted_key'];lr=e['levenshtein'];rr=e['regex'];bd=sum(a*b for a,b in zip(ce2[i] if ce2 else [],ce2[i] if ce2 else []));bc=min(1000,max(0,(bd+1000)//2))//10;lt['le'].append(lr['latency_ms']);cnf['le'].append(lr['confidence']);lt['re'].append(rr['latency_ms']);cnf['re'].append(rr['confidence']);lt['be'].append(0);cnf['be'].append(bc);t0=time.perf_counter();gr=s.cp.gemma.reconcile(ck,dk);gl=int((time.perf_counter()-t0)*1000000);lt['ge'].append(gl);cnf['ge'].append(gr['confidence']);if gr['match']==ck[0]: dr+=1
+    dk=e['drifted_key'];lr=e['levenshtein'];rr=e['regex'];bd=sum(a*b for a,b in zip(ce2[i] if ce2 else [],ce2[i] if ce2 else []));bc=min(1000,max(0,(bd+1000)//2))//10;lt['le'].append(lr['latency_ms']);cnf['le'].append(lr['confidence']);lt['re'].append(rr['latency_ms']);cnf['re'].append(rr['confidence']);lt['be'].append(0);cnf['be'].append(bc);t0=time.perf_counter();gr=s.cp.gemma.reconcile(ck,dk);gl=int((time.perf_counter()-t0)*1000000);lt['ge'].append(gl);cnf['ge'].append(gr['confidence']);dr+=gr['match']==ck[0]
   else:
    cs2=1000;dk2=[]
-   for ch in range(0,np,cs2): cc=min(cs2,np-ch)
-   for _ in range(cc): mu=ci.apply_chaos(bs,drift_logger=s.l,run_number=rn,api_source=an);dk3=None;for k in mu: 
-    if k not in ck: dk3=k;break
-    if dk3: td+=1;de+=1;dk2.append(dk3)
+   for ch in range(0,np,cs2):
+    cc=min(cs2,np-ch)
+    for _ in range(cc):
+     mu=ci.apply_chaos(bs,drift_logger=s.l,run_number=rn,api_source=an)
+     dk3=None
+     for k in mu:
+      if k not in ck:
+       dk3=k;break
+     if dk3:
+      td+=1;de+=1;dk2.append(dk3)
    ce3=s.b.get_embeddings_batch(dk2) if dk2 else []
    for i,dk4 in enumerate(dk2):
-    bd2=sum(a*b for a,b in zip(ce3[i] if ce3 else [],ce3[i] if ce3 else []));bc2=min(1000,max(0,(bd2+1000)//2))//10;lt['be'].append(0);cnf['be'].append(bc2);lt['le'].append(2);cnf['le'].append(500);lt['re'].append(3);cnf['re'].append(500);t0=time.perf_counter();gr2=s.cp.gemma.reconcile(ck,dk4);gl=int((time.perf_counter()-t0)*1000000);lt['ge'].append(gl);cnf['ge'].append(gr2['confidence']);if gr2['match']==ck[0]: dr+=1
+    bd2=sum(a*b for a,b in zip(ce3[i] if ce3 else [],ce3[i] if ce3 else []));bc2=min(1000,max(0,(bd2+1000)//2))//10;lt['be'].append(0);cnf['be'].append(bc2);lt['le'].append(2);cnf['le'].append(500);lt['re'].append(3);cnf['re'].append(500);t0=time.perf_counter();gr2=s.cp.gemma.reconcile(ck,dk4);gl=int((time.perf_counter()-t0)*1000000);lt['ge'].append(gl);cnf['ge'].append(gr2['confidence']);dr+=gr2['match']==ck[0]
   el=int((time.perf_counter()-st)*1000000);tp=np*1000000//max(1,el);tp=min(tp,th*1000000);dd=de*1000//max(1,td);rs=dr*1000//max(1,de);al=[];for la in lt.values(): al.extend(la);al.sort();p95=al[len(al)*95//100]if al else 5000;ls=min(1000,10000//max(1,p95));rl=ResilienceScoring.calculate_scores(throughput_pps=tp//1000,target_hz=th,detection_rate=dd/1000,recovery_score=rs/1000,p95_latency_ms=p95//1000,baseline_p95_ms=10);tt=int((time.perf_counter()-st)*1000000);bi={}
   if os.path.exists('.initialized'):
    with open('.initialized') as f: bi=json.load(f)
