@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Sequence
 
 from models.gemma_local import GemmaLocal
+from models.device_selector import get_device_info
 
 
 class GemmaModel(GemmaLocal):
@@ -38,6 +39,21 @@ class GemmaModel(GemmaLocal):
         try:
             super().__init__(local_path=local_path)
             self.backend = "local"
+            # Move model to the appropriate device (MPS, CUDA, CPU)
+            device_info = get_device_info()
+            device = device_info["device"]  # "cuda", "rocm", "mps", "cpu"
+            if device == "cuda":
+                torch_device = "cuda"
+            elif device == "rocm":
+                torch_device = "cuda"  # PyTorch uses "cuda" for ROCm as well
+            elif device == "mps":
+                torch_device = "mps"
+            else:
+                torch_device = "cpu"
+            self.device = torch_device
+            if self.model is not None:
+                self.model.to(torch_device)
+                self.model.eval()
         except Exception:
             # Any failure (missing config, weights, etc.) → mock mode
             pass
