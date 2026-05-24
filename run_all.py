@@ -38,7 +38,7 @@ def run_evaluation_pipeline():
     cloud = device_info["cloud"]
 
     print("\n" + "="*80)
-    print(" SEMANTIC DRIFT EVALUATION FRAMEWORK - UNIFIED PIPELINE RUNNER")
+    print(" Hey! Welcome to the Semantic Drift Evaluation Pipeline Runner")
     print(f" Hardware Platform : {device_info['device'].upper()}")
     print(f" Hardware Model    : {device_info['model']}")
     print(f" Cloud Environment : {device_info['cloud'].upper()}")
