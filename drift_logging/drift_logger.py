@@ -174,3 +174,32 @@ class DriftLogger:
         except Exception as e:
             print(f"[Logger] Error updating CSV drift logs: {e}")
 
+    # --- Additional logging methods for chaos/reconciliation pipeline ---
+
+    def _append_to_json_file(self, filename, data_dict):
+        """Helper to append a dict to a JSON list in base_dir/filename."""
+        path = os.path.join(self.base_dir, filename)
+        items = []
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    items = json.load(f)
+                    if not isinstance(items, list):
+                        items = []
+            except (json.JSONDecodeError, FileNotFoundError):
+                items = []
+        items.append(data_dict)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(items, f, indent=2)
+
+    def log_chaos(self, chaos_trace: dict):
+        """Record the chaos trace for this mutation."""
+        self._append_to_json_file("chaos_log.json", chaos_trace)
+
+    def log_drift(self, drift_info: dict):
+        """Record drift detection results."""
+        self._append_to_json_file("drift_detection_log.json", drift_info)
+
+    def log_reconciliation(self, recon_info: dict):
+        """Record reconciliation outcome."""
+        self._append_to_json_file("reconciliation_log.json", recon_info)
