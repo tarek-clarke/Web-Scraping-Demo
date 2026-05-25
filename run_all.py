@@ -100,17 +100,21 @@ def run_evaluation_pipeline():
    if os.path.isdir('results/'+ee) and ee!=h and os.path.exists('results/'+ee+'/drift_reconciliation_audit.json'):
     with open('results/'+ee+'/drift_reconciliation_audit.json') as f: gal_aud.extend(json.load(f))
   json.dump(gal_aud,open('results/global_drift_reconciliation_audit.json','w'))
-  n=len(all_res);ll=sum(r.get('averages',{}).get('levenshtein_latency',0) for r in all_res)//n;rl=sum(r.get('averages',{}).get('regex_latency',0) for r in all_res)//n;bl=sum(r.get('averages',{}).get('bert_latency',0) for r in all_res)//n;gl=sum(r.get('averages',{}).get('gemma_latency',0) for r in all_res)//n
+  stable_res=[r for r in all_res if r.get('run_number',1)>1];m=len(all_res);n_stab=len(stable_res);ll_all=sum(r.get('averages',{}).get('levenshtein_latency',0) for r in all_res)//m;rl_all=sum(r.get('averages',{}).get('regex_latency',0) for r in all_res)//m;bl_all=sum(r.get('averages',{}).get('bert_latency',0) for r in all_res)//m;gl_all=sum(r.get('averages',{}).get('gemma_latency',0) for r in all_res)//m;ll_stab=sum(r.get('averages',{}).get('levenshtein_latency',0) for r in stable_res)//n_stab if n_stab else 0;rl_stab=sum(r.get('averages',{}).get('regex_latency',0) for r in stable_res)//n_stab if n_stab else 0;bl_stab=sum(r.get('averages',{}).get('bert_latency',0) for r in stable_res)//n_stab if n_stab else 0;gl_stab=sum(r.get('averages',{}).get('gemma_latency',0) for r in stable_res)//n_stab if n_stab else 0
   print('\n'+'='*80)
   print('                     EVALUATION PIPELINE RESULTS SUMMARY')
   print('='*80)
   print('PERFORMANCE VALIDATION: BASELINE RECONCILIATION LATENCY')
   print('Hardware: '+d["device"].upper()+' ('+d["model"]+') | Cloud: LOCAL')
-  print('| Algorithm | p50 Latency (ms) | p95 Latency (ms) |')
-  print('| Levenshtein | '+'{:.3f}'.format(ll/1000.0)+' ms | '+'{:.3f}'.format(ll/1000.0)+' ms |')
-  print('| Regex | '+'{:.3f}'.format(rl/1000.0)+' ms | '+'{:.3f}'.format(rl/1000.0)+' ms |')
-  print('| Bert | '+'{:.3f}'.format(bl/1000.0)+' ms | '+'{:.3f}'.format(bl/1000.0)+' ms |')
-  print('| Gemma | '+'{:.3f}'.format(gl/1000.0)+' ms | '+'{:.3f}'.format(gl/1000.0)+' ms |')
+  print('| Algorithm | Profile Context | p50 Latency (ms) | p95 Latency (ms) |')
+  print('| Levenshtein | With Cold Start (Runs 1-4) | '+'{:.3f}'.format(ll_all/1000.0)+' ms | '+'{:.3f}'.format(ll_all/1000.0)+' ms |')
+  print('| Levenshtein | Stable State (Runs 2-4)   | '+'{:.3f}'.format(ll_stab/1000.0)+' ms | '+'{:.3f}'.format(ll_stab/1000.0)+' ms |')
+  print('| Regex | With Cold Start (Runs 1-4) | '+'{:.3f}'.format(rl_all/1000.0)+' ms | '+'{:.3f}'.format(rl_all/1000.0)+' ms |')
+  print('| Regex | Stable State (Runs 2-4)   | '+'{:.3f}'.format(rl_stab/1000.0)+' ms | '+'{:.3f}'.format(rl_stab/1000.0)+' ms |')
+  print('| Bert | With Cold Start (Runs 1-4) | '+'{:.3f}'.format(bl_all/1000.0)+' ms | '+'{:.3f}'.format(bl_all/1000.0)+' ms |')
+  print('| Bert | Stable State (Runs 2-4)   | '+'{:.3f}'.format(bl_stab/1000.0)+' ms | '+'{:.3f}'.format(bl_stab/1000.0)+' ms |')
+  print('| Gemma | With Cold Start (Runs 1-4) | '+'{:.3f}'.format(gl_all/1000.0)+' ms | '+'{:.3f}'.format(gl_all/1000.0)+' ms |')
+  print('| Gemma | Stable State (Runs 2-4)   | '+'{:.3f}'.format(gl_stab/1000.0)+' ms | '+'{:.3f}'.format(gl_stab/1000.0)+' ms |')
   print('='*80)
   c1=[r for r in all_res if r.get('concurrency')==1];c2=[r for r in all_res if r.get('concurrency')==2];b_t=sum(r.get('throughput_pps',0) for r in c1)//len(c1) if c1 else 0;b_e=sum(r.get('elapsed_seconds',0) for r in c1)//len(c1) if c1 else 0;p_t=sum(r.get('throughput_pps',0) for r in c2)//len(c2) if c2 else 0;p_e=sum(r.get('elapsed_seconds',0) for r in c2)//len(c2) if c2 else 0;o=((p_e-b_e)*100//max(1,b_e)) if b_e and c2 else 0
   print('PERFORMANCE VALIDATION: CONCURRENCY & SCALING SCENARIOS')
