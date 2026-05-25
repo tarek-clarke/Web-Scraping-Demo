@@ -91,6 +91,7 @@ def run_evaluation_pipeline():
   kg2=sorted(gst[0].keys())
   with open('results/global_unified_stable_runs_2_to_4.csv','w',newline='') as f: w=csv.DictWriter(f,fieldnames=kg2); w.writeheader(); w.writerows(gst)
  if all_res:
+  print("DIAGNOSTIC KEYS ARTIFACT:", list(all_res[0].keys())); print("DIAGNOSTIC CONTENT SAMPLE:", {k:v for k,v in all_res[0].items() if k in ['strategy', 'chaos_strategy', 'chaos_type', 'type', 'config', 'meta']})
   hw_map={'NVIDIA CUDA':'CUDA','AMD ROCm':'ROCm','Intel GPU':'IntelGPU','Apple Silicon MPS':'MPS','CPU fallback':'CPU'}
   aud_plat=[hw_map.get(r.get('actual_device',''),'CPU') for r in all_res]
   aud_rows=[{**r,'hardware_platform':hp,'hardware_model':d['model'],'cloud_environment':d['cloud'],'timestamp_ns':int(time.time_ns()),'strategy_used':r.get('chaos_strategy',''),'confidence_score':r.get('averages',{}).get('gemma_confidence',0)} for r,hp in zip(all_res,aud_plat)]
