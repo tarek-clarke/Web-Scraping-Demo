@@ -16,14 +16,14 @@ def run_evaluation_pipeline():
   except: pass
  r=ExperimentRunner()
  if '--force-rerun' in sys.argv: r.force_rerun=True; print('[Pipeline] Force rerun enabled.')
- P=['short','long']; F=['100hz']; X=['json','schema','gemma']; L=['high','medium','low']; A=['finnhub','openmeteo','spacex','openf1']; C=[1]
+ P=['short','long']; F=['100hz','1000hz','1mhz']; X=['json','schema','gemma']; L=['high','medium','low']; A=['finnhub','openmeteo','spacex','openf1']; C=[1]
  n=len(P)*len(F)*len(X)*len(L)*len(A)*len(C); N=n*4
  try: import cpp_accel; c=cpp_accel is not None
  except: c=False
  gpu=d['device'].upper() in ['CUDA','ROCM','MPS']
  if c: s_short=0.5; s_long=10.0; l='C++ Acceleration + GPU Enabled' if gpu else 'C++ Acceleration (CPU Fallback)'; s_short=1.5 if not gpu else 0.5; s_long=40.0 if not gpu else 10.0
  else: s_short=4.0 if gpu else 15.0; s_long=250.0 if gpu else 1200.0; l='Python Standard (GPU Only)' if gpu else 'Python Standard (CPU Fallback)'
- n1=36*4; n2=36*4
+ n1=(n//2)*4; n2=(n//2)*4
  H=_load_historical_profile_estimates(R,P)
  hs=H['short']['average_sec']; hl=H['long']['average_sec']
  if hs is not None and hl is not None: s_short=float(hs); s_long=float(hl)
@@ -93,7 +93,7 @@ def run_evaluation_pipeline():
  if all_res:
   hw_map={'NVIDIA CUDA':'CUDA','AMD ROCm':'ROCm','Intel GPU':'IntelGPU','Apple Silicon MPS':'MPS','CPU fallback':'CPU'}
   aud_plat=[hw_map.get(r.get('actual_device',''),'CPU') for r in all_res]
-  aud_rows=[{**r,'hardware_platform':hp,'hardware_model':r.get('hardware_model',''),'cloud_environment':r.get('cloud_platform',''),'timestamp_ns':int(time.time_ns()),'strategy_used':r.get('chaos_strategy',''),'confidence_score':r.get('averages',{}).get('gemma_confidence',0)} for r,hp in zip(all_res,aud_plat)]
+  aud_rows=[{**r,'hardware_platform':hp,'hardware_model':d['model'],'cloud_environment':d['cloud'],'timestamp_ns':int(time.time_ns()),'strategy_used':r.get('chaos_strategy',''),'confidence_score':r.get('averages',{}).get('gemma_confidence',0)} for r,hp in zip(all_res,aud_plat)]
   json.dump(aud_rows,open(pdir+'/drift_reconciliation_audit.json','w'))
   gal_aud=list(aud_rows)
   for ee in os.listdir('results/'):
