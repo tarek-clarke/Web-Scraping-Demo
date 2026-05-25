@@ -1,5 +1,4 @@
-import os; import sys; import json; import time; import csv; from collections import defaultdict; from pathlib import Path; from models.device_selector import get_device_info; from tests.run_experiments import ExperimentRunner
-def _load_historical_profile_estimates(r,p): e={'short':{'average_sec':None},'long':{'average_sec':None}};[x for x in p if (s:=os.path.join(r,x,"summary.json")) and os.path.exists(s) and (d:=json.load(open(s))) and (a:=d.get("average_runtime_sec")) is not None and (e[x].update({'average_sec':float(a)}) or True)];return e
+import os; import sys; import json; import time; import csv; from models.device_selector import get_device_info; from tests.run_experiments import ExperimentRunner
 def run_evaluation_pipeline():
  if '--bootstrap' in sys.argv: import bootstrap; bootstrap.run_bootstrap(force=True)
  g=time.perf_counter(); d=get_device_info(); h=d['model'].replace(' ','_').replace('/','_').replace('(','').replace(')',''); c=d['cloud']; print('\n'+'='*80); print(' Hey! Welcome to the Semantic Drift Evaluation Pipeline Runner'); print(f' Hardware Platform : {d["device"].upper()}'); print(f' Hardware Model    : {d["model"]}'); print(f' Cloud Environment : {d["cloud"].upper()}'); print('='*80+'\n')
@@ -18,17 +17,6 @@ def run_evaluation_pipeline():
  if '--force-rerun' in sys.argv: r.force_rerun=True; print('[Pipeline] Force rerun enabled.')
  P=['short','long']; F=['100hz','1000hz','1mhz']; X=['json','schema','gemma']; L=['high','medium','low']; A=['finnhub','openmeteo','spacex','openf1']; C=[1]
  n=len(P)*len(F)*len(X)*len(L)*len(A)*len(C); N=n*4
- try: import cpp_accel; c=cpp_accel is not None
- except: c=False
- gpu=d['device'].upper() in ['CUDA','ROCM','MPS']
- if c: s_short=0.5; s_long=10.0; l='C++ Acceleration + GPU Enabled' if gpu else 'C++ Acceleration (CPU Fallback)'; s_short=1.5 if not gpu else 0.5; s_long=40.0 if not gpu else 10.0
- else: s_short=4.0 if gpu else 15.0; s_long=250.0 if gpu else 1200.0; l='Python Standard (GPU Only)' if gpu else 'Python Standard (CPU Fallback)'
- n1=(n//2)*4; n2=(n//2)*4
- H=_load_historical_profile_estimates(R,P)
- hs=H['short']['average_sec']; hl=H['long']['average_sec']
- if hs is not None and hl is not None: s_short=float(hs); s_long=float(hl)
- p_sec=(n1*s_short)+(n2*s_long); p_h=p_sec/3600.0; w_sec=(n1*15.0)+(n2*1200.0); w_h=w_sec/3600.0
- print('\n'+'='*80); print('                     EXECUTION RUNTIME ESTIMATION CHART'); print('='*80); print(f' Detected Backend : {d["device"].upper()} ({d["model"]})'); print(f' Optimization     : {l}'); print(f' Configurations   : {n} distinct configs (4 runs each, total {N} streams)'); print('-'*80); print(' ESTIMATED TIME PER RUN BY PROFILE:'); print(f'  - Short Profile (30k packets)   : ~{s_short:.2f} seconds'); print(f'  - Long Profile (3M packets)     : ~{s_long:.2f} seconds'); print('-'*80); print(' PROJECTED PIPELINE COMPLETION TIME COMPARISON:'); wb='/'*20; ab='/'*max(1,int((p_sec/w_sec)*20)); print(f'  - Standard Python (CPU fallback) : [{wb}] ~{w_h:.1f} hours'); print(f'  - C++ Accelerated Suite (Ours)   : [{ab}] ~{p_h:.2f} hours'); print('-'*80); print(' NOTE: Existing completed runs will be skipped dynamically.'); print('='*80+'\n')
  print(f'[Pipeline] Scheduled {n} distinct configurations (4 runs each, total {N} evaluation streams).')
  print('[Pipeline] Running evaluation pipeline (this runs incrementally, skipping existing runs)...')
  t=[]; cnt=0; all_res=[]
@@ -132,5 +120,12 @@ def run_evaluation_pipeline():
   print('| Chaos Strategy | Detection Rate (%) | Recovery Score (%) | Resilience P | Resilience P2 |')
   st=set(str(r.get('chaos_strategy','')).lower() for r in all_res)
   for cs in st:
-   print('| '+cs+' | '+'{:.2f}'.format((sum(r.get('detection_rate',0) for r in all_res if str(r.get('chaos_strategy','')).lower()==cs)//max(1,sum(1 for r in all_res if str(r.get('chaos_strategy','')).lower()==cs)))/10.0)+'% | '+'{:.2f}'.format((sum(r.get('recovery_score',0) for r in all_res if str(r.get('chaos_strategy','')).lower()==cs)//max(1,sum(1 for r in all_res if str(r.get('chaos_strategy','')).lower()==cs)))/10.0)+'% | '+'{:.3f}'.format(sum(r.get('resilience_P',0) for r in all_res if str(r.get('chaos_strategy','')).lower()==cs)/max(1,sum(1 for r in all_res if str(r.get('chaos_strategy','')).lower()==cs)))+' | '+'{:.3f}'.format(sum(r.get('resilience_P2',0) for r in all_res if str(r.get('chaos_strategy','')).lower()==cs)/max(1,sum(1 for r in all_res if str(r.get('chaos_strategy','')).lower()==cs)))+' |')
+   items=[r for r in all_res if str(r.get('chaos_strategy','')).lower()==cs]
+   count=len(items)
+   if count:
+    dr_avg=sum(r.get('detection_rate',0) for r in items)//count
+    rs_avg=sum(r.get('recovery_score',0) for r in items)//count
+    rp_avg=sum(r.get('resilience_P',0) for r in items)/count
+    rp2_avg=sum(r.get('resilience_P2',0) for r in items)/count
+    print('| '+cs+' | '+'{:.2f}'.format(dr_avg/10.0)+'% | '+'{:.2f}'.format(rs_avg/10.0)+'% | '+'{:.3f}'.format(rp_avg)+' | '+'{:.3f}'.format(rp2_avg)+' |')
 if __name__=='__main__': run_evaluation_pipeline()
