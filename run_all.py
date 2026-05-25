@@ -63,6 +63,33 @@ def run_evaluation_pipeline():
  print(f'\n[Pipeline] Completed all evaluations in {gr:.2f} seconds.')
  print(f'Cold start mean detection_rate: {m_c.get("detection_rate")}, p95_latency_ms: {m_c.get("p95_latency_ms")}')
  print(f'Stable mean detection_rate: {s_m.get("detection_rate")}, p95_latency_ms: {s_m.get("p95_latency_ms")}')
+ flat_all=[{k+'_'+kk if isinstance(v,dict) else k: vv if isinstance(v,dict) else v for k,v in r.items() for kk,vv in (v.items() if isinstance(v,dict) else [('',v)])} for r in all_res]
+ pdir='results/'+h; os.makedirs(pdir,exist_ok=True)
+ json.dump(flat_all,open(pdir+'/master_platform_all_runs_1_to_4.json','w'))
+ stable_f=[r for r in flat_all if r.get('run_number',1)>1]; json.dump(stable_f,open(pdir+'/master_platform_stable_runs_2_to_4.json','w'))
+ if flat_all:
+  ka=sorted(flat_all[0].keys())
+  with open(pdir+'/master_platform_all_runs_1_to_4.csv','w',newline='') as f: w=csv.DictWriter(f,fieldnames=ka); w.writeheader(); w.writerows(flat_all)
+ if stable_f:
+  ks=sorted(stable_f[0].keys())
+  with open(pdir+'/master_platform_stable_runs_2_to_4.csv','w',newline='') as f: w=csv.DictWriter(f,fieldnames=ks); w.writeheader(); w.writerows(stable_f)
+ gal=[]; gst=[]
+ for e in os.listdir('results/'):
+  if os.path.isdir('results/'+e):
+   fp='results/'+e+'/master_platform_all_runs_1_to_4.json'
+   if os.path.exists(fp):
+    with open(fp) as f: d=json.load(f); gal.extend(d)
+   fp2='results/'+e+'/master_platform_stable_runs_2_to_4.json'
+   if os.path.exists(fp2):
+    with open(fp2) as f: d=json.load(f); gst.extend(d)
+ json.dump(gal,open('results/global_unified_all_runs_1_to_4.json','w'))
+ json.dump(gst,open('results/global_unified_stable_runs_2_to_4.json','w'))
+ if gal:
+  kg=sorted(gal[0].keys())
+  with open('results/global_unified_all_runs_1_to_4.csv','w',newline='') as f: w=csv.DictWriter(f,fieldnames=kg); w.writeheader(); w.writerows(gal)
+ if gst:
+  kg2=sorted(gst[0].keys())
+  with open('results/global_unified_stable_runs_2_to_4.csv','w',newline='') as f: w=csv.DictWriter(f,fieldnames=kg2); w.writeheader(); w.writerows(gst)
  from tests.performance.baseline_latency import print_baseline_latency; from tests.performance.concurrency_scaling import print_concurrency_scaling; from tests.performance.frequency_stability import print_frequency_stability; from tests.performance.llm_chaos_comparison import print_llm_chaos_comparison
  print('\n'+'='*80); print('                     EVALUATION PIPELINE RESULTS SUMMARY'); print('='*80); print_baseline_latency(); print_concurrency_scaling(); print_frequency_stability(); print_llm_chaos_comparison()
 if __name__=='__main__': run_evaluation_pipeline()
