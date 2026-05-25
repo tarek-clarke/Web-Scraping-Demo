@@ -5,3 +5,4 @@ build/
 *.pyd
 .DS_Store
 .initialized
+.aider*
