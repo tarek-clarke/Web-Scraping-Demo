@@ -18,7 +18,10 @@ class ExperimentRunner:
     tp=np*1000000//max(1,el)
     tp=min(tp,th*1000000)
     ch=select_chaos(cs,cl)
-    mu=ch(bs) if ch else bs
+    if callable(ch):
+        mu=ch(bs)
+    else:
+        mu=bs
     chaos_trace={'strategy':cs,'level':cl,'original_len':len(str(bs)),'mutated_len':len(str(mu)),'temperature':random.uniform(0.1,0.9)} if ch else {'strategy':cs,'level':cl,'original_len':len(str(bs)),'mutated_len':len(str(bs)),'temperature':random.uniform(0.1,0.9)}
     s.l.log_chaos(chaos_trace)
     drift_detected=s.cp.detect_drift(bs,mu)
