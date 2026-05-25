@@ -78,10 +78,10 @@ def run_evaluation_pipeline():
   if os.path.isdir('results/'+e):
    fp='results/'+e+'/master_platform_all_runs_1_to_4.json'
    if os.path.exists(fp):
-    with open(fp) as f: d=json.load(f); gal.extend(d)
+    with open(fp) as f: rd=json.load(f); gal.extend(rd)
    fp2='results/'+e+'/master_platform_stable_runs_2_to_4.json'
    if os.path.exists(fp2):
-    with open(fp2) as f: d=json.load(f); gst.extend(d)
+    with open(fp2) as f: rd=json.load(f); gst.extend(rd)
  json.dump(gal,open('results/global_unified_all_runs_1_to_4.json','w'))
  json.dump(gst,open('results/global_unified_stable_runs_2_to_4.json','w'))
  if gal:
