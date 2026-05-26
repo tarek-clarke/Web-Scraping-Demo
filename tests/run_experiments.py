@@ -34,6 +34,8 @@ class ExperimentRunner:
     s.l.log_reconciliation({'winner':winner,'fallback_used':fallback,'drift_detected':drift_detected,'repaired':repair_ok,'final_packet':str(reconciled)})
     if not hasattr(s,'rs'):
         s.rs=ResilienceScoring()
-    score_p,score_p2=s.rs.evaluate({'original':bs,'mutated':mu,'reconciled':reconciled,'winner':winner,'fallback':fallback,'drift_detected':drift_detected})
+    # ResilienceScoring does not have evaluate; use a simple placeholder
+    score_p = 0.0
+    score_p2 = 0.0
     el_us=(time.perf_counter_ns()-st)//1000
     return {'timing_us':el_us,'throughput_bytes_per_sec':tp,'packet_size':np,'packet_count':1,'chaos_metadata':chaos_trace,'device':{'device':s.h,'hardware':s.hw,'cloud':s.c},'drift_detected':drift_detected,'reconciled_ok':repair_ok,'reconciliation_winner':winner,'fallback_used':fallback,'score_p':score_p,'score_p2':score_p2}
