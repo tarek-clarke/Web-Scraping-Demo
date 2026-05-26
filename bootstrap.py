@@ -202,8 +202,9 @@ def install_pytorch(hardware):
     if hardware == "NVIDIA CUDA":
         cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", cuda_url, "torch", "torchvision", "torchaudio"]
     elif hardware == "AMD ROCm":
-        # Try multi-arch index first (supports all GPUs via device extras)
-        cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", rocm_multiarch_url, "torch[device-all]", "torchvision[device-all]", "torchaudio"]
+        # ROCm wheels already carry the HIP backend; the device extras pull in a huge
+        # matrix of optional packages that are not needed for this project.
+        cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", rocm_multiarch_url, "torch", "torchvision", "torchaudio"]
         print(f"[Bootstrap] Trying ROCm multi-arch wheel index: {rocm_multiarch_url}")
         try:
             subprocess.run(cmd, check=True)

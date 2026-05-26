@@ -1,7 +1,11 @@
 import time
+import os
 from typing import List
 from models.device_selector import get_device_info
 from models.torch_compat import ensure_transformers_import_compatibility
+
+# Keep BLAS thread count conservative to avoid OpenBLAS allocation spikes on Windows.
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 
 class BERTModel:
     def __init__(self):
@@ -13,11 +17,12 @@ class BERTModel:
             self.torch_device = "mps"
         else:
             self.torch_device = "cpu"
-            
+
         self.model_name = "sentence-transformers/all-MiniLM-L6-v2"
         self.tokenizer = None
         self.model = None
         self.is_loaded = False
+        self._compiled_encode_active = False
         self._initialize()
 
     def _initialize(self):
@@ -33,9 +38,22 @@ class BERTModel:
             self.model.eval()
             self.is_loaded = True
 
-            # Enable torch.compile on the encoding function if available (PyTorch >= 2.0)
-            if hasattr(torch, 'compile'):
-                self._encode = torch.compile(self._encode, mode="reduce-overhead")
+            # Keep an eager reference so we can recover if compilation fails at runtime.
+            self._encode_eager = self._encode
+
+            # torch.compile — enable only when explicitly requested.
+            enable_compile = (
+                hasattr(torch, 'compile') and
+                os.getenv('RAP_ENABLE_TORCH_COMPILE', '').strip().lower() in ('1', 'true', 'yes')
+            )
+            if enable_compile:
+                try:
+                    self._encode = torch.compile(self._encode, mode="reduce-overhead")
+                    self._compiled_encode_active = True
+                except Exception as e:
+                    print(f"[BERT] Warning: torch.compile disabled ({e}). Using eager mode.")
+                    self._encode = self._encode_eager
+                    self._compiled_encode_active = False
 
         except Exception as e:
             print(f"[BERT] Warning: Failed to load local BERT model ({e}). Using mock/fallback embedding generator.")
@@ -74,7 +92,18 @@ class BERTModel:
                 mock_emb = [x / norm for x in mock_emb]
             return mock_emb
 
-        return self._encode([text])[0]
+        text = str(text)
+
+        try:
+            return self._encode([text])[0]
+        except Exception as e:
+            # If a compiled graph fails at runtime, transparently fall back to eager mode.
+            if getattr(self, '_compiled_encode_active', False):
+                print(f"[BERT] Warning: compiled encode failed ({e}); falling back to eager mode.")
+                self._encode = self._encode_eager
+                self._compiled_encode_active = False
+                return self._encode([text])[0]
+            raise
 
     def get_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
         """

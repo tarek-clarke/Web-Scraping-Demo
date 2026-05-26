@@ -129,8 +129,11 @@ class SchemaComparer:
 
         original_str = json.dumps(original)
         mutated_str = json.dumps(mutated)
-        similarity = self.bert.bert.cosine_similarity(original_str, mutated_str)
-        recovery_score = float(similarity)
+        if self.bert is not None and self.bert.bert is not None:
+            similarity = self.bert.bert.cosine_similarity(original_str, mutated_str)
+            recovery_score = float(similarity)
+        else:
+            recovery_score = 0.5
 
         return {
             "drift_detected": drift_detected,
@@ -146,9 +149,13 @@ class SchemaComparer:
         }
 
     def compare_algorithms(self, canonical_keys: list, query_key: str) -> dict:
-        return {
-            "levenshtein": self.levenshtein.reconcile(canonical_keys, query_key),
-            "regex": self.regex.reconcile(canonical_keys, query_key),
-            "bert": self.bert.reconcile(canonical_keys, query_key),
-            "gemma": self.gemma.reconcile(canonical_keys, query_key)
-        }
+        result = {}
+        if self.levenshtein is not None:
+            result["levenshtein"] = self.levenshtein.reconcile(canonical_keys, query_key)
+        if self.regex is not None:
+            result["regex"] = self.regex.reconcile(canonical_keys, query_key)
+        if self.bert is not None:
+            result["bert"] = self.bert.reconcile(canonical_keys, query_key)
+        if self.gemma is not None:
+            result["gemma"] = self.gemma.reconcile(canonical_keys, query_key)
+        return result

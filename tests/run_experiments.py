@@ -34,6 +34,8 @@ class ExperimentRunner:
         self.cp = SchemaComparer(self.b, self.g)
         self.l = DriftLogger()
         self.fr = False
+        self.baseline_mode = False
+        self.ablation_modes = []  # empty = full pipeline; can set ['no_bert','no_gemma','no_regex','no_levenshtein']
         self.ap = {
             'finnhub': FinnhubAPI(),
             'openmeteo': OpenMeteoAPI(),
@@ -51,27 +53,24 @@ class ExperimentRunner:
         cn = k.get('concurrency', 1)
         api = self.ap[an]
         bs = api.fetch_data()
-        np = PACKET_PROFILES.get(pp, 30000)
+        np_val = PACKET_PROFILES.get(pp, 30000)
         th = FREQUENCY_PROFILES.get(fp, 100)
         st = time.perf_counter_ns()
-        el = (time.perf_counter_ns() - st) // 1000
-        tp = np * 1000000 // max(1, el)
-        tp = min(tp, th * 1000000)
 
-        ch = select_chaos(cs, cl)
-        if callable(ch):
-            mu, drift_type = ch(bs)
+        # Baseline mode: no chaos — measure false positive rate
+        if self.baseline_mode:
+            mu = bs
+            drift_type = None
         else:
-            mu, drift_type = bs, None
+            ch = select_chaos(cs, cl)
+            if callable(ch):
+                mu, drift_type = ch(bs)
+            else:
+                mu, drift_type = bs, None
 
-        # Ensure chaos always produced a mutation
-        if mu == bs:
-            # Force a simple rename to ensure difference
-            mu = dict(bs)
-            if mu:
-                key = list(mu.keys())[0]
-                mu[f"{key}_drifted"] = mu.pop(key)
-                drift_type = "forced_rename"
+        el = (time.perf_counter_ns() - st) // 1000
+        tp = np_val * 1000000 // max(1, el)
+        tp = min(tp, th * 1000000)
 
         chaos_metadata = {
             'strategy': cs,
@@ -119,7 +118,7 @@ class ExperimentRunner:
             'timing_us': elapsed_us,
             'throughput_bytes_per_sec': tp,
             'throughput_pps': throughput_pps,
-            'packet_size': np,
+            'packet_size': np_val,
             'packet_count': 1,
             'chaos_metadata': chaos_metadata,
             'device': {'device': self.h, 'hardware': self.hw, 'cloud': self.c},
