@@ -5,6 +5,9 @@ import time
 import csv
 import math
 import subprocess
+import argparse
+import platform
+import re
 from models.device_selector import get_device_info
 from models.bert_model import BERTModel
 from semantic.gemma_recon import GemmaReconciler
@@ -26,25 +29,146 @@ def ci95(vals):
         return 0.0
     return 1.96 * stdev(vals) / math.sqrt(n)
 
-def run_configs(runner, configs, label):
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Semantic drift benchmark runner')
+    parser.add_argument('--bootstrap', action='store_true', help='Run bootstrap first')
+    parser.add_argument('--generate-only', action='store_true', help='Generate raw JSON records only')
+    parser.add_argument('--erase-existing', action='store_true', help='Erase existing platform result folder')
+    parser.add_argument('--force-erase', action='store_true', help='Alias for --erase-existing')
+    parser.add_argument('--runs-per-config', type=int, default=4,
+                        help='Runs per configuration for standard phases (default: 4)')
+    parser.add_argument('--min-baseline-runs', type=int, default=5,
+                        help='Ensure baseline clean pipeline has at least this many runs per config (default: 5)')
+    parser.add_argument('--policy-tag', default='tkde_policy_v1',
+                        help='Policy tag embedded into outputs for reproducibility')
+    parser.add_argument('--skip-git-push', action='store_true',
+                        help='Skip final git push')
+    return parser.parse_args()
+
+
+def get_git_commit():
+    try:
+        return subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+    except Exception:
+        return 'unknown'
+
+
+def build_policy_metadata(args, device_info):
+    return {
+        'policy_tag': args.policy_tag,
+        'cross_platform_parity_required': True,
+        'baseline_min_runs_per_config': max(1, args.min_baseline_runs),
+        'standard_runs_per_config': max(1, args.runs_per_config),
+        'stable_window_excludes_run_1': True,
+        'reproducibility': {
+            'git_commit': get_git_commit(),
+            'python_version': platform.python_version(),
+            'platform': platform.platform(),
+            'machine': platform.machine(),
+            'processor': platform.processor(),
+            'seed_env': {
+                'PYTHONHASHSEED': os.environ.get('PYTHONHASHSEED', ''),
+                'SEMANTIC_SEED': os.environ.get('SEMANTIC_SEED', '')
+            }
+        },
+        'device': {
+            'device': device_info.get('device', 'unknown'),
+            'model': device_info.get('model', 'unknown'),
+            'cloud': device_info.get('cloud', 'unknown')
+        }
+    }
+
+
+def attach_policy_metadata(record, policy):
+    record['policy'] = policy
+    record['policy_tag'] = policy.get('policy_tag', 'unknown')
+    return record
+
+
+def config_key_from_record(r):
+    return (
+        r.get('packet_profile'),
+        r.get('frequency_profile'),
+        r.get('chaos_strategy'),
+        r.get('chaos_level'),
+        r.get('api_name')
+    )
+
+
+def sanitize_hw_token(value):
+    return value.replace(' ', '_').replace('/', '_').replace('(', '').replace(')', '')
+
+
+def baseline_raw_filename(record):
+    rn = int(record.get('run_number', 0))
+    an = record.get('api_name', 'unknown')
+    pp = record.get('packet_profile', 'unknown')
+    fp = record.get('frequency_profile', 'unknown')
+    cs = record.get('chaos_strategy', 'unknown')
+    cl = record.get('chaos_level', 'unknown')
+    hw = sanitize_hw_token(record.get('actual_device', 'unknown'))
+    dt = 'drift' if record.get('drift_detected', False) else 'clean'
+    return f'baseline_run_{rn:03d}_{an}_{pp}_{fp}_{cs}_{cl}_{hw}_{dt}.json'
+
+
+def parse_existing_baseline_file_name(file_name):
+    pattern = re.compile(
+        r'^baseline_run_(\d{3})_([a-z0-9_]+)_(short|long)_(100hz|1000hz|1mhz)_(json|schema|gemma)_(high|medium|low)_.+_(clean|drift)\.json$',
+        re.IGNORECASE
+    )
+    m = pattern.match(file_name)
+    if not m:
+        return None
+    rn = int(m.group(1))
+    api = m.group(2)
+    p = m.group(3)
+    f = m.group(4)
+    x = m.group(5)
+    l = m.group(6)
+    return (p, f, x, l, api), rn
+
+
+def load_existing_baseline_runs_from_raw(raw_dir):
+    existing = {}
+    if not os.path.isdir(raw_dir):
+        return existing
+    for name in os.listdir(raw_dir):
+        parsed = parse_existing_baseline_file_name(name)
+        if not parsed:
+            continue
+        cfg, rn = parsed
+        existing.setdefault(cfg, set()).add(rn)
+    return existing
+
+
+def run_config_plan(runner, plan, label, policy):
     all_res = []
     times = []
-    n = len(configs)
-    for idx, (p, f, x, l, a) in enumerate(configs):
-        print(f'[{label}] Progress: {idx+1}/{n} ({(idx+1)/n*100:.1f}%) | {a} {f} {x} {l}')
-        for rn in [1, 2, 3, 4]:
-            try:
-                res = runner.run_single_stream(
-                    api_name=a, packet_profile=p, frequency_profile=f,
-                    chaos_strategy=x, chaos_level=l, run_number=rn, concurrency=1
-                )
-                if res and 'total_runtime_sec' in res:
-                    res['_label'] = label
-                    times.append(res['total_runtime_sec'])
-                    all_res.append(res)
-            except Exception as e:
-                print(f'[{label}] [ERROR] {e}')
+    n = len(plan)
+    for idx, (p, f, x, l, a, rn) in enumerate(plan):
+        print(f'[{label}] Progress: {idx+1}/{n} ({(idx+1)/max(1, n)*100:.1f}%) | {a} {f} {x} {l} run={rn}')
+        try:
+            res = runner.run_single_stream(
+                api_name=a, packet_profile=p, frequency_profile=f,
+                chaos_strategy=x, chaos_level=l, run_number=rn, concurrency=1
+            )
+            if res and 'total_runtime_sec' in res:
+                res['_label'] = label
+                attach_policy_metadata(res, policy)
+                times.append(res['total_runtime_sec'])
+                all_res.append(res)
+        except Exception as e:
+            print(f'[{label}] [ERROR] {e}')
     return all_res, times
+
+
+def run_configs(runner, configs, label, policy, run_numbers):
+    plan = []
+    for (p, f, x, l, a) in configs:
+        for rn in run_numbers:
+            plan.append((p, f, x, l, a, rn))
+    return run_config_plan(runner, plan, label, policy)
 
 
 def build_summary(all_res, label):
@@ -193,23 +317,29 @@ def update_readme(roc_data):
 
 
 def run_evaluation_pipeline():
-    if '--bootstrap' in sys.argv:
+    args = parse_args()
+
+    if args.bootstrap:
         import bootstrap
         bootstrap.run_bootstrap(force=True)
 
     # ── detect hardware ──
     d = get_device_info()
-    h = d['model'].replace(' ', '_').replace('/', '_').replace('(', '').replace(')', '')
+    h = sanitize_hw_token(d['model'])
     c = d['cloud']
+    policy_metadata = build_policy_metadata(args, d)
+    run_numbers = list(range(1, max(1, args.runs_per_config) + 1))
+    baseline_target_runs = max(1, args.min_baseline_runs)
     print('\n' + '=' * 80)
     print(' Hey! Welcome to the Semantic Drift Evaluation Pipeline Runner')
     print(f' Hardware Platform : {d["device"].upper()}')
     print(f' Hardware Model    : {d["model"]}')
     print(f' Cloud Environment : {d["cloud"].upper()}')
+    print(f' Policy Tag        : {policy_metadata.get("policy_tag")}')
     print('=' * 80 + '\n')
 
     # ── erase check ──
-    e = '--erase-existing' in sys.argv or '--force-erase' in sys.argv
+    e = args.erase_existing or args.force_erase
     R = f'results/{h}/{c}'
     if e:
         if os.path.exists(R):
@@ -238,18 +368,15 @@ def run_evaluation_pipeline():
     # ── Create ONE runner, swap reconcilers between phases (avoids safetensors reload crash) ──
     runner = ExperimentRunner()
 
-    # ── GENERATE-ONLY MODE: save raw per-run JSONs into hardware-named folder ──
-    generate_only = '--generate-only' in sys.argv
-
     # ── PHASE 1: Full pipeline ──
     print(f'\n{"="*80}')
-    print(f' PHASE 1: Full Pipeline ({n_configs} configs x 4 runs = {n_configs*4} streams)')
+    print(f' PHASE 1: Full Pipeline ({n_configs} configs x {len(run_numbers)} runs = {n_configs*len(run_numbers)} streams)')
     print(f'{"="*80}')
-    all_res_full, times_full = run_configs(runner, all_configs, 'FULL')
+    all_res_full, times_full = run_configs(runner, all_configs, 'FULL', policy_metadata, run_numbers)
 
-    if generate_only:
+    if args.generate_only:
         raw_parent = 'results/raw'
-        hw_token = d['model'].replace(' ', '_').replace('/', '_').replace('(', '').replace(')', '')
+        hw_token = sanitize_hw_token(d['model'])
         raw_dir = f'{raw_parent}/{hw_token}'
         os.makedirs(raw_dir, exist_ok=True)
         for i, r in enumerate(all_res_full):
@@ -264,6 +391,30 @@ def run_evaluation_pipeline():
             fname = f'run_{rn:03d}_{an}_{pp}_{fp}_{cs}_{cl}_{hw}_{dt}.json'
             with open(f'{raw_dir}/{fname}', 'w') as f:
                 json.dump(r, f)
+
+        # Ensure baseline clean pipeline has at least N runs per config in raw dir
+        print(f'\n{"="*80}')
+        print(f' BASELINE TOP-UP (target >= {baseline_target_runs} runs/config)')
+        print(f'{"="*80}')
+        baseline_configs = [('short', '100hz', 'json', 'low', a) for a in A_list]
+        existing_baseline = load_existing_baseline_runs_from_raw(raw_dir)
+        baseline_plan = []
+        for cfg in baseline_configs:
+            present = existing_baseline.get(cfg, set())
+            for rn in range(1, baseline_target_runs + 1):
+                if rn not in present:
+                    baseline_plan.append((*cfg, rn))
+
+        if baseline_plan:
+            runner.baseline_mode = True
+            new_baseline_records, _ = run_config_plan(runner, baseline_plan, 'BASELINE', policy_metadata)
+            for r in new_baseline_records:
+                with open(f'{raw_dir}/{baseline_raw_filename(r)}', 'w') as f:
+                    json.dump(r, f)
+            print(f'[Generate] Baseline top-up generated {len(new_baseline_records)} new baseline records.')
+        else:
+            print('[Generate] Baseline already satisfies minimum run policy.')
+
         print(f'[Generate] Saved {len(all_res_full)} raw records to {raw_dir}/')
         print('[Generate] Done. Run `python analyze.py --data-dir results/raw/{hw_token}` to compute scores.')
         return
@@ -284,7 +435,7 @@ def run_evaluation_pipeline():
         }
     runner.cp.compare_algorithms = types.MethodType(compare_no_bert, runner.cp)
     subset = all_configs[:n_configs//2]
-    all_res_no_bert, _ = run_configs(runner, subset, 'NO_BERT')
+    all_res_no_bert, _ = run_configs(runner, subset, 'NO_BERT', policy_metadata, run_numbers)
     summary_no_bert = build_summary(all_res_no_bert, 'ablation_no_bert')
 
     # Restore BERT for next phases
@@ -315,7 +466,7 @@ def run_evaluation_pipeline():
             "bert": self.bert.reconcile(canonical_keys, query_key)
         }
     runner.cp.compare_algorithms = types.MethodType(compare_no_gemma, runner.cp)
-    all_res_no_gemma, _ = run_configs(runner, subset, 'NO_GEMMA')
+    all_res_no_gemma, _ = run_configs(runner, subset, 'NO_GEMMA', policy_metadata, run_numbers)
     summary_no_gemma = build_summary(all_res_no_gemma, 'ablation_no_gemma')
 
     # Restore Gemma
@@ -329,7 +480,34 @@ def run_evaluation_pipeline():
     print(f'{"="*80}')
     runner.baseline_mode = True
     baseline_configs = [('short', '100hz', 'json', 'low', a) for a in A_list]
-    all_res_base, _ = run_configs(runner, baseline_configs, 'BASELINE')
+
+    baseline_records_path = os.path.join('results', h, c, 'baseline_no_chaos_records.json')
+    os.makedirs(os.path.dirname(baseline_records_path), exist_ok=True)
+    existing_base = []
+    if os.path.exists(baseline_records_path):
+        try:
+            with open(baseline_records_path) as f:
+                existing_base = json.load(f)
+        except Exception:
+            existing_base = []
+
+    baseline_existing_map = {}
+    for r in existing_base:
+        baseline_existing_map.setdefault(config_key_from_record(r), set()).add(int(r.get('run_number', 0)))
+
+    baseline_plan = []
+    for cfg in baseline_configs:
+        present = baseline_existing_map.get(cfg, set())
+        for rn in range(1, baseline_target_runs + 1):
+            if rn not in present:
+                baseline_plan.append((*cfg, rn))
+
+    new_base, _ = run_config_plan(runner, baseline_plan, 'BASELINE', policy_metadata) if baseline_plan else ([], [])
+    all_res_base = existing_base + new_base
+    if new_base:
+        with open(baseline_records_path, 'w') as f:
+            json.dump(all_res_base, f, indent=2)
+
     summary_baseline = build_summary(all_res_base, 'baseline_no_chaos')
 
     # ── PHASE 5: Fast only (Levenshtein + Regex) ──
@@ -345,7 +523,7 @@ def run_evaluation_pipeline():
             "regex": self.regex.reconcile(canonical_keys, query_key)
         }
     runner.cp.compare_algorithms = types.MethodType(compare_fast_only, runner.cp)
-    all_res_fast, _ = run_configs(runner, subset, 'FAST_ONLY')
+    all_res_fast, _ = run_configs(runner, subset, 'FAST_ONLY', policy_metadata, run_numbers)
     summary_fast = build_summary(all_res_fast, 'ablation_fast_only')
 
     gr = time.perf_counter() - g_start
@@ -367,6 +545,7 @@ def run_evaluation_pipeline():
     s_l = [r.get('p95_latency_ms', 0) for r in s_r]
 
     data = {
+        'policy': policy_metadata,
         'global_runtime_sec': round(gr, 4),
         'total_runs_time_sec': round(total_t, 4),
         'average_runtime_sec': round(avg_t, 4),
@@ -520,11 +699,14 @@ def run_evaluation_pipeline():
     update_readme(roc_data)
 
     # ── Git push ──
-    print('\n[Git] Pushing everything to GitHub...')
-    branch = 'semantic_only'
-    ts = time.strftime('%Y-%m-%d %H:%M')
-    git_push(branch, f'ROCm RX 7900 XT results + ablations + baseline {ts}')
-    print('[Done] All phases complete. Pushed to semantic_only.')
+    if not args.skip_git_push:
+        print('\n[Git] Pushing everything to GitHub...')
+        branch = 'semantic_only'
+        ts = time.strftime('%Y-%m-%d %H:%M')
+        git_push(branch, f'ROCm RX 7900 XT results + ablations + baseline {ts}')
+        print('[Done] All phases complete. Pushed to semantic_only.')
+    else:
+        print('[Done] All phases complete. Git push skipped.')
 
 
 if __name__ == '__main__':
