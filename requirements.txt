@@ -1,0 +1,13 @@
+httpx
+setuptools
+wheel
+numpy
+pandas
+requests
+python-dotenv
+tqdm
+scikit-learn
+sentence-transformers
+transformers
+accelerate
+huggingface-hub
