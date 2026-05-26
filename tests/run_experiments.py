@@ -38,4 +38,7 @@ class ExperimentRunner:
     score_p = 0.0
     score_p2 = 0.0
     el_us=(time.perf_counter_ns()-st)//1000
-    return {'timing_us':el_us,'throughput_bytes_per_sec':tp,'packet_size':np,'packet_count':1,'chaos_metadata':chaos_trace,'device':{'device':s.h,'hardware':s.hw,'cloud':s.c},'drift_detected':drift_detected,'reconciled_ok':repair_ok,'reconciliation_winner':winner,'fallback_used':fallback,'score_p':score_p,'score_p2':score_p2}
+    detection_rate = 1.0 if drift_detected else 0.0
+    p95_latency_ms = el_us / 1000.0
+    repair_rate = 1.0 if repair_ok else 0.0
+    return {'timing_us':el_us,'throughput_bytes_per_sec':tp,'packet_size':np,'packet_count':1,'chaos_metadata':chaos_trace,'device':{'device':s.h,'hardware':s.hw,'cloud':s.c},'drift_detected':drift_detected,'reconciled_ok':repair_ok,'reconciliation_winner':winner,'fallback_used':fallback,'score_p':score_p,'score_p2':score_p2,'detection_rate':detection_rate,'p95_latency_ms':p95_latency_ms,'repair_rate':repair_rate}
