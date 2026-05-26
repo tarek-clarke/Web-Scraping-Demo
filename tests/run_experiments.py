@@ -27,7 +27,7 @@ class ExperimentRunner:
     # Detect drift by simple content comparison (SchemaComparer does not expose detect_drift)
     drift_detected = str(bs) != str(mu)
     s.l.log_drift({'detected':drift_detected})
-    if s.cp:
+    if hasattr(s.cp, 'reconcile'):
         reconciled,winner,fallback,repair_ok=s.cp.reconcile(mu,bs)
     else:
         reconciled,winner,fallback,repair_ok=mu,'none',False,False
