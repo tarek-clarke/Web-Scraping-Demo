@@ -75,7 +75,7 @@ class JSONChaos:
         for canon, syns in self.synonyms.items():
             if canon in key or key in canon:
                 return random.choice(syns)
-        return f"{key}_drifted"
+        return f"{key}_x"
 
     def _split_field(self, data: dict):
         """Split a randomly chosen field into two new fields."""
@@ -164,7 +164,6 @@ class JSONChaos:
         if total_fields == 0:
             return data, None
         N = max(1, int(round(self.probability * total_fields)))
-        # ensure N does not exceed total_fields (some operations need extra fields)
         N = min(N, total_fields)
 
         drift_types_pool = [
@@ -174,6 +173,7 @@ class JSONChaos:
             "split_fields",
             "merged_fields",
             "nested_corruption",
+            "type_mismatch",
             "value_contradiction"
         ]
 
@@ -182,9 +182,7 @@ class JSONChaos:
         drift_type_log = None
 
         for _ in range(N):
-            # pick a drift type evenly
             drift_type = random.choice(drift_types_pool)
-            # find an available key (not used yet)
             available = [k for k in mutated.keys() if k not in used_keys]
             if not available:
                 break
@@ -195,7 +193,6 @@ class JSONChaos:
                 del mutated[target_key]
                 drift_type_log = "missing_keys"
             elif drift_type == "extra_keys":
-                # add a new key with a dummy value
                 new_key = f"{target_key}_extra"
                 mutated[new_key] = "dummy"
                 drift_type_log = "extra_keys"
@@ -204,24 +201,29 @@ class JSONChaos:
                 mutated[new_key] = mutated.pop(target_key)
                 drift_type_log = "renamed_keys"
             elif drift_type == "split_fields":
-                # apply split on target_key (may affect multiple keys)
                 mutated, _ = self._split_field(mutated)
                 drift_type_log = "split_fields"
             elif drift_type == "merged_fields":
-                # need at least two keys; if not enough, skip
                 if len(mutated) >= 2:
                     mutated, _ = self._merge_fields(mutated)
                     drift_type_log = "merged_fields"
                 else:
-                    # fallback to rename
                     new_key = self._rename_field(target_key)
                     mutated[new_key] = mutated.pop(target_key)
                     drift_type_log = "renamed_keys"
             elif drift_type == "nested_corruption":
                 mutated, _ = self._nested_corruption(mutated)
                 drift_type_log = "nested_corruption"
+            elif drift_type == "type_mismatch":
+                val = mutated[target_key]
+                if isinstance(val, str):
+                    mutated[target_key] = 0
+                elif isinstance(val, (int, float)):
+                    mutated[target_key] = ""
+                else:
+                    mutated[target_key] = "converted"
+                drift_type_log = "type_mismatch"
             elif drift_type == "value_contradiction":
-                # perturb the value
                 val = mutated[target_key]
                 if isinstance(val, (int, float)) and not isinstance(val, bool):
                     mutated[target_key] = self._perturb_numeric(val)

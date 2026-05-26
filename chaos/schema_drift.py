@@ -215,7 +215,7 @@ class SchemaDrift:
         mutated = dict(data)
         drift_type = "renamed_keys"
         for k in chosen:
-            new_key = rename_map.get(k, f"{k}_renamed")
+            new_key = rename_map.get(k, f"{k}_x")
             if new_key in mutated:
                 new_key += "_2"
             mutated[new_key] = mutated.pop(k)
@@ -288,6 +288,7 @@ class SchemaDrift:
             "split_fields",
             "merged_fields",
             "nested_corruption",
+            "type_mismatch",
             "value_contradiction"
         ]
 
@@ -311,7 +312,6 @@ class SchemaDrift:
                 mutated[new_key] = "dummy"
                 drift_type_log = "extra_keys"
             elif drift_type == "renamed_keys":
-                # use schema rename logic
                 rename_map = {
                     "address": "addr",
                     "street_name": "streetName",
@@ -328,7 +328,7 @@ class SchemaDrift:
                     "latitude": "lat",
                     "longitude": "lng",
                 }
-                new_key = rename_map.get(target_key, f"{target_key}_renamed")
+                new_key = rename_map.get(target_key, f"{target_key}_x")
                 if new_key in mutated:
                     new_key += "_2"
                 mutated[new_key] = mutated.pop(target_key)
@@ -341,13 +341,21 @@ class SchemaDrift:
                     mutated, _ = self._merge_columns(mutated, drift_logger, run_number, api_source)
                     drift_type_log = "merged_fields"
                 else:
-                    # fallback rename
-                    new_key = f"{target_key}_renamed"
+                    new_key = f"{target_key}_x"
                     mutated[new_key] = mutated.pop(target_key)
                     drift_type_log = "renamed_keys"
             elif drift_type == "nested_corruption":
                 mutated, _ = self._nested_corruption(mutated, drift_logger, run_number, api_source)
                 drift_type_log = "nested_corruption"
+            elif drift_type == "type_mismatch":
+                val = mutated[target_key]
+                if isinstance(val, str):
+                    mutated[target_key] = 0
+                elif isinstance(val, (int, float)):
+                    mutated[target_key] = ""
+                else:
+                    mutated[target_key] = "converted"
+                drift_type_log = "type_mismatch"
             elif drift_type == "value_contradiction":
                 val = mutated[target_key]
                 if isinstance(val, (int, float)) and not isinstance(val, bool):

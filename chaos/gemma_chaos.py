@@ -225,6 +225,7 @@ Modified JSON:
             "split_fields",
             "merged_fields",
             "nested_corruption",
+            "type_mismatch",
             "value_contradiction"
         ]
 
@@ -259,12 +260,21 @@ Modified JSON:
                     mutated, _ = self._merge_fields(mutated, drift_logger, run_number, api_source)
                     drift_type_log = "merged_fields"
                 else:
-                    new_key = f"{target_key}_renamed"
+                    new_key = f"{target_key}_x"
                     mutated[new_key] = mutated.pop(target_key)
                     drift_type_log = "renamed_keys"
             elif drift_type == "nested_corruption":
                 mutated, _ = self._nested_corruption(mutated, drift_logger, run_number, api_source)
                 drift_type_log = "nested_corruption"
+            elif drift_type == "type_mismatch":
+                val = mutated[target_key]
+                if isinstance(val, str):
+                    mutated[target_key] = 0
+                elif isinstance(val, (int, float)):
+                    mutated[target_key] = ""
+                else:
+                    mutated[target_key] = "converted"
+                drift_type_log = "type_mismatch"
             elif drift_type == "value_contradiction":
                 val = mutated[target_key]
                 if isinstance(val, (int, float)) and not isinstance(val, bool):

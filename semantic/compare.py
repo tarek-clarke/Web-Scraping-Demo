@@ -27,22 +27,26 @@ class SchemaComparer:
         split_fields = 0
         merge_fields = 0
         nested_corruption = 0
+        renamed_keys = 0
 
         # type mismatch and value contradiction for common keys
         common_keys = original_keys & mutated_keys
         for key in common_keys:
             ov = original[key]
             mv = mutated[key]
+            # detect nested corruption when value changes between dict and non‑dict
+            if isinstance(ov, dict) != isinstance(mv, dict):
+                nested_corruption += 1
+                continue
             if type(ov) != type(mv):
                 types_mismatch += 1
-            else:
-                if isinstance(ov, dict) and isinstance(mv, dict):
-                    # nested corruption if dicts differ
-                    if ov != mv:
-                        nested_corruption += 1
-                elif isinstance(ov, (str, int, float, bool)):
-                    if ov != mv:
-                        value_contradiction += 1
+                continue
+            if isinstance(ov, dict) and isinstance(mv, dict):
+                if ov != mv:
+                    nested_corruption += 1
+            elif isinstance(ov, (str, int, float, bool)):
+                if ov != mv:
+                    value_contradiction += 1
 
         # detect split: a missing key that is a prefix of at least two extra keys
         for mk in list(missing_keys):
@@ -59,19 +63,23 @@ class SchemaComparer:
                 missing_keys = missing_keys - set(parts)
                 extra_keys = extra_keys - {ek}
 
-        # renamed keys: each remaining missing key that has a similar extra key (Levenshtein <= 2)
-        renamed_keys = 0
+        # renamed keys: remaining missing/extra pairs that are similar
         remaining_missing = list(missing_keys)
         remaining_extra = list(extra_keys)
         for mk in remaining_missing[:]:
             best_dist = 999
             best_ek = None
             for ek in remaining_extra:
+                # substring‑or‑close Levenshtein
+                if (mk in ek or ek in mk) and abs(len(mk) - len(ek)) <= 2:
+                    best_dist = 0
+                    best_ek = ek
+                    break
                 dist = LevenshteinReconciler.distance(mk, ek)
                 if dist < best_dist:
                     best_dist = dist
                     best_ek = ek
-            if best_dist <= 2:
+            if best_dist <= 3:   # increased threshold to catch many renames
                 renamed_keys += 1
                 remaining_missing.remove(mk)
                 remaining_extra.remove(best_ek)
@@ -100,15 +108,11 @@ class SchemaComparer:
         """Full pipeline: detect drift, reconcile, compute repair metrics."""
         drift_detected, drift_types, drift_type_count = self.detect_drift(original, mutated)
 
-        # Reconcile using all algorithms (query_key = str(mutated))
-        query_key = json.dumps(mutated)  # use full JSON as query
-        # For reconciliation we need a list of canonical keys from original
+        query_key = json.dumps(mutated)
         canonical_keys = list(original.keys())
 
-        # Compare algorithms
         alg_results = self.compare_algorithms(canonical_keys, query_key)
 
-        # Determine best match
         best_confidence = 0.0
         best_match = None
         for alg_name, res in alg_results.items():
@@ -118,16 +122,11 @@ class SchemaComparer:
         fallback_used = best_confidence < 0.5
         reconciled_ok = not fallback_used and best_match is not None
 
-        # repair_rate = fraction of drift types that were "repaired"
-        # For simplicity, if drift detected and reconciled, repair_rate = 1.0 else 0.0
         if drift_detected and reconciled_ok:
             repair_rate = 1.0
         else:
             repair_rate = 0.0
 
-        # recovery_score = semantic similarity between repaired and original
-        # Use bert cosine similarity between whole packets as strings
-        start = time.perf_counter()
         original_str = json.dumps(original)
         mutated_str = json.dumps(mutated)
         similarity = self.bert.bert.cosine_similarity(original_str, mutated_str)
