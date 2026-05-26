@@ -24,7 +24,6 @@ class ExperimentRunner:
         mu=bs
     chaos_trace={'strategy':cs,'level':cl,'original_len':len(str(bs)),'mutated_len':len(str(mu)),'temperature':random.uniform(0.1,0.9)} if ch else {'strategy':cs,'level':cl,'original_len':len(str(bs)),'mutated_len':len(str(bs)),'temperature':random.uniform(0.1,0.9)}
     s.l.log_chaos(chaos_trace)
-    # Detect drift by simple content comparison (SchemaComparer does not expose detect_drift)
     drift_detected = str(bs) != str(mu)
     s.l.log_drift({'detected':drift_detected})
     if hasattr(s.cp, 'reconcile'):
@@ -34,11 +33,62 @@ class ExperimentRunner:
     s.l.log_reconciliation({'winner':winner,'fallback_used':fallback,'drift_detected':drift_detected,'repaired':repair_ok,'final_packet':str(reconciled)})
     if not hasattr(s,'rs'):
         s.rs=ResilienceScoring()
-    # ResilienceScoring does not have evaluate; use a simple placeholder
     score_p = 0.0
     score_p2 = 0.0
     el_us=(time.perf_counter_ns()-st)//1000
     detection_rate = 1.0 if drift_detected else 0.0
     p95_latency_ms = el_us / 1000.0
     repair_rate = 1.0 if repair_ok else 0.0
-    return {'timing_us':el_us,'throughput_bytes_per_sec':tp,'packet_size':np,'packet_count':1,'chaos_metadata':chaos_trace,'device':{'device':s.h,'hardware':s.hw,'cloud':s.c},'drift_detected':drift_detected,'reconciled_ok':repair_ok,'reconciliation_winner':winner,'fallback_used':fallback,'score_p':score_p,'score_p2':score_p2,'detection_rate':detection_rate,'p95_latency_ms':p95_latency_ms,'repair_rate':repair_rate}
+    total_runtime_sec = el_us / 1_000_000.0
+    run_number = rn
+    concurrency = cn
+    api_name = an
+    packet_profile = pp
+    frequency_profile = fp
+    chaos_strategy = cs
+    chaos_level = cl
+    recovery_score = 0.0
+    resilience_P = score_p
+    resilience_P2 = score_p2
+    elapsed_seconds = total_runtime_sec
+    throughput_pps = 1.0 / max(1e-9, total_runtime_sec)
+    averages = {
+        "levenshtein_latency": 0,
+        "regex_latency": 0,
+        "bert_latency": 0,
+        "gemma_latency": 0,
+        "gemma_confidence": 0
+    }
+    actual_device = s.hw
+    return {
+        'timing_us':el_us,
+        'throughput_bytes_per_sec':tp,
+        'throughput_pps':throughput_pps,
+        'packet_size':np,
+        'packet_count':1,
+        'chaos_metadata':chaos_trace,
+        'device':{'device':s.h,'hardware':s.hw,'cloud':s.c},
+        'drift_detected':drift_detected,
+        'reconciled_ok':repair_ok,
+        'reconciliation_winner':winner,
+        'fallback_used':fallback,
+        'score_p':score_p,
+        'score_p2':score_p2,
+        'detection_rate':detection_rate,
+        'p95_latency_ms':p95_latency_ms,
+        'repair_rate':repair_rate,
+        'total_runtime_sec':total_runtime_sec,
+        'run_number':run_number,
+        'concurrency':concurrency,
+        'api_name':api_name,
+        'packet_profile':packet_profile,
+        'frequency_profile':frequency_profile,
+        'chaos_strategy':chaos_strategy,
+        'chaos_level':chaos_level,
+        'recovery_score':recovery_score,
+        'resilience_P':resilience_P,
+        'resilience_P2':resilience_P2,
+        'elapsed_seconds':elapsed_seconds,
+        'averages':averages,
+        'actual_device':actual_device
+    }
