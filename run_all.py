@@ -238,7 +238,7 @@ def run_evaluation_pipeline():
     # ── Create ONE runner, swap reconcilers between phases (avoids safetensors reload crash) ──
     runner = ExperimentRunner()
 
-    # ── GENERATE-ONLY MODE: save raw per-run JSONs, skip scoring ──
+    # ── GENERATE-ONLY MODE: save raw per-run JSONs into hardware-named folder ──
     generate_only = '--generate-only' in sys.argv
 
     # ── PHASE 1: Full pipeline ──
@@ -248,13 +248,24 @@ def run_evaluation_pipeline():
     all_res_full, times_full = run_configs(runner, all_configs, 'FULL')
 
     if generate_only:
-        raw_dir = 'results/raw'
+        raw_parent = 'results/raw'
+        hw_token = d['model'].replace(' ', '_').replace('/', '_').replace('(', '').replace(')', '')
+        raw_dir = f'{raw_parent}/{hw_token}'
         os.makedirs(raw_dir, exist_ok=True)
         for i, r in enumerate(all_res_full):
-            with open(f'{raw_dir}/run_{i:06d}.json', 'w') as f:
+            rn = r.get('run_number', 0)
+            an = r.get('api_name', 'unknown')
+            pp = r.get('packet_profile', 'unknown')
+            fp = r.get('frequency_profile', 'unknown')
+            cs = r.get('chaos_strategy', 'unknown')
+            cl = r.get('chaos_level', 'unknown')
+            hw = r.get('actual_device', 'unknown').replace(' ', '_')
+            dt = 'drift' if r.get('drift_detected', False) else 'clean'
+            fname = f'run_{rn:03d}_{an}_{pp}_{fp}_{cs}_{cl}_{hw}_{dt}.json'
+            with open(f'{raw_dir}/{fname}', 'w') as f:
                 json.dump(r, f)
         print(f'[Generate] Saved {len(all_res_full)} raw records to {raw_dir}/')
-        print('[Generate] Done. Run `python analyze.py` to compute scores.')
+        print('[Generate] Done. Run `python analyze.py --data-dir results/raw/{hw_token}` to compute scores.')
         return
 
     summary_full = build_summary(all_res_full, 'full_pipeline')

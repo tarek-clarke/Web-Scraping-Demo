@@ -24798,5 +24798,6917 @@
     "mutated_len": 162,
     "temperature": 0.4873639545879963,
     "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 38,
+    "temperature": 0.34977623224710747,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 150,
+    "temperature": 0.27626914370575795,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 151,
+    "temperature": 0.47742355748689425,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 156,
+    "temperature": 0.21176464941791082,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 320,
+    "temperature": 0.8673390295685649,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 188,
+    "temperature": 0.46555164139575866,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 208,
+    "temperature": 0.858484768813946,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 151,
+    "temperature": 0.2690645033882911,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 132,
+    "temperature": 0.3824083126201304,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 182,
+    "temperature": 0.43786903047322623,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 132,
+    "temperature": 0.10759561942281436,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 132,
+    "temperature": 0.12155508438964385,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 55,
+    "temperature": 0.7839830206719168,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 153,
+    "temperature": 0.8645481620595581,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 153,
+    "temperature": 0.45302193610679964,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 138,
+    "temperature": 0.7240318755234812,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 183,
+    "temperature": 0.7713750736390972,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 153,
+    "temperature": 0.10009806702460385,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 63,
+    "temperature": 0.5986804577634761,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 150,
+    "temperature": 0.7459099007009954,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 181,
+    "temperature": 0.5625692580174605,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 207,
+    "temperature": 0.3047110479053508,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 207,
+    "temperature": 0.21063710716762954,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 188,
+    "temperature": 0.801427579202122,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 197,
+    "temperature": 0.2386739668457447,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 275,
+    "temperature": 0.8878097102110212,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.884148911982972,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 171,
+    "temperature": 0.47212673367471014,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.3706052323909924,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.31135344627191885,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 145,
+    "temperature": 0.2564229568027073,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.1766387340821483,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 63,
+    "temperature": 0.20614432016468537,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.7142597390711782,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 63,
+    "temperature": 0.42175181846895593,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 152,
+    "temperature": 0.26168295570141764,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 208,
+    "temperature": 0.20147670484632743,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 151,
+    "temperature": 0.2696035729897853,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 68,
+    "temperature": 0.14385085752213345,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 192,
+    "temperature": 0.5454159323770971,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 275,
+    "temperature": 0.29454485443398193,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 170,
+    "temperature": 0.3597589039599596,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 163,
+    "temperature": 0.5291475639115281,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 182,
+    "temperature": 0.7384821249840822,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 153,
+    "temperature": 0.8935395999388287,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 138,
+    "temperature": 0.7793459307891747,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.3129158653212385,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.40752836432264805,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.876006772562654,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.6246141332933639,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.6996143828838174,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 181,
+    "temperature": 0.6825320512127959,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 167,
+    "temperature": 0.36072010508691077,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 188,
+    "temperature": 0.5024584809242827,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 181,
+    "temperature": 0.6197786439795555,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 43,
+    "temperature": 0.828573201448908,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.15600373148461727,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.8102337643432239,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.7171570711470294,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.3214548822311061,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.4342638345411882,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 116,
+    "temperature": 0.7825762474894907,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 55,
+    "temperature": 0.3078237583343174,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.6288733572911914,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 167,
+    "temperature": 0.7580567659580087,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 194,
+    "temperature": 0.6633656383495261,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 151,
+    "temperature": 0.6042385696498946,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 167,
+    "temperature": 0.3497480669080164,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 68,
+    "temperature": 0.5267259456030543,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 181,
+    "temperature": 0.7981056635765535,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 177,
+    "temperature": 0.2692392909965953,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 151,
+    "temperature": 0.5448414488732948,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 193,
+    "temperature": 0.6280204633231083,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.3979572811475669,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 68,
+    "temperature": 0.17136941500228503,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 93,
+    "temperature": 0.5191648224181725,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 80,
+    "temperature": 0.2557099282116927,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.7294750538195175,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 117,
+    "temperature": 0.5313297349043372,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.4620295090188119,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 156,
+    "temperature": 0.3022745400619614,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.3759083976453721,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.6689462107180602,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.573407381839193,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 179,
+    "temperature": 0.3358038294921076,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 177,
+    "temperature": 0.7699410255211103,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 187,
+    "temperature": 0.30217789060891487,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 188,
+    "temperature": 0.572553744710246,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 144,
+    "temperature": 0.20961761812067384,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.7514987006165816,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 138,
+    "temperature": 0.3303331605482789,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 93,
+    "temperature": 0.19901198938792533,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.1779179996236737,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.2887131133614961,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.7395979743534516,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 116,
+    "temperature": 0.7605204758045323,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 152,
+    "temperature": 0.1638745992977107,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 152,
+    "temperature": 0.8316879041735515,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 150,
+    "temperature": 0.7652230158484413,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 138,
+    "temperature": 0.8972752981406881,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 177,
+    "temperature": 0.7158222877063348,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 188,
+    "temperature": 0.43660659372015853,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 175,
+    "temperature": 0.10239943454853605,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 43,
+    "temperature": 0.22164017659041246,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 144,
+    "temperature": 0.882709463522655,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 196,
+    "temperature": 0.265166321098281,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 211,
+    "temperature": 0.5116403747384498,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.3427940070825131,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 116,
+    "temperature": 0.6109663100140856,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 138,
+    "temperature": 0.26419860999699063,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 171,
+    "temperature": 0.2058524070205784,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 138,
+    "temperature": 0.45827029727748836,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 178,
+    "temperature": 0.699683064779662,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 132,
+    "temperature": 0.39083325437332206,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 152,
+    "temperature": 0.3427853498831983,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 181,
+    "temperature": 0.2876478910435608,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 320,
+    "temperature": 0.7892781439659255,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 189,
+    "temperature": 0.2559248940639246,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 175,
+    "temperature": 0.5036301118407441,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 175,
+    "temperature": 0.8194892690029404,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 93,
+    "temperature": 0.14085279177939497,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 144,
+    "temperature": 0.5573833675614773,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.6795491384551365,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 132,
+    "temperature": 0.1017252609990421,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 171,
+    "temperature": 0.48161869734256824,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 138,
+    "temperature": 0.8570803659883882,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 153,
+    "temperature": 0.8696835079576914,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 157,
+    "temperature": 0.8929367661855757,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 167,
+    "temperature": 0.42511107095796197,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 164,
+    "temperature": 0.7062766658124298,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 151,
+    "temperature": 0.7400279505266888,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.8902412023454189,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 188,
+    "temperature": 0.4658366928166785,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 188,
+    "temperature": 0.16325091830157,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 167,
+    "temperature": 0.79740428642778,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 177,
+    "temperature": 0.5187965867049957,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.783754529071118,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 197,
+    "temperature": 0.759728942791516,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 93,
+    "temperature": 0.38554358954278145,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 182,
+    "temperature": 0.4820276466776471,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 55,
+    "temperature": 0.5037987667914874,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 154,
+    "temperature": 0.885230449666265,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 116,
+    "temperature": 0.48432880802278633,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 171,
+    "temperature": 0.7898092942650311,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 152,
+    "temperature": 0.2821534232884012,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.7675983504642246,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 183,
+    "temperature": 0.5033143398340166,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 156,
+    "temperature": 0.19996288766115528,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 207,
+    "temperature": 0.49681520905941934,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 181,
+    "temperature": 0.669033295073237,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 181,
+    "temperature": 0.8716303100478581,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 188,
+    "temperature": 0.3564760438118041,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 197,
+    "temperature": 0.5288251571133372,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 93,
+    "temperature": 0.2755268102946363,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 198,
+    "temperature": 0.7733913703283223,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.39998703865136453,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.15921480133752963,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.4981096616200006,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 238,
+    "temperature": 0.7263578167805927,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.5174945515564627,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 156,
+    "temperature": 0.6764283343713999,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 178,
+    "temperature": 0.40991502607862207,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 182,
+    "temperature": 0.2064063708794974,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 138,
+    "temperature": 0.41329926762433533,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 188,
+    "temperature": 0.48068280670751307,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 177,
+    "temperature": 0.3941577465810061,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 179,
+    "temperature": 0.6826756338068353,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 193,
+    "temperature": 0.7707334152712341,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 163,
+    "temperature": 0.3175908213945067,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 93,
+    "temperature": 0.49791852107652146,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 154,
+    "temperature": 0.36845276526386184,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.3208901955469856,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 143,
+    "temperature": 0.505126150072488,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.8701958415502639,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 80,
+    "temperature": 0.1109308840068854,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.5091102242536995,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 181,
+    "temperature": 0.8108063303075954,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.4868184697017782,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 63,
+    "temperature": 0.8705454415599148,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 182,
+    "temperature": 0.3031244906310755,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 320,
+    "temperature": 0.5167713187633559,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 193,
+    "temperature": 0.7210828763760786,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 68,
+    "temperature": 0.5093147855077568,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 68,
+    "temperature": 0.7877731408544776,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 144,
+    "temperature": 0.3429990249315707,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 165,
+    "temperature": 0.15424292637989964,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 163,
+    "temperature": 0.8463628457707294,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 171,
+    "temperature": 0.4476516153227096,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.41919872697934935,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 238,
+    "temperature": 0.4404036829620922,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 168,
+    "temperature": 0.39905375543135346,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 116,
+    "temperature": 0.6341939367121808,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.11277415328740902,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 148,
+    "temperature": 0.59481089778282,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 132,
+    "temperature": 0.5353785666431469,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 132,
+    "temperature": 0.5463502947192309,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 219,
+    "temperature": 0.29409021027446824,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 181,
+    "temperature": 0.8599639848637869,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 151,
+    "temperature": 0.5018924055333177,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 188,
+    "temperature": 0.2377817592303428,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 196,
+    "temperature": 0.7083119124254481,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.42833087317367025,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 197,
+    "temperature": 0.7985348811730006,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.18132617517597344,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 153,
+    "temperature": 0.8395876244353456,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 116,
+    "temperature": 0.6451189172403333,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.10613775022655761,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.6996127751379051,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 178,
+    "temperature": 0.8775564892628428,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 167,
+    "temperature": 0.7475707062388441,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.7714526815332854,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 156,
+    "temperature": 0.7438809749064373,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 188,
+    "temperature": 0.629472404581897,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 206,
+    "temperature": 0.3309668837303954,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 164,
+    "temperature": 0.12210444930751443,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 187,
+    "temperature": 0.7731487672209716,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 144,
+    "temperature": 0.7133874312803905,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.6379079638123033,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.27137588056582373,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 144,
+    "temperature": 0.3769153142108359,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 157,
+    "temperature": 0.855987488083585,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 55,
+    "temperature": 0.10715247441050116,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.6424785378014427,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 117,
+    "temperature": 0.6666619412797754,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 181,
+    "temperature": 0.6976842598911736,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 156,
+    "temperature": 0.7720739321377584,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 165,
+    "temperature": 0.2177211495027562,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.2098404790899763,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 193,
+    "temperature": 0.3426171457800103,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 167,
+    "temperature": 0.7907080489256999,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 164,
+    "temperature": 0.57212919528864,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 179,
+    "temperature": 0.8305015917818642,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.6097981492609855,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 171,
+    "temperature": 0.7315025924248973,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.6001610825156425,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 171,
+    "temperature": 0.8685253859415402,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 172,
+    "temperature": 0.21080740168214085,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 152,
+    "temperature": 0.5875714086873433,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.49605098964468164,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 152,
+    "temperature": 0.38223419272316816,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 168,
+    "temperature": 0.69780382667923,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 181,
+    "temperature": 0.488649257636667,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 132,
+    "temperature": 0.13254881225456636,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 150,
+    "temperature": 0.1453228278965636,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 151,
+    "temperature": 0.41953110127768045,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 219,
+    "temperature": 0.21836579239270248,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 43,
+    "temperature": 0.8343127979603703,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 207,
+    "temperature": 0.44961357708520344,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 177,
+    "temperature": 0.8695531210933135,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 177,
+    "temperature": 0.4488335671190181,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 163,
+    "temperature": 0.3719323574930331,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 177,
+    "temperature": 0.8355965378972607,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.6323735969962303,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 238,
+    "temperature": 0.17278547386830878,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 129,
+    "temperature": 0.8648547478384377,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 138,
+    "temperature": 0.8737635769980323,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.8474245802191137,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 38,
+    "temperature": 0.7365259009022933,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 148,
+    "temperature": 0.2728344835758481,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.31333485709178754,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 211,
+    "temperature": 0.8008466062078904,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 177,
+    "temperature": 0.8569484244454539,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 206,
+    "temperature": 0.6296831039818299,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 164,
+    "temperature": 0.14428000810645703,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 177,
+    "temperature": 0.8641694070624465,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 68,
+    "temperature": 0.4109849815102905,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 275,
+    "temperature": 0.4849517062791696,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 177,
+    "temperature": 0.6782109046207174,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 158,
+    "temperature": 0.6254554149972061,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 155,
+    "temperature": 0.1523346226492719,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 155,
+    "temperature": 0.10978145723159916,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 129,
+    "temperature": 0.6600698195562712,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 132,
+    "temperature": 0.19427137452036902,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 38,
+    "temperature": 0.8715579559578531,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 164,
+    "temperature": 0.4299903300540151,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 162,
+    "temperature": 0.5616985727109391,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 164,
+    "temperature": 0.8631250668396581,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 203,
+    "temperature": 0.8921849412352917,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 188,
+    "temperature": 0.8905554582239651,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 179,
+    "temperature": 0.39905438858926867,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 275,
+    "temperature": 0.21028894632411746,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 183,
+    "temperature": 0.46569518245202113,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 163,
+    "temperature": 0.14014157327647797,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.5258726752414057,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 153,
+    "temperature": 0.32577033627090257,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 158,
+    "temperature": 0.8325538264572229,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 80,
+    "temperature": 0.4712057003128767,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.6577619204918298,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.6352067258005459,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 186,
+    "temperature": 0.4800826434135431,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 148,
+    "temperature": 0.752343286237667,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 178,
+    "temperature": 0.3537601789709677,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 211,
+    "temperature": 0.3755059340689323,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 68,
+    "temperature": 0.7358367002765659,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 164,
+    "temperature": 0.5885187747707137,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 320,
+    "temperature": 0.609374697901496,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 144,
+    "temperature": 0.8950239839191975,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 68,
+    "temperature": 0.3924638244574655,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 194,
+    "temperature": 0.2940776261217525,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 93,
+    "temperature": 0.8015968677344993,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 168,
+    "temperature": 0.5137303872078584,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 116,
+    "temperature": 0.41978794168337796,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.33857866543306947,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 148,
+    "temperature": 0.5197574104579606,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 150,
+    "temperature": 0.7744303628911924,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 182,
+    "temperature": 0.6721644335173148,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 194,
+    "temperature": 0.21387218308911937,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 38,
+    "temperature": 0.34733843766184114,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 178,
+    "temperature": 0.7426636408578552,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 208,
+    "temperature": 0.5128568764148355,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 175,
+    "temperature": 0.1591397915813226,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 179,
+    "temperature": 0.3889988311194478,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 68,
+    "temperature": 0.5559432687314407,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 165,
+    "temperature": 0.36903554094124247,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 171,
+    "temperature": 0.1562011709843989,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 194,
+    "temperature": 0.6732163757598821,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 173,
+    "temperature": 0.7462102201492197,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.577972931433049,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 173,
+    "temperature": 0.1644076268389255,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 140,
+    "temperature": 0.3272370501534243,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 167,
+    "temperature": 0.3707020450743027,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 151,
+    "temperature": 0.13631893910646423,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 156,
+    "temperature": 0.5162749148768736,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 150,
+    "temperature": 0.6782383367952012,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 203,
+    "temperature": 0.4026402803089164,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 203,
+    "temperature": 0.4692391184277912,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 208,
+    "temperature": 0.24153980218494261,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 206,
+    "temperature": 0.8778699610398152,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 132,
+    "temperature": 0.5708893873766392,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 132,
+    "temperature": 0.18589160810745142,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 171,
+    "temperature": 0.13577806497471967,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.6620634009252085,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.8951618064609018,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 168,
+    "temperature": 0.617115154440732,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 238,
+    "temperature": 0.5071091527770979,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 129,
+    "temperature": 0.8959596713207961,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.24083572247007476,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 132,
+    "temperature": 0.4293646770779106,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.3228811146867141,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.6765955519332383,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 181,
+    "temperature": 0.2718527751541262,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 179,
+    "temperature": 0.7888569414863728,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 179,
+    "temperature": 0.36835267136187155,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 207,
+    "temperature": 0.6350145923746899,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.24505956839152276,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.20650086600475356,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.5229828682053267,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.44510857068606147,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 157,
+    "temperature": 0.636034300895655,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.7297359932233884,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 152,
+    "temperature": 0.6505694054589998,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 132,
+    "temperature": 0.6169202002305583,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 182,
+    "temperature": 0.8079086046666577,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 38,
+    "temperature": 0.16325630811577707,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.35799911759073755,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 181,
+    "temperature": 0.6323529203811264,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 193,
+    "temperature": 0.203863824680435,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 179,
+    "temperature": 0.47800089875362595,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 164,
+    "temperature": 0.8356997599358483,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 179,
+    "mutated_len": 151,
+    "temperature": 0.18166708371892906,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 182,
+    "temperature": 0.21750464130932398,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 68,
+    "temperature": 0.10084924119853787,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.43281862419138795,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.1947285025802902,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.3418021564214371,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.5107044981456544,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 152,
+    "temperature": 0.22322218274609745,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.473101826381115,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 151,
+    "temperature": 0.26984811892566385,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 138,
+    "temperature": 0.27505631485482224,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.8385026552208105,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 156,
+    "temperature": 0.6972537165916802,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 179,
+    "temperature": 0.6842023471023719,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 181,
+    "temperature": 0.3136313202288844,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 188,
+    "temperature": 0.6326538474687047,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 179,
+    "mutated_len": 206,
+    "temperature": 0.556232997010562,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 177,
+    "temperature": 0.18400791800447813,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 154,
+    "temperature": 0.8460099158912301,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 171,
+    "temperature": 0.3970466278101762,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 171,
+    "temperature": 0.6157013186161278,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.7678151185259096,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 153,
+    "temperature": 0.6290837744299801,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 153,
+    "temperature": 0.8703733005165745,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.12001067899529456,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 181,
+    "temperature": 0.7710771744199941,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 150,
+    "temperature": 0.5889302328374723,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 181,
+    "temperature": 0.30800937531956674,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 63,
+    "temperature": 0.45701474823016663,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 219,
+    "temperature": 0.8811275337032183,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 193,
+    "temperature": 0.4822245326508212,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 177,
+    "temperature": 0.7780378463874739,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 43,
+    "temperature": 0.8821934282174072,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 193,
+    "temperature": 0.3257913814036367,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 165,
+    "temperature": 0.30941686609662833,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 205,
+    "temperature": 0.12897834745505793,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 179,
+    "temperature": 0.21612126970421866,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 177,
+    "temperature": 0.6401751449858553,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 140,
+    "temperature": 0.21169538918337968,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 153,
+    "temperature": 0.1551980020464689,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 158,
+    "temperature": 0.4752603234583539,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 132,
+    "temperature": 0.6698864511463616,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.3011991957910287,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 38,
+    "temperature": 0.45941374696031956,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 182,
+    "temperature": 0.8108945969175047,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 170,
+    "temperature": 0.7988000332829429,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 152,
+    "temperature": 0.7950968304428208,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 144,
+    "temperature": 0.27592426677341264,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 128,
+    "temperature": 0.3036498441642631,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 183,
+    "temperature": 0.5871202191820466,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.19777098992688408,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 182,
+    "temperature": 0.13918195461420713,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 165,
+    "temperature": 0.5623259177959288,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 129,
+    "temperature": 0.40930764628248417,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 172,
+    "temperature": 0.671116405733881,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 168,
+    "temperature": 0.33109676720750514,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 116,
+    "temperature": 0.13398944892293096,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 150,
+    "temperature": 0.5226887357218506,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 186,
+    "temperature": 0.7745306102190074,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 165,
+    "temperature": 0.5143946990831152,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 165,
+    "temperature": 0.38765794804981857,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 156,
+    "temperature": 0.5135062705661794,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 164,
+    "temperature": 0.11311475601338934,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 188,
+    "temperature": 0.35433422229227907,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 274,
+    "temperature": 0.313022548049932,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.6300924358673242,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.12781900389277726,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 275,
+    "temperature": 0.5960166741282747,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 196,
+    "temperature": 0.6288795095489663,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 117,
+    "temperature": 0.6285767263451505,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 138,
+    "temperature": 0.39575079670643754,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 168,
+    "temperature": 0.2152788194250917,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.7374321043272922,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 183,
+    "temperature": 0.15229308361158075,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 156,
+    "temperature": 0.38012083547877296,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 275,
+    "temperature": 0.5605572154393819,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 38,
+    "temperature": 0.2595190582327851,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 68,
+    "temperature": 0.5855259863602982,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 154,
+    "temperature": 0.39552360182170865,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 179,
+    "mutated_len": 68,
+    "temperature": 0.5733921780284196,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 68,
+    "temperature": 0.5097221325029868,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 138,
+    "temperature": 0.6891893923690561,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 275,
+    "temperature": 0.1150963347876992,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 198,
+    "temperature": 0.12654916347066827,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.7016295599285585,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.6081502370772989,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 138,
+    "temperature": 0.6958717290636619,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 55,
+    "temperature": 0.4944382262383853,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 173,
+    "temperature": 0.3622926947571682,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 158,
+    "temperature": 0.16319296746418138,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.3925376077550625,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 138,
+    "temperature": 0.3956743581627664,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 275,
+    "temperature": 0.8593270045290801,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 156,
+    "temperature": 0.5772869898160654,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 144,
+    "temperature": 0.7125579492899974,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 156,
+    "temperature": 0.1976873414815546,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 152,
+    "temperature": 0.5388626200383875,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 163,
+    "temperature": 0.8681444729496315,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 198,
+    "temperature": 0.5848816502139704,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 163,
+    "temperature": 0.42955157229067475,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 93,
+    "temperature": 0.7144496237693823,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.3760478137365063,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 157,
+    "temperature": 0.1769292274702794,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 132,
+    "temperature": 0.16126976783367672,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 129,
+    "temperature": 0.4868095660879709,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 152,
+    "temperature": 0.8248582892183038,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 148,
+    "temperature": 0.3740063385603971,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 275,
+    "temperature": 0.5524816254723133,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 155,
+    "temperature": 0.7042208888359461,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 43,
+    "temperature": 0.5940665557223083,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 154,
+    "temperature": 0.15332801329748671,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 43,
+    "temperature": 0.8422590788224842,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 170,
+    "temperature": 0.6436991857321842,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.48965367195396514,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 197,
+    "temperature": 0.38914071505802805,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 165,
+    "temperature": 0.4215509577773099,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 163,
+    "temperature": 0.4071559296874415,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 153,
+    "temperature": 0.4032958891087456,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.25673787969165807,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 140,
+    "temperature": 0.4954118343809548,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.8336710109694113,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 148,
+    "temperature": 0.5733576777661098,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.3419437173674156,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.49190503656525664,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 182,
+    "temperature": 0.24195413893234693,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 184,
+    "temperature": 0.8910624633334668,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 165,
+    "temperature": 0.13895662675332715,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 180,
+    "temperature": 0.7280511805018294,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 164,
+    "temperature": 0.25450179601123524,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 144,
+    "temperature": 0.13561266635912325,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 193,
+    "temperature": 0.5680964920922775,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 171,
+    "temperature": 0.23302288880575076,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.42243198819241323,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 157,
+    "temperature": 0.6088740785602552,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.23016690554372313,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 157,
+    "temperature": 0.7095056658964444,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.1522334719817483,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 156,
+    "temperature": 0.7570668135761095,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.527474664731319,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 148,
+    "temperature": 0.860604647849997,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 148,
+    "temperature": 0.4930444714773883,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 43,
+    "temperature": 0.7445050644010435,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 158,
+    "temperature": 0.8140266751770286,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 144,
+    "temperature": 0.3455654519755199,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 156,
+    "temperature": 0.6481723789769711,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 182,
+    "temperature": 0.7507865414830008,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 154,
+    "temperature": 0.4900166386418272,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.6684957752217147,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.8161550445931658,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.49669915413239407,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.27670317219706836,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 157,
+    "temperature": 0.3503486796802715,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.4780549924814055,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 148,
+    "temperature": 0.5957466562354802,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 166,
+    "temperature": 0.48504443166388933,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 194,
+    "temperature": 0.429664837877784,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.8745798858834665,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 43,
+    "temperature": 0.4954352043228877,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 165,
+    "temperature": 0.5374264036875923,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 180,
+    "temperature": 0.5933079373290197,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 156,
+    "temperature": 0.39150133724782776,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 171,
+    "temperature": 0.24889781890383977,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.7774336431659419,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 93,
+    "temperature": 0.2691691509214039,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 177,
+    "temperature": 0.4559146679018008,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.24461683683864674,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 129,
+    "temperature": 0.5786357793440522,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 129,
+    "temperature": 0.43360343907036847,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.5336162432888352,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 275,
+    "temperature": 0.3286314621699056,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 194,
+    "temperature": 0.8961901350632357,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 63,
+    "temperature": 0.8001218829077648,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 167,
+    "temperature": 0.1362091611139068,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 68,
+    "temperature": 0.7357825535715736,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 68,
+    "temperature": 0.8395318147760235,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 188,
+    "temperature": 0.672930117325788,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 167,
+    "temperature": 0.7414348537623808,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 193,
+    "temperature": 0.22927760357764512,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 68,
+    "temperature": 0.2214945316649585,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 154,
+    "temperature": 0.7776720948368413,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.8935324616227873,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 153,
+    "temperature": 0.5364456382484474,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 158,
+    "temperature": 0.41108273787928695,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 152,
+    "temperature": 0.6656130875976887,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 177,
+    "temperature": 0.36624991148300023,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 151,
+    "temperature": 0.5486913150525313,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 63,
+    "temperature": 0.17978594607994927,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 132,
+    "temperature": 0.3588696933091666,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.6828446177297016,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 189,
+    "temperature": 0.595587506699023,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 184,
+    "temperature": 0.21835309151229093,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 154,
+    "temperature": 0.5903896878436173,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 274,
+    "temperature": 0.5879611690315234,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.17240834021848545,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 93,
+    "temperature": 0.6055854616818728,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 180,
+    "temperature": 0.5491599341207023,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.5824408433820414,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 138,
+    "temperature": 0.4020500417894768,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 172,
+    "temperature": 0.28377693446208485,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.3236427971329484,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 55,
+    "temperature": 0.8828304326970473,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 164,
+    "temperature": 0.24921253746558342,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 151,
+    "temperature": 0.4171791230164098,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 152,
+    "temperature": 0.89915033054455,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 152,
+    "temperature": 0.7684277603017359,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 156,
+    "temperature": 0.2879351676506058,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 170,
+    "temperature": 0.5441475889561035,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 152,
+    "temperature": 0.6795108508433976,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 43,
+    "temperature": 0.6075542266964183,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.6569390131183874,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 132,
+    "temperature": 0.2393860556296903,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 196,
+    "temperature": 0.14568115082803487,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 177,
+    "temperature": 0.7338528194883516,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.4603672341933057,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 238,
+    "temperature": 0.1877736685741935,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 129,
+    "temperature": 0.8670424665602825,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 238,
+    "temperature": 0.2979439428732247,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.7255490128337027,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 182,
+    "temperature": 0.5063507543440064,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 182,
+    "temperature": 0.5972132978155081,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 186,
+    "temperature": 0.7086671612704674,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 158,
+    "temperature": 0.890122494208905,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 165,
+    "temperature": 0.37260717239613883,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 158,
+    "temperature": 0.6629448074124975,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 154,
+    "temperature": 0.10081526137083792,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.6823182220176223,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 93,
+    "temperature": 0.7108060817965719,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 197,
+    "temperature": 0.853965149291439,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 163,
+    "temperature": 0.14650223899668646,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 140,
+    "temperature": 0.772875693584831,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 168,
+    "temperature": 0.6604211700829625,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 55,
+    "temperature": 0.5825370153091299,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.8282065592907893,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.3075227802204583,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 275,
+    "temperature": 0.8984676731093375,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.27950061503680457,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 156,
+    "temperature": 0.444485353498956,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 68,
+    "temperature": 0.1900314453058222,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 158,
+    "temperature": 0.48386346659431323,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 158,
+    "temperature": 0.8746983183391429,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 141,
+    "temperature": 0.5282108205047251,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 132,
+    "temperature": 0.43454491226719827,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 165,
+    "temperature": 0.4631138112900829,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 171,
+    "temperature": 0.782943014233891,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 198,
+    "temperature": 0.22647135552475162,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 168,
+    "temperature": 0.2563577212214516,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 129,
+    "temperature": 0.4344399226284472,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 171,
+    "temperature": 0.16176577153870275,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 55,
+    "temperature": 0.46710677068684914,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.5147409763257239,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 138,
+    "temperature": 0.17227006532761735,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 194,
+    "temperature": 0.36904167291316814,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 138,
+    "temperature": 0.4871132649840908,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 68,
+    "temperature": 0.7385607826758259,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 141,
+    "temperature": 0.12327902030507865,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 158,
+    "temperature": 0.33911384444989,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 187,
+    "temperature": 0.38698006886274083,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 132,
+    "temperature": 0.7442652844271667,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 144,
+    "temperature": 0.7857906357046559,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.7600837749435059,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 163,
+    "temperature": 0.8106151953117378,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 157,
+    "temperature": 0.5627061146210578,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 145,
+    "temperature": 0.5089269680779177,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 138,
+    "temperature": 0.11272422734160381,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.5155864993628418,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.42156804087206823,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 156,
+    "temperature": 0.8058090774067124,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 156,
+    "temperature": 0.8283285064130237,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.8000902209557704,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 184,
+    "temperature": 0.24244574850309358,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 68,
+    "temperature": 0.5346550704715184,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 156,
+    "temperature": 0.30667946905321475,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 170,
+    "temperature": 0.6179349991381548,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.12492364668320413,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.20121198019864472,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 196,
+    "temperature": 0.8874996316222482,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 177,
+    "temperature": 0.33485959920540953,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.7783561643150192,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 132,
+    "temperature": 0.6491454952787663,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.13483391973208905,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 116,
+    "temperature": 0.6737278250506905,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.6515751761614814,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.8433535184241744,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 138,
+    "temperature": 0.420916696154383,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 148,
+    "temperature": 0.3731368757421786,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 156,
+    "temperature": 0.4094465759842524,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 164,
+    "temperature": 0.8817789326078737,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 68,
+    "temperature": 0.10738271541333183,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 158,
+    "temperature": 0.5922181185390188,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.25658224646005917,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.4985331239272516,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 171,
+    "temperature": 0.2955669555690573,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 197,
+    "temperature": 0.7233361986973865,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.3603607724727713,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 171,
+    "temperature": 0.6514147948753988,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.11759459991249743,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 132,
+    "temperature": 0.8921005938459046,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 194,
+    "temperature": 0.4570429688402968,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.5330732328911497,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 148,
+    "temperature": 0.7581566816458526,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 38,
+    "temperature": 0.4305703917996827,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 156,
+    "temperature": 0.6274882439048798,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 184,
+    "temperature": 0.5209095103832017,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 165,
+    "temperature": 0.22889899657363913,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 156,
+    "temperature": 0.6846733655374082,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 177,
+    "temperature": 0.7212695362664111,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 182,
+    "temperature": 0.11374821940490465,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 171,
+    "temperature": 0.5690611467404769,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.6466134713476521,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.6822455979254336,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 153,
+    "temperature": 0.8858520583267345,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.8719048688902981,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 80,
+    "temperature": 0.6123212098638451,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 152,
+    "temperature": 0.16525958635107507,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.49350483508718435,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 167,
+    "temperature": 0.6862630735115166,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 194,
+    "temperature": 0.8831897762613975,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 184,
+    "temperature": 0.6564928387613362,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 152,
+    "temperature": 0.7735776705533168,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 165,
+    "temperature": 0.8806821144356506,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 166,
+    "temperature": 0.5459877853080797,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 93,
+    "temperature": 0.8397845008023761,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 197,
+    "temperature": 0.8801551442226877,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 197,
+    "temperature": 0.39052500015845026,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 163,
+    "temperature": 0.6394582336444257,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 80,
+    "temperature": 0.31490954564191687,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 157,
+    "temperature": 0.2931782340609955,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 129,
+    "temperature": 0.35957546242559013,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 138,
+    "temperature": 0.86573596500034,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.6010110089939951,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 182,
+    "temperature": 0.6343470683483778,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.6920093862989247,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 162,
+    "temperature": 0.8004322718588084,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 128,
+    "temperature": 0.8411838434856106,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 188,
+    "temperature": 0.7193472118294156,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 165,
+    "temperature": 0.802772900980831,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 274,
+    "temperature": 0.5448186215414016,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 275,
+    "temperature": 0.586363338798268,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 163,
+    "temperature": 0.6325977190461557,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 196,
+    "temperature": 0.6388256490276452,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 165,
+    "temperature": 0.183823087149354,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 158,
+    "temperature": 0.6100981479809778,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 117,
+    "temperature": 0.8290106237342436,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 117,
+    "temperature": 0.1547737813801983,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 116,
+    "temperature": 0.5248135329102285,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 194,
+    "temperature": 0.2555826532592773,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.8352677707675966,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 148,
+    "temperature": 0.30452479701307933,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 168,
+    "temperature": 0.7659822625774896,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 164,
+    "temperature": 0.45931397179734423,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 144,
+    "temperature": 0.5084974217215197,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 180,
+    "temperature": 0.5148464874153157,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 165,
+    "temperature": 0.18842571033364336,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 196,
+    "temperature": 0.43639342103090484,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 211,
+    "temperature": 0.856012230053149,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 197,
+    "temperature": 0.39035189632356126,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 165,
+    "temperature": 0.587445146577965,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.829371612488937,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 116,
+    "temperature": 0.810970889662569,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 158,
+    "temperature": 0.4496941507815916,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 80,
+    "temperature": 0.7608969837980022,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 182,
+    "temperature": 0.5123881064276329,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 155,
+    "temperature": 0.3855907953499329,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 132,
+    "temperature": 0.5707552596555238,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 155,
+    "temperature": 0.2330596929849608,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 155,
+    "temperature": 0.41680935267114083,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 154,
+    "temperature": 0.39079336083769833,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 165,
+    "temperature": 0.31916286488417117,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 180,
+    "temperature": 0.10725190248818102,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 275,
+    "temperature": 0.2764541204926704,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 144,
+    "temperature": 0.6515318665020902,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 144,
+    "temperature": 0.7309974850099393,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 194,
+    "temperature": 0.38251615059985755,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.36658844929657497,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 55,
+    "temperature": 0.5558915511130689,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.1748491008110582,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 116,
+    "temperature": 0.5301509894879655,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 155,
+    "temperature": 0.31106489615189037,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 150,
+    "temperature": 0.4120953831818549,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 275,
+    "temperature": 0.7276905067386024,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 183,
+    "temperature": 0.15918488979745576,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 144,
+    "temperature": 0.5444762943152722,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 183,
+    "temperature": 0.5531410967657225,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 188,
+    "temperature": 0.6556245832188002,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 188,
+    "temperature": 0.625117026225624,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 196,
+    "temperature": 0.7172186086724286,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 154,
+    "temperature": 0.1317999439611846,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 170,
+    "temperature": 0.5143781450440603,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 168,
+    "temperature": 0.45703795310741213,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 238,
+    "temperature": 0.5353788605281795,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 117,
+    "temperature": 0.5609349128775218,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 173,
+    "temperature": 0.3785957662514565,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 116,
+    "temperature": 0.3054614665078648,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 182,
+    "temperature": 0.4902295405561854,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 151,
+    "temperature": 0.715019110107617,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 178,
+    "temperature": 0.7235041026084298,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 183,
+    "temperature": 0.47168785666358815,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 165,
+    "temperature": 0.6412049010897196,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 187,
+    "temperature": 0.5537738193051307,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 152,
+    "temperature": 0.5666658960859945,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 128,
+    "temperature": 0.79360532421996,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 163,
+    "temperature": 0.6522145145526199,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 163,
+    "temperature": 0.15304772630573754,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 144,
+    "temperature": 0.7696130598517879,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 193,
+    "temperature": 0.6302293661913712,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 55,
+    "temperature": 0.8936218428927264,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 116,
+    "temperature": 0.14562541274294782,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 171,
+    "temperature": 0.6515200898941705,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 153,
+    "temperature": 0.33770617128380986,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 194,
+    "temperature": 0.7904359011991837,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 162,
+    "temperature": 0.6579209525709553,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.3205601451366551,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 38,
+    "temperature": 0.30241806463896986,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 156,
+    "temperature": 0.13817209515862114,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 158,
+    "temperature": 0.5192054692010935,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 156,
+    "temperature": 0.7205006690144173,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 128,
+    "temperature": 0.8711641631432844,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.5810642343241011,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 182,
+    "temperature": 0.588047975770468,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.1419864144487204,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 68,
+    "temperature": 0.4197277764422046,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.5985881413090116,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 117,
+    "temperature": 0.3183149749908181,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.4694980202408351,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 80,
+    "temperature": 0.15268347579094455,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 167,
+    "temperature": 0.7399942372482367,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.2263916092439492,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 148,
+    "temperature": 0.13438669955187488,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 162,
+    "temperature": 0.7502394378561247,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 68,
+    "temperature": 0.8734963136492646,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 156,
+    "temperature": 0.4640263935314861,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 164,
+    "temperature": 0.5030040138608622,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 180,
+    "temperature": 0.8201389933499535,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 138,
+    "temperature": 0.15578495665704814,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.362807329612178,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.7434685422529962,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 177,
+    "temperature": 0.646660114683,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 55,
+    "temperature": 0.31861151321862213,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 153,
+    "temperature": 0.6031597153499113,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.7564343321583439,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 157,
+    "temperature": 0.7983373394693315,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 182,
+    "temperature": 0.17061727771344737,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 182,
+    "temperature": 0.8087955926363363,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.24276607464907887,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.8218878989786181,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 165,
+    "temperature": 0.2521336729641018,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 128,
+    "temperature": 0.24467139073100405,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 156,
+    "temperature": 0.2724007061669229,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 144,
+    "temperature": 0.6206663850701655,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 144,
+    "temperature": 0.2243366192632711,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 196,
+    "temperature": 0.39569405281709724,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.2977417735644795,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 171,
+    "temperature": 0.4820739429552895,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.40086127852225284,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 168,
+    "temperature": 0.13403749320088532,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 55,
+    "temperature": 0.8758217770325641,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 132,
+    "temperature": 0.8019765644718533,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 165,
+    "temperature": 0.8303099627478513,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 165,
+    "temperature": 0.3376164791485967,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 181,
+    "temperature": 0.5105765378198116,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 132,
+    "temperature": 0.16017156740209826,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 187,
+    "temperature": 0.7029610672554003,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 166,
+    "temperature": 0.30325755452716685,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 165,
+    "temperature": 0.3682302967053416,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 156,
+    "mutated_len": 188,
+    "temperature": 0.37981092380648673,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 138,
+    "temperature": 0.822157607987536,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 211,
+    "temperature": 0.8713038453677601,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 197,
+    "temperature": 0.5337896714744134,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 169,
+    "mutated_len": 165,
+    "temperature": 0.6488740789972613,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 155,
+    "temperature": 0.5247067606344752,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.26303754328142204,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 152,
+    "temperature": 0.343104261531962,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 144,
+    "mutated_len": 168,
+    "temperature": 0.7107145478022651,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 181,
+    "temperature": 0.5984016412246004,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.32826577428954784,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 152,
+    "temperature": 0.8919917845679083,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 154,
+    "mutated_len": 194,
+    "temperature": 0.21904753334783786,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 274,
+    "temperature": 0.42289184204441266,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 43,
+    "temperature": 0.8463937011165771,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 152,
+    "temperature": 0.5245065325469931,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 156,
+    "mutated_len": 152,
+    "temperature": 0.7841341778236319,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 93,
+    "temperature": 0.2628239081113296,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.5548432164136863,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 196,
+    "temperature": 0.10739361684732503,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 163,
+    "temperature": 0.43877877583150304,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.881510789887664,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 153,
+    "temperature": 0.8033152014448202,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 140,
+    "temperature": 0.2486194717952892,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 152,
+    "temperature": 0.5003332479383926,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 194,
+    "temperature": 0.5223543214042118,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 275,
+    "temperature": 0.6185663068413212,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 38,
+    "temperature": 0.24722964878256715,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 38,
+    "temperature": 0.49318799296253013,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 184,
+    "temperature": 0.19805112123550092,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 154,
+    "temperature": 0.30638421547067596,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 167,
+    "temperature": 0.4260573282295532,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 170,
+    "temperature": 0.2299376141561317,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 144,
+    "temperature": 0.8581026502054322,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.545844905726321,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 180,
+    "temperature": 0.3521596067625,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 197,
+    "temperature": 0.83364359172957,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 129,
+    "temperature": 0.5978593228050315,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 80,
+    "temperature": 0.7873822368101289,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 132,
+    "temperature": 0.8893111282206297,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 116,
+    "temperature": 0.6470779537592989,
+    "drift_type": "missing_keys"
   }
 ]
