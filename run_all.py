@@ -238,11 +238,25 @@ def run_evaluation_pipeline():
     # ── Create ONE runner, swap reconcilers between phases (avoids safetensors reload crash) ──
     runner = ExperimentRunner()
 
+    # ── GENERATE-ONLY MODE: save raw per-run JSONs, skip scoring ──
+    generate_only = '--generate-only' in sys.argv
+
     # ── PHASE 1: Full pipeline ──
     print(f'\n{"="*80}')
     print(f' PHASE 1: Full Pipeline ({n_configs} configs x 4 runs = {n_configs*4} streams)')
     print(f'{"="*80}')
     all_res_full, times_full = run_configs(runner, all_configs, 'FULL')
+
+    if generate_only:
+        raw_dir = 'results/raw'
+        os.makedirs(raw_dir, exist_ok=True)
+        for i, r in enumerate(all_res_full):
+            with open(f'{raw_dir}/run_{i:06d}.json', 'w') as f:
+                json.dump(r, f)
+        print(f'[Generate] Saved {len(all_res_full)} raw records to {raw_dir}/')
+        print('[Generate] Done. Run `python analyze.py` to compute scores.')
+        return
+
     summary_full = build_summary(all_res_full, 'full_pipeline')
 
     # ── PHASE 2: No BERT ──

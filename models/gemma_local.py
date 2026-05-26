@@ -307,6 +307,30 @@ class GemmaLocal:
 
         self.model.eval()
 
+        # Force eos_token_id to a plain Python int everywhere.
+        # On Windows ROCm the bfloat16 weight load can corrupt the
+        # generation_config eos_token_id into a garbage CUDA tensor.
+        self._sanitise_eos_token()
+
+    def _sanitise_eos_token(self):
+        """Force eos_token_id to plain Python ints, never CUDA tensors."""
+        import torch
+        t = self.tokenizer
+        gc = self.model.generation_config
+        eos = t.eos_token_id
+        if eos is None:
+            eos = []
+        elif isinstance(eos, (list, tuple)):
+            eos = [int(x.cpu()) if torch.is_tensor(x) else int(x) for x in eos]
+        else:
+            # Single value — could be a corrupted CUDA tensor or plain int
+            try:
+                eos = [int(eos)]
+            except (ValueError, TypeError, RuntimeError):
+                eos = []
+        gc.eos_token_id = eos
+        self.model.config.eos_token_id = eos[0] if eos else None
+
     def _load_model_standard(self) -> None:
         """Standard from_pretrained path used on MPS and Cloud CUDA."""
         import torch
@@ -420,9 +444,23 @@ class GemmaLocal:
         inputs = self.tokenizer(text, return_tensors="pt")
         inputs = {key: value.to(self.device) for key, value in inputs.items()}
 
+        # Sanitise eos_token_id — Windows ROCm corrupts generation_config
+        # into a list of garbage CUDA tensors. Force plain Python ints.
+        eos_ids = self.tokenizer.eos_token_id
+        if eos_ids is None:
+            eos_ids = []
+        elif isinstance(eos_ids, (list, tuple)):
+            eos_ids = [int(x.cpu()) if torch.is_tensor(x) else int(x) for x in eos_ids]
+        else:
+            eos_ids = [int(eos_ids)]
+        self.model.generation_config.eos_token_id = eos_ids
+        self.model.config.eos_token_id = eos_ids[0] if eos_ids else None
+
         generation_kwargs = {
             "max_new_tokens": int(max_new_tokens),
             "do_sample": temperature > 0.0,
+            "pad_token_id": int(self.tokenizer.pad_token_id),
+            "eos_token_id": eos_ids,
         }
         if temperature > 0.0:
             generation_kwargs["temperature"] = float(temperature)

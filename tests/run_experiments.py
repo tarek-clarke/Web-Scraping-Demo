@@ -150,6 +150,7 @@ class ExperimentRunner:
                 'gemma_latency': 0,
                 'gemma_confidence': best_confidence
             },
-            'actual_device': self.hw
+            'actual_device': self.hw,
+            'target_hz': th,
         }
         return result
