@@ -24,7 +24,8 @@ class ExperimentRunner:
         mu=bs
     chaos_trace={'strategy':cs,'level':cl,'original_len':len(str(bs)),'mutated_len':len(str(mu)),'temperature':random.uniform(0.1,0.9)} if ch else {'strategy':cs,'level':cl,'original_len':len(str(bs)),'mutated_len':len(str(bs)),'temperature':random.uniform(0.1,0.9)}
     s.l.log_chaos(chaos_trace)
-    drift_detected=s.cp.detect_drift(bs,mu)
+    # Detect drift by simple content comparison (SchemaComparer does not expose detect_drift)
+    drift_detected = str(bs) != str(mu)
     s.l.log_drift({'detected':drift_detected})
     if s.cp:
         reconciled,winner,fallback,repair_ok=s.cp.reconcile(mu,bs)
