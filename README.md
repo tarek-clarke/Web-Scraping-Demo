@@ -6,7 +6,16 @@ A high-performance semantic drift evaluation and reconciliation framework for ro
 
 ## Performance Evaluation Results (Mean Values)
 
-The framework has been benchmarked on Apple Silicon (MPS backend) using the optimized 216-run matrix under the C++ acceleration layer. Below is the summary of the evaluated mean performance metrics and a comparison of the reconciliation algorithms.
+These benchmark results are from runs labeled **`apple_silicon_arm`** (MPS backend) in the results data, and were produced on an **Apple M4 (16GB unified memory)** machine using the optimized **216-run matrix** under the C++ acceleration layer.
+
+### apple_silicon_arm (Apple M4 16GB) Results at a Glance
+- **Drift Detection Rate:** 30.74%
+- **Recovery Score:** 100.00%
+- **P95 Reconciliation Latency:** 139.58 ms
+- **Resilience Score (P / P2):** 0.6412 / 0.6530
+- **Average Run Runtime (30k packets):** 15.55 s
+
+Below is the detailed mean metric summary and reconciler comparison.
 
 ### 1. Unified Performance Metrics (Mean Results)
 | Metric | Mean Evaluated Value | Description |
