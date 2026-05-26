@@ -60,7 +60,8 @@ class GemmaChaos:
         """Use Gemma to generate a structurally drifted version of the data."""
         prompt = f"""
 You are a data mutation engine. Given the following JSON object, produce a structurally different JSON object.
-You may split fields, merge fields, rename keys, or restructure nesting.
+You may split fields, merge fields, rename keys (e.g., address -> addr, open_price -> openPx),
+or restructure nesting (wrap a field in an object or flatten an object).
 Do NOT change the meaning of the data. Return ONLY the modified JSON object.
 
 Original JSON:
@@ -77,6 +78,14 @@ Modified JSON:
                     raw_clean = raw_clean.split("```")[0]
             modified = json.loads(raw_clean)
             if isinstance(modified, dict) and modified != data:
+                # classify drift type based on diff
+                orig_keys = set(data.keys())
+                mod_keys = set(modified.keys())
+                if len(orig_keys & mod_keys) < min(len(orig_keys), len(mod_keys)):
+                    return modified, "gemma_structural_renamed"
+                for k in orig_keys & mod_keys:
+                    if type(data[k]) != type(modified[k]):
+                        return modified, "gemma_structural_nested"
                 return modified, "gemma_structural"
         except Exception:
             pass
@@ -95,7 +104,6 @@ Modified JSON:
             return data, None
         target_key = random.choice(keys)
         target_val = data[target_key]
-        # simplest split: if string with space
         if isinstance(target_val, str) and " " in target_val:
             parts = target_val.split(" ", 1)
             new_data = dict(data)
@@ -112,7 +120,6 @@ Modified JSON:
             del new_data[target_key]
             drift_type = "gemma_split"
         else:
-            # Duplicate
             new_data = dict(data)
             new_data[f"{target_key}_copy"] = target_val
             drift_type = "gemma_split_duplicate"
@@ -161,68 +168,126 @@ Modified JSON:
             )
         return new_data, drift_type
 
-    def apply_chaos(self, data: dict, drift_logger=None, run_number=1, api_source="api"):
-        """
-        Applies Gemma-level advanced semantic drift chaos based on target probability.
-        Logs every event via drift_logger.
-        Returns (mutated_data, drift_type).
-        """
-        # Always apply structural drift with gemma
-        mutated_data, drift_type = self._structural_drift(data, drift_logger, run_number, api_source)
+    def _nested_corruption(self, data: dict, drift_logger=None, run_number=1, api_source="api"):
+        """Nest a flat field into an object, or flatten a nested object."""
+        mutated = dict(data)
+        keys = list(mutated.keys())
+        if not keys:
+            return mutated, None
+        target_key = random.choice(keys)
+        target_val = mutated[target_key]
+        if isinstance(target_val, (str, int, float)) and not isinstance(target_val, bool):
+            mutated[target_key] = {"raw": target_val}
+            drift_type = "gemma_nested_corruption"
+            if drift_logger:
+                drift_logger.log_event(
+                    api_source=api_source,
+                    run_number=run_number,
+                    chaos_strategy="gemma",
+                    chaos_level=self.probability,
+                    drift_type=drift_type,
+                    original_field=target_key,
+                    mutated_field=f"{target_key}.raw",
+                    metadata={"operation": "nest"}
+                )
+        elif isinstance(target_val, dict):
+            for sub_key, sub_val in target_val.items():
+                flat_key = f"{target_key}_{sub_key}"
+                mutated[flat_key] = sub_val
+            del mutated[target_key]
+            drift_type = "gemma_nested_corruption"
+            if drift_logger:
+                drift_logger.log_event(
+                    api_source=api_source,
+                    run_number=run_number,
+                    chaos_strategy="gemma",
+                    chaos_level=self.probability,
+                    drift_type=drift_type,
+                    original_field=f"{target_key}.*",
+                    mutated_field=f"flattened_{target_key}",
+                    metadata={"operation": "flatten"}
+                )
+        else:
+            return mutated, None
+        return mutated, drift_type
 
-        # Then apply key/value mutations with given probability
-        final_data = {}
-        for key, val in mutated_data.items():
-            new_key = key
-            new_val = val
+    def _apply_balanced_chaos(self, data: dict, drift_logger=None, run_number=1, api_source="api"):
+        total_fields = len(data)
+        if total_fields == 0:
+            return data, None
+        N = max(1, int(round(self.probability * total_fields)))
+        N = min(N, total_fields)
 
-            if isinstance(val, dict):
-                final_data[key] = val
-                continue
+        drift_types_pool = [
+            "missing_keys",
+            "extra_keys",
+            "renamed_keys",
+            "split_fields",
+            "merged_fields",
+            "nested_corruption",
+            "value_contradiction"
+        ]
 
-            if random.random() < self.probability:
-                drift_type_key = random.choice(["adversarial_rename", "semantic_drift"])
-                if drift_type_key == "adversarial_rename":
-                    new_key = self._adversarial_rename_field(key)
-                    if drift_logger and new_key != key:
-                        drift_logger.log_event(
-                            api_source=api_source,
-                            run_number=run_number,
-                            chaos_strategy="gemma",
-                            chaos_level=self.probability,
-                            drift_type="adversarial_rename",
-                            original_field=key,
-                            mutated_field=new_key,
-                            metadata={"method": "gemma_synthesis"}
-                        )
+        mutated = dict(data)
+        used_keys = set()
+        drift_type_log = None
+
+        for _ in range(N):
+            drift_type = random.choice(drift_types_pool)
+            available = [k for k in mutated.keys() if k not in used_keys]
+            if not available:
+                break
+            target_key = random.choice(available)
+            used_keys.add(target_key)
+
+            if drift_type == "missing_keys":
+                del mutated[target_key]
+                drift_type_log = "missing_keys"
+            elif drift_type == "extra_keys":
+                new_key = f"{target_key}_extra"
+                mutated[new_key] = "dummy"
+                drift_type_log = "extra_keys"
+            elif drift_type == "renamed_keys":
+                new_key = self._adversarial_rename_field(target_key)
+                mutated[new_key] = mutated.pop(target_key)
+                drift_type_log = "renamed_keys"
+            elif drift_type == "split_fields":
+                mutated, _ = self._split_field(mutated, drift_logger, run_number, api_source)
+                drift_type_log = "split_fields"
+            elif drift_type == "merged_fields":
+                if len(mutated) >= 2:
+                    mutated, _ = self._merge_fields(mutated, drift_logger, run_number, api_source)
+                    drift_type_log = "merged_fields"
                 else:
-                    new_key, new_val = self._apply_semantic_drift(key, val)
-                    if drift_logger:
-                        drift_logger.log_event(
-                            api_source=api_source,
-                            run_number=run_number,
-                            chaos_strategy="gemma",
-                            chaos_level=self.probability,
-                            drift_type="semantic_drift",
-                            original_field=key,
-                            mutated_field=new_key,
-                            metadata={"mutated_value": new_val}
-                        )
+                    new_key = f"{target_key}_renamed"
+                    mutated[new_key] = mutated.pop(target_key)
+                    drift_type_log = "renamed_keys"
+            elif drift_type == "nested_corruption":
+                mutated, _ = self._nested_corruption(mutated, drift_logger, run_number, api_source)
+                drift_type_log = "nested_corruption"
+            elif drift_type == "value_contradiction":
+                val = mutated[target_key]
+                if isinstance(val, (int, float)) and not isinstance(val, bool):
+                    mutated[target_key] = val * random.uniform(0.9, 1.1)
+                elif isinstance(val, str):
+                    mutated[target_key] = val + "_mutated"
+                drift_type_log = "value_contradiction"
 
-            if new_val == val and isinstance(val, str) and random.random() < self.probability:
-                new_val = self._paraphrase_value(val)
-                if drift_logger:
-                    drift_logger.log_event(
-                        api_source=api_source,
-                        run_number=run_number,
-                        chaos_strategy="gemma",
-                        chaos_level=self.probability,
-                        drift_type="value_paraphrase",
-                        original_field=f"{new_key}_value",
-                        mutated_field=f"{new_key}_value",
-                        metadata={"original": val, "mutated": new_val}
-                    )
+            if drift_logger:
+                drift_logger.log_event(
+                    api_source=api_source,
+                    run_number=run_number,
+                    chaos_strategy="gemma",
+                    chaos_level=self.probability,
+                    drift_type=drift_type_log,
+                    original_field=target_key,
+                    mutated_field="(see metadata)",
+                    metadata={"mutation_rate": self.probability}
+                )
 
-            final_data[new_key] = new_val
+        return mutated, drift_type_log
 
-        return final_data, drift_type
+    def apply_chaos(self, data: dict, drift_logger=None, run_number=1, api_source="api"):
+        if self.probability <= 0.0:
+            return data, None
+        return self._apply_balanced_chaos(data, drift_logger, run_number, api_source)
