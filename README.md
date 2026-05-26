@@ -17,20 +17,33 @@ on real-world API schemas (Finnhub, OpenMeteo, SpaceX, OpenF1).
 
 ### Ablation Study
 
-| Condition | Detection Rate (mean ± ci95) | p95 Latency (mean ± ci95) | Resilience P (mean ± ci95) |
+| Condition | Detection Rate (mean ï¿½ ci95) | p95 Latency (mean ï¿½ ci95) | Resilience P (mean ï¿½ ci95) |
 |-----------|------|------|------|
-| full_pipeline | 0.8859 ± 0.0218 | 4397.92 ± 466.40 ms | 0.4639 ± 0.0058 |
-| ablation_no_bert | 0.8775 ± 0.0319 | 4241.14 ± 635.30 ms | 0.4309 ± 0.0122 |
-| ablation_no_gemma | 0.8846 ± 0.0307 | 4489.44 ± 638.53 ms | 0.4625 ± 0.0082 |
-| ablation_fast_only | 0.8854 ± 0.0305 | 4520.06 ± 639.05 ms | 0.4103 ± 0.0102 |
-| baseline_no_chaos | 0.0000 ± 0.0000 | 55.80 ± 3.01 ms | 0.2984 ± 0.0043 |
+| full_pipeline | 0.8859 ï¿½ 0.0218 | 4397.92 ï¿½ 466.40 ms | 0.4639 ï¿½ 0.0058 |
+| ablation_no_bert | 0.8775 ï¿½ 0.0319 | 4241.14 ï¿½ 635.30 ms | 0.4309 ï¿½ 0.0122 |
+| ablation_no_gemma | 0.8846 ï¿½ 0.0307 | 4489.44 ï¿½ 638.53 ms | 0.4625 ï¿½ 0.0082 |
+| ablation_fast_only | 0.8854 ï¿½ 0.0305 | 4520.06 ï¿½ 639.05 ms | 0.4103 ï¿½ 0.0102 |
+| baseline_no_chaos | 0.0000 ï¿½ 0.0000 | 55.80 ï¿½ 3.01 ms | 0.2984 ï¿½ 0.0043 |
 
 ## Methodology
 
-- **864 configurations**: 2 packet profiles × 3 frequencies × 3 chaos strategies × 3 levels × 4 APIs, 4 runs each
+- **864 configurations**: 2 packet profiles ï¿½ 3 frequencies ï¿½ 3 chaos strategies ï¿½ 3 levels ï¿½ 4 APIs, 4 runs each
 - **Chaos strategies**: JSON mutation, schema drift, Gemma-generated adversarial mutations
 - **Reconcilers**: Levenshtein distance, regex, BERT semantic similarity (all-MiniLM-L6-v2), Gemma-4 E4B
 - **Metrics**: Detection rate, p95 latency, repair rate, recovery score, resilience P/P2
+
+## Raw Run Methodology
+
+- **Raw generation mode**: run `python run_all.py --generate-only` to write per-run JSON artifacts.
+- **Destination**: artifacts are written to `results/raw/<hardware_token>/`.
+- **Cross-platform policy**: keep one hardware token folder per platform (HPC/CUDA, Apple Silicon/MPS, consumer GPU/ROCm or CUDA).
+- **Raw filename schema**: `run_{run:03d}_{api}_{packet}_{freq}_{chaos}_{level}_{hardware}_{drift_or_clean}.json`.
+- **Baseline filename schema**: `baseline_run_{run:03d}_{api}_{packet}_{freq}_{chaos}_{level}_{hardware}_{drift_or_clean}.json`.
+- **Baseline minimum policy**: baseline clean pipeline is topped up to at least 5 runs per baseline config by default (`--min-baseline-runs`).
+- **Run-count policy**: standard phases are controlled by `--runs-per-config` and tagged with `policy_tag` metadata.
+- **Stable metric policy**: stable means exclude run 1 and summarize runs 2..N.
+- **Provenance policy**: each run record carries `policy` + `policy_tag` metadata for reproducibility tracking.
+- **Analysis workflow**: analyze each platform independently via `python analyze.py --data-dir results/raw/<hardware_token>`.
 
 ## Hardware
 
