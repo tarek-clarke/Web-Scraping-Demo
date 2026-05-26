@@ -36,8 +36,8 @@ def parse_args():
     parser.add_argument('--generate-only', action='store_true', help='Generate raw JSON records only')
     parser.add_argument('--erase-existing', action='store_true', help='Erase existing platform result folder')
     parser.add_argument('--force-erase', action='store_true', help='Alias for --erase-existing')
-    parser.add_argument('--runs-per-config', type=int, default=4,
-                        help='Runs per configuration for standard phases (default: 4)')
+    parser.add_argument('--runs-per-config', type=int, default=5,
+                        help='Runs per configuration for standard phases (default: 5)')
     parser.add_argument('--min-baseline-runs', type=int, default=5,
                         help='Ensure baseline clean pipeline has at least this many runs per config (default: 5)')
     parser.add_argument('--policy-tag', default='tkde_policy_v1',
@@ -115,6 +115,24 @@ def baseline_raw_filename(record):
 def parse_existing_baseline_file_name(file_name):
     pattern = re.compile(
         r'^baseline_run_(\d{3})_([a-z0-9_]+)_(short|long)_(100hz|1000hz|1mhz)_(json|schema|gemma)_(high|medium|low)_.+_(clean|drift)\.json$',
+        re.IGNORECASE
+    )
+    m = pattern.match(file_name)
+    if not m:
+        return None
+    rn = int(m.group(1))
+    api = m.group(2)
+    p = m.group(3)
+    f = m.group(4)
+    x = m.group(5)
+    l = m.group(6)
+    return (p, f, x, l, api), rn
+
+
+def parse_run_file_name(file_name):
+    """Parse run_{rn:03d}_{api}_{packet}_{freq}_{chaos}_{level}_{hw}_{drift/clean}.json"""
+    pattern = re.compile(
+        r'^run_(\d{3})_([a-z0-9_]+)_(short|long)_(100hz|1000hz|1mhz)_(json|schema|gemma)_(high|medium|low)_.+_(clean|drift)\.json$',
         re.IGNORECASE
     )
     m = pattern.match(file_name)
@@ -391,7 +409,12 @@ def run_evaluation_pipeline():
         hw_token = sanitize_hw_token(d['model'])
         raw_dir = f'{raw_parent}/{hw_token}'
         os.makedirs(raw_dir, exist_ok=True)
-        for i, r in enumerate(all_res_full):
+
+        # Check existing filenames to skip
+        existing_raw = set(os.listdir(raw_dir)) if os.path.isdir(raw_dir) else set()
+
+        new_records = []
+        for r in all_res_full:
             rn = r.get('run_number', 0)
             an = r.get('api_name', 'unknown')
             pp = r.get('packet_profile', 'unknown')
@@ -401,8 +424,54 @@ def run_evaluation_pipeline():
             hw = r.get('actual_device', 'unknown').replace(' ', '_')
             dt = 'drift' if r.get('drift_detected', False) else 'clean'
             fname = f'run_{rn:03d}_{an}_{pp}_{fp}_{cs}_{cl}_{hw}_{dt}.json'
+            if fname in existing_raw:
+                print(f'[Generate] Skip existing: {fname}')
+                continue
             with open(f'{raw_dir}/{fname}', 'w') as f:
                 json.dump(r, f)
+            new_records.append(r)
+
+        # Top-up standard runs to at least runs_per_config per config
+        print(f'\n{"="*80}')
+        print(f' STANDARD TOP-UP (target >= {args.runs_per_config} runs/config)')
+        print(f'{"="*80}')
+        existing_by_cfg = {}
+        for name in os.listdir(raw_dir):
+            if not name.startswith('run_') or name.startswith('baseline_run_'):
+                continue
+            parts = name.split('_', 5)
+            if len(parts) < 5:
+                continue
+            # extract config from filename
+            parsed = parse_run_file_name(name)
+            if parsed is None:
+                continue
+            cfg, rn = parsed
+            existing_by_cfg.setdefault(cfg, set()).add(rn)
+
+        topup_plan = []
+        for cfg in all_configs:
+            present = existing_by_cfg.get(cfg, set())
+            for rn in range(1, args.runs_per_config + 1):
+                if rn not in present:
+                    topup_plan.append((*cfg, rn))
+
+        if topup_plan:
+            print(f'[Top-up] {len(topup_plan)} missing standard runs to fill.')
+            new_std, _ = run_config_plan(runner, topup_plan, 'FULL', policy_metadata)
+            for r in new_std:
+                rn = r.get('run_number', 0)
+                an = r.get('api_name', 'unknown')
+                pp = r.get('packet_profile', 'unknown')
+                fp = r.get('frequency_profile', 'unknown')
+                cs = r.get('chaos_strategy', 'unknown')
+                cl = r.get('chaos_level', 'unknown')
+                hw = r.get('actual_device', 'unknown').replace(' ', '_')
+                dt = 'drift' if r.get('drift_detected', False) else 'clean'
+                fname = f'run_{rn:03d}_{an}_{pp}_{fp}_{cs}_{cl}_{hw}_{dt}.json'
+                with open(f'{raw_dir}/{fname}', 'w') as f:
+                    json.dump(r, f)
+            new_records.extend(new_std)
 
         # Ensure baseline clean pipeline has at least N runs per config in raw dir
         print(f'\n{"="*80}')
@@ -427,8 +496,8 @@ def run_evaluation_pipeline():
         else:
             print('[Generate] Baseline already satisfies minimum run policy.')
 
-        print(f'[Generate] Saved {len(all_res_full)} raw records to {raw_dir}/')
-        print('[Generate] Done. Run `python analyze.py --data-dir results/raw/{hw_token}` to compute scores.')
+        print(f'[Generate] Total new records: {len(new_records)}')
+        print(f'[Generate] Done. Run `python analyze.py --data-dir results/raw/{hw_token}` to compute scores.')
         return
 
     summary_full = build_summary(all_res_full, 'full_pipeline')
