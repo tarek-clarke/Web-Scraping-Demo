@@ -16,7 +16,10 @@ from api.finnhub import FinnhubAPI
 from api.openmeteo import OpenMeteoAPI
 from api.spacex import SpaceXAPI
 from api.openf1 import OpenF1API
-import cpp_accel
+try:
+    import cpp_accel
+except ImportError:
+    cpp_accel = None
 
 PACKET_PROFILES = {'short': 30000, 'long': 3000000}
 FREQUENCY_PROFILES = {'100hz': 100, '1000hz': 1000, '1mhz': 1000000}
@@ -32,7 +35,7 @@ class ExperimentRunner:
         self.b = BERTModel()
         self.g = GemmaModel()
         self.cp = SchemaComparer(self.b, self.g)
-        self.l = DriftLogger()
+        self.l = DriftLogger(base_dir=os.path.join("logs", self.hw))
         self.fr = False
         self.baseline_mode = False
         self.ablation_modes = []  # empty = full pipeline; can set ['no_bert','no_gemma','no_regex','no_levenshtein']
