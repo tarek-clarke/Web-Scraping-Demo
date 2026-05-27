@@ -15,6 +15,30 @@ on real-world API schemas (Finnhub, OpenMeteo, SpaceX, OpenF1).
 | Total runs | 864 | 815 |
 | Global runtime | 418.9352 s | 11893.95 s |
 
+## Raw Platform Summaries
+
+These summaries are computed from the per-platform raw artifacts in `results/raw/` and are meant for paper drafting and evaluation.
+
+| Device token | Readable label |
+|--------------|----------------|
+| `Apple_Silicon_arm` | Apple M4 16GB |
+| `aarch64` | GH200 |
+| `NVIDIA_GeForce_RTX_5090` | NVIDIA RTX 5090 |
+| `AMD_Radeon_RX_7900_XT` | AMD RX 7900 XT |
+
+| Platform | Raw files | Baseline runs | Full runs | Mean detection rate | Mean p95 latency | Mean recovery score | Mean resilience P / P2 | Fallback used |
+|----------|-----------|---------------|-----------|---------------------|------------------|---------------------|------------------------|---------------|
+| Apple M4 16GB | 1100 | 20 | 1080 | 0.8682 | 207.984 ms | 0.9817 | 0.4295 / 0.5187 | 0 |
+| GH200 | 1100 | 20 | 1080 | 0.8755 | 7.693 ms | 0.9777 | 0.7360 / 0.7628 | 0 |
+| NVIDIA RTX 5090 | 1100 | 20 | 1080 | 0.8645 | 23.877 ms | 0.9774 | 0.6435 / 0.6881 | 0 |
+
+### Quick Read
+
+- Apple M4 16GB is the clearest MPS reference point: good recovery, but much higher latency than the CUDA platforms.
+- GH200 is the lowest-latency platform in the current raw set and is a strong candidate for the fastest-deployment comparison.
+- NVIDIA RTX 5090 sits between the two on latency while staying competitive on recovery and resilience.
+- Across these raw runs, `fallback_used` stayed at zero, so the measured behavior reflects the normal repair pipeline rather than BERT fallback.
+
 ### Ablation Study
 
 | Condition | Detection Rate (mean � ci95) | p95 Latency (mean � ci95) | Resilience P (mean � ci95) |
@@ -118,5 +142,7 @@ Notes:
 
 | Platform | GPU | Memory | Precision |
 |----------|-----|--------|-----------|
-| Apple Silicon | M4 (MPS) | Unified | float16 |
+| Apple M4 16GB | M4 (MPS) | Unified | float16 |
+| GH200 | Hopper (CUDA) | 96 GB | bfloat16 |
+| NVIDIA RTX 5090 | RTX 5090 (CUDA) | 32 GB | float16 |
 | AMD ROCm | RX 7900 XT (gfx1100) | 20 GB | bfloat16 |
