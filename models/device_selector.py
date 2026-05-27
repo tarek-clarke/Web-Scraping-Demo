@@ -2,6 +2,21 @@ import os
 import platform
 import socket
 
+
+def _format_vram_gb(total_bytes):
+    if not total_bytes:
+        return None
+    return int(round(total_bytes / (1024 ** 3)))
+
+
+def _normalize_cpu_name(value):
+    if not value:
+        return "CPU"
+    lowered = value.strip().lower()
+    if lowered in {"x86_64", "amd64", "i386", "i686", "intel64", "generic cpu", ""}:
+        return "CPU"
+    return value.strip()
+
 def detect_cloud_platform():
     """
     Detects cloud platform based on environment variables or metadata paths.
@@ -122,27 +137,39 @@ def get_device_info():
         device = "cpu" # IPEX fits cpu model runs or torch CPU backend fallback
         
     # Attempt to query model name
-    model = "Generic CPU"
+    model = "CPU"
+    gpu_name = None
+    vram_gb = None
     try:
         import torch
         if device in ["cuda", "rocm"] and torch.cuda.is_available():
             try:
-                model = torch.cuda.get_device_name(0)
+                gpu_name = torch.cuda.get_device_name(0).strip()
             except Exception:
-                model = "NVIDIA/AMD GPU"
+                gpu_name = "GPU"
+            try:
+                props = torch.cuda.get_device_properties(0)
+                vram_gb = _format_vram_gb(getattr(props, "total_memory", None))
+            except Exception:
+                vram_gb = None
+            model = gpu_name or "GPU"
+            if vram_gb:
+                model = f"{model} {vram_gb}GB"
         elif device == "mps":
             model = f"Apple Silicon ({platform.processor() or 'arm64'})"
         else:
-            model = platform.processor() or platform.machine() or "Intel/AMD CPU"
+            model = _normalize_cpu_name(platform.processor() or platform.machine() or "CPU")
     except ImportError:
         if platform.system() == "Darwin":
             model = "Apple Silicon GPU"
         else:
-            model = platform.processor() or "Generic CPU"
+            model = _normalize_cpu_name(platform.processor() or "CPU")
             
     return {
         "device": device,
         "model": model,
         "cloud": cloud,
-        "hardware_backend": hardware_backend
+        "hardware_backend": hardware_backend,
+        "gpu_name": gpu_name,
+        "vram_gb": vram_gb
     }

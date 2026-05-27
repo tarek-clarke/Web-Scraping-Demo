@@ -6,8 +6,15 @@ on real-world API schemas (Finnhub, OpenMeteo, SpaceX, OpenF1).
 
 ## Results
 
-| Metric | Apple M4 (MPS) | AMD RX 7900 XT (ROCm) |
-|--------|----------------|----------------------|
+Raw results summary from `results/raw`:
+
+| Platform | Runs | Avg p95 Latency (ms) | Detection Rate | Avg Recovery Score | Avg Resilience P | Avg Throughput (pps) |
+|----------|------|----------------------|----------------|--------------------|------------------|----------------------|
+| AMD RX 7900 XT (Windows) | 864 | 10729.033 | 0.884 | 0.979 | 0.417 | 0.111 |
+| Apple M4 16GB | 1100 | 207.984 | 0.868 | 0.982 | 0.430 | 4.862 |
+| GH200 | 1100 | 7.693 | 0.875 | 0.978 | 0.736 | 196.250 |
+| NVIDIA GeForce RTX 5090 | 1100 | 23.877 | 0.865 | 0.977 | 0.643 | 115.974 |
+| RTX 6000 Workstation | 1100 | 35.623 | 0.859 | 0.977 | 0.593 | 64.580 |
 
 ### Ablation Study
 
@@ -28,3 +35,4 @@ on real-world API schemas (Finnhub, OpenMeteo, SpaceX, OpenF1).
 |----------|-----|--------|-----------|
 | Apple Silicon | M4 (MPS) | Unified | float16 |
 | AMD ROCm | RX 7900 XT (gfx1100) | 20 GB | bfloat16 |
+| NVIDIA CUDA | RTX 6000 Workstation | 48 GB | float16 |

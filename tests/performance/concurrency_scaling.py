@@ -36,7 +36,7 @@ def print_concurrency_scaling():
     
     print("\n" + "="*60)
     print(" PERFORMANCE VALIDATION: CONCURRENCY & SCALING SCENARIOS")
-    print(f" Hardware: {device_info['device'].upper()} ({device_info['model']}) | Cloud: {cloud}")
+    print(f" Hardware: {device_info['model']} | Cloud: {cloud}")
     print("="*60)
     print(f"| Mode | Average Throughput (packets/sec) | Latency Overhead Delta (%) |")
     print(f"| :--- | :---: | :---: |")

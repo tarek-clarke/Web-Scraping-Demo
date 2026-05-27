@@ -44,7 +44,7 @@ def print_llm_chaos_comparison():
     
     print("\n" + "="*80)
     print(" PERFORMANCE VALIDATION: LLM CHAOS VS OTHER STRATEGIES COMPARISON")
-    print(f" Hardware: {device_info['device'].upper()} ({device_info['model']}) | Cloud: {cloud}")
+    print(f" Hardware: {device_info['model']} | Cloud: {cloud}")
     print("="*80)
     print(f"| Chaos Strategy | Detection Rate (%) | Recovery Score (%) | Resilience P | Resilience P2 |")
     print(f"| :--- | :---: | :---: | :---: | :---: |")

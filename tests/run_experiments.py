@@ -29,7 +29,7 @@ class ExperimentRunner:
     def __init__(self):
         d = get_device_info()
         self.d = d
-        self.h = d['device'].upper()
+        self.h = d['model']
         self.hw = d['model'].replace(' ', '_').replace('/', '_').replace('(', '').replace(')', '')
         self.c = d['cloud']
         self.b = BERTModel()

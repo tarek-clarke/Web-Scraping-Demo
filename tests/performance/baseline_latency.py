@@ -37,7 +37,7 @@ def print_baseline_latency():
     
     print("\n" + "="*60)
     print(" PERFORMANCE VALIDATION: BASELINE RECONCILIATION LATENCY")
-    print(f" Hardware: {device_info['device'].upper()} ({device_info['model']}) | Cloud: {cloud}")
+    print(f" Hardware: {device_info['model']} | Cloud: {cloud}")
     print("="*60)
     print(f"| Algorithm | p50 Latency (ms) | p95 Latency (ms) |")
     print(f"| :--- | :---: | :---: |")

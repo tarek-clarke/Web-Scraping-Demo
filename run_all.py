@@ -73,8 +73,8 @@ def build_policy_metadata(args, device_info):
             }
         },
         'device': {
-            'device': device_info.get('device', 'unknown'),
             'model': device_info.get('model', 'unknown'),
+            'vram_gb': device_info.get('vram_gb', 'unknown'),
             'cloud': device_info.get('cloud', 'unknown')
         }
     }
@@ -346,7 +346,7 @@ def update_readme(roc_data):
     lines.append('## Raw Run Methodology')
     lines.append('')
     lines.append('- **Raw mode**: `python run_all.py --generate-only` writes per-run JSON artifacts to `results/raw/<hardware_token>/`.')
-    lines.append('- **Cross-platform layout**: one folder per hardware target (for example Apple Silicon, ROCm, CUDA/HPC).')
+    lines.append('- **Cross-platform layout**: one folder per hardware target (for example Apple Silicon, NVIDIA GPU, AMD GPU).')
     lines.append('- **Raw file naming**: `run_{run:03d}_{api}_{packet}_{freq}_{chaos}_{level}_{hardware}_{drift_or_clean}.json`.')
     lines.append('- **Baseline file naming**: `baseline_run_{run:03d}_{api}_{packet}_{freq}_{chaos}_{level}_{hardware}_{drift_or_clean}.json`.')
     lines.append('- **Baseline policy**: baseline clean pipeline is topped up to at least 5 runs/config by default (`--min-baseline-runs`).')
@@ -383,8 +383,8 @@ def run_evaluation_pipeline():
     baseline_target_runs = max(1, args.min_baseline_runs)
     print('\n' + '=' * 80)
     print(' Hey! Welcome to the Semantic Drift Evaluation Pipeline Runner')
-    print(f' Hardware Platform : {d["device"].upper()}')
-    print(f' Hardware Model    : {d["model"]}')
+    print(f' Hardware Name     : {d["model"]}')
+    print(f' VRAM             : {d.get("vram_gb", "unknown")} GB')
     print(f' Cloud Environment : {d["cloud"].upper()}')
     print(f' Policy Tag        : {policy_metadata.get("policy_tag")}')
     print('=' * 80 + '\n')

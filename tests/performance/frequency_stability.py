@@ -36,7 +36,7 @@ def print_frequency_stability():
     
     print("\n" + "="*80)
     print(" PERFORMANCE VALIDATION: FREQUENCY BOUNDARY STABILITY REPORT")
-    print(f" Hardware: {device_info['device'].upper()} ({device_info['model']}) | Cloud: {cloud}")
+    print(f" Hardware: {device_info['model']} | Cloud: {cloud}")
     print("="*80)
     print(f"| Target Frequency | Actual Throughput | Frequency Jitter (ms) | Packet Drop Rate (%) |")
     print(f"| :--- | :---: | :---: | :---: |")

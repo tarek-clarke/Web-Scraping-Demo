@@ -15,7 +15,7 @@ class DriftLogger:
         
         # Get hardware and cloud platform specs
         self.device_info = get_device_info()
-        self.hardware_platform = self.device_info["device"].upper()
+        self.hardware_platform = self.device_info["model"]
         self.hardware_model = self.device_info["model"]
         self.cloud_platform = self.device_info["cloud"]
         
