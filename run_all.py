@@ -112,6 +112,25 @@ def baseline_raw_filename(record):
     return f'baseline_run_{rn:03d}_{an}_{pp}_{fp}_{cs}_{cl}_{hw}_{dt}.json'
 
 
+def standard_raw_filename(record):
+    rn = int(record.get('run_number', 0))
+    an = record.get('api_name', 'unknown')
+    pp = record.get('packet_profile', 'unknown')
+    fp = record.get('frequency_profile', 'unknown')
+    cs = record.get('chaos_strategy', 'unknown')
+    cl = record.get('chaos_level', 'unknown')
+    hw = sanitize_hw_token(record.get('actual_device', 'unknown'))
+    dt = 'drift' if record.get('drift_detected', False) else 'clean'
+    return f'run_{rn:03d}_{an}_{pp}_{fp}_{cs}_{cl}_{hw}_{dt}.json'
+
+
+def write_json_atomic(path, payload):
+    tmp_path = f'{path}.tmp'
+    with open(tmp_path, 'w') as f:
+        json.dump(payload, f)
+    os.replace(tmp_path, path)
+
+
 def parse_existing_baseline_file_name(file_name):
     pattern = re.compile(
         r'^baseline_run_(\d{3})_([a-z0-9_]+)_(short|long)_(100hz|1000hz|1mhz)_(json|schema|gemma)_(high|medium|low)_.+_(clean|drift)\.json$',
@@ -160,7 +179,7 @@ def load_existing_baseline_runs_from_raw(raw_dir):
     return existing
 
 
-def run_config_plan(runner, plan, label, policy):
+def run_config_plan(runner, plan, label, policy, on_result=None):
     all_res = []
     times = []
     n = len(plan)
@@ -174,6 +193,8 @@ def run_config_plan(runner, plan, label, policy):
             if res and 'total_runtime_sec' in res:
                 res['_label'] = label
                 attach_policy_metadata(res, policy)
+                if on_result is not None:
+                    on_result(res)
                 times.append(res['total_runtime_sec'])
                 all_res.append(res)
         except Exception as e:
@@ -181,12 +202,12 @@ def run_config_plan(runner, plan, label, policy):
     return all_res, times
 
 
-def run_configs(runner, configs, label, policy, run_numbers):
+def run_configs(runner, configs, label, policy, run_numbers, on_result=None):
     plan = []
     for (p, f, x, l, a) in configs:
         for rn in run_numbers:
             plan.append((p, f, x, l, a, rn))
-    return run_config_plan(runner, plan, label, policy)
+    return run_config_plan(runner, plan, label, policy, on_result=on_result)
 
 
 def build_summary(all_res, label):
@@ -398,38 +419,56 @@ def run_evaluation_pipeline():
     # ── Create ONE runner, swap reconcilers between phases (avoids safetensors reload crash) ──
     runner = ExperimentRunner()
 
-    # ── PHASE 1: Full pipeline ──
-    print(f'\n{"="*80}')
-    print(f' PHASE 1: Full Pipeline ({n_configs} configs x {len(run_numbers)} runs = {n_configs*len(run_numbers)} streams)')
-    print(f'{"="*80}')
-    all_res_full, times_full = run_configs(runner, all_configs, 'FULL', policy_metadata, run_numbers)
-
+    raw_dir = None
     if args.generate_only:
         raw_parent = 'results/raw'
         hw_token = sanitize_hw_token(d['model'])
         raw_dir = f'{raw_parent}/{hw_token}'
         os.makedirs(raw_dir, exist_ok=True)
 
-        # Check existing filenames to skip
-        existing_raw = set(os.listdir(raw_dir)) if os.path.isdir(raw_dir) else set()
+        def write_standard_raw(record):
+            write_json_atomic(f'{raw_dir}/{standard_raw_filename(record)}', record)
 
-        new_records = []
-        for r in all_res_full:
-            rn = r.get('run_number', 0)
-            an = r.get('api_name', 'unknown')
-            pp = r.get('packet_profile', 'unknown')
-            fp = r.get('frequency_profile', 'unknown')
-            cs = r.get('chaos_strategy', 'unknown')
-            cl = r.get('chaos_level', 'unknown')
-            hw = r.get('actual_device', 'unknown').replace(' ', '_')
-            dt = 'drift' if r.get('drift_detected', False) else 'clean'
-            fname = f'run_{rn:03d}_{an}_{pp}_{fp}_{cs}_{cl}_{hw}_{dt}.json'
-            if fname in existing_raw:
-                print(f'[Generate] Skip existing: {fname}')
+        def write_baseline_raw(record):
+            write_json_atomic(f'{raw_dir}/{baseline_raw_filename(record)}', record)
+
+        existing_by_cfg = {}
+        for name in os.listdir(raw_dir):
+            if not name.startswith('run_') or name.startswith('baseline_run_'):
                 continue
-            with open(f'{raw_dir}/{fname}', 'w') as f:
-                json.dump(r, f)
-            new_records.append(r)
+            parsed = parse_run_file_name(name)
+            if parsed is None:
+                continue
+            cfg, rn = parsed
+            existing_by_cfg.setdefault(cfg, set()).add(rn)
+
+        phase1_plan = []
+        for cfg in all_configs:
+            present = existing_by_cfg.get(cfg, set())
+            for rn in run_numbers:
+                if rn not in present:
+                    phase1_plan.append((*cfg, rn))
+    else:
+        phase1_plan = []
+        for (p, f, x, l, a) in all_configs:
+            for rn in run_numbers:
+                phase1_plan.append((p, f, x, l, a, rn))
+
+    # ── PHASE 1: Full pipeline ──
+    print(f'\n{"="*80}')
+    print(f' PHASE 1: Full Pipeline ({len(phase1_plan)} streams planned)')
+    print(f'{"="*80}')
+    all_res_full, times_full = run_config_plan(
+        runner,
+        phase1_plan,
+        'FULL',
+        policy_metadata,
+        on_result=write_standard_raw if args.generate_only else None
+    )
+
+    if args.generate_only:
+        hw_token = sanitize_hw_token(d['model'])
+        new_records = list(all_res_full)
 
         # Top-up standard runs to at least runs_per_config per config
         print(f'\n{"="*80}')
@@ -458,19 +497,13 @@ def run_evaluation_pipeline():
 
         if topup_plan:
             print(f'[Top-up] {len(topup_plan)} missing standard runs to fill.')
-            new_std, _ = run_config_plan(runner, topup_plan, 'FULL', policy_metadata)
-            for r in new_std:
-                rn = r.get('run_number', 0)
-                an = r.get('api_name', 'unknown')
-                pp = r.get('packet_profile', 'unknown')
-                fp = r.get('frequency_profile', 'unknown')
-                cs = r.get('chaos_strategy', 'unknown')
-                cl = r.get('chaos_level', 'unknown')
-                hw = r.get('actual_device', 'unknown').replace(' ', '_')
-                dt = 'drift' if r.get('drift_detected', False) else 'clean'
-                fname = f'run_{rn:03d}_{an}_{pp}_{fp}_{cs}_{cl}_{hw}_{dt}.json'
-                with open(f'{raw_dir}/{fname}', 'w') as f:
-                    json.dump(r, f)
+            new_std, _ = run_config_plan(
+                runner,
+                topup_plan,
+                'FULL',
+                policy_metadata,
+                on_result=write_standard_raw
+            )
             new_records.extend(new_std)
 
         # Ensure baseline clean pipeline has at least N runs per config in raw dir
@@ -488,10 +521,13 @@ def run_evaluation_pipeline():
 
         if baseline_plan:
             runner.baseline_mode = True
-            new_baseline_records, _ = run_config_plan(runner, baseline_plan, 'BASELINE', policy_metadata)
-            for r in new_baseline_records:
-                with open(f'{raw_dir}/{baseline_raw_filename(r)}', 'w') as f:
-                    json.dump(r, f)
+            new_baseline_records, _ = run_config_plan(
+                runner,
+                baseline_plan,
+                'BASELINE',
+                policy_metadata,
+                on_result=write_baseline_raw
+            )
             print(f'[Generate] Baseline top-up generated {len(new_baseline_records)} new baseline records.')
         else:
             print('[Generate] Baseline already satisfies minimum run policy.')

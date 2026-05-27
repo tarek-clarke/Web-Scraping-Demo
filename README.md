@@ -45,6 +45,50 @@ on real-world API schemas (Finnhub, OpenMeteo, SpaceX, OpenF1).
 - **Provenance policy**: each run record carries `policy` + `policy_tag` metadata for reproducibility tracking.
 - **Analysis workflow**: analyze each platform independently via `python analyze.py --data-dir results/raw/<hardware_token>`.
 
+## New Cloud Instance Quickstart
+
+Use this on a fresh Linux cloud VM/instance. It clones the repo, builds a venv, installs deps,
+checks that the backend is GPU-enabled, runs top-up generation without erasing existing outputs,
+and runs post-hoc analysis.
+
+```bash
+set -euo pipefail
+
+git clone https://github.com/tarek-clarke/resilient-rap-framework.git
+cd resilient-rap-framework
+git checkout semantic_only
+
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+
+# Verify backend (ROCm/CUDA should report available=True)
+python - <<'PY'
+import torch
+from models.device_selector import get_device_info
+print('torch', torch.__version__)
+print('cuda_available', torch.cuda.is_available())
+print('hip', getattr(torch.version, 'hip', None))
+print(get_device_info())
+PY
+
+# Keep existing outputs and fill only missing runs
+printf 'N\n' | python run_all.py --generate-only
+
+# Recompute summary metrics from raw files for this hardware folder
+HW_TOKEN=$(python - <<'PY'
+from models.device_selector import get_device_info
+v = get_device_info().get('model', 'unknown')
+print(v.replace(' ', '_').replace('/', '_').replace('(', '').replace(')', ''))
+PY
+)
+python analyze.py --data-dir "results/raw/${HW_TOKEN}"
+```
+
+If your cloud image has a CPU-only PyTorch wheel, install the correct ROCm or CUDA wheel first,
+then rerun the backend verification block above.
+
 ## Hardware
 
 | Platform | GPU | Memory | Precision |
