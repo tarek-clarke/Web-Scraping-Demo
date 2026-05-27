@@ -89,6 +89,31 @@ python analyze.py --data-dir "results/raw/${HW_TOKEN}"
 If your cloud image has a CPU-only PyTorch wheel, install the correct ROCm or CUDA wheel first,
 then rerun the backend verification block above.
 
+## Apple Silicon Rerun
+
+Use this on your Macbook when you want to wipe the Apple figures and rebuild raw data in the same style as the AMD 7900 XT and NVIDIA 5090 runs.
+
+```bash
+set -euo pipefail
+
+cd /Users/tarekclarke/resilient-rap-clean/resilient-rap-semantic
+
+# Optional: wipe the old Apple summary/figure outputs
+rm -rf results/Apple_Silicon_arm
+
+# Regenerate raw Apple Silicon records and top up missing runs to 5 per profile
+python3 run_all.py --generate-only
+
+# If you also want the non-raw summaries/ablation outputs, run the full pipeline instead:
+# python3 run_all.py
+```
+
+Notes:
+- Leave the erase prompt as `N` if you want to keep any existing raw records and only fill missing runs.
+- Do not pass `--skip-git-push` if you want the run to auto-push to GitHub when it finishes.
+- `--generate-only` writes the raw per-run JSONs under `results/raw/Apple_Silicon_arm/` and avoids redoing completed profiles.
+- The default run policy now targets 5 runs per profile, so if Apple raw already has runs 1..3, it will only compute runs 4 and 5.
+
 ## Hardware
 
 | Platform | GPU | Memory | Precision |
