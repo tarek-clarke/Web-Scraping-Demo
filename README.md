@@ -8,15 +8,29 @@ on real-world API schemas (Finnhub, OpenMeteo, SpaceX, OpenF1).
 
 Raw results summary from `results/raw`:
 
+Average metrics computed across raw per-run JSONs.
+
+**Table: Average of runs 1–5 (inclusive)**
+
 | Platform | Runs | Avg p95 Latency (ms) | Detection Rate | Avg Recovery Score | Avg Resilience P | Avg Throughput (pps) |
-|----------|------|----------------------|----------------|--------------------|------------------|----------------------|
-| AMD RX 7900 XT (Windows) | 864 | 10729.033 | 0.884 | 0.979 | 0.417 | 0.111 |
-| Apple M4 16GB | 1100 | 207.984 | 0.868 | 0.982 | 0.430 | 4.862 |
-| GH200 | 1100 | 7.693 | 0.875 | 0.978 | 0.736 | 196.250 |
-| NVIDIA B300 268GB | 1100 | 25.818 | 0.854 | 0.982 | 0.582 | 51.284 |
-| NVIDIA GeForce RTX 5090 | 1100 | 23.877 | 0.865 | 0.977 | 0.643 | 115.974 |
-| NVIDIA H200 140GB | 1100 | 8.586 | 0.877 | 0.978 | 0.732 | 163.988 |
-| RTX 6000 Workstation | 1100 | 35.623 | 0.859 | 0.977 | 0.593 | 64.580 |
+|--------|----|--------------------|--------------|------------------|----------------|--------------------|
+| Apple M4 16GB | 5 | 208.127 | 0.884 | 0.981 | 0.433 | 4.858 |
+| GH200 | 5 | 7.679 | 0.892 | 0.977 | 0.736 | 197.682 |
+| NVIDIA_B300_SXM6_AC_268GB | 5 | 25.935 | 0.869 | 0.982 | 0.584 | 51.283 |
+| NVIDIA_GeForce_RTX_5090 | 5 | 24.101 | 0.881 | 0.977 | 0.643 | 116.374 |
+| NVIDIA_H200_140GB | 5 | 8.554 | 0.894 | 0.978 | 0.732 | 165.231 |
+| RTX 6000 Workstation | 5 | 35.837 | 0.875 | 0.977 | 0.596 | 65.006 |
+
+**Table: Average of runs 2–5 (drop run 1 to reduce cold-start effects)**
+
+| Platform | Runs | Avg p95 Latency (ms) | Detection Rate | Avg Recovery Score | Avg Resilience P | Avg Throughput (pps) |
+|--------|----|--------------------|--------------|------------------|----------------|--------------------|
+| Apple M4 16GB | 5 | 207.640 | 0.888 | 0.981 | 0.434 | 4.867 |
+| GH200 | 5 | 7.683 | 0.899 | 0.977 | 0.738 | 197.324 |
+| NVIDIA_B300_SXM6_AC_268GB | 5 | 19.956 | 0.872 | 0.982 | 0.584 | 51.290 |
+| NVIDIA_GeForce_RTX_5090 | 5 | 24.213 | 0.872 | 0.977 | 0.641 | 115.264 |
+| NVIDIA_H200_140GB | 5 | 8.562 | 0.899 | 0.978 | 0.734 | 164.839 |
+| RTX 6000 Workstation | 5 | 35.881 | 0.870 | 0.977 | 0.595 | 64.777 |
 
 ### Ablation Study
 
@@ -24,7 +38,7 @@ Full-pipeline sweep across all hardware targets:
 
 | Hardware | Runs | Detection Rate (mean ± ci95) | p95 Latency (mean ± ci95) | Resilience P (mean ± ci95) |
 |----------|------|------------------------------|---------------------------|----------------------------|
-| AMD RX 7900 XT (Windows) | 1080 | 0.8843 ± 0.0213 | 10729.03 ± 333.51 ms | 0.4172 ± 0.0053 |
+| AMD RX 7900 XT (Windows) | 864 | 0.8843 ± 0.0213 | 10729.03 ± 333.51 ms | 0.4172 ± 0.0053 |
 | Apple M4 16GB | 1080 | 0.8843 ± 0.0191 | 208.13 ± 1.34 ms | 0.4333 ± 0.0047 |
 | GH200 | 1080 | 0.8917 ± 0.0185 | 7.68 ± 0.26 ms | 0.7357 ± 0.0101 |
 | NVIDIA B300 268GB | 1080 | 0.8694 ± 0.0201 | 25.94 ± 11.75 ms | 0.5836 ± 0.0071 |
