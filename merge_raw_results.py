@@ -109,6 +109,38 @@ def write_json_file(path: str, data):
         json.dump(data, f, indent=2)
 
 
+def csv_cell(value):
+    if value is None:
+        text = ""
+    elif isinstance(value, (dict, list, tuple)):
+        text = json.dumps(value, ensure_ascii=False)
+    else:
+        text = str(value)
+    return json.dumps(text, ensure_ascii=False)
+
+
+def collect_fieldnames(entries):
+    preferred = ['hardware', 'source_file', 'run_id', 'vram_gb', 'cpu_model', 'ram_gb']
+    fieldnames = list(preferred)
+    seen = set(fieldnames)
+
+    for entry in entries:
+        for key in entry.keys():
+            if key not in seen:
+                seen.add(key)
+                fieldnames.append(key)
+
+    return fieldnames
+
+
+def write_csv_file(path: str, entries):
+    fieldnames = collect_fieldnames(entries)
+    with open(path, 'w') as f:
+        f.write(','.join(csv_cell(field) for field in fieldnames) + '\n')
+        for entry in entries:
+            f.write(','.join(csv_cell(entry.get(field, "")) for field in fieldnames) + '\n')
+
+
 def merge_raw_results(raw_dir='results/raw', output_file='combined_results.json', per_hardware_dir='hardware_results'):
     """
     Merge all run JSONs from raw_dir into a single output file.
@@ -190,17 +222,20 @@ def merge_raw_results(raw_dir='results/raw', output_file='combined_results.json'
     
     # Write combined results
     write_json_file(output_file, all_entries)
+    write_csv_file(os.path.splitext(output_file)[0] + '.csv', all_entries)
 
     os.makedirs(per_hardware_dir, exist_ok=True)
     for hardware_name, hardware_entries in sorted(entries_by_hardware.items()):
         hardware_file = os.path.join(per_hardware_dir, f"{safe_filename(hardware_name)}.json")
         write_json_file(hardware_file, hardware_entries)
+        write_csv_file(os.path.splitext(hardware_file)[0] + '.csv', hardware_entries)
     
     print(f"\nMerge complete:")
     print(f"  Total files processed: {total_files}")
     print(f"  Valid entries written: {valid_entries}")
     print(f"  Output file: {os.path.abspath(output_file)}")
     print(f"  Per-hardware directory: {os.path.abspath(per_hardware_dir)}")
+    print(f"  CSV outputs written alongside JSON files")
 
 
 if __name__ == '__main__':
