@@ -203,7 +203,7 @@ def run_preflight_checks(require_gpu=True, cpu_allowed=False, require_local_mode
 
     # ── D: BERT availability ──
     try:
-        bert = BERTModel()
+        bert = BERTModel(allow_internet=not require_local_models)
         bert_available = bert.is_loaded
         if bert_available:
             model_source["bert"] = getattr(bert, "model_source", "local")
