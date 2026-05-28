@@ -14,7 +14,7 @@ Average metrics computed across raw per-run JSONs.
 
 | Platform | Runs | Avg p95 Latency (ms) | Detection Rate | Avg Recovery Score | Avg Resilience P | Avg Throughput (pps) |
 |--------|----|--------------------|--------------|------------------|----------------|--------------------|
-| AMD_Radeon_RX_7900_XT | 4 | 10729.033 | 0.884 | 0.979 | 0.417 | 0.111 |
+| AMD_Radeon_RX_7900_XT_20GB | 5 | 546.990 | 0.862 | 0.981 | 0.443 | 9.555 |
 | Apple M4 16GB | 5 | 208.127 | 0.884 | 0.981 | 0.433 | 4.858 |
 | GH200 | 5 | 7.679 | 0.892 | 0.977 | 0.736 | 197.682 |
 | NVIDIA_B200_178GB | 5 | 34.033 | 0.896 | 0.980 | 0.538 | 36.946 |
@@ -28,7 +28,7 @@ Average metrics computed across raw per-run JSONs.
 
 | Platform | Runs | Avg p95 Latency (ms) | Detection Rate | Avg Recovery Score | Avg Resilience P | Avg Throughput (pps) |
 |--------|----|--------------------|--------------|------------------|----------------|--------------------|
-| AMD_Radeon_RX_7900_XT | 4 | 10657.265 | 0.897 | 0.979 | 0.420 | 0.111 |
+| AMD_Radeon_RX_7900_XT_20GB | 5 | 545.515 | 0.855 | 0.981 | 0.442 | 9.576 |
 | Apple M4 16GB | 5 | 207.640 | 0.888 | 0.981 | 0.434 | 4.867 |
 | GH200 | 5 | 7.683 | 0.899 | 0.977 | 0.738 | 197.324 |
 | NVIDIA_B200_178GB | 5 | 33.285 | 0.894 | 0.980 | 0.538 | 36.975 |
@@ -44,10 +44,13 @@ Full-pipeline sweep across all hardware targets:
 
 | Hardware | Runs | Detection Rate (mean ± ci95) | p95 Latency (mean ± ci95) | Resilience P (mean ± ci95) |
 |----------|------|------------------------------|---------------------------|----------------------------|
+| AMD RX 7900 XT (Windows) | 1080 | 0.8620 ± 0.0264 | 546.99 ± 2.91 ms | 0.4433 ± 0.0061 |
 | Apple M4 16GB | 1080 | 0.8843 ± 0.0191 | 208.13 ± 1.34 ms | 0.4333 ± 0.0047 |
 | GH200 | 1080 | 0.8917 ± 0.0185 | 7.68 ± 0.26 ms | 0.7357 ± 0.0101 |
+| NVIDIA B200 178GB | 1080 | 0.8963 ± 0.0110 | 34.03 ± 2.26 ms | 0.5385 ± 0.0022 |
 | NVIDIA B300 268GB | 1080 | 0.8694 ± 0.0201 | 25.94 ± 11.75 ms | 0.5836 ± 0.0071 |
 | NVIDIA GeForce RTX 5090 | 1080 | 0.8806 ± 0.0194 | 24.10 ± 1.43 ms | 0.6430 ± 0.0110 |
+| NVIDIA H100 80GB HBM3 79GB | 1080 | 0.8898 ± 0.0173 | 14.24 ± 0.87 ms | 0.7148 ± 0.0040 |
 | NVIDIA H200 140GB | 1080 | 0.8935 ± 0.0184 | 8.55 ± 0.25 ms | 0.7321 ± 0.0105 |
 | RTX 6000 Workstation | 1080 | 0.8750 ± 0.0197 | 35.84 ± 1.88 ms | 0.5961 ± 0.0105 |
 
@@ -62,8 +65,11 @@ Full-pipeline sweep across all hardware targets:
 
 ## Cloud Instance Setup
 
+- **AMD RX 7900 XT**: Windows-based workstation with 20 GB VRAM — on-premise ROCm evaluation
 - **GH200**: NVIDIA Grace Hopper (native, 141 GB HBM3) — on-premise evaluation node
+- **NVIDIA B200 178GB**: NVIDIA Blackwell datacenter node — on-premise evaluation node
 - **NVIDIA B300 268GB**: NVIDIA Blackwell datacenter node — on-premise evaluation node
+- **NVIDIA H100 80GB HBM3 79GB**: NVIDIA Hopper datacenter node — on-premise evaluation node
 - **NVIDIA H200 140GB**: NVIDIA Hopper datacenter node — on-premise evaluation node
 - **NVIDIA RTX 5090**: Standalone workstation — on-premise evaluation node
 - **RTX 6000 Workstation**: Vast.ai GPU marketplace — remote instance provisioning
