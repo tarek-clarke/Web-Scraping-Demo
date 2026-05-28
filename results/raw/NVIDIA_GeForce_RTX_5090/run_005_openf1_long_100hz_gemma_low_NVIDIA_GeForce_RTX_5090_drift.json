@@ -1,1 +1,86 @@
-{"timing_us": 68722, "throughput_bytes_per_sec": 53911262, "throughput_pps": 14.55138092604988, "packet_size": 3000000, "packet_count": 1, "chaos_metadata": {"strategy": "gemma", "level": "low", "original_len": 144, "mutated_len": 80, "temperature": 0.2337104658391528, "drift_type": "type_mismatch"}, "device": {"device": "CUDA", "hardware": "NVIDIA_GeForce_RTX_5090", "cloud": "vast.ai"}, "drift_detected": true, "drift_types": {"missing_keys": 0, "extra_keys": 0, "renamed_keys": 0, "type_mismatch": 0, "value_contradiction": 0, "split_fields": 0, "merged_fields": 0, "nested_corruption": 1}, "drift_type_count": 1, "reconciled_ok": true, "reconciliation_winner": "canonical", "fallback_used": false, "repair_rate": 1.0, "recovery_score": 0.9825100947624915, "resilience_P": 0.5265346140457726, "resilience_P2": 0.6111087378578474, "detection_rate": 1.0, "p95_latency_ms": 68.722, "total_runtime_sec": 0.068722, "run_number": 5, "concurrency": 1, "api_name": "openf1", "packet_profile": "long", "frequency_profile": "100hz", "chaos_strategy": "gemma", "chaos_level": "low", "elapsed_seconds": 0.068722, "averages": {"levenshtein_latency": 0, "regex_latency": 0, "bert_latency": 0, "gemma_latency": 0, "gemma_confidence": 1.0}, "actual_device": "NVIDIA_GeForce_RTX_5090", "target_hz": 100, "_label": "FULL", "policy": {"policy_tag": "tkde_policy_v1", "cross_platform_parity_required": true, "baseline_min_runs_per_config": 5, "standard_runs_per_config": 5, "stable_window_excludes_run_1": true, "reproducibility": {"git_commit": "efcdee1ae68f6269ea6f1fc53dea5d45f9f51f49", "python_version": "3.12.13", "platform": "Linux-6.8.0-83-generic-x86_64-with-glibc2.39", "machine": "x86_64", "processor": "x86_64", "seed_env": {"PYTHONHASHSEED": "", "SEMANTIC_SEED": ""}}, "device": {"device": "cuda", "model": "NVIDIA GeForce RTX 5090", "cloud": "vast.ai"}}, "policy_tag": "tkde_policy_v1"}
+{
+  "timing_us": 68722,
+  "throughput_bytes_per_sec": 53911262,
+  "throughput_pps": 14.55138092604988,
+  "packet_size": 3000000,
+  "packet_count": 1,
+  "chaos_metadata": {
+    "strategy": "gemma",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 80,
+    "temperature": 0.2337104658391528,
+    "drift_type": "type_mismatch"
+  },
+  "device": {
+    "device": "CUDA",
+    "hardware": "NVIDIA_GeForce_RTX_5090",
+    "cloud": "vast.ai"
+  },
+  "drift_detected": true,
+  "drift_types": {
+    "missing_keys": 0,
+    "extra_keys": 0,
+    "renamed_keys": 0,
+    "type_mismatch": 0,
+    "value_contradiction": 0,
+    "split_fields": 0,
+    "merged_fields": 0,
+    "nested_corruption": 1
+  },
+  "drift_type_count": 1,
+  "reconciled_ok": true,
+  "reconciliation_winner": "canonical",
+  "fallback_used": false,
+  "repair_rate": 1.0,
+  "recovery_score": 0.9825100947624915,
+  "resilience_P": 0.5265346140457726,
+  "resilience_P2": 0.6111087378578474,
+  "detection_rate": 1.0,
+  "p95_latency_ms": 68.722,
+  "total_runtime_sec": 0.068722,
+  "run_number": 5,
+  "concurrency": 1,
+  "api_name": "openf1",
+  "packet_profile": "long",
+  "frequency_profile": "100hz",
+  "chaos_strategy": "gemma",
+  "chaos_level": "low",
+  "elapsed_seconds": 0.068722,
+  "averages": {
+    "levenshtein_latency": 0,
+    "regex_latency": 0,
+    "bert_latency": 0,
+    "gemma_latency": 0,
+    "gemma_confidence": 1.0
+  },
+  "actual_device": "NVIDIA_GeForce_RTX_5090",
+  "target_hz": 100,
+  "_label": "FULL",
+  "policy": {
+    "policy_tag": "tkde_policy_v1",
+    "cross_platform_parity_required": true,
+    "baseline_min_runs_per_config": 5,
+    "standard_runs_per_config": 5,
+    "stable_window_excludes_run_1": true,
+    "reproducibility": {
+      "git_commit": "efcdee1ae68f6269ea6f1fc53dea5d45f9f51f49",
+      "python_version": "3.12.13",
+      "platform": "Linux-6.8.0-83-generic-x86_64-with-glibc2.39",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "seed_env": {
+        "PYTHONHASHSEED": "",
+        "SEMANTIC_SEED": ""
+      }
+    },
+    "device": {
+      "device": "cuda",
+      "model": "NVIDIA GeForce RTX 5090",
+      "cloud": "vast.ai"
+    }
+  },
+  "policy_tag": "tkde_policy_v1",
+  "hardware": "NVIDIA_GeForce_RTX_5090",
+  "vram_gb": ""
+}

@@ -1,0 +1,86 @@
+{
+  "timing_us": 4520,
+  "throughput_bytes_per_sec": 1428571428,
+  "throughput_pps": 221.23893805309737,
+  "packet_size": 30000,
+  "packet_count": 1,
+  "chaos_metadata": {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 129,
+    "temperature": 0.7791569059274259,
+    "drift_type": "type_mismatch"
+  },
+  "device": {
+    "device": "NVIDIA H100 80GB HBM3 79GB",
+    "hardware": "NVIDIA_H100_80GB_HBM3_79GB",
+    "cloud": "vast.ai"
+  },
+  "drift_detected": true,
+  "drift_types": {
+    "missing_keys": 0,
+    "extra_keys": 0,
+    "renamed_keys": 0,
+    "type_mismatch": 1,
+    "value_contradiction": 0,
+    "split_fields": 0,
+    "merged_fields": 0,
+    "nested_corruption": 0
+  },
+  "drift_type_count": 1,
+  "reconciled_ok": true,
+  "reconciliation_winner": "canonical",
+  "fallback_used": false,
+  "repair_rate": 1.0,
+  "recovery_score": 0.9554327299267988,
+  "resilience_P": 0.6411639796136783,
+  "resilience_P2": 0.6889245541631156,
+  "detection_rate": 1.0,
+  "p95_latency_ms": 4.52,
+  "total_runtime_sec": 0.00452,
+  "run_number": 3,
+  "concurrency": 1,
+  "api_name": "openf1",
+  "packet_profile": "short",
+  "frequency_profile": "1mhz",
+  "chaos_strategy": "schema",
+  "chaos_level": "low",
+  "elapsed_seconds": 0.00452,
+  "averages": {
+    "levenshtein_latency": 0,
+    "regex_latency": 0,
+    "bert_latency": 0,
+    "gemma_latency": 0,
+    "gemma_confidence": 1.0
+  },
+  "actual_device": "NVIDIA_H100_80GB_HBM3_79GB",
+  "target_hz": 1000000,
+  "_label": "FULL",
+  "policy": {
+    "policy_tag": "tkde_policy_v1",
+    "cross_platform_parity_required": true,
+    "baseline_min_runs_per_config": 5,
+    "standard_runs_per_config": 5,
+    "stable_window_excludes_run_1": true,
+    "reproducibility": {
+      "git_commit": "7ec4aa09d16bb564ed20f6bdaf8ca6e38c94dd5d",
+      "python_version": "3.12.13",
+      "platform": "Linux-6.8.0-1046-nvidia-x86_64-with-glibc2.39",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "seed_env": {
+        "PYTHONHASHSEED": "",
+        "SEMANTIC_SEED": ""
+      }
+    },
+    "device": {
+      "model": "NVIDIA H100 80GB HBM3 79GB",
+      "vram_gb": 79,
+      "cloud": "vast.ai"
+    }
+  },
+  "policy_tag": "tkde_policy_v1",
+  "hardware": "NVIDIA_H100_80GB_HBM3_80GB",
+  "vram_gb": 80
+}

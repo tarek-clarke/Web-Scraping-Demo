@@ -1,1 +1,86 @@
-{"timing_us": 10368, "throughput_bytes_per_sec": 100000000, "throughput_pps": 96.4506172839506, "packet_size": 30000, "packet_count": 1, "chaos_metadata": {"strategy": "json", "level": "low", "original_len": 154, "mutated_len": 154, "temperature": 0.7103237068165874, "drift_type": null}, "device": {"device": "NVIDIA H200 140GB", "hardware": "NVIDIA_H200_140GB", "cloud": "local"}, "drift_detected": false, "drift_types": {"missing_keys": 0, "extra_keys": 0, "renamed_keys": 0, "type_mismatch": 0, "value_contradiction": 0, "split_fields": 0, "merged_fields": 0, "nested_corruption": 0}, "drift_type_count": 0, "reconciled_ok": true, "reconciliation_winner": "canonical", "fallback_used": false, "repair_rate": 0.0, "recovery_score": 1.0, "resilience_P": 0.7304783950617283, "resilience_P2": 0.6840277777777778, "detection_rate": 0.0, "p95_latency_ms": 10.368, "total_runtime_sec": 0.010368, "run_number": 5, "concurrency": 1, "api_name": "finnhub", "packet_profile": "short", "frequency_profile": "100hz", "chaos_strategy": "json", "chaos_level": "low", "elapsed_seconds": 0.010368, "averages": {"levenshtein_latency": 0, "regex_latency": 0, "bert_latency": 0, "gemma_latency": 0, "gemma_confidence": 1.0}, "actual_device": "NVIDIA_H200_140GB", "target_hz": 100, "_label": "BASELINE", "policy": {"policy_tag": "tkde_policy_v1", "cross_platform_parity_required": true, "baseline_min_runs_per_config": 5, "standard_runs_per_config": 5, "stable_window_excludes_run_1": true, "reproducibility": {"git_commit": "0787e79ecd0accb55387471c294469adaa54bf14", "python_version": "3.10.12", "platform": "Linux-5.15.0-177-generic-x86_64-with-glibc2.35", "machine": "x86_64", "processor": "x86_64", "seed_env": {"PYTHONHASHSEED": "", "SEMANTIC_SEED": ""}}, "device": {"model": "NVIDIA H200 140GB", "vram_gb": 140, "cloud": "local"}}, "policy_tag": "tkde_policy_v1"}
+{
+  "timing_us": 10368,
+  "throughput_bytes_per_sec": 100000000,
+  "throughput_pps": 96.4506172839506,
+  "packet_size": 30000,
+  "packet_count": 1,
+  "chaos_metadata": {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 154,
+    "temperature": 0.7103237068165874,
+    "drift_type": null
+  },
+  "device": {
+    "device": "NVIDIA H200 140GB",
+    "hardware": "NVIDIA_H200_140GB",
+    "cloud": "local"
+  },
+  "drift_detected": false,
+  "drift_types": {
+    "missing_keys": 0,
+    "extra_keys": 0,
+    "renamed_keys": 0,
+    "type_mismatch": 0,
+    "value_contradiction": 0,
+    "split_fields": 0,
+    "merged_fields": 0,
+    "nested_corruption": 0
+  },
+  "drift_type_count": 0,
+  "reconciled_ok": true,
+  "reconciliation_winner": "canonical",
+  "fallback_used": false,
+  "repair_rate": 0.0,
+  "recovery_score": 1.0,
+  "resilience_P": 0.7304783950617283,
+  "resilience_P2": 0.6840277777777778,
+  "detection_rate": 0.0,
+  "p95_latency_ms": 10.368,
+  "total_runtime_sec": 0.010368,
+  "run_number": 5,
+  "concurrency": 1,
+  "api_name": "finnhub",
+  "packet_profile": "short",
+  "frequency_profile": "100hz",
+  "chaos_strategy": "json",
+  "chaos_level": "low",
+  "elapsed_seconds": 0.010368,
+  "averages": {
+    "levenshtein_latency": 0,
+    "regex_latency": 0,
+    "bert_latency": 0,
+    "gemma_latency": 0,
+    "gemma_confidence": 1.0
+  },
+  "actual_device": "NVIDIA_H200_140GB",
+  "target_hz": 100,
+  "_label": "BASELINE",
+  "policy": {
+    "policy_tag": "tkde_policy_v1",
+    "cross_platform_parity_required": true,
+    "baseline_min_runs_per_config": 5,
+    "standard_runs_per_config": 5,
+    "stable_window_excludes_run_1": true,
+    "reproducibility": {
+      "git_commit": "0787e79ecd0accb55387471c294469adaa54bf14",
+      "python_version": "3.10.12",
+      "platform": "Linux-5.15.0-177-generic-x86_64-with-glibc2.35",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "seed_env": {
+        "PYTHONHASHSEED": "",
+        "SEMANTIC_SEED": ""
+      }
+    },
+    "device": {
+      "model": "NVIDIA H200 140GB",
+      "vram_gb": 140,
+      "cloud": "local"
+    }
+  },
+  "policy_tag": "tkde_policy_v1",
+  "hardware": "NVIDIA_H200_140GB",
+  "vram_gb": 140
+}

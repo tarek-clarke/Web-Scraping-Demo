@@ -1,0 +1,86 @@
+{
+  "timing_us": 19253,
+  "throughput_bytes_per_sec": 100000000,
+  "throughput_pps": 51.93995740923493,
+  "packet_size": 30000,
+  "packet_count": 1,
+  "chaos_metadata": {
+    "strategy": "json",
+    "level": "low",
+    "original_len": 156,
+    "mutated_len": 156,
+    "temperature": 0.5101433893853162,
+    "drift_type": null
+  },
+  "device": {
+    "device": "NVIDIA B300 SXM6 AC 268GB",
+    "hardware": "NVIDIA_B300_SXM6_AC_268GB",
+    "cloud": "local"
+  },
+  "drift_detected": false,
+  "drift_types": {
+    "missing_keys": 0,
+    "extra_keys": 0,
+    "renamed_keys": 0,
+    "type_mismatch": 0,
+    "value_contradiction": 0,
+    "split_fields": 0,
+    "merged_fields": 0,
+    "nested_corruption": 0
+  },
+  "drift_type_count": 0,
+  "reconciled_ok": true,
+  "reconciliation_winner": "canonical",
+  "fallback_used": false,
+  "repair_rate": 0.0,
+  "recovery_score": 0.9999999771201225,
+  "resilience_P": 0.4856697611748166,
+  "resilience_P2": 0.48372980262158777,
+  "detection_rate": 0.0,
+  "p95_latency_ms": 19.253,
+  "total_runtime_sec": 0.019253,
+  "run_number": 5,
+  "concurrency": 1,
+  "api_name": "openmeteo",
+  "packet_profile": "short",
+  "frequency_profile": "100hz",
+  "chaos_strategy": "json",
+  "chaos_level": "low",
+  "elapsed_seconds": 0.019253,
+  "averages": {
+    "levenshtein_latency": 0,
+    "regex_latency": 0,
+    "bert_latency": 0,
+    "gemma_latency": 0,
+    "gemma_confidence": 1.0
+  },
+  "actual_device": "NVIDIA_B300_SXM6_AC_268GB",
+  "target_hz": 100,
+  "_label": "BASELINE",
+  "policy": {
+    "policy_tag": "tkde_policy_v1",
+    "cross_platform_parity_required": true,
+    "baseline_min_runs_per_config": 5,
+    "standard_runs_per_config": 5,
+    "stable_window_excludes_run_1": true,
+    "reproducibility": {
+      "git_commit": "e8e9030125735cd9b38ad44e8b3cecb9e6c0dd60",
+      "python_version": "3.12.3",
+      "platform": "Linux-6.8.0-100-generic-x86_64-with-glibc2.39",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "seed_env": {
+        "PYTHONHASHSEED": "",
+        "SEMANTIC_SEED": ""
+      }
+    },
+    "device": {
+      "model": "NVIDIA B300 SXM6 AC 268GB",
+      "vram_gb": 268,
+      "cloud": "local"
+    }
+  },
+  "policy_tag": "tkde_policy_v1",
+  "hardware": "NVIDIA_B300_SXM6_AC_262GB",
+  "vram_gb": 262
+}

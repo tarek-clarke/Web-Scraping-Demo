@@ -1,0 +1,86 @@
+{
+  "timing_us": 75604,
+  "throughput_bytes_per_sec": 441429,
+  "throughput_pps": 13.226813396116606,
+  "packet_size": 30000,
+  "packet_count": 1,
+  "chaos_metadata": {
+    "strategy": "gemma",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.7418544668334129,
+    "drift_type": "nested_corruption"
+  },
+  "device": {
+    "device": "CUDA",
+    "hardware": "RTX 6000 Workstation",
+    "cloud": "vast.ai"
+  },
+  "drift_detected": true,
+  "drift_types": {
+    "missing_keys": 0,
+    "extra_keys": 0,
+    "renamed_keys": 0,
+    "type_mismatch": 0,
+    "value_contradiction": 0,
+    "split_fields": 0,
+    "merged_fields": 0,
+    "nested_corruption": 1
+  },
+  "drift_type_count": 1,
+  "reconciled_ok": true,
+  "reconciliation_winner": "canonical",
+  "fallback_used": false,
+  "repair_rate": 1.0,
+  "recovery_score": 0.9757176720201419,
+  "resilience_P": 0.4762265458849025,
+  "resilience_P2": 0.5677376821180453,
+  "detection_rate": 1.0,
+  "p95_latency_ms": 75.604,
+  "total_runtime_sec": 0.075604,
+  "run_number": 2,
+  "concurrency": 1,
+  "api_name": "spacex",
+  "packet_profile": "short",
+  "frequency_profile": "1000hz",
+  "chaos_strategy": "gemma",
+  "chaos_level": "medium",
+  "elapsed_seconds": 0.075604,
+  "averages": {
+    "levenshtein_latency": 0,
+    "regex_latency": 0,
+    "bert_latency": 0,
+    "gemma_latency": 0,
+    "gemma_confidence": 1.0
+  },
+  "actual_device": "RTX 6000 Workstation",
+  "target_hz": 1000,
+  "_label": "FULL",
+  "policy": {
+    "policy_tag": "tkde_policy_v1",
+    "cross_platform_parity_required": true,
+    "baseline_min_runs_per_config": 5,
+    "standard_runs_per_config": 5,
+    "stable_window_excludes_run_1": true,
+    "reproducibility": {
+      "git_commit": "772da1dd8afef7db4fd43be6ab1317194ceefb17",
+      "python_version": "3.12.13",
+      "platform": "Linux-5.15.0-174-generic-RTX 6000 Workstation-with-glibc2.39",
+      "machine": "RTX 6000 Workstation",
+      "processor": "RTX 6000 Workstation",
+      "seed_env": {
+        "PYTHONHASHSEED": "",
+        "SEMANTIC_SEED": ""
+      }
+    },
+    "device": {
+      "device": "cuda",
+      "model": "RTX 6000 Workstation",
+      "cloud": "vast.ai"
+    }
+  },
+  "policy_tag": "tkde_policy_v1",
+  "hardware": "RTX 6000 Workstation_96GB",
+  "vram_gb": 96
+}
