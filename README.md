@@ -54,6 +54,67 @@ Full-pipeline sweep across all hardware targets:
 | NVIDIA H200 140GB | 1080 | 0.8935 ± 0.0184 | 8.55 ± 0.25 ms | 0.7321 ± 0.0105 |
 | RTX 6000 Workstation | 1080 | 0.8750 ± 0.0197 | 35.84 ± 1.88 ms | 0.5961 ± 0.0105 |
 
+### Chaos-Method Ablation Matrix
+
+Means computed directly from the raw per-run JSONs in `results/raw`.
+Each cell is the mean across 360 runs for that hardware/chaos-method pair.
+
+**Detection Rate**
+
+| Hardware | JSON mutation | Schema drift | Gemma adversarial |
+|----------|--------------:|-------------:|------------------:|
+| AMD RX 7900 XT (Windows) | 0.9639 | 0.6750 | 0.9472 |
+| Apple M4 16GB | 0.9528 | 0.7306 | 0.9694 |
+| GH200 | 0.9583 | 0.7472 | 0.9694 |
+| NVIDIA B200 178GB | 0.9694 | 0.7528 | 0.9667 |
+| NVIDIA B300 268GB | 0.9639 | 0.6972 | 0.9472 |
+| NVIDIA GeForce RTX 5090 | 0.9639 | 0.7222 | 0.9556 |
+| NVIDIA H100 80GB HBM3 79GB | 0.9778 | 0.7278 | 0.9639 |
+| NVIDIA H200 140GB | 0.9472 | 0.7583 | 0.9750 |
+| RTX 6000 Workstation | 0.9667 | 0.7056 | 0.9528 |
+
+**p95 Latency (ms)**
+
+| Hardware | JSON mutation | Schema drift | Gemma adversarial |
+|----------|--------------:|-------------:|------------------:|
+| AMD RX 7900 XT (Windows) | 75.43 | 71.69 | 1493.85 |
+| Apple M4 16GB | 209.00 | 207.37 | 208.02 |
+| GH200 | 4.79 | 5.07 | 13.18 |
+| NVIDIA B200 178GB | 46.40 | 24.60 | 31.10 |
+| NVIDIA B300 268GB | 35.86 | 18.03 | 23.91 |
+| NVIDIA GeForce RTX 5090 | 8.66 | 9.32 | 54.33 |
+| NVIDIA H100 80GB HBM3 79GB | 10.67 | 12.60 | 19.44 |
+| NVIDIA H200 140GB | 5.98 | 6.40 | 13.29 |
+| RTX 6000 Workstation | 13.60 | 14.37 | 79.54 |
+
+**Resilience P**
+
+| Hardware | JSON mutation | Schema drift | Gemma adversarial |
+|----------|--------------:|-------------:|------------------:|
+| AMD RX 7900 XT (Windows) | 0.4833 | 0.4125 | 0.4343 |
+| Apple M4 16GB | 0.4502 | 0.3958 | 0.4538 |
+| GH200 | 0.7804 | 0.7267 | 0.7000 |
+| NVIDIA B200 178GB | 0.5477 | 0.5240 | 0.5436 |
+| NVIDIA B300 268GB | 0.6230 | 0.5566 | 0.5711 |
+| NVIDIA GeForce RTX 5090 | 0.7432 | 0.6815 | 0.5043 |
+| NVIDIA H100 80GB HBM3 79GB | 0.7607 | 0.6848 | 0.6990 |
+| NVIDIA H200 140GB | 0.7723 | 0.7238 | 0.7003 |
+| RTX 6000 Workstation | 0.6918 | 0.6213 | 0.4753 |
+
+**Best Method by Hardware**
+
+| Hardware | Best Detection Rate | Lowest p95 Latency | Best Resilience P |
+|----------|--------------------|-------------------|------------------|
+| AMD RX 7900 XT (Windows) | JSON mutation | Schema drift | JSON mutation |
+| Apple M4 16GB | Gemma adversarial | Schema drift | Gemma adversarial |
+| GH200 | Gemma adversarial | JSON mutation | JSON mutation |
+| NVIDIA B200 178GB | JSON mutation | Schema drift | JSON mutation |
+| NVIDIA B300 268GB | JSON mutation | Schema drift | JSON mutation |
+| NVIDIA GeForce RTX 5090 | JSON mutation | JSON mutation | JSON mutation |
+| NVIDIA H100 80GB HBM3 79GB | JSON mutation | JSON mutation | JSON mutation |
+| NVIDIA H200 140GB | Gemma adversarial | JSON mutation | JSON mutation |
+| RTX 6000 Workstation | JSON mutation | JSON mutation | JSON mutation |
+
 
 ## Methodology
 
