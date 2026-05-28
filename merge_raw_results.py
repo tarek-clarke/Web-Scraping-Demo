@@ -4,6 +4,7 @@ Merge all raw semantic drift results from results/raw/ into a single JSON file.
 
 Recursively walks results/raw/, loads each run JSON, adds metadata fields,
 and writes all entries to combined_results.json sorted by hardware and run_id.
+Also writes one JSON file per hardware platform with the same entry structure.
 
 Uses only standard library: os, json, re, glob
 """
@@ -99,7 +100,16 @@ def infer_hardware_name_and_vram(hardware_name: str):
     return output_name, (vram_value if vram_value is not None else "")
 
 
-def merge_raw_results(raw_dir='results/raw', output_file='combined_results.json'):
+def safe_filename(name: str) -> str:
+    return re.sub(r'[^A-Za-z0-9._-]+', '_', name).strip('_')
+
+
+def write_json_file(path: str, data):
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=2)
+
+
+def merge_raw_results(raw_dir='results/raw', output_file='combined_results.json', per_hardware_dir='hardware_results'):
     """
     Merge all run JSONs from raw_dir into a single output file.
     
@@ -115,6 +125,7 @@ def merge_raw_results(raw_dir='results/raw', output_file='combined_results.json'
         return
     
     all_entries = []
+    entries_by_hardware = {}
     total_files = 0
     valid_entries = 0
     
@@ -165,6 +176,7 @@ def merge_raw_results(raw_dir='results/raw', output_file='combined_results.json'
                 entry.update(run_data)
                 
                 all_entries.append(entry)
+                entries_by_hardware.setdefault(output_hardware_name, []).append(entry)
                 valid_entries += 1
             
             except (json.JSONDecodeError, IOError) as e:
@@ -172,15 +184,23 @@ def merge_raw_results(raw_dir='results/raw', output_file='combined_results.json'
     
     # Sort by hardware name, then by run_id
     all_entries.sort(key=lambda x: (x['hardware'], x['run_id']))
+
+    for hardware_name, hardware_entries in entries_by_hardware.items():
+        hardware_entries.sort(key=lambda x: (x['hardware'], x['run_id']))
     
     # Write combined results
-    with open(output_file, 'w') as f:
-        json.dump(all_entries, f, indent=2)
+    write_json_file(output_file, all_entries)
+
+    os.makedirs(per_hardware_dir, exist_ok=True)
+    for hardware_name, hardware_entries in sorted(entries_by_hardware.items()):
+        hardware_file = os.path.join(per_hardware_dir, f"{safe_filename(hardware_name)}.json")
+        write_json_file(hardware_file, hardware_entries)
     
     print(f"\nMerge complete:")
     print(f"  Total files processed: {total_files}")
     print(f"  Valid entries written: {valid_entries}")
     print(f"  Output file: {os.path.abspath(output_file)}")
+    print(f"  Per-hardware directory: {os.path.abspath(per_hardware_dir)}")
 
 
 if __name__ == '__main__':
