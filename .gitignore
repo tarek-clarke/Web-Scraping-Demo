@@ -7,3 +7,11 @@ build/
 .initialized
 .aider*
 archive_results_*.tar.gz
+
+# Archived results (preserved in tar.gz only)
+results/
+logs/
+hardware_results/
+chaos_vs_repair_matrix*.csv
+combined_results.*
+pristine_chaos_vs_repair_matrix.csv
