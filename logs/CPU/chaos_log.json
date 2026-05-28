@@ -2174,5 +2174,269 @@
     "mutated_len": 132,
     "temperature": 0.8338096012403196,
     "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 197,
+    "temperature": 0.5107735710066824,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.3129302471648949,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.7579717585650219,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.40446226074263725,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 169,
+    "temperature": 0.6891807444795258,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 80,
+    "temperature": 0.38150659158107636,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.4974248280157748,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 152,
+    "temperature": 0.2089347472399843,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "medium",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.586610738261393,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 181,
+    "temperature": 0.2713191098579374,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.24943407204134838,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 163,
+    "temperature": 0.5724778798440712,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 148,
+    "temperature": 0.3444984961258782,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 154,
+    "mutated_len": 138,
+    "temperature": 0.5334589689558423,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 155,
+    "mutated_len": 183,
+    "temperature": 0.13089228329757363,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 155,
+    "mutated_len": 157,
+    "temperature": 0.38613081068976396,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 155,
+    "mutated_len": 155,
+    "temperature": 0.11622739399319881,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 155,
+    "mutated_len": 157,
+    "temperature": 0.6614387496718531,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 155,
+    "mutated_len": 179,
+    "temperature": 0.6719947729737301,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 178,
+    "temperature": 0.29991989556136445,
+    "drift_type": "nested_corruption"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 171,
+    "temperature": 0.5842157807481988,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 169,
+    "temperature": 0.44564930271099945,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 171,
+    "temperature": 0.16069315781975108,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 169,
+    "mutated_len": 154,
+    "temperature": 0.5632788081701409,
+    "drift_type": "type_mismatch"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 144,
+    "temperature": 0.1885925157845649,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 152,
+    "temperature": 0.7345914385944272,
+    "drift_type": "value_contradiction"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 116,
+    "temperature": 0.6226523853878065,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 172,
+    "temperature": 0.489056331879947,
+    "drift_type": "extra_keys"
+  },
+  {
+    "strategy": "schema",
+    "level": "low",
+    "original_len": 144,
+    "mutated_len": 146,
+    "temperature": 0.7782173599797544,
+    "drift_type": "renamed_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 186,
+    "temperature": 0.2298789328804247,
+    "drift_type": "split_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 132,
+    "temperature": 0.6334692957857688,
+    "drift_type": "missing_keys"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 150,
+    "temperature": 0.45355692008364734,
+    "drift_type": "merged_fields"
+  },
+  {
+    "strategy": "gemma",
+    "level": "high",
+    "original_len": 154,
+    "mutated_len": 275,
+    "temperature": 0.582904029612536,
+    "drift_type": "split_fields"
   }
 ]
