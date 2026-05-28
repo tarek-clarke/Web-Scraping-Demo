@@ -12,14 +12,49 @@ import importlib.metadata
 
 
 def ensure_supported_python_version():
-    """Fail fast on Python versions that are not yet supported by the ML stack."""
-    if sys.version_info >= (3, 13):
+    """Verify Python version is 3.10-3.13 and load appropriate requirements."""
+    major, minor = sys.version_info.major, sys.version_info.minor
+    
+    if not (3, 10) <= (major, minor) <= (3, 13):
         print(
-            "[Bootstrap] ERROR: Python 3.13+ is not supported by this stack yet. "
-            "Use Python 3.11 or 3.12 for reliable torch/transformers compatibility."
+            f"[Bootstrap] ERROR: Python {major}.{minor} is not supported. "
+            "Use Python 3.10, 3.11, 3.12, or 3.13."
         )
         return False
+    
+    print(f"[Bootstrap] Detected Python {major}.{minor}")
     return True
+
+def install_version_specific_requirements():
+    """Install dependencies optimized for the detected Python version."""
+    major, minor = sys.version_info.major, sys.version_info.minor
+    
+    # Determine requirements file based on Python version
+    if (major, minor) == (3, 10):
+        req_file = "requirements-3.10.txt"
+    elif (major, minor) == (3, 11):
+        req_file = "requirements-3.11.txt"
+    elif (major, minor) == (3, 12):
+        req_file = "requirements-3.12.txt"
+    elif (major, minor) == (3, 13):
+        req_file = "requirements-3.13.txt"
+    else:
+        req_file = "requirements.txt"  # Fallback to base requirements
+    
+    req_path = os.path.join(os.path.dirname(__file__), req_file)
+    
+    if not os.path.exists(req_path):
+        print(f"[Bootstrap] WARNING: {req_file} not found, falling back to requirements.txt")
+        req_path = os.path.join(os.path.dirname(__file__), "requirements.txt")
+    
+    print(f"[Bootstrap] Installing requirements from {req_file}...")
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "-r", req_path])
+        print(f"[Bootstrap] Requirements installed successfully.")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"[Bootstrap] ERROR: Failed to install requirements: {e}")
+        return False
 
 def detect_cloud_platform():
     """
@@ -401,10 +436,13 @@ def run_bootstrap(force=False):
     # 2. Install PyTorch
     torch_fresh = install_pytorch(hardware)
     
-    # 3. Install remaining libraries
+    # 3. Install version-specific requirements
+    req_ok = install_version_specific_requirements()
+    
+    # 4. Install remaining hardware-specific libraries
     libs_fresh = install_required_libraries(hardware)
     
-    # 4. Build C++ acceleration layer
+    # 5. Build C++ acceleration layer
     cpp_built = False
     try:
         import cpp_accel
@@ -412,7 +450,7 @@ def run_bootstrap(force=False):
     except ImportError:
         cpp_built = build_cpp_extension()
     
-    # 5. Cache weights
+    # 6. Cache weights
     model_cache_ok = cache_model_weights()
     if not model_cache_ok:
         print("[Bootstrap] ERROR: Required model weights could not be cached. Aborting bootstrap.")

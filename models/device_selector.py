@@ -2,6 +2,7 @@ import os
 import platform
 import socket
 import subprocess
+import psutil
 
 
 def _normalize_gpu_name(value):
@@ -54,6 +55,18 @@ def _query_nvidia_gpu_info():
         return gpu_name, vram_gb
     except Exception:
         return None, None
+
+
+def _query_motherboard_info():
+    """Return motherboard name and BIOS info from dmidecode, if available."""
+    try:
+        cmd = ["dmidecode", "-s", "baseboard-product-name"]
+        motherboard = subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL).strip()
+        if not motherboard:
+            motherboard = None
+        return motherboard
+    except Exception:
+        return None
 
 def detect_cloud_platform():
     """
@@ -156,6 +169,12 @@ def get_device_info():
         dict: {
             "device": str ("cuda" | "rocm" | "mps" | "cpu"),
             "model": str (e.g., "RTX_5090", "7900XT", "M4", "Intel Core i7"),
+            "cpu_name": str (e.g., "Intel Core i7-13700K"),
+            "cpu_cores": int,
+            "ram_gb": int (total system RAM in GB),
+            "motherboard": str (e.g., "ASUS ROG Maximus Z790"),
+            "os_name": str (e.g., "Linux"),
+            "os_version": str (e.g., "5.15.0-1234"),
             "cloud": str ("vast.ai" | "runpod" | "lambda" | "spheron" | "lumi" | "taltech_hpc" | "local" | "unknown"),
             "hardware_backend": str ("NVIDIA CUDA" | "AMD ROCm" | "Intel GPU" | "Apple Silicon MPS" | "CPU fallback")
         }
@@ -173,6 +192,23 @@ def get_device_info():
         device = "mps"
     elif hardware_backend == "Intel GPU":
         device = "cpu" # IPEX fits cpu model runs or torch CPU backend fallback
+
+    # ── CPU info ──
+    cpu_name = "Unknown CPU"
+    cpu_cores = 1
+    ram_gb = 0
+    try:
+        cpu_name = platform.processor() or "Unknown CPU"
+        cpu_cores = os.cpu_count() or 1
+        ram_bytes = psutil.virtual_memory().total
+        ram_gb = int(round(ram_bytes / (1024 ** 3)))
+    except Exception:
+        pass
+
+    # ── Motherboard and OS info ──
+    motherboard = _query_motherboard_info() or "Unknown"
+    os_name = platform.system()
+    os_version = platform.release()
         
     # Attempt to query model name
     model = "CPU"
@@ -214,5 +250,11 @@ def get_device_info():
         "cloud": cloud,
         "hardware_backend": hardware_backend,
         "gpu_name": gpu_name,
-        "vram_gb": vram_gb
+        "vram_gb": vram_gb,
+        "cpu_name": cpu_name,
+        "cpu_cores": cpu_cores,
+        "ram_gb": ram_gb,
+        "motherboard": motherboard,
+        "os_name": os_name,
+        "os_version": os_version
     }

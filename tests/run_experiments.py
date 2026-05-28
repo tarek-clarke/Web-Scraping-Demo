@@ -188,5 +188,11 @@ class ExperimentRunner:
             'actual_device': self.hw,
             'target_hz': th,
             'preflight': preflight,
+            'cpu_name': self.d.get('cpu_name', 'Unknown'),
+            'cpu_cores': self.d.get('cpu_cores', 1),
+            'ram_gb': self.d.get('ram_gb', 0),
+            'motherboard': self.d.get('motherboard', 'Unknown'),
+            'os_name': self.d.get('os_name', 'Unknown'),
+            'os_version': self.d.get('os_version', 'Unknown'),
         }
         return result
