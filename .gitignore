@@ -6,3 +6,4 @@ build/
 .DS_Store
 .initialized
 .aider*
+archive_results_*.tar.gz

@@ -105,7 +105,15 @@ class SchemaComparer:
         return drift_detected, drift_types, drift_type_count
 
     def process(self, mutated: dict, original: dict) -> dict:
-        """Full pipeline: detect drift, reconcile, compute repair metrics."""
+        """Full pipeline: detect drift, reconcile, compute repair metrics.
+
+        Returns:
+            dict with traceability fields:
+                - method_used: name of the winning algorithm
+                - algorithm_results: detailed per-algorithm outcome
+                - fallback_used / fallback_reason: fallback trace
+                - model_source: {"bert": "local"|"internet", "gemma": "local"|"internet"}
+        """
         drift_detected, drift_types, drift_type_count = self.detect_drift(original, mutated)
 
         query_key = json.dumps(mutated)
@@ -115,11 +123,21 @@ class SchemaComparer:
 
         best_confidence = 0.0
         best_match = None
+        method_used = "none"
         for alg_name, res in alg_results.items():
             if res['confidence'] > best_confidence:
                 best_confidence = res['confidence']
                 best_match = res['match']
+                method_used = alg_name
         fallback_used = best_confidence < 0.5
+        fallback_reason = None
+        if fallback_used:
+            fallback_reason = (
+                f"best_confidence={best_confidence:.4f} < 0.5 threshold"
+            )
+        elif best_match is None:
+            fallback_used = True
+            fallback_reason = "no algorithm returned a valid match"
         reconciled_ok = not fallback_used and best_match is not None
 
         if drift_detected and reconciled_ok:
@@ -129,23 +147,44 @@ class SchemaComparer:
 
         original_str = json.dumps(original)
         mutated_str = json.dumps(mutated)
-        if self.bert is not None and self.bert.bert is not None:
+        bert_available = self.bert is not None and self.bert.bert is not None
+        if bert_available:
             similarity = self.bert.bert.cosine_similarity(original_str, mutated_str)
             recovery_score = float(similarity)
         else:
             recovery_score = 0.5
+
+        # Build per-algorithm detailed results
+        algorithm_results = {}
+        for alg_name, res in alg_results.items():
+            algorithm_results[alg_name] = {
+                "match": res.get("match"),
+                "confidence": res.get("confidence", 0.0),
+                "latency_ms": res.get("latency_ms", 0.0),
+                "details": res.get("details", {})
+            }
+
+        # Determine model source
+        model_source = {}
+        if self.bert is not None:
+            model_source["bert"] = "local" if self.bert.bert is not None and getattr(self.bert.bert, 'is_loaded', False) else "internet"
+        if self.gemma is not None:
+            model_source["gemma"] = "local" if getattr(self.gemma, 'backend', 'mock') == 'local' else "internet"
 
         return {
             "drift_detected": drift_detected,
             "drift_types": drift_types,
             "drift_type_count": drift_type_count,
             "reconciliation_winner": best_match,
+            "method_used": method_used,
             "fallback_used": fallback_used,
+            "fallback_reason": fallback_reason,
             "reconciled_ok": reconciled_ok,
             "repair_rate": repair_rate,
             "recovery_score": recovery_score,
             "best_confidence": best_confidence,
-            "algorithm_results": alg_results
+            "algorithm_results": algorithm_results,
+            "model_source": model_source
         }
 
     def compare_algorithms(self, canonical_keys: list, query_key: str) -> dict:

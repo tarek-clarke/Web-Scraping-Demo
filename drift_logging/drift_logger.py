@@ -3,6 +3,7 @@ import csv
 import json
 import time
 from datetime import datetime
+from uuid import uuid4
 from models.device_selector import get_device_info
 
 class DriftLogger:
@@ -20,9 +21,9 @@ class DriftLogger:
         self.cloud_platform = self.device_info["cloud"]
         
         self.headers = [
-            "timestamp", "api_source", "run_number", "hardware_platform", 
-            "hardware_model", "cloud_platform", "chaos_strategy", "chaos_level", 
-            "drift_type", "original_field", "mutated_field", "metadata"
+            "timestamp", "run_id", "event_id", "api_source", "run_number", "hardware_platform",
+            "hardware_model", "cloud_platform", "chaos_strategy", "chaos_level",
+            "drift_type", "original_field", "mutated_field", "drift_metadata", "method_used", "internet_used"
         ]
         
         # Initialize in-memory write buffers
@@ -38,30 +39,73 @@ class DriftLogger:
             with open(self.csv_path, mode="w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 writer.writerow(self.headers)
+        else:
+            self._ensure_csv_schema()
         
         # JSON initialization
         if not os.path.exists(self.json_path):
             with open(self.json_path, mode="w", encoding="utf-8") as f:
                 json.dump([], f)
 
+    def _ensure_csv_schema(self):
+        """Upgrade existing CSV headers to include required traceability columns."""
+        try:
+            with open(self.csv_path, mode="r", newline="", encoding="utf-8") as f:
+                rows = list(csv.reader(f))
+        except Exception:
+            rows = []
+
+        if not rows:
+            with open(self.csv_path, mode="w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(self.headers)
+            return
+
+        existing_headers = rows[0]
+        if existing_headers == self.headers:
+            return
+
+        merged_headers = list(existing_headers)
+        for h in self.headers:
+            if h not in merged_headers:
+                merged_headers.append(h)
+
+        rebuilt = [merged_headers]
+        for row in rows[1:]:
+            mapped = {existing_headers[i]: row[i] for i in range(min(len(existing_headers), len(row)))}
+            if "metadata" in mapped and "drift_metadata" not in mapped:
+                mapped["drift_metadata"] = mapped.get("metadata", "")
+            rebuilt.append([mapped.get(h, "") for h in merged_headers])
+
+        with open(self.csv_path, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerows(rebuilt)
+
     def log_event(self, api_source: str, run_number: int, chaos_strategy: str, 
                   chaos_level: float, drift_type: str, original_field: str, 
-                  mutated_field: str, metadata: dict = None):
+                  mutated_field: str, metadata: dict = None, run_id: str = None,
+                  event_id: str = None, method_used: str = None, internet_used: bool = None):
         """
         Logs a single drift event by buffering it in memory to minimize I/O overhead.
         """
         timestamp = datetime.utcnow().isoformat() + "Z"
-        metadata_str = json.dumps(metadata or {})
+        event_id = event_id or uuid4().hex
+        drift_metadata = metadata or {}
+        metadata_str = json.dumps(drift_metadata)
         
         row = [
-            timestamp, api_source, run_number, self.hardware_platform,
+            timestamp, run_id or "", event_id, api_source, run_number, self.hardware_platform,
             self.hardware_model, self.cloud_platform, chaos_strategy, chaos_level,
-            drift_type, original_field, mutated_field, metadata_str
+            drift_type, original_field, mutated_field, metadata_str,
+            method_used or "",
+            "" if internet_used is None else str(bool(internet_used)).lower()
         ]
         self.buffered_rows.append(row)
         
         event = {
             "timestamp": timestamp,
+            "run_id": run_id,
+            "event_id": event_id,
             "api_source": api_source,
             "run_number": run_number,
             "hardware_platform": self.hardware_platform,
@@ -72,9 +116,19 @@ class DriftLogger:
             "drift_type": drift_type,
             "original_field": original_field,
             "mutated_field": mutated_field,
-            "metadata": metadata or {}
+            "drift_metadata": drift_metadata,
+            "metadata": drift_metadata,
+            "method_used": method_used,
+            "internet_used": internet_used,
         }
         self.buffered_events.append(event)
+        return event
+
+    def get_buffered_events_for_run(self, run_id: str):
+        """Return buffered chaos events for a specific run id."""
+        if not run_id:
+            return []
+        return [ev for ev in self.buffered_events if ev.get("run_id") == run_id]
 
     def flush(self):
         """
@@ -152,7 +206,12 @@ class DriftLogger:
                         try:
                             api_idx = headers.index("api_source")
                             run_idx = headers.index("run_number")
-                            meta_idx = headers.index("metadata")
+                            if "drift_metadata" in headers:
+                                meta_idx = headers.index("drift_metadata")
+                            elif "metadata" in headers:
+                                meta_idx = headers.index("metadata")
+                            else:
+                                meta_idx = 11
                         except ValueError:
                             api_idx, run_idx, meta_idx = 1, 2, 11
                         

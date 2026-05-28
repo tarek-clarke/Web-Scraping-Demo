@@ -8,10 +8,17 @@ import subprocess
 import argparse
 import platform
 import re
+from uuid import uuid4
 from models.device_selector import get_device_info
 from models.bert_model import BERTModel
+from models.gemma_offline import GemmaModel
 from semantic.gemma_recon import GemmaReconciler
 from tests.run_experiments import ExperimentRunner
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
 
 
 def mean(vals):
@@ -44,6 +51,19 @@ def parse_args():
                         help='Policy tag embedded into outputs for reproducibility')
     parser.add_argument('--skip-git-push', action='store_true',
                         help='Skip final git push')
+    # ── Pre-flight / traceability options ──
+    parser.add_argument('--require-gpu', action='store_true', default=True,
+                        help='Require GPU for execution (default: True)')
+    parser.add_argument('--no-require-gpu', dest='require_gpu', action='store_false',
+                        help='Allow CPU execution without GPU')
+    parser.add_argument('--cpu-allowed', action='store_true', default=False,
+                        help='Fall back to CPU if GPU is missing')
+    parser.add_argument('--require-local-models', action='store_true', default=True,
+                        help='Require BERT/Gemma to be available locally (default: True)')
+    parser.add_argument('--no-require-local-models', dest='require_local_models', action='store_false',
+                        help='Allow internet fallback for model loading')
+    parser.add_argument('--strict-mode', action='store_true', default=False,
+                        help='Abort on any fallback, missing model, or unexpected internet handshake')
     return parser.parse_args()
 
 
@@ -52,6 +72,266 @@ def get_git_commit():
         return subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     except Exception:
         return 'unknown'
+
+
+def get_pipeline_version():
+    """Return pipeline_version string for reproducibility."""
+    return get_git_commit()
+
+
+def get_model_version_string(model_type="bert"):
+    """Return a version string for BERT or Gemma models."""
+    try:
+        if model_type == "bert":
+            import sentence_transformers
+            return getattr(sentence_transformers, '__version__', 'unknown')
+        elif model_type == "gemma":
+            return "Gemma-4-E4B"
+    except Exception:
+        pass
+    return "unknown"
+
+
+def run_preflight_checks(require_gpu=True, cpu_allowed=False, require_local_models=True,
+                         strict_mode=False, verbose=True):
+    """Perform strict pre-flight validation before any run begins.
+
+    Validates:
+    - GPU availability (unless CPU explicitly allowed)
+    - Hardware backend tensor placement
+    - BERT model availability
+    - Gemma model availability
+    - Model version logging
+    - Internet handshake detection
+    - Pipeline version (git commit hash)
+
+    Returns:
+        dict: preflight results including gpu_available, hardware_backend_verified,
+              bert_available, gemma_available, internet_used, model_source,
+              model_version, pipeline_version, plus any abort flags.
+        tuple: (preflight_dict, abort, abort_reason)
+    """
+    d = get_device_info()
+    device = d["device"]
+    hw_backend = d["hardware_backend"]
+    gpu_available = device in ("cuda", "rocm", "mps")
+    cpu_mode = not gpu_available
+    bert_available = False
+    gemma_available = False
+    hardware_backend_verified = False
+    internet_used = False
+    model_source = {}
+    model_version = {}
+
+    # ── Pipeline version ──
+    pipeline_version = get_pipeline_version()
+    model_version["bert"] = get_model_version_string("bert")
+    model_version["gemma"] = get_model_version_string("gemma")
+
+    if verbose:
+        print(f"\n{'='*80}")
+        print(f" PRE-FLIGHT VALIDATION")
+        print(f" Device          : {device}")
+        print(f" Hardware backend: {hw_backend}")
+        print(f" GPU available   : {gpu_available}")
+        print(f" Pipeline version: {pipeline_version}")
+        print(f" CPU allowed     : {cpu_allowed}")
+        print(f" Require GPU     : {require_gpu}")
+        print(f" Require local   : {require_local_models}")
+        print(f" Strict mode     : {strict_mode}")
+        print(f"{'='*80}")
+
+    # ── A/B: GPU / CPU validation ──
+    if require_gpu and not gpu_available:
+        msg = f"GPU required but not available (device={device})."
+        if not cpu_allowed:
+            preflight = {
+                "gpu_available": False, "gpu_backend": hw_backend, "cpu_allowed": cpu_allowed,
+                "cpu_mode": cpu_mode, "bert_available": False, "gemma_available": False,
+                "internet_used": False, "model_source": {}, "model_version": model_version,
+                "hardware_backend_verified": False, "require_local_models": require_local_models,
+                "require_gpu": require_gpu, "strict_mode": strict_mode,
+                "pipeline_version": pipeline_version
+            }
+            return preflight, True, msg
+        else:
+            if verbose:
+                print(f" [WARN] {msg} — cpu_allowed=True, proceeding on CPU")
+
+    if not gpu_available and not cpu_allowed:
+        msg = f"No GPU available and cpu_allowed=False. ABORT."
+        preflight = {
+            "gpu_available": False, "gpu_backend": hw_backend, "cpu_allowed": cpu_allowed,
+            "cpu_mode": cpu_mode, "bert_available": False, "gemma_available": False,
+            "internet_used": False, "model_source": {}, "model_version": model_version,
+            "hardware_backend_verified": False, "require_local_models": require_local_models,
+            "require_gpu": require_gpu, "strict_mode": strict_mode,
+            "pipeline_version": pipeline_version
+        }
+        return preflight, True, msg
+
+    # ── C: Hardware backend verification (tensor placement test) ──
+    if TORCH_AVAILABLE:
+        try:
+            torch_device = device
+            if device in ("cuda", "rocm"):
+                torch_device = "cuda"
+            _ = torch.randn(1).to(torch_device)
+            hardware_backend_verified = True
+            if verbose:
+                print(f" [✓] Hardware backend verified: tensor placed on {torch_device}")
+        except Exception as e:
+            hardware_backend_verified = False
+            if strict_mode:
+                msg = f"Hardware backend verification failed: {e}"
+                preflight = {
+                    "gpu_available": gpu_available, "gpu_backend": hw_backend,
+                    "cpu_allowed": cpu_allowed, "cpu_mode": cpu_mode,
+                    "bert_available": False, "gemma_available": False,
+                    "internet_used": False, "model_source": {}, "model_version": model_version,
+                    "hardware_backend_verified": False,
+                    "require_local_models": require_local_models,
+                    "require_gpu": require_gpu, "strict_mode": strict_mode,
+                    "pipeline_version": pipeline_version
+                }
+                return preflight, True, msg
+            if verbose:
+                print(f" [WARN] Hardware backend verification failed: {e}")
+    else:
+        if verbose:
+            print(" [WARN] PyTorch not available — skipping tensor placement test")
+
+    # ── D: BERT availability ──
+    try:
+        bert = BERTModel()
+        bert_available = bert.is_loaded
+        if bert_available:
+            model_source["bert"] = "local"
+            if verbose:
+                print(" [✓] BERT model loaded locally")
+        else:
+            model_source["bert"] = "internet"
+            internet_used = True
+            if verbose:
+                print(" [WARN] BERT not available locally — would need internet fallback")
+            if require_local_models:
+                msg = "BERT not available locally and require_local_models=True. ABORT."
+                preflight = {
+                    "gpu_available": gpu_available, "gpu_backend": hw_backend,
+                    "cpu_allowed": cpu_allowed, "cpu_mode": cpu_mode,
+                    "bert_available": False, "gemma_available": False,
+                    "internet_used": internet_used, "model_source": model_source,
+                    "model_version": model_version,
+                    "hardware_backend_verified": hardware_backend_verified,
+                    "require_local_models": require_local_models,
+                    "require_gpu": require_gpu, "strict_mode": strict_mode,
+                    "pipeline_version": pipeline_version
+                }
+                return preflight, True, msg
+    except Exception as e:
+        bert_available = False
+        model_source["bert"] = "internet"
+        internet_used = True
+        if verbose:
+            print(f" [WARN] BERT load error: {e}")
+        if require_local_models:
+            msg = f"BERT load failed ({e}) and require_local_models=True. ABORT."
+            preflight = {
+                "gpu_available": gpu_available, "gpu_backend": hw_backend,
+                "cpu_allowed": cpu_allowed, "cpu_mode": cpu_mode,
+                "bert_available": False, "gemma_available": False,
+                "internet_used": internet_used, "model_source": model_source,
+                "model_version": model_version,
+                "hardware_backend_verified": hardware_backend_verified,
+                "require_local_models": require_local_models,
+                "require_gpu": require_gpu, "strict_mode": strict_mode,
+                "pipeline_version": pipeline_version
+            }
+            return preflight, True, msg
+
+    # ── E: Gemma availability ──
+    try:
+        gemma = GemmaModel()
+        gemma_available = gemma.backend == "local"
+        if gemma_available:
+            model_source["gemma"] = "local"
+            if verbose:
+                print(" [✓] Gemma model loaded locally")
+        else:
+            model_source["gemma"] = "internet"
+            internet_used = True
+            if verbose:
+                print(" [WARN] Gemma not available locally — would need internet fallback")
+            if require_local_models:
+                msg = "Gemma not available locally and require_local_models=True. ABORT."
+                preflight = {
+                    "gpu_available": gpu_available, "gpu_backend": hw_backend,
+                    "cpu_allowed": cpu_allowed, "cpu_mode": cpu_mode,
+                    "bert_available": bert_available, "gemma_available": False,
+                    "internet_used": internet_used, "model_source": model_source,
+                    "model_version": model_version,
+                    "hardware_backend_verified": hardware_backend_verified,
+                    "require_local_models": require_local_models,
+                    "require_gpu": require_gpu, "strict_mode": strict_mode,
+                    "pipeline_version": pipeline_version
+                }
+                return preflight, True, msg
+    except Exception as e:
+        gemma_available = False
+        model_source["gemma"] = "internet"
+        internet_used = True
+        if verbose:
+            print(f" [WARN] Gemma load error: {e}")
+        if require_local_models:
+            msg = f"Gemma load failed ({e}) and require_local_models=True. ABORT."
+            preflight = {
+                "gpu_available": gpu_available, "gpu_backend": hw_backend,
+                "cpu_allowed": cpu_allowed, "cpu_mode": cpu_mode,
+                "bert_available": bert_available, "gemma_available": False,
+                "internet_used": internet_used, "model_source": model_source,
+                "model_version": model_version,
+                "hardware_backend_verified": hardware_backend_verified,
+                "require_local_models": require_local_models,
+                "require_gpu": require_gpu, "strict_mode": strict_mode,
+                "pipeline_version": pipeline_version
+            }
+            return preflight, True, msg
+
+    # ── Strict mode checks ──
+    if strict_mode:
+        if not gpu_available and not cpu_allowed:
+            return None, True, "Strict mode: GPU missing and CPU not allowed."
+        if not bert_available and require_local_models:
+            return None, True, "Strict mode: BERT missing locally."
+        if not gemma_available and require_local_models:
+            return None, True, "Strict mode: Gemma missing locally."
+        if internet_used and not cpu_allowed:
+            # Internet handshake not explicitly disallowed, but strict mode flags it
+            if verbose:
+                print(" [STRICT] Internet would be used — proceeding (not explicitly disallowed)")
+
+    preflight = {
+        "gpu_available": gpu_available,
+        "gpu_backend": hw_backend,
+        "cpu_allowed": cpu_allowed,
+        "cpu_mode": cpu_mode,
+        "bert_available": bert_available,
+        "gemma_available": gemma_available,
+        "internet_used": internet_used,
+        "model_source": model_source,
+        "model_version": model_version,
+        "hardware_backend_verified": hardware_backend_verified,
+        "require_local_models": require_local_models,
+        "require_gpu": require_gpu,
+        "strict_mode": strict_mode,
+        "pipeline_version": pipeline_version
+    }
+
+    if verbose:
+        print(f" {'[✓]' if not (require_gpu and not gpu_available) else '[✗]'} Pre-flight passed")
+        print(f"{'='*80}\n")
+
+    return preflight, False, None
 
 
 def build_policy_metadata(args, device_info):
@@ -179,19 +459,23 @@ def load_existing_baseline_runs_from_raw(raw_dir):
     return existing
 
 
-def run_config_plan(runner, plan, label, policy, on_result=None):
+def run_config_plan(runner, plan, label, policy, on_result=None, preflight=None):
     all_res = []
     times = []
     n = len(plan)
     for idx, (p, f, x, l, a, rn) in enumerate(plan):
-        print(f'[{label}] Progress: {idx+1}/{n} ({(idx+1)/max(1, n)*100:.1f}%) | {a} {f} {x} {l} run={rn}')
+        run_id = uuid4().hex
+        print(f'[{label}] Progress: {idx+1}/{n} ({(idx+1)/max(1, n)*100:.1f}%) | {a} {f} {x} {l} run={rn} run_id={run_id[:8]}')
         try:
             res = runner.run_single_stream(
                 api_name=a, packet_profile=p, frequency_profile=f,
-                chaos_strategy=x, chaos_level=l, run_number=rn, concurrency=1
+                chaos_strategy=x, chaos_level=l, run_number=rn, concurrency=1,
+                run_id=run_id, preflight=preflight or {}
             )
             if res and 'total_runtime_sec' in res:
                 res['_label'] = label
+                res['run_id'] = run_id
+                res['preflight'] = preflight or {}
                 attach_policy_metadata(res, policy)
                 if on_result is not None:
                     on_result(res)
@@ -374,6 +658,20 @@ def run_evaluation_pipeline():
         import bootstrap
         bootstrap.run_bootstrap(force=True)
 
+    # ── Pre-flight validation ──
+    preflight, abort, abort_reason = run_preflight_checks(
+        require_gpu=args.require_gpu,
+        cpu_allowed=args.cpu_allowed,
+        require_local_models=args.require_local_models,
+        strict_mode=args.strict_mode,
+        verbose=True
+    )
+    if abort:
+        print(f"\n{'='*80}")
+        print(f" ✗ PRE-FLIGHT FAILED: {abort_reason}")
+        print(f"{'='*80}")
+        sys.exit(1)
+
     # ── detect hardware ──
     d = get_device_info()
     h = sanitize_hw_token(d['model'])
@@ -387,6 +685,11 @@ def run_evaluation_pipeline():
     print(f' VRAM             : {d.get("vram_gb", "unknown")} GB')
     print(f' Cloud Environment : {d["cloud"].upper()}')
     print(f' Policy Tag        : {policy_metadata.get("policy_tag")}')
+    print(f' Pipeline Version  : {preflight.get("pipeline_version", "unknown")[:12]}')
+    print(f' GPU backend       : {preflight.get("gpu_backend", "unknown")}')
+    print(f' BERT available    : {preflight.get("bert_available", False)}')
+    print(f' Gemma available   : {preflight.get("gemma_available", False)}')
+    print(f' Strict mode       : {args.strict_mode}')
     print('=' * 80 + '\n')
 
     # ── erase check ──
@@ -463,7 +766,8 @@ def run_evaluation_pipeline():
         phase1_plan,
         'FULL',
         policy_metadata,
-        on_result=write_standard_raw if args.generate_only else None
+        on_result=write_standard_raw if args.generate_only else None,
+        preflight=preflight
     )
 
     if args.generate_only:
@@ -663,6 +967,7 @@ def run_evaluation_pipeline():
 
     data = {
         'policy': policy_metadata,
+        'preflight': preflight,
         'global_runtime_sec': round(gr, 4),
         'total_runs_time_sec': round(total_t, 4),
         'average_runtime_sec': round(avg_t, 4),

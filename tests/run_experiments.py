@@ -5,6 +5,7 @@ import time
 import csv
 import random
 import concurrent.futures
+from uuid import uuid4
 from models.device_selector import get_device_info
 from models.bert_model import BERTModel
 from models.gemma_offline import GemmaModel
@@ -54,11 +55,16 @@ class ExperimentRunner:
         cl = k.get('chaos_level', 'low')
         rn = k.get('run_number', 1)
         cn = k.get('concurrency', 1)
+        run_id = k.get('run_id', uuid4().hex)
+        preflight = k.get('preflight', {})
         api = self.ap[an]
         bs = api.fetch_data()
         np_val = PACKET_PROFILES.get(pp, 30000)
         th = FREQUENCY_PROFILES.get(fp, 100)
         st = time.perf_counter_ns()
+
+        # Generate event_id for this chaos event
+        event_id = uuid4().hex
 
         # Baseline mode: no chaos — measure false positive rate
         if self.baseline_mode:
@@ -67,7 +73,15 @@ class ExperimentRunner:
         else:
             ch = select_chaos(cs, cl)
             if callable(ch):
-                mu, drift_type = ch(bs)
+                result_tuple = ch(bs, drift_logger=self.l, run_number=rn,
+                                  api_source=an, run_id=run_id, event_id=event_id)
+                if isinstance(result_tuple, tuple) and len(result_tuple) == 3:
+                    mu, drift_type, event_id_out = result_tuple
+                    event_id = event_id_out or event_id
+                elif isinstance(result_tuple, tuple) and len(result_tuple) == 2:
+                    mu, drift_type = result_tuple
+                else:
+                    mu, drift_type = bs, None
             else:
                 mu, drift_type = bs, None
 
@@ -81,7 +95,9 @@ class ExperimentRunner:
             'original_len': len(str(bs)),
             'mutated_len': len(str(mu)),
             'temperature': random.uniform(0.1, 0.9),
-            'drift_type': drift_type
+            'drift_type': drift_type,
+            'event_id': event_id,
+            'run_id': run_id
         }
         self.l.log_chaos(chaos_metadata)
 
@@ -95,7 +111,16 @@ class ExperimentRunner:
         reconciled_ok = process_result['reconciled_ok']
         winner = process_result['reconciliation_winner']
         fallback_used = process_result['fallback_used']
+        fallback_reason = process_result.get('fallback_reason')
         best_confidence = process_result['best_confidence']
+        method_used = process_result.get('method_used', 'none')
+        algorithm_results = process_result.get('algorithm_results', {})
+        model_source = process_result.get('model_source', {})
+
+        # Determine if internet was used for this run
+        internet_used = any(
+            src == "internet" for src in model_source.values()
+        )
 
         # Compute resilience metrics
         elapsed_us = (time.perf_counter_ns() - st) // 1000
@@ -116,13 +141,15 @@ class ExperimentRunner:
         resilience_P = resilience['P']
         resilience_P2 = resilience['P2']
 
-        # Build output result dictionary
+        # Build output result dictionary with full traceability
         result = {
             'timing_us': elapsed_us,
             'throughput_bytes_per_sec': tp,
             'throughput_pps': throughput_pps,
             'packet_size': np_val,
             'packet_count': 1,
+            'run_id': run_id,
+            'event_id': event_id,
             'chaos_metadata': chaos_metadata,
             'device': {'device': self.h, 'hardware': self.hw, 'cloud': self.c},
             'drift_detected': drift_detected,
@@ -130,7 +157,12 @@ class ExperimentRunner:
             'drift_type_count': drift_type_count,
             'reconciled_ok': reconciled_ok,
             'reconciliation_winner': winner,
+            'method_used': method_used,
+            'algorithm_results': algorithm_results,
+            'model_source': model_source,
+            'internet_used': internet_used,
             'fallback_used': fallback_used,
+            'fallback_reason': fallback_reason,
             'repair_rate': repair_rate,
             'recovery_score': recovery_score,
             'resilience_P': resilience_P,
@@ -147,13 +179,14 @@ class ExperimentRunner:
             'chaos_level': cl,
             'elapsed_seconds': total_runtime_sec,
             'averages': {
-                'levenshtein_latency': 0,
-                'regex_latency': 0,
-                'bert_latency': 0,
-                'gemma_latency': 0,
+                'levenshtein_latency': algorithm_results.get('levenshtein', {}).get('latency_ms', 0),
+                'regex_latency': algorithm_results.get('regex', {}).get('latency_ms', 0),
+                'bert_latency': algorithm_results.get('bert', {}).get('latency_ms', 0),
+                'gemma_latency': algorithm_results.get('gemma', {}).get('latency_ms', 0),
                 'gemma_confidence': best_confidence
             },
             'actual_device': self.hw,
             'target_hz': th,
+            'preflight': preflight,
         }
         return result

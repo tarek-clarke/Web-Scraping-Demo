@@ -1,5 +1,6 @@
 import random
 import re
+from uuid import uuid4
 
 class JSONChaos:
     def __init__(self, probability: float):
@@ -17,9 +18,11 @@ class JSONChaos:
             "driver_name": ["driver_label", "driver_title", "pilot_name"]
         }
 
-    def __call__(self, data: dict, drift_logger=None, run_number=1, api_source="api"):
-        mutated, drift_type = self.apply_chaos(data, drift_logger, run_number, api_source)
-        return mutated, drift_type
+    def __call__(self, data: dict, drift_logger=None, run_number=1, api_source="api",
+                 run_id=None, event_id=None):
+        mutated, drift_type, event_id_out = self.apply_chaos(data, drift_logger, run_number, api_source,
+                                                              run_id=run_id, event_id=event_id)
+        return mutated, drift_type, event_id_out
 
     def _introduce_typo(self, text: str) -> str:
         if not isinstance(text, str) or len(text) < 3:
@@ -158,11 +161,12 @@ class JSONChaos:
             return mutated, "nested_corruption"
         return mutated, None
 
-    def _apply_balanced_chaos(self, data: dict, drift_logger=None, run_number=1, api_source="api"):
+    def _apply_balanced_chaos(self, data: dict, drift_logger=None, run_number=1, api_source="api",
+                              run_id=None, event_id=None):
         """Apply exactly N mutations with balanced drift types."""
         total_fields = len(data)
         if total_fields == 0:
-            return data, None
+            return data, None, event_id
         N = max(1, int(round(self.probability * total_fields)))
         N = min(N, total_fields)
 
@@ -240,12 +244,15 @@ class JSONChaos:
                     drift_type=drift_type_log,
                     original_field=target_key,
                     mutated_field="(see metadata)",
-                    metadata={"mutation_rate": self.probability}
+                    metadata={"mutation_rate": self.probability},
+                    run_id=run_id,
+                    event_id=event_id
                 )
 
-        return mutated, drift_type_log
+        return mutated, drift_type_log, event_id
 
-    def apply_chaos(self, data: dict, drift_logger=None, run_number=1, api_source="api"):
+    def apply_chaos(self, data: dict, drift_logger=None, run_number=1, api_source="api",
+                    run_id=None, event_id=None):
         if self.probability <= 0.0:
-            return data, None
-        return self._apply_balanced_chaos(data, drift_logger, run_number, api_source)
+            return data, None, event_id
+        return self._apply_balanced_chaos(data, drift_logger, run_number, api_source, run_id=run_id, event_id=event_id)

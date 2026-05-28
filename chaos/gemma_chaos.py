@@ -1,5 +1,6 @@
 import random
 import json
+from uuid import uuid4
 from models.gemma_offline import GemmaModel
 
 class GemmaChaos:
@@ -27,9 +28,11 @@ class GemmaChaos:
             "Verstappen": "Max Verstappen (Red Bull Racing)"
         }
 
-    def __call__(self, data: dict, drift_logger=None, run_number=1, api_source="api"):
-        mutated, drift_type = self.apply_chaos(data, drift_logger, run_number, api_source)
-        return mutated, drift_type
+    def __call__(self, data: dict, drift_logger=None, run_number=1, api_source="api",
+                 run_id=None, event_id=None):
+        mutated, drift_type, event_id_out = self.apply_chaos(data, drift_logger, run_number, api_source,
+                                                              run_id=run_id, event_id=event_id)
+        return mutated, drift_type, event_id_out
 
     def _paraphrase_value(self, val: str) -> str:
         if not isinstance(val, str):
@@ -211,10 +214,11 @@ Modified JSON:
             return mutated, None
         return mutated, drift_type
 
-    def _apply_balanced_chaos(self, data: dict, drift_logger=None, run_number=1, api_source="api"):
+    def _apply_balanced_chaos(self, data: dict, drift_logger=None, run_number=1, api_source="api",
+                                     run_id=None, event_id=None):
         total_fields = len(data)
         if total_fields == 0:
-            return data, None
+            return data, None, event_id
         N = max(1, int(round(self.probability * total_fields)))
         N = min(N, total_fields)
 
@@ -292,12 +296,15 @@ Modified JSON:
                     drift_type=drift_type_log,
                     original_field=target_key,
                     mutated_field="(see metadata)",
-                    metadata={"mutation_rate": self.probability}
+                    metadata={"mutation_rate": self.probability},
+                    run_id=run_id,
+                    event_id=event_id
                 )
 
-        return mutated, drift_type_log
+        return mutated, drift_type_log, event_id
 
-    def apply_chaos(self, data: dict, drift_logger=None, run_number=1, api_source="api"):
+    def apply_chaos(self, data: dict, drift_logger=None, run_number=1, api_source="api",
+                    run_id=None, event_id=None):
         if self.probability <= 0.0:
-            return data, None
-        return self._apply_balanced_chaos(data, drift_logger, run_number, api_source)
+            return data, None, event_id
+        return self._apply_balanced_chaos(data, drift_logger, run_number, api_source, run_id=run_id, event_id=event_id)
