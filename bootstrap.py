@@ -10,6 +10,17 @@ import subprocess
 import importlib.util
 import importlib.metadata
 
+
+def ensure_supported_python_version():
+    """Fail fast on Python versions that are not yet supported by the ML stack."""
+    if sys.version_info >= (3, 13):
+        print(
+            "[Bootstrap] ERROR: Python 3.13+ is not supported by this stack yet. "
+            "Use Python 3.11 or 3.12 for reliable torch/transformers compatibility."
+        )
+        return False
+    return True
+
 def detect_cloud_platform():
     """
     Detects cloud platform based on environment variables or metadata paths.
@@ -314,16 +325,19 @@ def cache_model_weights():
     Pre-caches the model weights locally.
     """
     print("[Bootstrap] Caching model weights...")
+    print("[Bootstrap] This step will download and validate BERT (MiniLM) and Gemma locally.")
+    cache_ok = True
     
     # 1. MiniLM
     try:
-        print("[Bootstrap] Downloading sentence-transformers/all-MiniLM-L6-v2...")
+        print("[Bootstrap] Downloading BERT model: sentence-transformers/all-MiniLM-L6-v2...")
         from transformers import AutoTokenizer, AutoModel
         AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
         AutoModel.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
-        print("[Bootstrap] all-MiniLM-L6-v2 successfully cached.")
+        print("[Bootstrap] BERT model successfully cached.")
     except Exception as e:
-        print(f"[Bootstrap] Warning: Failed to pre-cache MiniLM ({e}).")
+        cache_ok = False
+        print(f"[Bootstrap] ERROR: Failed to pre-cache MiniLM ({e}).")
 
     # 2. Gemma-4 E4B
     try:
@@ -335,7 +349,7 @@ def cache_model_weights():
         gemma_local_path = GemmaLocal.discover_local_path()
 
         if gemma_local_path is None:
-            print(f"[Bootstrap] Downloading {gemma_repo_id} into the local Hugging Face cache...")
+            print(f"[Bootstrap] Downloading Gemma model: {gemma_repo_id} into the local Hugging Face cache...")
             AutoTokenizer.from_pretrained(gemma_repo_id)
             AutoModelForCausalLM.from_pretrained(gemma_repo_id)
             gemma_local_path = GemmaLocal.discover_local_path()
@@ -348,17 +362,23 @@ def cache_model_weights():
         print(f"[Bootstrap] Validating local Gemma checkpoint at {gemma_local_path}...")
         AutoTokenizer.from_pretrained(gemma_local_path, local_files_only=True)
         AutoModelForCausalLM.from_pretrained(gemma_local_path, local_files_only=True)
-        print("[Bootstrap] Local Gemma checkpoint validated and cached.")
+        print("[Bootstrap] Gemma model successfully cached.")
     except Exception as e:
-        print(f"[Bootstrap] Warning: local Gemma checkpoint validation failed ({e}).")
+        cache_ok = False
+        print(f"[Bootstrap] ERROR: local Gemma checkpoint validation failed ({e}).")
+
+    return cache_ok
 
 def run_bootstrap(force=False):
     """
     Runs the initialization process.
     """
+    if not ensure_supported_python_version():
+        return False
+
     if os.path.exists(".initialized") and not force:
         print("[Bootstrap] Already initialized. Skipping bootstrap phase. Use --bootstrap to force.")
-        return
+        return True
         
     start_time = time.perf_counter()
     print("\n" + "="*80)
@@ -393,7 +413,10 @@ def run_bootstrap(force=False):
         cpp_built = build_cpp_extension()
     
     # 5. Cache weights
-    cache_model_weights()
+    model_cache_ok = cache_model_weights()
+    if not model_cache_ok:
+        print("[Bootstrap] ERROR: Required model weights could not be cached. Aborting bootstrap.")
+        return False
     
     duration = time.perf_counter() - start_time
     fresh_install = torch_fresh or libs_fresh or cpp_built
@@ -420,8 +443,10 @@ def run_bootstrap(force=False):
     print(f" Fresh Dependencies Installed    : {fresh_install}")
     print("="*80 + "\n")
 
+    return True
+
 if __name__ == "__main__":
     # If run as script
     force_boot = "--bootstrap" in sys.argv
     # Pass through force-hardware flags if present (detected inside run_bootstrap)
-    run_bootstrap(force=force_boot)
+    raise SystemExit(0 if run_bootstrap(force=force_boot) else 1)

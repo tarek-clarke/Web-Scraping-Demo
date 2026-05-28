@@ -8,7 +8,7 @@ from models.torch_compat import ensure_transformers_import_compatibility
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 
 class BERTModel:
-    def __init__(self):
+    def __init__(self, allow_internet: bool = True):
         self.device_info = get_device_info()
         self.device = self.device_info["device"]
         if self.device in ["cuda", "rocm"]:
@@ -22,6 +22,8 @@ class BERTModel:
         self.tokenizer = None
         self.model = None
         self.is_loaded = False
+        self.model_source = "unknown"
+        self.allow_internet = allow_internet
         self._compiled_encode_active = False
         self._initialize()
 
@@ -37,6 +39,7 @@ class BERTModel:
             self.model.to(self.torch_device)
             self.model.eval()
             self.is_loaded = True
+            self.model_source = "local"
 
             # Keep an eager reference so we can recover if compilation fails at runtime.
             self._encode_eager = self._encode
@@ -55,9 +58,43 @@ class BERTModel:
                     self._encode = self._encode_eager
                     self._compiled_encode_active = False
 
-        except Exception as e:
-            print(f"[BERT] Warning: Failed to load local BERT model ({e}). Using mock/fallback embedding generator.")
+        except Exception as local_error:
+            if self.allow_internet:
+                try:
+                    import torch
+                    from transformers import AutoTokenizer, AutoModel
+
+                    print(f"[BERT] Local cache unavailable ({local_error}); downloading from the internet...")
+                    self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+                    self.model = AutoModel.from_pretrained(self.model_name)
+                    self.model.to(self.torch_device)
+                    self.model.eval()
+                    self.is_loaded = True
+                    self.model_source = "internet"
+
+                    self._encode_eager = self._encode
+                    enable_compile = (
+                        hasattr(torch, 'compile') and
+                        os.getenv('RAP_ENABLE_TORCH_COMPILE', '').strip().lower() in ('1', 'true', 'yes')
+                    )
+                    if enable_compile:
+                        try:
+                            self._encode = torch.compile(self._encode, mode="reduce-overhead")
+                            self._compiled_encode_active = True
+                        except Exception as e:
+                            print(f"[BERT] Warning: torch.compile disabled ({e}). Using eager mode.")
+                            self._encode = self._encode_eager
+                            self._compiled_encode_active = False
+                    return
+                except Exception as internet_error:
+                    print(
+                        f"[BERT] Warning: Failed to load local BERT model ({local_error}) and internet fallback failed ({internet_error}). Using mock/fallback embedding generator."
+                    )
+            else:
+                print(f"[BERT] Warning: Failed to load local BERT model ({local_error}). Using mock/fallback embedding generator.")
+
             self.is_loaded = False
+            self.model_source = "unavailable"
 
     def _encode(self, texts: List[str]):
         """Mean‑pooled, normalized embeddings for a batch of texts."""

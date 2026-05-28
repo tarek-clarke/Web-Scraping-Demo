@@ -206,11 +206,30 @@ def run_preflight_checks(require_gpu=True, cpu_allowed=False, require_local_mode
         bert = BERTModel()
         bert_available = bert.is_loaded
         if bert_available:
-            model_source["bert"] = "local"
+            model_source["bert"] = getattr(bert, "model_source", "local")
             if verbose:
-                print(" [✓] BERT model loaded locally")
+                if model_source["bert"] == "internet":
+                    print(" [✓] BERT model downloaded from the internet and loaded")
+                else:
+                    print(" [✓] BERT model loaded locally")
+            if model_source["bert"] != "local":
+                internet_used = True
+                if require_local_models:
+                    msg = "BERT loaded via internet fallback and require_local_models=True. ABORT."
+                    preflight = {
+                        "gpu_available": gpu_available, "gpu_backend": hw_backend,
+                        "cpu_allowed": cpu_allowed, "cpu_mode": cpu_mode,
+                        "bert_available": True, "gemma_available": gemma_available,
+                        "internet_used": internet_used, "model_source": model_source,
+                        "model_version": model_version,
+                        "hardware_backend_verified": hardware_backend_verified,
+                        "require_local_models": require_local_models,
+                        "require_gpu": require_gpu, "strict_mode": strict_mode,
+                        "pipeline_version": pipeline_version
+                    }
+                    return preflight, True, msg
         else:
-            model_source["bert"] = "internet"
+            model_source["bert"] = getattr(bert, "model_source", "internet")
             internet_used = True
             if verbose:
                 print(" [WARN] BERT not available locally — would need internet fallback")
