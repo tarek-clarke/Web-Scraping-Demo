@@ -1,6 +1,19 @@
 import os
 import platform
 import socket
+import subprocess
+
+
+def _normalize_gpu_name(value):
+    if not value:
+        return None
+    cleaned = value.strip()
+    prefixes = ["NVIDIA GeForce ", "NVIDIA "]
+    for prefix in prefixes:
+        if cleaned.startswith(prefix):
+            cleaned = cleaned[len(prefix):]
+            break
+    return cleaned or None
 
 
 def _format_vram_gb(total_bytes):
@@ -16,6 +29,31 @@ def _normalize_cpu_name(value):
     if lowered in {"x86_64", "amd64", "i386", "i686", "intel64", "generic cpu", ""}:
         return "CPU"
     return value.strip()
+
+
+def _query_nvidia_gpu_info():
+    """Return the first NVIDIA GPU name and VRAM in GB from nvidia-smi, if available."""
+    try:
+        cmd = [
+            "nvidia-smi",
+            "--query-gpu=name,memory.total",
+            "--format=csv,noheader,nounits",
+        ]
+        output = subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL).strip()
+        if not output:
+            return None, None
+        first_line = output.splitlines()[0]
+        parts = [part.strip() for part in first_line.split(",")]
+        gpu_name = _normalize_gpu_name(parts[0] if parts else None)
+        vram_gb = None
+        if len(parts) > 1:
+            try:
+                vram_gb = int(round(float(parts[1]) / 1024.0))
+            except Exception:
+                vram_gb = None
+        return gpu_name, vram_gb
+    except Exception:
+        return None, None
 
 def detect_cloud_platform():
     """
@@ -143,6 +181,7 @@ def get_device_info():
     try:
         import torch
         if device in ["cuda", "rocm"] and torch.cuda.is_available():
+            nvidia_name, nvidia_vram = _query_nvidia_gpu_info()
             try:
                 gpu_name = torch.cuda.get_device_name(0).strip()
             except Exception:
@@ -152,9 +191,13 @@ def get_device_info():
                 vram_gb = _format_vram_gb(getattr(props, "total_memory", None))
             except Exception:
                 vram_gb = None
+            if nvidia_name:
+                gpu_name = nvidia_name
+            if nvidia_vram is not None:
+                vram_gb = nvidia_vram
             model = gpu_name or "GPU"
             if vram_gb:
-                model = f"{model} {vram_gb}GB"
+                model = f"{model} ({vram_gb}GB)"
         elif device == "mps":
             model = f"Apple Silicon ({platform.processor() or 'arm64'})"
         else:
