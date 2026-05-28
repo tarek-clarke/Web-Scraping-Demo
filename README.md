@@ -1,5 +1,31 @@
 # Semantic Drift Evaluation Pipeline
 
+Cross-platform benchmark for semantic schema drift detection and reconciliation
+using BERT embeddings and Gemma-4 E4B, evaluated under controlled chaos injection
+on real-world API schemas (Finnhub, OpenMeteo, SpaceX, OpenF1).
+
+---
+
+## Quick Start (One-Shot Pipeline)
+
+Copy-paste onto any **fresh cloud instance** (vast.ai, runpod, Lambda, etc.):
+
+```bash
+git clone https://github.com/YOUR_ORG/resilient-rap-framework.git
+cd resilient-rap-framework
+python3.10 -m venv .venv && source .venv/bin/activate
+pip install --upgrade pip && pip install -r requirements.txt
+python bootstrap.py --bootstrap
+python run_all.py --generate-only --require-gpu --strict-mode --runs-per-config 5 --policy-tag tkde_policy_v1
+python unified_pipeline.py --with-traceability
+```
+
+See **[UNIFIED_PIPELINE_README.md](UNIFIED_PIPELINE_README.md)** for the full annotated version with push-to-github, variants, pre-flight validation docs, and event-level traceability details.
+
+---
+
+# Semantic Drift Evaluation Pipeline
+
 This repository benchmarks semantic drift detection and repair under controlled chaos injection. The summaries below are generated directly from combined_results.json (9,900 rows) and are ordered to move from hardware-level behavior to strategy effects, decoder coverage, hardware/strategy interactions, and the final findings narrative.
 
 ## Data Scope
