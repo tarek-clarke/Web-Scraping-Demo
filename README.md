@@ -11,7 +11,7 @@ on real-world API schemas (Finnhub, OpenMeteo, SpaceX, OpenF1).
 Copy-paste onto any **fresh cloud instance** (vast.ai, runpod, Lambda, etc.):
 
 ```bash
-git clone https://github.com/YOUR_ORG/resilient-rap-framework.git
+git clone -b semantic_only https://github.com/tarek-clarke/resilient-rap-framework.git
 cd resilient-rap-framework
 python3.10 -m venv .venv && source .venv/bin/activate
 pip install --upgrade pip && pip install -r requirements.txt
