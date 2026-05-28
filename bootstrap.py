@@ -56,6 +56,39 @@ def install_version_specific_requirements():
         print(f"[Bootstrap] ERROR: Failed to install requirements: {e}")
         return False
 
+
+def query_gpu_identity(hardware_backend):
+    """Best-effort GPU name and VRAM lookup for bootstrap logging."""
+    if hardware_backend != "NVIDIA CUDA":
+        return None, None
+
+    try:
+        cmd = [
+            "nvidia-smi",
+            "--query-gpu=name,memory.total",
+            "--format=csv,noheader,nounits",
+        ]
+        output = subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL).strip()
+        if not output:
+            return None, None
+
+        first_line = output.splitlines()[0]
+        parts = [part.strip() for part in first_line.split(",")]
+        gpu_name = parts[0] if parts else None
+        if gpu_name:
+            gpu_name = gpu_name.replace("NVIDIA GeForce ", "").replace("NVIDIA ", "").strip() or None
+
+        vram_gb = None
+        if len(parts) > 1:
+            try:
+                vram_gb = int(round(float(parts[1]) / 1024.0))
+            except Exception:
+                vram_gb = None
+
+        return gpu_name, vram_gb
+    except Exception:
+        return None, None
+
 def detect_cloud_platform():
     """
     Detects cloud platform based on environment variables or metadata paths.
@@ -432,6 +465,14 @@ def run_bootstrap(force=False):
     
     print(f"[Bootstrap] Cloud Environment Detected : {cloud.upper()}")
     print(f"[Bootstrap] Hardware Backend Detected  : {hardware.upper()}")
+    gpu_name, gpu_vram_gb = query_gpu_identity(hardware)
+    if gpu_name:
+        gpu_line = f"{gpu_name}"
+        if gpu_vram_gb is not None:
+            gpu_line = f"{gpu_line} ({gpu_vram_gb}GB)"
+        print(f"[Bootstrap] GPU Model Detected       : {gpu_line}")
+    elif hardware == "NVIDIA CUDA":
+        print("[Bootstrap] GPU Model Detected       : NVIDIA GPU (nvidia-smi unavailable)")
     
     # 2. Install PyTorch
     torch_fresh = install_pytorch(hardware)
