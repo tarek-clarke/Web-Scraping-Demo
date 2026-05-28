@@ -127,15 +127,17 @@ def detect_hardware_backend():
     # Try importing torch to inspect hardware directly if available
     try:
         import torch
-        if torch.cuda.is_available():
+        torch_cuda = getattr(torch, "cuda", None)
+        torch_backends = getattr(torch, "backends", None)
+        if torch_cuda is not None and hasattr(torch_cuda, "is_available") and torch_cuda.is_available():
             if hasattr(torch.version, "hip") and torch.version.hip is not None:
                 return "AMD ROCm"
             return "NVIDIA CUDA"
-        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        elif torch_backends is not None and hasattr(torch_backends, "mps") and torch_backends.mps.is_available():
             return "Apple Silicon MPS"
         elif hasattr(torch, "xpu") and torch.xpu.is_available():
             return "Intel GPU"
-    except ImportError:
+    except Exception:
         pass
         
     # Fallback to system-level check without PyTorch
