@@ -70,9 +70,6 @@ python bootstrap.py --bootstrap
 
 # 2. Compile native C++ Levenshtein accelerator
 python setup.py build_ext --inplace
-
-# 3. Install the resilience-metrics package
-pip install -e /Users/tarekclarke/.gemini/antigravity/scratch/resilience-metrics
 ```
 
 ### Step B: Generate the Chaos Dataset

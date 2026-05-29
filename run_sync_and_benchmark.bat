@@ -19,18 +19,7 @@ if %ERRORLEVEL% equ 0 (
     echo [!] Warning: git command not found; skipping repository sync.
 )
 
-rem 1.5. Ensure resilience_metrics is installed
-python -c "import resilience_metrics" >nul 2>nul
-if %ERRORLEVEL% neq 0 (
-    echo [*] Installing resilience-metrics dependency from sibling folder...
-    if exist "..\resilience-metrics" (
-        pip install -e ..\resilience-metrics
-    ) else (
-        echo [!] Warning: Sibling folder 'resilience-metrics' not found.
-        echo [*] Attempting to install directly from your GitHub Agent repository...
-        pip install "git+https://github.com/tarek-clarke/Agent.git#subdirectory=resilience-metrics"
-    )
-)
+
 
 rem 2. Check or generate the static chaos dataset
 set DATASET_PATH=chaos_generator\datasets\chaos_dataset.json
