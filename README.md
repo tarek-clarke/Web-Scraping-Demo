@@ -108,6 +108,32 @@ The system robustness is mathematically assessed by integrating the official [re
 > **Reliability Engineering & System Safety**, 145, 47–61.
 > [https://doi.org/10.1016/j.ress.2016.02.010](https://doi.org/10.1016/j.ress.2016.02.010)
 
+### 📚 BibTeX Citation References
+
+If you are using this framework or the `resilience-metrics` package in your research, please cite both the foundational system resilience paper and this implementation using the BibTeX blocks below:
+
+```bibtex
+@article{hosseini2016review,
+  title={A review of definitions and measures of system resilience},
+  author={Hosseini, Seyedmohsen and Barker, Kash and Ramirez-Marquez, Jose Emmanuel},
+  journal={Reliability Engineering \& System Safety},
+  volume={145},
+  pages={47--61},
+  year={2016},
+  publisher={Elsevier},
+  doi={10.1016/j.ress.2016.02.010}
+}
+
+@software{clarke2026resilient,
+  title={Resilient Semantic Reconciliation under API Schema Drift: A Multi-Platform Evaluation Framework},
+  author={Clarke, Tarek},
+  year={2026},
+  publisher={GitHub},
+  journal={GitHub Repository},
+  howpublished={\url{https://github.com/tarek-clarke/resilient-rap-framework}}
+}
+```
+
 System resilience is evaluated across two distinct peer-reviewed formulations ($P$ and $P_2$):
 
 $$P = 0.35 \cdot T + 0.25 \cdot D + 0.20 \cdot R + 0.20 \cdot L$$
