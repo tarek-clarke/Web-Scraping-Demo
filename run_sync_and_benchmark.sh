@@ -26,6 +26,18 @@ else
     echo "[!] Warning: git command not found; skipping repository sync."
 fi
 
+# 1.5 Ensure resilience_metrics is installed
+if ! python -c "import resilience_metrics" &> /dev/null; then
+    echo "[*] Installing resilience-metrics dependency from sibling folder..."
+    if [ -d "../resilience-metrics" ]; then
+        pip install -e ../resilience-metrics
+    else
+        echo "[!] Warning: Sibling folder '../resilience-metrics' not found."
+        echo "[*] Attempting to install from PyPI..."
+        pip install resilience-metrics
+    fi
+fi
+
 # 2. Check or generate the static chaos dataset
 DATASET_PATH="chaos_generator/datasets/chaos_dataset.json"
 if [ ! -f "$DATASET_PATH" ]; then
