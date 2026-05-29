@@ -157,6 +157,7 @@ class ExperimentRunner:
             'reconciled_ok': reconciled_ok,
             'reconciliation_winner': winner,
             'method_used': method_used,
+            'translation_method': method_used,
             'algorithm_results': algorithm_results,
             'model_source': model_source,
             'internet_used': internet_used,

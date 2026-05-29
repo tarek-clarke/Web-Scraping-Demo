@@ -338,16 +338,33 @@ def sanitize_hw_token(value):
     return value.replace(' ', '_').replace('/', '_').replace('(', '').replace(')', '')
 
 
+def sanitize_method_token(value):
+    return sanitize_hw_token(str(value))
+
+
+def normalize_chaos_level_token(value):
+    token = str(value).strip().lower()
+    mapping = {
+        'high': '5',
+        'medium': '1',
+        'low': '0',
+        '5': '5',
+        '1': '1',
+        '0': '0'
+    }
+    return mapping.get(token, sanitize_hw_token(token))
+
+
 def baseline_raw_filename(record):
     rn = int(record.get('run_number', 0))
     an = record.get('api_name', 'unknown')
     pp = record.get('packet_profile', 'unknown')
     fp = record.get('frequency_profile', 'unknown')
-    cs = record.get('chaos_strategy', 'unknown')
-    cl = record.get('chaos_level', 'unknown')
+    cl = normalize_chaos_level_token(record.get('chaos_level', 'unknown'))
+    tm = sanitize_method_token(record.get('translation_method', record.get('method_used', 'unknown')))
     hw = sanitize_hw_token(record.get('actual_device', 'unknown'))
     dt = 'drift' if record.get('drift_detected', False) else 'clean'
-    return f'baseline_run_{rn:03d}_{an}_{pp}_{fp}_{cs}_{cl}_{hw}_{dt}.json'
+    return f'baseline_run_{rn:03d}_{an}_{pp}_{fp}_{cl}_{tm}_{hw}_{dt}.json'
 
 
 def standard_raw_filename(record):
@@ -355,11 +372,11 @@ def standard_raw_filename(record):
     an = record.get('api_name', 'unknown')
     pp = record.get('packet_profile', 'unknown')
     fp = record.get('frequency_profile', 'unknown')
-    cs = record.get('chaos_strategy', 'unknown')
-    cl = record.get('chaos_level', 'unknown')
+    cl = normalize_chaos_level_token(record.get('chaos_level', 'unknown'))
+    tm = sanitize_method_token(record.get('translation_method', record.get('method_used', 'unknown')))
     hw = sanitize_hw_token(record.get('actual_device', 'unknown'))
     dt = 'drift' if record.get('drift_detected', False) else 'clean'
-    return f'run_{rn:03d}_{an}_{pp}_{fp}_{cs}_{cl}_{hw}_{dt}.json'
+    return f'run_{rn:03d}_{an}_{pp}_{fp}_{cl}_{tm}_{hw}_{dt}.json'
 
 
 def write_json_atomic(path, payload):
@@ -371,7 +388,7 @@ def write_json_atomic(path, payload):
 
 def parse_existing_baseline_file_name(file_name):
     pattern = re.compile(
-        r'^baseline_run_(\d{3})_([a-z0-9_]+)_(short|long)_(100hz|1000hz|1mhz)_(json|schema|gemma)_(high|medium|low)_.+_(clean|drift)\.json$',
+        r'^baseline_run_(\d{3})_([a-z0-9_]+)_(short|long)_(100hz|1000hz|1mhz)_(5|1|0|high|medium|low)_([a-z0-9_]+)_.+_(clean|drift)\.json$',
         re.IGNORECASE
     )
     m = pattern.match(file_name)
@@ -387,7 +404,21 @@ def parse_existing_baseline_file_name(file_name):
 
 
 def parse_run_file_name(file_name):
-    """Parse run_{rn:03d}_{api}_{packet}_{freq}_{chaos}_{level}_{hw}_{drift/clean}.json"""
+    """Parse run file names in either the old or new standard format."""
+    new_pattern = re.compile(
+        r'^run_(\d{3})_([a-z0-9_]+)_(short|long)_(100hz|1000hz|1mhz)_(5|1|0|high|medium|low)_([a-z0-9_]+)_.+_(clean|drift)\.json$',
+        re.IGNORECASE
+    )
+    m = new_pattern.match(file_name)
+    if m:
+        rn = int(m.group(1))
+        api = m.group(2)
+        p = m.group(3)
+        f = m.group(4)
+        x = m.group(5)
+        l = m.group(6)
+        return (p, f, x, l, api), rn
+
     pattern = re.compile(
         r'^run_(\d{3})_([a-z0-9_]+)_(short|long)_(100hz|1000hz|1mhz)_(json|schema|gemma)_(high|medium|low)_.+_(clean|drift)\.json$',
         re.IGNORECASE
@@ -589,8 +620,8 @@ def update_readme(roc_data):
     lines.append('')
     lines.append('- **Raw mode**: `python run_all.py --generate-only` writes per-run JSON artifacts to `results/raw/<hardware_token>/`.')
     lines.append('- **Cross-platform layout**: one folder per hardware target (for example Apple Silicon, NVIDIA GPU, AMD GPU).')
-    lines.append('- **Raw file naming**: `run_{run:03d}_{api}_{packet}_{freq}_{chaos}_{level}_{hardware}_{drift_or_clean}.json`.')
-    lines.append('- **Baseline file naming**: `baseline_run_{run:03d}_{api}_{packet}_{freq}_{chaos}_{level}_{hardware}_{drift_or_clean}.json`.')
+    lines.append('- **Raw file naming**: `run_{run:03d}_{api}_{packet}_{freq}_{chaos_pct}_{translation_method}_{hardware}_{drift_or_clean}.json`.')
+    lines.append('- **Baseline file naming**: `baseline_run_{run:03d}_{api}_{packet}_{freq}_{chaos_pct}_{translation_method}_{hardware}_{drift_or_clean}.json`.')
     lines.append('- **Baseline policy**: baseline clean pipeline is topped up to at least 5 runs/config by default (`--min-baseline-runs`).')
     lines.append('- **Run policy**: configurable with `--runs-per-config` and tagged in-record using `policy_tag`.')
     lines.append('- **Stable statistics**: stable mean excludes run 1 (warmup/cold start) and uses runs 2..N.')
