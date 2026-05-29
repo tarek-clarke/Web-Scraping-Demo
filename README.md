@@ -147,8 +147,19 @@ The benchmark contains a dedicated, highly robust **hardware detection module** 
 | **Linux** | AMD Instinct | ROCm 6.x / 7.x | `cuda` | Verified ✅ |
 | **Any** | CPU (Fallback only) | Standard instruction sets | `cpu` | Blocks in `strict_mode` ❌ |
 
+### 🎛️ Execution Mode: GPU by Default vs. CPU on Demand
+
+The framework is configured to execute model reconciliation workloads at maximum performance out-of-the-box:
+
+* **GPU-by-Default (Default Behavior)**: On all systems (macOS Apple Silicon MPS, Windows/Linux CUDA, Windows/Linux ROCm, and Windows DirectML), the system discovers and binds workloads to the optimal high-performance hardware accelerator automatically.
+* **CPU-on-Demand (For High-End CPU Benchmarking)**: If you are benchmarking high-end multi-core CPU execution, or if you want to bypass PyTorch MPS unified memory allocator deadlocks for heavy LLM weights on macOS, you can force the entire deep learning workflow onto the CPU by setting the following environment variable:
+  ```bash
+  FORCE_HARDWARE=cpu
+  ```
+  This automatically monkeypatches macOS PyTorch checks to load the heavy weights securely in CPU RAM and skips strict-mode hardware aborts.
+
 > [!CAUTION]
-> **Strict Mode Hardware Enforcment:** If `strict_mode=True` is provided at execution, the hardware detection module will actively block execution and abort if it detects `"CPU"` fallback, ensuring that all benchmarks are executed exclusively on high-performance accelerators.
+> **Strict Mode Hardware Enforcement:** If `strict_mode=True` is provided, the pre-flight check will actively block execution and abort if it detects `"CPU"` fallback, ensuring that all benchmarks are executed exclusively on high-performance accelerators—unless you explicitly request CPU benchmarking by setting `FORCE_HARDWARE=cpu`.
 
 ### Platform-Specific Setup Guide:
 * **macOS**: PyTorch native wheels support MPS automatically. Run `python bootstrap.py --bootstrap` to initialize.
