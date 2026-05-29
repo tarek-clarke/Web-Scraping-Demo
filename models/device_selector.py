@@ -109,27 +109,27 @@ def detect_hardware_backend():
     machine = platform.machine().lower()
     processor = platform.processor().lower()
     
-    # Try importing torch to inspect hardware directly if available
+    # ── Apple Silicon MPS check (primary system check, before PyTorch)
+    if system == "Darwin" and ("arm" in machine or "apple" in processor):
+        return "Apple Silicon MPS"
+    
+    # Try importing torch to inspect other hardware backends
     try:
         import torch
         torch_cuda = getattr(torch, "cuda", None)
-        torch_backends = getattr(torch, "backends", None)
-        # NVIDIA CUDA
+        # NVIDIA CUDA or AMD ROCm (via HIP)
         if torch_cuda is not None and hasattr(torch_cuda, "is_available") and torch_cuda.is_available():
             # Check if it's actually AMD ROCm via HIP
             if hasattr(torch.version, 'hip') and torch.version.hip is not None:
                 return "AMD ROCm"
             return "NVIDIA CUDA"
-        # Apple Silicon MPS
-        if torch_backends is not None and hasattr(torch_backends, 'mps') and torch_backends.mps.is_available():
-            return "Apple Silicon MPS"
         # Intel GPU (XPU)
         if hasattr(torch, 'xpu') and torch.xpu.is_available():
             return "Intel GPU"
     except Exception:
         pass
         
-    # Fallback to system-level check without PyTorch
+    # Fallback to system-level checks without PyTorch
     # NVIDIA CUDA check
     try:
         import shutil
@@ -177,10 +177,6 @@ def detect_hardware_backend():
             return "Intel GPU"
     except Exception:
         pass
-        
-    # Apple Silicon MPS check
-    if system == "Darwin" and ("arm" in machine or "apple" in processor):
-        return "Apple Silicon MPS"
         
     return "CPU fallback"
 
