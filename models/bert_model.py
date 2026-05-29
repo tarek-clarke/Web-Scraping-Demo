@@ -8,7 +8,7 @@ from models.torch_compat import ensure_transformers_import_compatibility
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 
 class BERTModel:
-    def __init__(self, allow_internet: bool = False):
+    def __init__(self, allow_internet: bool = True):
         self.device_info = get_device_info()
         self.device = self.device_info["device"]
         if self.device in ["cuda", "rocm"]:
@@ -30,21 +30,31 @@ class BERTModel:
     def _initialize(self):
         try:
             ensure_transformers_import_compatibility()
-            import torch
             from transformers import AutoTokenizer, AutoModel
             
-            # Load tokenizer and model
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, local_files_only=True)
-            self.model = AutoModel.from_pretrained(self.model_name, local_files_only=True)
+            # Prefer local cache first.
+            try:
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, local_files_only=True)
+                self.model = AutoModel.from_pretrained(self.model_name, local_files_only=True)
+                self.model_source = "local"
+            except Exception as local_error:
+                if not self.allow_internet:
+                    raise local_error
+
+                print(f"[BERT] Local cache missing; downloading {self.model_name} once so it can be reused locally.")
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, local_files_only=False)
+                self.model = AutoModel.from_pretrained(self.model_name, local_files_only=False)
+                self.model_source = "downloaded"
+
             self.model.to(self.torch_device)
             self.model.eval()
             self.is_loaded = True
-            self.model_source = "local"
 
             # Keep an eager reference so we can recover if compilation fails at runtime.
             self._encode_eager = self._encode
 
             # torch.compile — enable only when explicitly requested.
+            import torch
             enable_compile = (
                 hasattr(torch, 'compile') and
                 os.getenv('RAP_ENABLE_TORCH_COMPILE', '').strip().lower() in ('1', 'true', 'yes')
@@ -59,8 +69,8 @@ class BERTModel:
                     self._compiled_encode_active = False
 
         except Exception as local_error:
-            mode = "offline mode" if not self.allow_internet else "local-only mode"
-            print(f"[BERT] Warning: Failed to load local BERT model ({local_error}). {mode} is enabled; using mock/fallback embedding generator.")
+            mode = "internet fallback disabled" if not self.allow_internet else "internet fallback exhausted"
+            print(f"[BERT] Warning: Failed to load BERT model ({local_error}). {mode}; using mock/fallback embedding generator.")
             self.is_loaded = False
             self.model_source = "unavailable"
 

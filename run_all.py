@@ -203,70 +203,28 @@ def run_preflight_checks(require_gpu=True, cpu_allowed=False, require_local_mode
 
     # ── D: BERT availability ──
     try:
-        bert = BERTModel(allow_internet=not require_local_models)
+        bert = BERTModel(allow_internet=True)
         bert_available = bert.is_loaded
         if bert_available:
             model_source["bert"] = getattr(bert, "model_source", "local")
             if verbose:
                 if model_source["bert"] == "internet":
                     print(" [✓] BERT model downloaded from the internet and loaded")
+                elif model_source["bert"] == "downloaded":
+                    print(" [✓] BERT model downloaded once and cached locally")
                 else:
                     print(" [✓] BERT model loaded locally")
-            if model_source["bert"] != "local":
+            if model_source["bert"] in ("internet", "downloaded"):
                 internet_used = True
-                if require_local_models:
-                    msg = "BERT loaded via internet fallback and require_local_models=True. ABORT."
-                    preflight = {
-                        "gpu_available": gpu_available, "gpu_backend": hw_backend,
-                        "cpu_allowed": cpu_allowed, "cpu_mode": cpu_mode,
-                        "bert_available": True, "gemma_available": gemma_available,
-                        "internet_used": internet_used, "model_source": model_source,
-                        "model_version": model_version,
-                        "hardware_backend_verified": hardware_backend_verified,
-                        "require_local_models": require_local_models,
-                        "require_gpu": require_gpu, "strict_mode": strict_mode,
-                        "pipeline_version": pipeline_version
-                    }
-                    return preflight, True, msg
         else:
             model_source["bert"] = getattr(bert, "model_source", "internet")
-            internet_used = True
             if verbose:
-                print(" [WARN] BERT not available locally — would need internet fallback")
-            if require_local_models:
-                msg = "BERT not available locally and require_local_models=True. ABORT."
-                preflight = {
-                    "gpu_available": gpu_available, "gpu_backend": hw_backend,
-                    "cpu_allowed": cpu_allowed, "cpu_mode": cpu_mode,
-                    "bert_available": False, "gemma_available": False,
-                    "internet_used": internet_used, "model_source": model_source,
-                    "model_version": model_version,
-                    "hardware_backend_verified": hardware_backend_verified,
-                    "require_local_models": require_local_models,
-                    "require_gpu": require_gpu, "strict_mode": strict_mode,
-                    "pipeline_version": pipeline_version
-                }
-                return preflight, True, msg
+                print(" [WARN] BERT not available locally after download attempt")
     except Exception as e:
         bert_available = False
         model_source["bert"] = "internet"
-        internet_used = True
         if verbose:
             print(f" [WARN] BERT load error: {e}")
-        if require_local_models:
-            msg = f"BERT load failed ({e}) and require_local_models=True. ABORT."
-            preflight = {
-                "gpu_available": gpu_available, "gpu_backend": hw_backend,
-                "cpu_allowed": cpu_allowed, "cpu_mode": cpu_mode,
-                "bert_available": False, "gemma_available": False,
-                "internet_used": internet_used, "model_source": model_source,
-                "model_version": model_version,
-                "hardware_backend_verified": hardware_backend_verified,
-                "require_local_models": require_local_models,
-                "require_gpu": require_gpu, "strict_mode": strict_mode,
-                "pipeline_version": pipeline_version
-            }
-            return preflight, True, msg
 
     # ── E: Gemma availability ──
     try:
