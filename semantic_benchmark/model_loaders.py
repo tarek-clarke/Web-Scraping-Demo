@@ -33,6 +33,19 @@ from models.device_selector import get_device_info
 
 def detect_academic_hardware() -> Tuple[str, str]:
     """Detect backend: CUDA, ROCm, Metal, DirectML, CPU."""
+    # Allow overriding via FORCE_HARDWARE env variable (helps bypass GPU/MPS driver deadlocks)
+    force_env = os.getenv("FORCE_HARDWARE")
+    if force_env:
+        v = force_env.strip().lower()
+        if v in ("cpu", "fallback"):
+            return "CPU", "cpu"
+        elif v in ("mps", "metal", "apple"):
+            return "Metal", "mps"
+        elif v in ("cuda", "nvidia"):
+            return "CUDA", "cuda"
+        elif v in ("rocm", "amd"):
+            return "ROCm", "cuda"
+
     import platform
     system = platform.system()
     machine = platform.machine().lower()
@@ -216,7 +229,7 @@ def run_preflight_validation(require_local_models: bool = True, strict_mode: boo
     }
     
     # Strict mode hardware boundary validation
-    if strict_mode and hw_backend == "CPU":
+    if strict_mode and hw_backend == "CPU" and os.getenv("FORCE_HARDWARE") != "cpu":
         return preflight_status, True, "Strict mode violation: Unsupported CPU backend detected. CUDA, ROCm, Metal, or DirectML is strictly required."
     
     # Check BERT

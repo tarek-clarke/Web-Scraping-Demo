@@ -43,7 +43,8 @@ python semantic_benchmark/run_semantic_benchmark.py \
   --dataset-path "$DATASET_PATH" \
   --require-local-models True \
   --strict-mode \
-  --verbose
+  --verbose \
+  "$@"
 
 # 4. Auto-update README tables with latest findings
 echo "[*] Formatting experimental outcomes and updating tables..."
