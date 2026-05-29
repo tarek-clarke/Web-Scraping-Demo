@@ -1,14 +1,19 @@
+from __future__ import annotations
+
 import time
-from models.bert_model import BERTModel
+from models.model_registry import get_shared_bert_model
 
 class BERTReconciler:
     def __init__(self, bert_model: BERTModel = None):
-        self.bert = bert_model or BERTModel()
+        self.bert = bert_model or get_shared_bert_model()
         self._canonical_embedding_cache = {}
 
     @staticmethod
     def _dot_product(vec1, vec2) -> float:
         return sum(a * b for a, b in zip(vec1, vec2))
+
+    def clear_caches(self) -> None:
+        self._canonical_embedding_cache.clear()
 
     def reconcile(self, canonical_keys: list, query_key: str) -> dict:
         """

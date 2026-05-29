@@ -1,6 +1,6 @@
 # Semantic Drift Evaluation Pipeline
 
-Current branch: `complete`
+Current branch: `main`
 
 ## Quick Start (One-Shot Pipeline)
 
@@ -9,8 +9,8 @@ Copy-paste onto any **fresh cloud instance** (vast.ai, runpod, Lambda, etc.):
 Use **Python 3.10, 3.11, 3.12, or 3.13**. Bootstrap auto-detects your Python version and installs version-optimized dependencies.
 
 ```bash
-git clone -b complete https://github.com/tarek-clarke/resilient-rap-framework.git resilient-rap-framework-complete
-cd resilient-rap-framework-complete
+git clone -b main https://github.com/tarek-clarke/resilient-rap-framework.git resilient-rap-framework-main
+cd resilient-rap-framework-main
 
 python3 -m venv .venv
 source .venv/bin/activate
@@ -52,6 +52,67 @@ python run_all.py \
 
 python unified_pipeline.py --with-traceability
 
+```
+
+Shared model state is cleared after each run so every benchmark starts fresh.
+
+## Platform Quickstarts
+
+### NVIDIA cloud instances
+
+Use this for RTX 6000 / other NVIDIA cloud GPUs:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+
+pip install --upgrade pip
+python bootstrap.py --bootstrap
+
+python run_all.py \
+  --generate-only \
+  --require-gpu \
+  --strict-mode \
+  --runs-per-config 5 \
+  --policy-tag tkde_policy_v1
+```
+
+### Local MacBook M4
+
+Use this on Apple Silicon / MPS:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+
+pip install --upgrade pip
+python bootstrap.py --bootstrap
+
+python run_all.py \
+  --generate-only \
+  --require-gpu \
+  --strict-mode \
+  --runs-per-config 5 \
+  --policy-tag tkde_policy_v1
+```
+
+### Local RX 7900 XT ROCm
+
+Use this on AMD ROCm hosts:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+
+pip install --upgrade pip
+python bootstrap.py --bootstrap
+
+python run_all.py \
+  --generate-only \
+  --require-gpu \
+  --strict-mode \
+  --runs-per-config 5 \
+  --policy-tag tkde_policy_v1
 ```
 
 See **[UNIFIED_PIPELINE_README.md](UNIFIED_PIPELINE_README.md)** for the full annotated version with push-to-github, variants, pre-flight validation docs, and event-level traceability details.

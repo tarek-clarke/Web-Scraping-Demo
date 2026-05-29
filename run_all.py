@@ -10,8 +10,7 @@ import platform
 import re
 from uuid import uuid4
 from models.device_selector import get_device_info
-from models.bert_model import BERTModel
-from models.gemma_offline import GemmaModel
+from models.model_registry import clear_shared_model_cache, get_shared_bert_model, get_shared_gemma_model
 from semantic.gemma_recon import GemmaReconciler
 from tests.run_experiments import ExperimentRunner
 try:
@@ -203,7 +202,7 @@ def run_preflight_checks(require_gpu=True, cpu_allowed=False, require_local_mode
 
     # ── D: BERT availability ──
     try:
-        bert = BERTModel(allow_internet=True)
+        bert = get_shared_bert_model(allow_internet=True)
         bert_available = True
         model_source["bert"] = getattr(bert, "model_source", "mock")
         if verbose:
@@ -225,7 +224,7 @@ def run_preflight_checks(require_gpu=True, cpu_allowed=False, require_local_mode
 
     # ── E: Gemma availability ──
     try:
-        gemma = GemmaModel()
+        gemma = get_shared_gemma_model()
         # Consider any initialized Gemma backend as usable: local, downloaded, or mock.
         gemma_available = True
         model_source["gemma"] = getattr(gemma, "backend", "mock")
@@ -287,6 +286,8 @@ def run_preflight_checks(require_gpu=True, cpu_allowed=False, require_local_mode
     if verbose:
         print(f" {'[✓]' if not (require_gpu and not gpu_available) else '[✗]'} Pre-flight passed")
         print(f"{'='*80}\n")
+
+    clear_shared_model_cache()
 
     return preflight, False, None
 

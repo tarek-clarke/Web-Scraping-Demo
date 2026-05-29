@@ -7,8 +7,7 @@ import random
 import concurrent.futures
 from uuid import uuid4
 from models.device_selector import get_device_info
-from models.bert_model import BERTModel
-from models.gemma_offline import GemmaModel
+from models.model_registry import get_shared_bert_model, get_shared_gemma_model, clear_shared_model_cache
 from chaos.strategy import select_chaos
 from drift_logging.drift_logger import DriftLogger
 from resilience.scoring import ResilienceScoring
@@ -33,8 +32,8 @@ class ExperimentRunner:
         self.h = d['model']
         self.hw = d['model'].replace(' ', '_').replace('/', '_').replace('(', '').replace(')', '')
         self.c = d['cloud']
-        self.b = BERTModel()
-        self.g = GemmaModel()
+        self.b = get_shared_bert_model()
+        self.g = get_shared_gemma_model()
         self.cp = SchemaComparer(self.b, self.g)
         self.l = DriftLogger(base_dir=os.path.join("logs", self.hw))
         self.fr = False
@@ -195,4 +194,7 @@ class ExperimentRunner:
             'os_name': self.d.get('os_name', 'Unknown'),
             'os_version': self.d.get('os_version', 'Unknown'),
         }
+        if hasattr(self.cp, "clear_caches"):
+            self.cp.clear_caches()
+        clear_shared_model_cache()
         return result

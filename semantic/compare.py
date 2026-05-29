@@ -1,18 +1,23 @@
+from __future__ import annotations
+
 import json
 import time
 from semantic.levenshtein import LevenshteinReconciler
 from semantic.regex_recon import RegexReconciler
 from semantic.bert_recon import BERTReconciler
 from semantic.gemma_recon import GemmaReconciler
-from models.bert_model import BERTModel
-from models.gemma_offline import GemmaModel
+from models.model_registry import get_shared_bert_model, get_shared_gemma_model
 
 class SchemaComparer:
-    def __init__(self, bert_model: BERTModel = None, gemma_model: GemmaModel = None):
+    def __init__(self, bert_model=None, gemma_model=None):
         self.levenshtein = LevenshteinReconciler()
         self.regex = RegexReconciler()
-        self.bert = BERTReconciler(bert_model)
-        self.gemma = GemmaReconciler(gemma_model)
+        self.bert = BERTReconciler(bert_model or get_shared_bert_model())
+        self.gemma = GemmaReconciler(gemma_model or get_shared_gemma_model())
+
+    def clear_caches(self) -> None:
+        if hasattr(self.bert, "clear_caches"):
+            self.bert.clear_caches()
 
     def classify_drift(self, original: dict, mutated: dict) -> dict:
         """Classify all drift types between original and mutated packets."""

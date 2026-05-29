@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import time
-from models.gemma_offline import GemmaModel
+from models.model_registry import get_shared_gemma_model
 
 class GemmaReconciler:
     def __init__(self, gemma_model: GemmaModel = None):
-        self.gemma = gemma_model or GemmaModel()
+        self.gemma = gemma_model or get_shared_gemma_model()
 
     def reconcile(self, canonical_keys: list, query_key: str) -> dict:
         """
