@@ -279,13 +279,19 @@ class GemmaLocal:
             pass
         return torch.device("cpu"), torch.float32
 
+    @staticmethod
+    def _is_directml_device(device) -> bool:
+        """Return True when the device is a DirectML (PrivateUse1) device."""
+        return "privateuseone" in str(device).lower()
+
     def _load_model(self) -> None:
         """Load tokenizer and causal language model from the local checkpoint.
 
-        On Windows ROCm, the safetensors mmap implementation crashes at the C++
+        On Windows ROCm, the safetensors Rust mmap implementation crashes at the C++
         level. We detect that condition and use a pure-Python file-I/O loader
-        instead. On all other platforms (MPS, Cloud CUDA, CPU) the standard
-        ``AutoModelForCausalLM.from_pretrained`` path is used.
+        instead. On DirectML, we use a similar per-tensor loading strategy to avoid
+        Windows TDR timeouts. On all other platforms (MPS, Cloud CUDA, CPU) the
+        standard ``AutoModelForCausalLM.from_pretrained`` path is used.
         """
 
         from models.torch_compat import ensure_transformers_import_compatibility
@@ -311,6 +317,8 @@ class GemmaLocal:
 
         if self._is_windows_rocm():
             self._load_model_no_mmap()
+        elif self._is_directml_device(self.device):
+            self._load_model_directml()
         else:
             self._load_model_standard()
 
@@ -341,13 +349,12 @@ class GemmaLocal:
         self.model.config.eos_token_id = eos[0] if eos else None
 
     def _load_model_standard(self) -> None:
-        """Standard from_pretrained path used on MPS, DirectML, and Cloud CUDA."""
+        """Standard from_pretrained path used on MPS and Cloud CUDA."""
         import torch
         from transformers import AutoModelForCausalLM
 
         # Determine the device type string for branching logic
         device_type = getattr(self.device, 'type', str(self.device))
-        is_directml = "privateuseone" in str(self.device).lower()
 
         load_kwargs: dict = {
             "local_files_only": True,
@@ -356,7 +363,6 @@ class GemmaLocal:
         }
 
         # Use device_map to stream weights directly to VRAM on CUDA environments only.
-        # DirectML and MPS do not support device_map='auto'.
         if device_type == "cuda":
             load_kwargs["device_map"] = "auto"
 
@@ -365,31 +371,82 @@ class GemmaLocal:
             **load_kwargs,
         )
 
-        # Manually transfer when device_map was not used (MPS / DirectML / CPU)
+        # Manually transfer when device_map was not used (MPS / CPU)
         if device_type != "cuda":
-            if is_directml:
-                # DirectML: transfer leaf modules individually to avoid TDR timeout.
-                # We can't use param.data = param.data.to(device) because DirectML
-                # tensors have an incompatible type for set_data. And we can't use
-                # model.to(device) because the entire model exceeds the 2-second
-                # TDR window. Solution: call .to() on each leaf module (Linear,
-                # Embedding, LayerNorm, etc.) which are 1-50MB each — small enough
-                # for TDR, and .to() on a Module properly handles type conversion.
-                import time
-                print("    > Transferring model to GPU (leaf module by leaf module)...")
-                leaves = [(name, m) for name, m in self.model.named_modules()
-                          if len(list(m.children())) == 0]
-                total = len(leaves)
-                for i, (name, module) in enumerate(leaves):
-                    module.to(self.device)
-                    if (i + 1) % 25 == 0 or (i + 1) == total:
-                        print(f"    > Modules: {i + 1}/{total}")
-                    # Brief yield every 10 modules to let GPU process transfers
-                    if (i + 1) % 10 == 0:
-                        time.sleep(0.05)
-                print(f"    > All {total} leaf modules transferred to GPU successfully.")
-            else:
-                self.model.to(self.device)
+            self.model.to(self.device)
+
+    def _load_model_directml(self) -> None:
+        """DirectML path: load tensors individually to avoid Windows TDR timeout.
+
+        Windows' Timeout Detection and Recovery (TDR) mechanism kills any GPU
+        operation exceeding ~2 seconds. Loading a 4B-parameter model in a single
+        .to() call or even per-layer .to() triggers this. Instead, we:
+
+        1. Create an empty model shell via accelerate's init_empty_weights
+        2. Read each tensor from safetensors to CPU (pure Python I/O, no mmap)
+        3. Transfer each tensor individually to DirectML (~1-50MB each, well
+           within TDR)
+        4. Use load_state_dict(assign=True) to replace meta tensors without
+           triggering the set_data type incompatibility error
+        """
+        import gc
+        import json
+        import time
+        import torch
+        from pathlib import Path
+        from tqdm import tqdm
+
+        from accelerate import init_empty_weights
+        from transformers import AutoConfig, AutoModelForCausalLM
+
+        config = AutoConfig.from_pretrained(str(self.model_dir), local_files_only=True)
+
+        with init_empty_weights():
+            self.model = AutoModelForCausalLM.from_config(config)
+
+        model_dir = Path(self.model_dir)
+
+        # Determine shard files from index or single file
+        index_file = model_dir / "model.safetensors.index.json"
+        single_file = model_dir / "model.safetensors"
+
+        if index_file.is_file():
+            with open(index_file, "r", encoding="utf-8") as fh:
+                index = json.load(fh)
+            shard_files = sorted(set(index["weight_map"].values()))
+        elif single_file.is_file():
+            shard_files = ["model.safetensors"]
+        else:
+            raise FileNotFoundError(
+                f"No model.safetensors or index file found in {model_dir}"
+            )
+
+        # Load each shard: read tensors to CPU, then transfer each to DirectML
+        state_dict: dict = {}
+        print("    > Loading and transferring weights to GPU (per-tensor)...")
+
+        for shard in shard_files:
+            from safetensors.torch import load_file
+            # Load entire shard to CPU
+            shard_dict = load_file(str(model_dir / shard), device="cpu")
+
+            for name, tensor in shard_dict.items():
+                # Cast to target dtype if floating point
+                if self.torch_dtype is not None and tensor.is_floating_point():
+                    tensor = tensor.to(self.torch_dtype)
+                # Transfer this individual tensor to DirectML device
+                state_dict[name] = tensor.to(self.device)
+
+            del shard_dict
+
+        print(f"    > Loaded {len(state_dict)} tensors to DirectML device.")
+
+        # assign=True replaces meta tensors entirely (no set_data call)
+        self.model.load_state_dict(state_dict, strict=False, assign=True)
+        del state_dict
+        gc.collect()
+
+        print("    > Model assembled on DirectML successfully.")
 
     def _load_model_no_mmap(self) -> None:
         """Windows ROCm path: bypass safetensors mmap via pure-Python file I/O.
@@ -444,7 +501,8 @@ class GemmaLocal:
         self.model.load_state_dict(state_dict, strict=False, assign=True)
         del state_dict
         gc.collect()
-        torch.cuda.empty_cache()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
     def generate(
         self,
