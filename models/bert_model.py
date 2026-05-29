@@ -49,17 +49,10 @@ class BERTModel:
             from transformers import AutoTokenizer, AutoModel
             import torch
             
-            # Setup loading arguments
-            load_kwargs = {}
-            if self.torch_device == "cuda":
-                # Enable high-performance GPU execution using native bfloat16/float16 kernels
-                load_kwargs["torch_dtype"] = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
-                load_kwargs["device_map"] = "auto"
-            
             # Prefer local cache first.
             try:
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, local_files_only=True)
-                self.model = AutoModel.from_pretrained(self.model_name, local_files_only=True, **load_kwargs)
+                self.model = AutoModel.from_pretrained(self.model_name, local_files_only=True)
                 self.model_source = "local"
             except Exception as local_error:
                 if not self.allow_internet:
@@ -67,14 +60,17 @@ class BERTModel:
 
                 print(f"[BERT] Local cache missing; downloading {self.model_name} once so it can be reused locally.")
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, local_files_only=False)
-                self.model = AutoModel.from_pretrained(self.model_name, local_files_only=False, **load_kwargs)
+                self.model = AutoModel.from_pretrained(self.model_name, local_files_only=False)
                 self.model_source = "downloaded"
 
-            if "device_map" not in load_kwargs:
-                try:
-                    self.model.to(self.torch_device)
-                except Exception as device_error:
-                    print(f"[BERT] Warning: Failed to move BERT model to {self.torch_device} ({device_error}).")
+            # Cast model parameters and move them to GPU/target device.
+            # Using bfloat16 or float16 enables fully functional GPU kernel paths on Windows ROCm.
+            if self.torch_device == "cuda":
+                dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+                print(f"\n[*] Mapping BERT model to {self.torch_device} in {dtype} format...")
+                self.model = self.model.to(dtype=dtype, device=self.torch_device)
+            else:
+                self.model = self.model.to(self.torch_device)
             
             self.model.eval()
             self.is_loaded = True
@@ -117,13 +113,13 @@ class BERTModel:
             outputs = self.model(**inputs)
             token_embeddings = outputs[0]  # last hidden state
             attention_mask = inputs["attention_mask"]
-            input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+            input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).to(token_embeddings.dtype)
             sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
             sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
             embeddings = sum_embeddings / sum_mask
             # L2 normalise
             embeddings = F.normalize(embeddings, p=2, dim=1)
-        return embeddings.cpu().numpy().tolist()
+        return embeddings.cpu().float().numpy().tolist()
 
     def get_embedding(self, text: str):
         """
