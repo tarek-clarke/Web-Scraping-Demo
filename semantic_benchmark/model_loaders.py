@@ -82,11 +82,7 @@ def detect_academic_hardware() -> Tuple[str, str]:
     except Exception:
         pass
         
-    # 3. Check ROCm on Linux / Windows environment variables
-    if os.getenv("HIP_PATH") or os.getenv("ROCM_PATH") or os.path.exists("/opt/rocm") or os.path.exists(r"C:\Program Files\AMD\ROCm"):
-        return "ROCm", "cpu"
-        
-    # 4. Check DirectML on Windows AMD
+    # 3. Check DirectML on Windows AMD
     if system == "Windows":
         try:
             import torch_directml
@@ -94,6 +90,10 @@ def detect_academic_hardware() -> Tuple[str, str]:
                 return "PrivateUse1", "privateuseone:0"
         except Exception:
             pass
+
+    # 4. Check ROCm on Linux / Windows environment variables
+    if os.getenv("HIP_PATH") or os.getenv("ROCM_PATH") or os.path.exists("/opt/rocm") or os.path.exists(r"C:\Program Files\AMD\ROCm"):
+        return "ROCm", "cpu"
             
     # 5. Fallback to CPU
     return "CPU", "cpu"
