@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Sequence
+from typing import ClassVar, Dict, Sequence, Tuple
 
 from models.gemma_local import GemmaLocal
 from models.device_selector import get_device_info
@@ -23,7 +23,21 @@ class GemmaModel(GemmaLocal):
     evaluation pipeline to continue without crashing.
     """
 
+    _instance_cache: ClassVar[Dict[Tuple[str], "GemmaModel"]] = {}
+
+    def __new__(cls, local_path: str | Path | None = None):
+        cache_key = (str(Path(local_path).expanduser().resolve()) if local_path else "__default__",)
+        instance = cls._instance_cache.get(cache_key)
+        if instance is None:
+            instance = super().__new__(cls)
+            cls._instance_cache[cache_key] = instance
+            instance._initialized = False
+        return instance
+
     def __init__(self, local_path: str | Path | None = None):
+        if getattr(self, "_initialized", False):
+            return
+
         self.backend = "mock"
         self.model = None
         self.tokenizer = None
@@ -91,6 +105,8 @@ class GemmaModel(GemmaLocal):
             except Exception:
                 # Still failed → stay in mock mode
                 pass
+
+        self._initialized = True
 
     @staticmethod
     def _check_transformers_compatibility(local_path: str | Path | None):

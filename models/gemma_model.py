@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Sequence
+from typing import ClassVar, Dict, Sequence, Tuple
 
 from models.gemma_local import GemmaLocal
 
@@ -16,9 +16,24 @@ from models.gemma_local import GemmaLocal
 class GemmaModel(GemmaLocal):
     """Backwards-compatible offline Gemma wrapper."""
 
+    _instance_cache: ClassVar[Dict[Tuple[str], "GemmaModel"]] = {}
+
+    def __new__(cls, local_path: str | Path | None = None):
+        cache_key = (str(Path(local_path).expanduser().resolve()) if local_path else "__default__",)
+        instance = cls._instance_cache.get(cache_key)
+        if instance is None:
+            instance = super().__new__(cls)
+            cls._instance_cache[cache_key] = instance
+            instance._initialized = False
+        return instance
+
     def __init__(self, local_path: str | Path | None = None):
+        if getattr(self, "_initialized", False):
+            return
+
         super().__init__(local_path=local_path)
         self.backend = "local"
+        self._initialized = True
 
     def query(self, prompt: str, temperature: float = 0.7, max_tokens: int = 256) -> str:
         return self.generate(prompt, max_new_tokens=max_tokens, temperature=temperature)

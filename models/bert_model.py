@@ -1,6 +1,6 @@
 import time
 import os
-from typing import List
+from typing import ClassVar, Dict, List, Tuple
 from models.device_selector import get_device_info
 from models.torch_compat import ensure_transformers_import_compatibility
 
@@ -8,7 +8,21 @@ from models.torch_compat import ensure_transformers_import_compatibility
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 
 class BERTModel:
+    _instance_cache: ClassVar[Dict[Tuple[bool], "BERTModel"]] = {}
+
+    def __new__(cls, allow_internet: bool = True):
+        cache_key = (bool(allow_internet),)
+        instance = cls._instance_cache.get(cache_key)
+        if instance is None:
+            instance = super().__new__(cls)
+            cls._instance_cache[cache_key] = instance
+            instance._initialized = False
+        return instance
+
     def __init__(self, allow_internet: bool = True):
+        if getattr(self, "_initialized", False):
+            return
+
         self.device_info = get_device_info()
         self.device = self.device_info["device"]
         if self.device in ["cuda", "rocm"]:
@@ -26,6 +40,7 @@ class BERTModel:
         self.allow_internet = allow_internet
         self._compiled_encode_active = False
         self._initialize()
+        self._initialized = True
 
     def _initialize(self):
         try:
