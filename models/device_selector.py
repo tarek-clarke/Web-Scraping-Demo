@@ -101,6 +101,7 @@ def detect_hardware_backend():
     Returns one of:
         "NVIDIA CUDA"
         "AMD ROCm"
+        "DirectML"
         "Intel GPU"
         "Apple Silicon MPS"
         "CPU fallback"
@@ -169,6 +170,15 @@ def detect_hardware_backend():
                     return "AMD ROCm"
         except Exception:
             pass
+
+    # DirectML check (Windows AMD GPUs via torch-directml)
+    if system == "Windows":
+        try:
+            import torch_directml
+            if torch_directml.is_available():
+                return "DirectML"
+        except Exception:
+            pass
         
     # Intel GPU check
     try:
@@ -206,6 +216,8 @@ def get_device_info():
         device = "cuda"
     elif hardware_backend == "AMD ROCm":
         device = "rocm"
+    elif hardware_backend == "DirectML":
+        device = "directml"
     elif hardware_backend == "Apple Silicon MPS":
         device = "mps"
     elif hardware_backend == "Intel GPU":
@@ -252,6 +264,13 @@ def get_device_info():
             model = gpu_name or "GPU"
             if vram_gb:
                 model = f"{model} ({vram_gb}GB)"
+        elif device == "directml":
+            try:
+                import torch_directml
+                gpu_name = torch_directml.device_name(0)
+            except Exception:
+                gpu_name = "AMD GPU (DirectML)"
+            model = gpu_name or "AMD GPU (DirectML)"
         elif device == "mps":
             model = f"Apple Silicon ({platform.processor() or 'arm64'})"
         else:

@@ -29,6 +29,12 @@ class BERTModel:
             self.torch_device = "cuda"
         elif self.device == "mps":
             self.torch_device = "mps"
+        elif self.device == "directml":
+            try:
+                import torch_directml
+                self.torch_device = torch_directml.device()
+            except Exception:
+                self.torch_device = "cpu"
         else:
             self.torch_device = "cpu"
 
@@ -69,6 +75,10 @@ class BERTModel:
                 dtype = torch.float16  # Force float16 for maximum kernel compatibility on AMD ROCm Windows
                 print(f"\n[*] Mapping BERT model to {self.torch_device} in {dtype} format...")
                 self.model = self.model.to(dtype=dtype, device=self.torch_device)
+            elif self.device == "directml":
+                # DirectML works best with float32; full kernel coverage on AMD GPUs
+                print(f"\n[*] Mapping BERT model to DirectML device...")
+                self.model = self.model.to(self.torch_device)
             else:
                 self.model = self.model.to(self.torch_device)
             
@@ -109,11 +119,19 @@ class BERTModel:
 
         inputs = self.tokenizer(texts, padding=True, truncation=True, max_length=512, return_tensors="pt")
         
-        # Map inputs to GPU, converting 64-bit integers to 32-bit integers to avoid AMD ROCm embedding kernel crashes
-        inputs = {
-            k: v.to(device=self.torch_device, dtype=torch.int32 if v.dtype == torch.int64 else v.dtype) 
-            for k, v in inputs.items()
-        }
+        # Map inputs to the target device.
+        # For CUDA/ROCm: convert 64-bit integers to 32-bit to avoid AMD ROCm embedding kernel crashes.
+        # For DirectML: standard device transfer (int64 is supported).
+        if self.torch_device == "cuda":
+            inputs = {
+                k: v.to(device=self.torch_device, dtype=torch.int32 if v.dtype == torch.int64 else v.dtype) 
+                for k, v in inputs.items()
+            }
+        else:
+            inputs = {
+                k: v.to(device=self.torch_device) 
+                for k, v in inputs.items()
+            }
         
         with torch.no_grad():
             outputs = self.model(**inputs)

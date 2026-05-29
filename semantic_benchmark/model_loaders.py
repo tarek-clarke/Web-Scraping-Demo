@@ -57,6 +57,8 @@ def detect_academic_hardware() -> Tuple[str, str]:
             return "CUDA", "cuda"
         elif v in ("rocm", "amd"):
             return "ROCm", "cuda"
+        elif v in ("directml", "dml"):
+            return "PrivateUse1", "privateuseone:0"
 
     import platform
     system = platform.system()
@@ -82,7 +84,7 @@ def detect_academic_hardware() -> Tuple[str, str]:
     except Exception:
         pass
         
-    # 3. Check DirectML on Windows AMD
+    # 3. Check DirectML on Windows AMD (prioritized over stale ROCm path checks)
     if system == "Windows":
         try:
             import torch_directml
@@ -91,9 +93,11 @@ def detect_academic_hardware() -> Tuple[str, str]:
         except Exception:
             pass
 
-    # 4. Check ROCm on Linux / Windows environment variables
-    if os.getenv("HIP_PATH") or os.getenv("ROCM_PATH") or os.path.exists("/opt/rocm") or os.path.exists(r"C:\Program Files\AMD\ROCm"):
-        return "ROCm", "cpu"
+    # 4. Check ROCm on Linux via environment variables (skip on Windows if DirectML not found,
+    #    since leftover ROCm paths from uninstalled ROCm would produce a broken "ROCm" result)
+    if system != "Windows":
+        if os.getenv("HIP_PATH") or os.getenv("ROCM_PATH") or os.path.exists("/opt/rocm"):
+            return "ROCm", "cpu"
             
     # 5. Fallback to CPU
     return "CPU", "cpu"
