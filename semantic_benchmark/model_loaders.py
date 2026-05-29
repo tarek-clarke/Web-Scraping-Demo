@@ -111,9 +111,23 @@ class StrictGemmaModel(GemmaLocal):
             else:
                 self.device = hw_device
                 
-            if self.model is not None and isinstance(self.device, str):
-                self.model.to(self.device)
+            if self.model is not None:
+                device_str = str(self.device)
+                print(f"\n[*] Transferring Gemma model weights to device: {device_str}...")
+                if "mps" in device_str.lower() or "metal" in device_str.lower():
+                    print("    > Note: PyTorch Metal (MPS) initialization, memory allocation, and shader")
+                    print("      kernel compilation on Apple Silicon can take up to 1-2 minutes on first load.")
+                    print("      This is normal and expected cold-start behavior. Please do not close the terminal...")
+                elif "cuda" in device_str.lower() or "rocm" in device_str.lower():
+                    print("    > Note: Mapping model weights to GPU memory...")
+                
+                if isinstance(self.device, str):
+                    self.model.to(self.device)
+                else:
+                    self.model = self.model.to(self.device)
+                
                 self.model.eval()
+                print(f"[✓] Gemma model successfully loaded and warmed up on {device_str}.\n")
                 
         except Exception as e:
             if require_local:
