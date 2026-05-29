@@ -39,6 +39,11 @@ python semantic_benchmark\run_semantic_benchmark.py ^
   --require-local-models True ^
   --strict-mode ^
   --verbose
+echo.
+if %ERRORLEVEL% neq 0 (
+    echo [!] BENCHMARK FAILED with exit code %ERRORLEVEL%. See error output above.
+    echo.
+)
 
 rem 4. Auto-update README tables with latest findings
 echo [*] Formatting experimental outcomes and updating tables...

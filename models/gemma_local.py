@@ -274,7 +274,7 @@ class GemmaLocal:
         try:
             import torch_directml
             if torch_directml.is_available():
-                return torch_directml.device(), torch.float32
+                return torch_directml.device(), torch.float16
         except ImportError:
             pass
         return torch.device("cpu"), torch.float32
@@ -306,6 +306,8 @@ class GemmaLocal:
 
         if self.tokenizer.pad_token is None and self.tokenizer.eos_token is not None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
+
+        print(f"\n[*] Loading Gemma model on {self.device} (dtype={self.torch_dtype})...")
 
         if self._is_windows_rocm():
             self._load_model_no_mmap()
@@ -349,7 +351,7 @@ class GemmaLocal:
         load_kwargs: dict = {
             "local_files_only": True,
             "low_cpu_mem_usage": True,
-            "dtype": self.torch_dtype,
+            "torch_dtype": self.torch_dtype,
         }
 
         # Use device_map to stream weights directly to VRAM on CUDA environments only.
