@@ -218,7 +218,7 @@ Raw results summary from `results/raw`:
 
     ## Methodology
 
-    - **144 configurations / 720 total runs**: 2 packet profiles × 2 frequencies × 3 chaos strategies × 3 levels × 4 APIs, 5 runs each
+    - **48 configurations / 240 total runs**: 2 packet profiles × 2 frequencies × 3 chaos strategies × 1 chaos level × 4 APIs, 5 runs each
     - **Chaos strategies**: JSON mutation, schema drift, Gemma-generated adversarial mutations
     - **Reconcilers**: Levenshtein distance, regex, BERT semantic similarity (all-MiniLM-L6-v2), Gemma-4 E4B
     - **Metrics**: Detection rate, p95 latency, repair rate, recovery score, resilience P/P2

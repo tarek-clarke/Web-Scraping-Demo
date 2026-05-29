@@ -23,7 +23,7 @@ except ImportError:
 
 PACKET_PROFILES = {'10k': 10000, '1m': 1000000}
 FREQUENCY_PROFILES = {'100hz': 100, '1mhz': 1000000}
-CHAOS_LEVELS = {'high': 5, 'medium': 1, 'low': 0}
+CHAOS_LEVELS = {'5': 5}
 
 class ExperimentRunner:
     def __init__(self):
@@ -51,7 +51,7 @@ class ExperimentRunner:
         pp = k.get('packet_profile', '10k')
         fp = k.get('frequency_profile', '100hz')
         cs = k.get('chaos_strategy', 'json')
-        cl = k.get('chaos_level', 'low')
+        cl = k.get('chaos_level', '5')
         rn = k.get('run_number', 1)
         cn = k.get('concurrency', 1)
         run_id = k.get('run_id', uuid4().hex)

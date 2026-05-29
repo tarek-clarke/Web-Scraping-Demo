@@ -701,7 +701,7 @@ def run_evaluation_pipeline():
     P = ['10k', '1m']
     F = ['100hz', '1mhz']
     X = ['json', 'schema', 'gemma']
-    L = ['high', 'medium', 'low']
+    L = ['5']
     A_list = ['finnhub', 'openmeteo', 'spacex', 'openf1']
     all_configs = [(p, f, x, l, a) for p in P for f in F for x in X for l in L for a in A_list]
     n_configs = len(all_configs)
