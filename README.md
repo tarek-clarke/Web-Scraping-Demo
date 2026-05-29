@@ -46,6 +46,22 @@ graph TD
 
 Get the framework running in a few simple steps. The system automatically detects your Python environment (Python 3.10–3.13) and optimizes the dependency wheels accordingly.
 
+### 🔄 One-Click Sync & Run (Copy-Paste Solution)
+
+If you are switching machines or need to sync with the latest code and run the full primary evaluation suite immediately (including automated dataset validation, execution, and updating of README.md tables), simply copy and paste the single-line command below into your terminal:
+
+**On macOS/Linux:**
+```bash
+./run_sync_and_benchmark.sh
+```
+
+**On Windows:**
+```cmd
+run_sync_and_benchmark.bat
+```
+
+---
+
 ### Step A: Dependency Setup & Model Weight Caching (Online)
 Run the bootstrap utility to install optimized PyTorch, compile the native C++ Levenshtein accelerator, and pre-cache model weights locally:
 ```bash
