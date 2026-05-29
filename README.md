@@ -159,20 +159,20 @@ Raw results summary from `results/raw`:
 
     | Hardware | Runs | Detection Rate (mean ± ci95) | p95 Latency (mean ± ci95) | Resilience P (mean ± ci95) |
     |----------|------|------------------------------|---------------------------|----------------------------|
-    | AMD RX 7900 XT (Windows) | 1080 | 0.8620 ± 0.0264 | 546.99 ± 2.91 ms | 0.4433 ± 0.0061 |
-    | Apple M4 16GB | 1080 | 0.8843 ± 0.0191 | 208.13 ± 1.34 ms | 0.4333 ± 0.0047 |
-    | GH200 | 1080 | 0.8917 ± 0.0185 | 7.68 ± 0.26 ms | 0.7357 ± 0.0101 |
-    | NVIDIA B200 178GB | 1080 | 0.8963 ± 0.0110 | 34.03 ± 2.26 ms | 0.5385 ± 0.0022 |
-    | NVIDIA B300 268GB | 1080 | 0.8694 ± 0.0201 | 25.94 ± 11.75 ms | 0.5836 ± 0.0071 |
-    | NVIDIA GeForce RTX 5090 | 1080 | 0.8806 ± 0.0194 | 24.10 ± 1.43 ms | 0.6430 ± 0.0110 |
-    | NVIDIA H100 80GB HBM3 79GB | 1080 | 0.8898 ± 0.0173 | 14.24 ± 0.87 ms | 0.7148 ± 0.0040 |
-    | NVIDIA H200 140GB | 1080 | 0.8935 ± 0.0184 | 8.55 ± 0.25 ms | 0.7321 ± 0.0105 |
-    | RTX 6000 Workstation | 1080 | 0.8750 ± 0.0197 | 35.84 ± 1.88 ms | 0.5961 ± 0.0105 |
+    | AMD RX 7900 XT (Windows) | 240 | 0.8620 ± 0.0264 | 546.99 ± 2.91 ms | 0.4433 ± 0.0061 |
+    | Apple M4 16GB | 240 | 0.8843 ± 0.0191 | 208.13 ± 1.34 ms | 0.4333 ± 0.0047 |
+    | GH200 | 240 | 0.8917 ± 0.0185 | 7.68 ± 0.26 ms | 0.7357 ± 0.0101 |
+    | NVIDIA B200 178GB | 240 | 0.8963 ± 0.0110 | 34.03 ± 2.26 ms | 0.5385 ± 0.0022 |
+    | NVIDIA B300 268GB | 240 | 0.8694 ± 0.0201 | 25.94 ± 11.75 ms | 0.5836 ± 0.0071 |
+    | NVIDIA GeForce RTX 5090 | 240 | 0.8806 ± 0.0194 | 24.10 ± 1.43 ms | 0.6430 ± 0.0110 |
+    | NVIDIA H100 80GB HBM3 79GB | 240 | 0.8898 ± 0.0173 | 14.24 ± 0.87 ms | 0.7148 ± 0.0040 |
+    | NVIDIA H200 140GB | 240 | 0.8935 ± 0.0184 | 8.55 ± 0.25 ms | 0.7321 ± 0.0105 |
+    | RTX 6000 Workstation | 240 | 0.8750 ± 0.0197 | 35.84 ± 1.88 ms | 0.5961 ± 0.0105 |
 
     ### Chaos-Method Ablation Matrix
 
     Means computed directly from the raw per-run JSONs in `results/raw`.
-    Each cell is the mean across 360 runs for that hardware/chaos-method pair.
+    Each cell is the mean across 80 runs for that hardware/chaos-method pair.
 
     **Detection Rate**
 
@@ -219,6 +219,7 @@ Raw results summary from `results/raw`:
     ## Methodology
 
     - **48 configurations / 240 total runs**: 2 packet profiles × 2 frequencies × 3 chaos strategies × 1 chaos level × 4 APIs, 5 runs each
+    - **Translation strategies in the matrix**: Levenshtein, regex, BERT semantic translation, and Gemma semantic translation
     - **Chaos strategies**: JSON mutation, schema drift, Gemma-generated adversarial mutations
     - **Reconcilers**: Levenshtein distance, regex, BERT semantic similarity (all-MiniLM-L6-v2), Gemma-4 E4B
     - **Metrics**: Detection rate, p95 latency, repair rate, recovery score, resilience P/P2

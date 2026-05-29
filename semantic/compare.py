@@ -18,6 +18,8 @@ class SchemaComparer:
     def clear_caches(self) -> None:
         if hasattr(self.bert, "clear_caches"):
             self.bert.clear_caches()
+        if hasattr(self.gemma, "clear_caches"):
+            self.gemma.clear_caches()
 
     def classify_drift(self, original: dict, mutated: dict) -> dict:
         """Classify all drift types between original and mutated packets."""

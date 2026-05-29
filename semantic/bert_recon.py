@@ -14,6 +14,8 @@ class BERTReconciler:
 
     def clear_caches(self) -> None:
         self._canonical_embedding_cache.clear()
+        if hasattr(self.bert, "clear_caches"):
+            self.bert.clear_caches()
 
     def reconcile(self, canonical_keys: list, query_key: str) -> dict:
         """

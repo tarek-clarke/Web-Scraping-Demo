@@ -6,6 +6,10 @@ from models.model_registry import get_shared_gemma_model
 class GemmaReconciler:
     def __init__(self, gemma_model: GemmaModel = None):
         self.gemma = gemma_model or get_shared_gemma_model()
+        self._prediction_cache = {}
+
+    def clear_caches(self) -> None:
+        self._prediction_cache.clear()
 
     def reconcile(self, canonical_keys: list, query_key: str) -> dict:
         """
@@ -13,8 +17,16 @@ class GemmaReconciler:
         Confidence: Softmax/probability confidence score parsed from Gemma output.
         """
         start_time = time.perf_counter()
+
+        cache_key = (tuple(canonical_keys), str(query_key))
+        cached_result = self._prediction_cache.get(cache_key)
+        if cached_result is not None:
+            cached_copy = dict(cached_result)
+            cached_copy["latency_ms"] = (time.perf_counter() - start_time) * 1000.0
+            return cached_copy
         
         result = self.gemma.predict_semantic_match(canonical_keys, query_key)
+        self._prediction_cache[cache_key] = dict(result)
         
         elapsed_ms = (time.perf_counter() - start_time) * 1000.0
         

@@ -388,7 +388,7 @@ def write_json_atomic(path, payload):
 
 def parse_existing_baseline_file_name(file_name):
     pattern = re.compile(
-        r'^baseline_run_(\d{3})_([a-z0-9_]+)_(10k|1m|short|long)_(100hz|1mhz|1000hz)_(5|1|0|high|medium|low)_([a-z0-9_]+)_.+_(clean|drift)\.json$',
+        r'^baseline_run_(\d{3})_([a-z0-9_]+)_(10k|1m)_(100hz|1mhz)_(5)_([a-z0-9_]+)_.+_(clean|drift)\.json$',
         re.IGNORECASE
     )
     m = pattern.match(file_name)
@@ -404,9 +404,9 @@ def parse_existing_baseline_file_name(file_name):
 
 
 def parse_run_file_name(file_name):
-    """Parse run file names in either the old or new standard format."""
+    """Parse run file names in the current standard format."""
     new_pattern = re.compile(
-        r'^run_(\d{3})_([a-z0-9_]+)_(10k|1m|short|long)_(100hz|1mhz|1000hz)_(5|1|0|high|medium|low)_([a-z0-9_]+)_.+_(clean|drift)\.json$',
+        r'^run_(\d{3})_([a-z0-9_]+)_(10k|1m)_(100hz|1mhz)_(5)_([a-z0-9_]+)_.+_(clean|drift)\.json$',
         re.IGNORECASE
     )
     m = new_pattern.match(file_name)
@@ -418,21 +418,7 @@ def parse_run_file_name(file_name):
         x = m.group(5)
         l = m.group(6)
         return (p, f, x, l, api), rn
-
-    pattern = re.compile(
-        r'^run_(\d{3})_([a-z0-9_]+)_(10k|1m|short|long)_(100hz|1mhz|1000hz)_(json|schema|gemma)_(high|medium|low)_.+_(clean|drift)\.json$',
-        re.IGNORECASE
-    )
-    m = pattern.match(file_name)
-    if not m:
-        return None
-    rn = int(m.group(1))
-    api = m.group(2)
-    p = m.group(3)
-    f = m.group(4)
-    x = m.group(5)
-    l = m.group(6)
-    return (p, f, x, l, api), rn
+    return None
 
 
 def load_existing_baseline_runs_from_raw(raw_dir):

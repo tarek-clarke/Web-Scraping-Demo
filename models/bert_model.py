@@ -39,6 +39,7 @@ class BERTModel:
         self.model_source = "unknown"
         self.allow_internet = allow_internet
         self._compiled_encode_active = False
+        self._embedding_cache: Dict[str, List[float]] = {}
         self._initialize()
         self._initialized = True
 
@@ -89,6 +90,9 @@ class BERTModel:
             self.is_loaded = False
             self.model_source = "unavailable"
 
+    def clear_caches(self) -> None:
+        self._embedding_cache.clear()
+
     def _encode(self, texts: List[str]):
         """Mean‑pooled, normalized embeddings for a batch of texts."""
         import torch
@@ -112,6 +116,12 @@ class BERTModel:
         """
         Generates embedding for a single text string.
         """
+        text = str(text)
+
+        cached_embedding = self._embedding_cache.get(text)
+        if cached_embedding is not None:
+            return cached_embedding
+
         if not self.is_loaded:
             import math
             mock_emb = [0.0] * 384
@@ -120,29 +130,59 @@ class BERTModel:
             norm = sum(x**2 for x in mock_emb) ** 0.5
             if norm > 0:
                 mock_emb = [x / norm for x in mock_emb]
+            self._embedding_cache[text] = mock_emb
             return mock_emb
 
-        text = str(text)
-
         try:
-            return self._encode([text])[0]
+            embedding = self._encode([text])[0]
+            self._embedding_cache[text] = embedding
+            return embedding
         except Exception as e:
             # If a compiled graph fails at runtime, transparently fall back to eager mode.
             if getattr(self, '_compiled_encode_active', False):
                 print(f"[BERT] Warning: compiled encode failed ({e}); falling back to eager mode.")
                 self._encode = self._encode_eager
                 self._compiled_encode_active = False
-                return self._encode([text])[0]
+                embedding = self._encode([text])[0]
+                self._embedding_cache[text] = embedding
+                return embedding
             raise
 
     def get_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
         """
         Batch embedding generation – essential for MPS throughput.
         """
-        if not self.is_loaded:
-            return [self.get_embedding(t) for t in texts]
+        normalized_texts = [str(t) for t in texts]
+        if not normalized_texts:
+            return []
 
-        return self._encode(texts)
+        cached_embeddings = [self._embedding_cache.get(text) for text in normalized_texts]
+        missing_texts = []
+        missing_indices = []
+        for index, (text, cached) in enumerate(zip(normalized_texts, cached_embeddings)):
+            if cached is None:
+                missing_texts.append(text)
+                missing_indices.append(index)
+
+        if missing_texts:
+            if not self.is_loaded:
+                computed_embeddings = [self.get_embedding(text) for text in missing_texts]
+            else:
+                try:
+                    computed_embeddings = self._encode(missing_texts)
+                except Exception as e:
+                    if getattr(self, '_compiled_encode_active', False):
+                        print(f"[BERT] Warning: compiled batch encode failed ({e}); falling back to eager mode.")
+                        self._encode = self._encode_eager
+                        self._compiled_encode_active = False
+                        computed_embeddings = self._encode(missing_texts)
+                    else:
+                        raise
+
+            for text, embedding in zip(missing_texts, computed_embeddings):
+                self._embedding_cache[text] = embedding
+
+        return [self._embedding_cache[text] for text in normalized_texts]
 
     def cosine_similarity(self, text1: str, text2: str) -> float:
         """
