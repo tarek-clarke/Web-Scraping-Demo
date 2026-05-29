@@ -25,10 +25,7 @@ class BERTModel:
 
         self.device_info = get_device_info()
         self.device = self.device_info["device"]
-        # On AMD ROCm, proactively fall back BERT to CPU due to Windows HIP/ROCm kernel compatibility issues (hipErrorInvalidImage)
-        if self.device == "rocm" or self.device_info.get("hardware_backend") == "AMD ROCm":
-            self.torch_device = "cpu"
-        elif self.device in ["cuda"]:
+        if self.device in ["cuda", "rocm"]:
             self.torch_device = "cuda"
         elif self.device == "mps":
             self.torch_device = "mps"
@@ -50,11 +47,19 @@ class BERTModel:
         try:
             ensure_transformers_import_compatibility()
             from transformers import AutoTokenizer, AutoModel
+            import torch
+            
+            # Setup loading arguments
+            load_kwargs = {}
+            if self.torch_device == "cuda":
+                # Enable high-performance GPU execution using native bfloat16/float16 kernels
+                load_kwargs["torch_dtype"] = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+                load_kwargs["device_map"] = "auto"
             
             # Prefer local cache first.
             try:
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, local_files_only=True)
-                self.model = AutoModel.from_pretrained(self.model_name, local_files_only=True)
+                self.model = AutoModel.from_pretrained(self.model_name, local_files_only=True, **load_kwargs)
                 self.model_source = "local"
             except Exception as local_error:
                 if not self.allow_internet:
@@ -62,15 +67,15 @@ class BERTModel:
 
                 print(f"[BERT] Local cache missing; downloading {self.model_name} once so it can be reused locally.")
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, local_files_only=False)
-                self.model = AutoModel.from_pretrained(self.model_name, local_files_only=False)
+                self.model = AutoModel.from_pretrained(self.model_name, local_files_only=False, **load_kwargs)
                 self.model_source = "downloaded"
 
-            try:
-                self.model.to(self.torch_device)
-            except Exception as device_error:
-                print(f"[BERT] Warning: Failed to move BERT model to {self.torch_device} ({device_error}). Falling back to CPU.")
-                self.torch_device = "cpu"
-                self.model.to("cpu")
+            if "device_map" not in load_kwargs:
+                try:
+                    self.model.to(self.torch_device)
+                except Exception as device_error:
+                    print(f"[BERT] Warning: Failed to move BERT model to {self.torch_device} ({device_error}).")
+            
             self.model.eval()
             self.is_loaded = True
 
@@ -106,43 +111,19 @@ class BERTModel:
         import torch
         import torch.nn.functional as F
 
-        try:
-            inputs = self.tokenizer(texts, padding=True, truncation=True, max_length=512, return_tensors="pt")
-            inputs = {k: v.to(self.torch_device) for k, v in inputs.items()}
-            with torch.no_grad():
-                outputs = self.model(**inputs)
-                token_embeddings = outputs[0]  # last hidden state
-                attention_mask = inputs["attention_mask"]
-                input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-                sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
-                sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-                embeddings = sum_embeddings / sum_mask
-                # L2 normalise
-                embeddings = F.normalize(embeddings, p=2, dim=1)
-            return embeddings.cpu().numpy().tolist()
-        except Exception as e:
-            if self.torch_device != "cpu":
-                print(f"[BERT] Runtime warning: GPU execution failed ({e}). Falling back to CPU.")
-                self.torch_device = "cpu"
-                try:
-                    self.model.to("cpu")
-                except Exception:
-                    pass
-                # Retry on CPU
-                inputs = self.tokenizer(texts, padding=True, truncation=True, max_length=512, return_tensors="pt")
-                inputs = {k: v.to("cpu") for k, v in inputs.items()}
-                with torch.no_grad():
-                    outputs = self.model(**inputs)
-                    token_embeddings = outputs[0]
-                    attention_mask = inputs["attention_mask"]
-                    input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-                    sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
-                    sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-                    embeddings = sum_embeddings / sum_mask
-                    embeddings = F.normalize(embeddings, p=2, dim=1)
-                return embeddings.cpu().numpy().tolist()
-            else:
-                raise e
+        inputs = self.tokenizer(texts, padding=True, truncation=True, max_length=512, return_tensors="pt")
+        inputs = {k: v.to(self.torch_device) for k, v in inputs.items()}
+        with torch.no_grad():
+            outputs = self.model(**inputs)
+            token_embeddings = outputs[0]  # last hidden state
+            attention_mask = inputs["attention_mask"]
+            input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+            sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
+            sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+            embeddings = sum_embeddings / sum_mask
+            # L2 normalise
+            embeddings = F.normalize(embeddings, p=2, dim=1)
+        return embeddings.cpu().numpy().tolist()
 
     def get_embedding(self, text: str):
         """
