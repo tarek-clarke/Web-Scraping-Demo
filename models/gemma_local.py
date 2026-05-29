@@ -347,11 +347,12 @@ class GemmaLocal:
 
         # Determine the device type string for branching logic
         device_type = getattr(self.device, 'type', str(self.device))
+        is_directml = "privateuseone" in str(self.device).lower()
 
         load_kwargs: dict = {
             "local_files_only": True,
             "low_cpu_mem_usage": True,
-            "torch_dtype": self.torch_dtype,
+            "dtype": self.torch_dtype,
         }
 
         # Use device_map to stream weights directly to VRAM on CUDA environments only.
@@ -366,7 +367,18 @@ class GemmaLocal:
 
         # Manually transfer when device_map was not used (MPS / DirectML / CPU)
         if device_type != "cuda":
-            self.model.to(self.device)
+            if is_directml:
+                # DirectML: transfer layer-by-layer to avoid Windows TDR timeout.
+                # A single .to() for the entire model can exceed the 2-second TDR
+                # window and cause "GPU device instance has been suspended" crashes.
+                print("    > Transferring model to GPU layer-by-layer (avoiding TDR timeout)...")
+                children = list(self.model.named_children())
+                for i, (name, module) in enumerate(children):
+                    module.to(self.device)
+                    if (i + 1) % 5 == 0 or (i + 1) == len(children):
+                        print(f"    > Transferred {i + 1}/{len(children)} modules to GPU")
+            else:
+                self.model.to(self.device)
 
     def _load_model_no_mmap(self) -> None:
         """Windows ROCm path: bypass safetensors mmap via pure-Python file I/O.
