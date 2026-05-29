@@ -368,15 +368,26 @@ class GemmaLocal:
         # Manually transfer when device_map was not used (MPS / DirectML / CPU)
         if device_type != "cuda":
             if is_directml:
-                # DirectML: transfer layer-by-layer to avoid Windows TDR timeout.
-                # A single .to() for the entire model can exceed the 2-second TDR
-                # window and cause "GPU device instance has been suspended" crashes.
-                print("    > Transferring model to GPU layer-by-layer (avoiding TDR timeout)...")
-                children = list(self.model.named_children())
-                for i, (name, module) in enumerate(children):
-                    module.to(self.device)
-                    if (i + 1) % 5 == 0 or (i + 1) == len(children):
-                        print(f"    > Transferred {i + 1}/{len(children)} modules to GPU")
+                # DirectML: transfer individual tensors to avoid Windows TDR timeout.
+                # Windows kills GPU operations exceeding ~2 seconds (TDR). Even
+                # transferring a single transformer layer block can trigger this for
+                # large models. Moving individual parameter tensors (1-50MB each)
+                # stays well within the TDR window.
+                import time
+                print("    > Transferring model parameters to GPU (tensor-by-tensor)...")
+                params = list(self.model.named_parameters())
+                total = len(params)
+                for i, (name, param) in enumerate(params):
+                    param.data = param.data.to(self.device)
+                    if (i + 1) % 50 == 0 or (i + 1) == total:
+                        print(f"    > Parameters: {i + 1}/{total}")
+                    # Brief yield to let GPU process the transfer and avoid TDR
+                    if (i + 1) % 20 == 0:
+                        time.sleep(0.05)
+                # Also transfer any buffers (layer norms, etc.)
+                for name, buf in self.model.named_buffers():
+                    buf.data = buf.data.to(self.device)
+                print(f"    > All {total} parameters transferred to GPU successfully.")
             else:
                 self.model.to(self.device)
 
