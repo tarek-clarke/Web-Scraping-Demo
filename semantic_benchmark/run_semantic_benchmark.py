@@ -79,10 +79,22 @@ def main():
     print(" STARTING SEMANTIC TRANSLATION BENCHMARK (TKDE PRIMARY PATH)")
     print("================================================================================\n")
 
-    # 1. Pre-flight Validation
+    # 1. Parse configuration filters
+    enabled_drift_types = None
+    if args.drift_types:
+        enabled_drift_types = [t.strip().lower() for t in args.drift_types.split(",")]
+        print(f"[*] Drift type filtering enabled: {enabled_drift_types}")
+        
+    enabled_methods = ["regex", "levenshtein", "bert", "gemma"]
+    if args.methods:
+        enabled_methods = [m.strip().lower() for m in args.methods.split(",")]
+        print(f"[*] Enabled reconciliation methods: {enabled_methods}")
+
+    # 2. Pre-flight Validation
     preflight, abort, abort_reason = run_preflight_validation(
         require_local_models=args.require_local_models,
-        strict_mode=args.strict_mode
+        strict_mode=args.strict_mode,
+        enabled_methods=enabled_methods
     )
     if abort:
         print(f"[!] PRE-FLIGHT ERROR: {abort_reason}")
@@ -94,17 +106,6 @@ def main():
     print(f"    - BERT Status: {preflight['model_source']['bert']}")
     print(f"    - Gemma Status: {preflight['model_source']['gemma']}")
     print(f"    - Offline Enforced: {os.environ.get('HF_HUB_OFFLINE') == '1'}\n")
-
-    # 2. Parse configuration filters
-    enabled_drift_types = None
-    if args.drift_types:
-        enabled_drift_types = [t.strip().lower() for t in args.drift_types.split(",")]
-        print(f"[*] Drift type filtering enabled: {enabled_drift_types}")
-        
-    enabled_methods = ["regex", "levenshtein", "bert", "gemma"]
-    if args.methods:
-        enabled_methods = [m.strip().lower() for m in args.methods.split(",")]
-        print(f"[*] Enabled reconciliation methods: {enabled_methods}")
 
     # 3. Load Dataset
     if not os.path.exists(args.dataset_path):

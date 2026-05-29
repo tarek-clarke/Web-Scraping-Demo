@@ -196,7 +196,7 @@ class StrictGemmaModel(GemmaLocal):
 
         return {"match": match_value, "confidence": max(0.0, min(confidence_value, 1.0))}
 
-def run_preflight_validation(require_local_models: bool = True, strict_mode: bool = False) -> Tuple[Dict[str, Any], bool, str]:
+def run_preflight_validation(require_local_models: bool = True, strict_mode: bool = False, enabled_methods: list = None) -> Tuple[Dict[str, Any], bool, str]:
     """Perform pre-flight checks to ensure 100% offline, local execution and hardware verification.
     
     Returns:
@@ -220,22 +220,28 @@ def run_preflight_validation(require_local_models: bool = True, strict_mode: boo
         return preflight_status, True, "Strict mode violation: Unsupported CPU backend detected. CUDA, ROCm, Metal, or DirectML is strictly required."
     
     # Check BERT
-    try:
-        bert = StrictBERTModel(require_local=require_local_models)
-        preflight_status["model_source"]["bert"] = "local"
-    except Exception as e:
-        preflight_status["model_source"]["bert"] = "unavailable"
-        if require_local_models or strict_mode:
-            return preflight_status, True, f"BERT pre-flight validation failed: {e}"
+    if enabled_methods is None or "bert" in enabled_methods:
+        try:
+            bert = StrictBERTModel(require_local=require_local_models)
+            preflight_status["model_source"]["bert"] = "local"
+        except Exception as e:
+            preflight_status["model_source"]["bert"] = "unavailable"
+            if require_local_models or strict_mode:
+                return preflight_status, True, f"BERT pre-flight validation failed: {e}"
+    else:
+        preflight_status["model_source"]["bert"] = "skipped"
             
     # Check Gemma
-    try:
-        gemma = StrictGemmaModel(require_local=require_local_models)
-        preflight_status["model_source"]["gemma"] = gemma.backend
-    except Exception as e:
-        preflight_status["model_source"]["gemma"] = "unavailable"
-        if require_local_models or strict_mode:
-            return preflight_status, True, f"Gemma pre-flight validation failed: {e}"
+    if enabled_methods is None or "gemma" in enabled_methods:
+        try:
+            gemma = StrictGemmaModel(require_local=require_local_models)
+            preflight_status["model_source"]["gemma"] = gemma.backend
+        except Exception as e:
+            preflight_status["model_source"]["gemma"] = "unavailable"
+            if require_local_models or strict_mode:
+                return preflight_status, True, f"Gemma pre-flight validation failed: {e}"
+    else:
+        preflight_status["model_source"]["gemma"] = "skipped"
             
     # Verify no internet handshake was initiated
     if os.environ.get("HF_HUB_OFFLINE") != "1":
