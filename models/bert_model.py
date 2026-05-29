@@ -64,9 +64,9 @@ class BERTModel:
                 self.model_source = "downloaded"
 
             # Cast model parameters and move them to GPU/target device.
-            # Using bfloat16 or float16 enables fully functional GPU kernel paths on Windows ROCm.
+            # Using float16 enables highly optimized, functional GPU kernel paths on Windows ROCm.
             if self.torch_device == "cuda":
-                dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+                dtype = torch.float16  # Force float16 for maximum kernel compatibility on AMD ROCm Windows
                 print(f"\n[*] Mapping BERT model to {self.torch_device} in {dtype} format...")
                 self.model = self.model.to(dtype=dtype, device=self.torch_device)
             else:
@@ -108,7 +108,13 @@ class BERTModel:
         import torch.nn.functional as F
 
         inputs = self.tokenizer(texts, padding=True, truncation=True, max_length=512, return_tensors="pt")
-        inputs = {k: v.to(self.torch_device) for k, v in inputs.items()}
+        
+        # Map inputs to GPU, converting 64-bit integers to 32-bit integers to avoid AMD ROCm embedding kernel crashes
+        inputs = {
+            k: v.to(device=self.torch_device, dtype=torch.int32 if v.dtype == torch.int64 else v.dtype) 
+            for k, v in inputs.items()
+        }
+        
         with torch.no_grad():
             outputs = self.model(**inputs)
             token_embeddings = outputs[0]  # last hidden state
