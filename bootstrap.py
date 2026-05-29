@@ -137,6 +137,11 @@ def detect_hardware_backend():
     system = platform.system()
     machine = platform.machine().lower()
     processor = platform.processor().lower()
+
+    # Prefer Apple Silicon detection before importing torch so macOS MPS
+    # bootstrap can succeed even in a partially broken torch environment.
+    if system == "Darwin" and ("arm" in machine or "apple" in processor):
+        return "Apple Silicon MPS"
     
     # Try importing torch to inspect hardware directly if available
     try:
@@ -287,6 +292,15 @@ def install_pytorch(hardware):
 
     print(f"[Bootstrap] PyTorch not found or incompatible. Installing correct build for hardware: {hardware}...")
 
+    if hardware == "Apple Silicon MPS":
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "pip", "uninstall", "-y", "torch", "torchvision", "torchaudio"],
+                check=False,
+            )
+        except Exception:
+            pass
+
     # Standard index-urls (single selection only)
     cuda_url = "https://download.pytorch.org/whl/cu121"
     rocm_multiarch_url = "https://rocm.nightlies.amd.com/whl-multi-arch/"
@@ -328,7 +342,19 @@ def install_pytorch(hardware):
         cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", cpu_url, "torch", "torchvision", "torchaudio"]
     elif hardware == "Apple Silicon MPS":
         # Standard wheels on macOS support MPS natively; do not add extra indexes
-        cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "torch>=2.4.0", "torchvision", "torchaudio"]
+        cmd = [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "--force-reinstall",
+            "--prefer-binary",
+            "numpy<2.0.0",
+            "torch>=2.4.0",
+            "torchvision",
+            "torchaudio",
+        ]
     else: # CPU fallback
         cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", cpu_url, "torch", "torchvision", "torchaudio"]
 
