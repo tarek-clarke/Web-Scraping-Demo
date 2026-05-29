@@ -261,7 +261,7 @@ class GemmaLocal:
         )
 
     def _select_device(self):
-        """Prefer MPS on Apple Silicon, then CUDA/ROCm, then CPU."""
+        """Prefer MPS on Apple Silicon, then CUDA/ROCm, then DirectML, then CPU."""
 
         import torch
 
@@ -270,6 +270,13 @@ class GemmaLocal:
         if torch.cuda.is_available():
             # For AMD ROCm and Cloud CUDA, native bfloat16 is fully supported and preferred
             return torch.device("cuda"), torch.bfloat16
+        # DirectML for AMD GPUs on Windows via torch-directml
+        try:
+            import torch_directml
+            if torch_directml.is_available():
+                return torch_directml.device(), torch.float32
+        except ImportError:
+            pass
         return torch.device("cpu"), torch.float32
 
     def _load_model(self) -> None:
@@ -332,9 +339,12 @@ class GemmaLocal:
         self.model.config.eos_token_id = eos[0] if eos else None
 
     def _load_model_standard(self) -> None:
-        """Standard from_pretrained path used on MPS and Cloud CUDA."""
+        """Standard from_pretrained path used on MPS, DirectML, and Cloud CUDA."""
         import torch
         from transformers import AutoModelForCausalLM
+
+        # Determine the device type string for branching logic
+        device_type = getattr(self.device, 'type', str(self.device))
 
         load_kwargs: dict = {
             "local_files_only": True,
@@ -342,8 +352,9 @@ class GemmaLocal:
             "dtype": self.torch_dtype,
         }
 
-        # Use device_map to stream weights directly to VRAM on GPU environments
-        if self.device.type == "cuda":
+        # Use device_map to stream weights directly to VRAM on CUDA environments only.
+        # DirectML and MPS do not support device_map='auto'.
+        if device_type == "cuda":
             load_kwargs["device_map"] = "auto"
 
         self.model = AutoModelForCausalLM.from_pretrained(
@@ -351,8 +362,8 @@ class GemmaLocal:
             **load_kwargs,
         )
 
-        # Manually transfer when device_map was not used (MPS / CPU)
-        if self.device.type != "cuda":
+        # Manually transfer when device_map was not used (MPS / DirectML / CPU)
+        if device_type != "cuda":
             self.model.to(self.device)
 
     def _load_model_no_mmap(self) -> None:

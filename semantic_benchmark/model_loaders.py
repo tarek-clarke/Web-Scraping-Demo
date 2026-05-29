@@ -129,41 +129,9 @@ class StrictGemmaModel(GemmaLocal):
             super().__init__(local_path=resolved_path)
             self.backend = "local"
             
-            # Setup device compatibility dynamically
-            hw_backend, hw_device = detect_academic_hardware()
-            if hw_backend == "PrivateUse1":
-                try:
-                    import torch_directml
-                    self.device = torch_directml.device()
-                except Exception:
-                    self.device = "cpu"
-            else:
-                self.device = hw_device
-                
             if self.model is not None:
                 device_str = str(self.device)
-                print(f"\n[*] Transferring Gemma model weights to device: {device_str}...")
-                if "mps" in device_str.lower() or "metal" in device_str.lower():
-                    print("    > Note: PyTorch Metal (MPS) initialization, memory allocation, and shader")
-                    print("      kernel compilation on Apple Silicon can take up to 1-2 minutes on first load.")
-                    print("      This is normal and expected cold-start behavior. Please do not close the terminal...")
-                elif "cuda" in device_str.lower() or "rocm" in device_str.lower():
-                    print("    > Note: Mapping model weights to GPU memory...")
-                
-                try:
-                    if isinstance(self.device, str):
-                        self.model.to(self.device)
-                    else:
-                        self.model = self.model.to(self.device)
-                except Exception as e:
-                    # Bypasses "Cannot copy out of meta tensor" errors when device mapping is handled natively by accelerate
-                    print(f"    > Note: PyTorch device placement managed natively by loader ({e}).")
-                
-                try:
-                    self.model.eval()
-                except Exception:
-                    pass
-                print(f"[✓] Gemma model successfully loaded and warmed up on {device_str}.\n")
+                print(f"\n[✓] Gemma model successfully loaded and warmed up on {device_str}.\n")
                 
         except Exception as e:
             if require_local:
