@@ -81,10 +81,47 @@ def build_statistical_summary(all_res, label):
                r.get('chaos_strategy'), r.get('chaos_level'))
         config_groups.setdefault(key, []).append(r)
 
+    def mean_metric(runs, metric_name):
+        values = [x.get(metric_name, 0) for x in runs]
+        return mean(values)
+
+    def summarize_profile_runs(runs):
+        cold_runs = list(runs)
+        stable_runs = [x for x in runs if int(x.get('run_number', 1)) > 1]
+        return {
+            'n_runs': len(cold_runs),
+            'n_stable_runs': len(stable_runs),
+            'detection_rate': {
+                'mean_with_cold_start': mean_metric(cold_runs, 'detection_rate'),
+                'mean_without_first_run': mean_metric(stable_runs, 'detection_rate'),
+            },
+            'p95_latency_ms': {
+                'mean_with_cold_start': mean_metric(cold_runs, 'p95_latency_ms'),
+                'mean_without_first_run': mean_metric(stable_runs, 'p95_latency_ms'),
+            },
+            'resilience_P': {
+                'mean_with_cold_start': mean_metric(cold_runs, 'resilience_P'),
+                'mean_without_first_run': mean_metric(stable_runs, 'resilience_P'),
+            },
+            'resilience_P2': {
+                'mean_with_cold_start': mean_metric(cold_runs, 'resilience_P2'),
+                'mean_without_first_run': mean_metric(stable_runs, 'resilience_P2'),
+            },
+            'recovery_score': {
+                'mean_with_cold_start': mean_metric(cold_runs, 'recovery_score'),
+                'mean_without_first_run': mean_metric(stable_runs, 'recovery_score'),
+            },
+            'repair_rate': {
+                'mean_with_cold_start': mean_metric(cold_runs, 'repair_rate'),
+                'mean_without_first_run': mean_metric(stable_runs, 'repair_rate'),
+            },
+        }
+
     per_config = []
     for key, runs in config_groups.items():
         d_vals = [x.get('detection_rate', 0) for x in runs]
         l_vals = [x.get('p95_latency_ms', 0) for x in runs]
+        profile_summary = summarize_profile_runs(runs)
         per_config.append({
             'api': key[0], 'packet': key[1], 'freq': key[2],
             'chaos_strat': key[3], 'chaos_level': key[4],
@@ -92,7 +129,20 @@ def build_statistical_summary(all_res, label):
             'detection_std': stdev(d_vals),
             'latency_mean': mean(l_vals),
             'latency_std': stdev(l_vals),
-            'n_runs': len(runs)
+            'n_runs': len(runs),
+            'n_stable_runs': profile_summary['n_stable_runs'],
+            'detection_rate_cold_start': profile_summary['detection_rate']['mean_with_cold_start'],
+            'detection_rate_steady_state': profile_summary['detection_rate']['mean_without_first_run'],
+            'p95_latency_ms_cold_start': profile_summary['p95_latency_ms']['mean_with_cold_start'],
+            'p95_latency_ms_steady_state': profile_summary['p95_latency_ms']['mean_without_first_run'],
+            'resilience_P_cold_start': profile_summary['resilience_P']['mean_with_cold_start'],
+            'resilience_P_steady_state': profile_summary['resilience_P']['mean_without_first_run'],
+            'resilience_P2_cold_start': profile_summary['resilience_P2']['mean_with_cold_start'],
+            'resilience_P2_steady_state': profile_summary['resilience_P2']['mean_without_first_run'],
+            'recovery_score_cold_start': profile_summary['recovery_score']['mean_with_cold_start'],
+            'recovery_score_steady_state': profile_summary['recovery_score']['mean_without_first_run'],
+            'repair_rate_cold_start': profile_summary['repair_rate']['mean_with_cold_start'],
+            'repair_rate_steady_state': profile_summary['repair_rate']['mean_without_first_run'],
         })
 
     return {
