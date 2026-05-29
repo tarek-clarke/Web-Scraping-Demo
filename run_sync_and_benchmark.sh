@@ -21,6 +21,7 @@ echo "==========================================================================
 # 1. Pull latest code from remote
 echo "[*] Syncing workspace with origin/main..."
 if command -v git &> /dev/null; then
+    git checkout README.md &> /dev/null
     git pull origin main
 else
     echo "[!] Warning: git command not found; skipping repository sync."

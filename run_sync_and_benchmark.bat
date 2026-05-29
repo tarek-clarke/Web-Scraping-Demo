@@ -13,6 +13,7 @@ rem 1. Pull latest code from remote
 echo [*] Syncing workspace with origin/main...
 where git >nul 2>nul
 if %ERRORLEVEL% equ 0 (
+    git checkout README.md >nul 2>nul
     git pull origin main
 ) else (
     echo [!] Warning: git command not found; skipping repository sync.
