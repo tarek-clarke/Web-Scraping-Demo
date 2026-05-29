@@ -280,10 +280,19 @@ def main():
             print(f"    - Processed {idx}/{len(dataset)} samples...")
 
     # 7. Aggregate Outputs
-    os.makedirs(args.output_dir, exist_ok=True)
+    from models.device_selector import get_device_info
+    from datetime import datetime
+    
+    dev_info = get_device_info()
+    model_str = dev_info.get("model", "unknown").replace(" ", "_").replace("(", "").replace(")", "")
+    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    folder_name = f"{model_str}_{timestamp_str}"
+    
+    final_output_dir = os.path.join(args.output_dir, folder_name)
+    os.makedirs(final_output_dir, exist_ok=True)
     
     # Save per-run JSON
-    run_output_path = os.path.join(args.output_dir, "per_run_benchmark.json")
+    run_output_path = os.path.join(final_output_dir, f"per_run_benchmark_{model_str}.json")
     pipeline_version = get_git_commit()
     
     with open(run_output_path, "w", encoding="utf-8") as f:
@@ -320,7 +329,7 @@ def main():
             robustness_vs_intensity.setdefault(intensity, {}).setdefault(method, []).append(res["resilience_P"])
 
     # Output 1: accuracy_vs_drift.csv
-    acc_csv = os.path.join(args.output_dir, "accuracy_vs_drift.csv")
+    acc_csv = os.path.join(final_output_dir, f"accuracy_vs_drift_{model_str}.csv")
     with open(acc_csv, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["drift_type", "regex_acc", "levenshtein_acc", "bert_acc", "gemma_acc"])
@@ -340,7 +349,7 @@ def main():
     print(f"[✓] Saved accuracy_vs_drift aggregates to: {acc_csv}")
 
     # Output 2: latency_vs_method.csv
-    lat_csv = os.path.join(args.output_dir, "latency_vs_method.csv")
+    lat_csv = os.path.join(final_output_dir, f"latency_vs_method_{model_str}.csv")
     with open(lat_csv, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["method", "avg_latency_ms", "min_latency_ms", "max_latency_ms"])
@@ -355,7 +364,7 @@ def main():
     print(f"[✓] Saved latency_vs_method aggregates to: {lat_csv}")
 
     # Output 3: robustness_vs_intensity.csv
-    rob_csv = os.path.join(args.output_dir, "robustness_vs_intensity.csv")
+    rob_csv = os.path.join(final_output_dir, f"robustness_vs_intensity_{model_str}.csv")
     with open(rob_csv, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["chaos_intensity", "regex_resilience", "levenshtein_resilience", "bert_resilience", "gemma_resilience"])

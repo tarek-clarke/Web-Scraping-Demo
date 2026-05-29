@@ -159,9 +159,22 @@ def main():
         return
         
     print("[*] Generating dynamic tables from results...")
+    
+    def find_latest_csv(res_dir, prefix):
+        import glob
+        files = glob.glob(os.path.join(res_dir, "**", f"{prefix}*.csv"), recursive=True)
+        if not files:
+            files = glob.glob(os.path.join(res_dir, f"{prefix}*.csv"))
+        if not files:
+            return os.path.join(res_dir, f"{prefix}.csv")
+        return max(files, key=os.path.getmtime)
+        
+    latest_acc_csv = find_latest_csv(results_dir, "accuracy_vs_drift")
+    latest_lat_csv = find_latest_csv(results_dir, "latency_vs_method")
+    
     platform_table = compile_platform_metrics()
-    drift_table = csv_to_markdown_table(os.path.join(results_dir, "accuracy_vs_drift.csv"))
-    latency_table = csv_to_markdown_table(os.path.join(results_dir, "latency_vs_method.csv"))
+    drift_table = csv_to_markdown_table(latest_acc_csv)
+    latency_table = csv_to_markdown_table(latest_lat_csv)
     
     with open(readme_path, "r", encoding="utf-8") as f:
         readme_content = f.read()
@@ -193,7 +206,7 @@ def main():
     with open(readme_path, "w", encoding="utf-8") as f:
         f.write(readme_content)
         
-    print("[✓] README.md tables updated successfully based on latest experimental results.")
+    print("[x] README.md tables updated successfully based on latest experimental results.")
 
 if __name__ == "__main__":
     main()
