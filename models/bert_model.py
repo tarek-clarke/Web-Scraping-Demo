@@ -25,7 +25,10 @@ class BERTModel:
 
         self.device_info = get_device_info()
         self.device = self.device_info["device"]
-        if self.device in ["cuda", "rocm"]:
+        # On AMD ROCm, proactively fall back BERT to CPU due to Windows HIP/ROCm kernel compatibility issues (hipErrorInvalidImage)
+        if self.device == "rocm" or self.device_info.get("hardware_backend") == "AMD ROCm":
+            self.torch_device = "cpu"
+        elif self.device in ["cuda"]:
             self.torch_device = "cuda"
         elif self.device == "mps":
             self.torch_device = "mps"
@@ -62,7 +65,12 @@ class BERTModel:
                 self.model = AutoModel.from_pretrained(self.model_name, local_files_only=False)
                 self.model_source = "downloaded"
 
-            self.model.to(self.torch_device)
+            try:
+                self.model.to(self.torch_device)
+            except Exception as device_error:
+                print(f"[BERT] Warning: Failed to move BERT model to {self.torch_device} ({device_error}). Falling back to CPU.")
+                self.torch_device = "cpu"
+                self.model.to("cpu")
             self.model.eval()
             self.is_loaded = True
 
@@ -98,19 +106,43 @@ class BERTModel:
         import torch
         import torch.nn.functional as F
 
-        inputs = self.tokenizer(texts, padding=True, truncation=True, max_length=512, return_tensors="pt")
-        inputs = {k: v.to(self.torch_device) for k, v in inputs.items()}
-        with torch.no_grad():
-            outputs = self.model(**inputs)
-            token_embeddings = outputs[0]  # last hidden state
-            attention_mask = inputs["attention_mask"]
-            input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-            sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
-            sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-            embeddings = sum_embeddings / sum_mask
-            # L2 normalise
-            embeddings = F.normalize(embeddings, p=2, dim=1)
-        return embeddings.cpu().numpy().tolist()
+        try:
+            inputs = self.tokenizer(texts, padding=True, truncation=True, max_length=512, return_tensors="pt")
+            inputs = {k: v.to(self.torch_device) for k, v in inputs.items()}
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+                token_embeddings = outputs[0]  # last hidden state
+                attention_mask = inputs["attention_mask"]
+                input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+                sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
+                sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+                embeddings = sum_embeddings / sum_mask
+                # L2 normalise
+                embeddings = F.normalize(embeddings, p=2, dim=1)
+            return embeddings.cpu().numpy().tolist()
+        except Exception as e:
+            if self.torch_device != "cpu":
+                print(f"[BERT] Runtime warning: GPU execution failed ({e}). Falling back to CPU.")
+                self.torch_device = "cpu"
+                try:
+                    self.model.to("cpu")
+                except Exception:
+                    pass
+                # Retry on CPU
+                inputs = self.tokenizer(texts, padding=True, truncation=True, max_length=512, return_tensors="pt")
+                inputs = {k: v.to("cpu") for k, v in inputs.items()}
+                with torch.no_grad():
+                    outputs = self.model(**inputs)
+                    token_embeddings = outputs[0]
+                    attention_mask = inputs["attention_mask"]
+                    input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+                    sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
+                    sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+                    embeddings = sum_embeddings / sum_mask
+                    embeddings = F.normalize(embeddings, p=2, dim=1)
+                return embeddings.cpu().numpy().tolist()
+            else:
+                raise e
 
     def get_embedding(self, text: str):
         """
