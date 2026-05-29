@@ -1,5 +1,7 @@
 # Semantic Drift Evaluation Pipeline
 
+Current branch: `complete`
+
 Cross-platform benchmark for semantic schema drift detection and reconciliation
 using BERT embeddings and Gemma-4 E4B, evaluated under controlled chaos injection
 on real-world API schemas (Finnhub, OpenMeteo, SpaceX, OpenF1).
