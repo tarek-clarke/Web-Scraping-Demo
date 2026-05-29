@@ -103,7 +103,7 @@ The system robustness is mathematically assessed by integrating the official [re
 > **Hosseini, S., Barker, K., & Ramirez-Marquez, J. E. (2016).**
 > *"A review of definitions and measures of system resilience."*
 > **Reliability Engineering & System Safety**, 145, 47–61.
-> [https://doi.org/10.1016/j.ress.2016.02.010](https://doi.org/10.1016/j.ress.2016.02.010)
+> [https://doi.org/10.1016/j.ress.2015.08.006](https://doi.org/10.1016/j.ress.2015.08.006)
 
 ### 📚 BibTeX Citation References
 
@@ -118,7 +118,7 @@ If you are using this framework or the `resilience-metrics` package in your rese
   pages={47--61},
   year={2016},
   publisher={Elsevier},
-  doi={10.1016/j.ress.2016.02.010}
+  doi={10.1016/j.ress.2015.08.006}
 }
 
 @software{clarke2026resilient,
