@@ -250,11 +250,16 @@ def main():
             
         record = {
             "sample_id": sample["sample_id"],
+            "run_id": sample.get("run_id", "unknown"),
+            "event_id": sample.get("event_id", "unknown"),
             "api_name": api_name,
             "drift_type": drift_type,
+            "drift_present": sample.get("drift_present", False),
             "chaos_strategy": sample["chaos_strategy"],
             "chaos_level": sample["chaos_level"],
             "target_key": target_key,
+            "original_payload": original,
+            "mutated_payload": mutated,
             "reconciliation": sample_results
         }
         results.append(record)
