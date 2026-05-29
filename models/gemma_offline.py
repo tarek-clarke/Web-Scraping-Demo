@@ -55,8 +55,42 @@ class GemmaModel(GemmaLocal):
                 self.model.to(torch_device)
                 self.model.eval()
         except Exception:
-            # Any failure (missing config, weights, etc.) → mock mode
-            pass
+            # Any failure loading a local checkpoint → attempt to fetch from
+            # Hugging Face Hub (allow runtime internet access). If that also
+            # fails, remain in mock mode.
+            try:
+                from models.torch_compat import ensure_transformers_import_compatibility
+                ensure_transformers_import_compatibility()
+                from transformers import AutoTokenizer, AutoModelForCausalLM
+
+                repo_id = "google/gemma-4-E4B-it"
+                print(f"[Gemma] Local checkpoint missing or incompatible; attempting to download {repo_id} from Hugging Face.")
+                self.tokenizer = AutoTokenizer.from_pretrained(repo_id, local_files_only=False)
+                # Use low_cpu_mem_usage to reduce peak RAM during weight streaming
+                self.model = AutoModelForCausalLM.from_pretrained(repo_id, low_cpu_mem_usage=True)
+                self.backend = "downloaded"
+
+                # Move to device
+                device_info = get_device_info()
+                device = device_info["device"]
+                if device == "cuda":
+                    torch_device = "cuda"
+                elif device == "rocm":
+                    torch_device = "cuda"
+                elif device == "mps":
+                    torch_device = "mps"
+                else:
+                    torch_device = "cpu"
+                self.device = torch_device
+                if self.model is not None:
+                    try:
+                        self.model.to(torch_device)
+                        self.model.eval()
+                    except Exception:
+                        pass
+            except Exception:
+                # Still failed → stay in mock mode
+                pass
 
     @staticmethod
     def _check_transformers_compatibility(local_path: str | Path | None):

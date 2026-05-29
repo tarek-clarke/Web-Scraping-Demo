@@ -229,11 +229,17 @@ def run_preflight_checks(require_gpu=True, cpu_allowed=False, require_local_mode
     # ── E: Gemma availability ──
     try:
         gemma = GemmaModel()
-        gemma_available = gemma.backend == "local"
+        # Consider both local and downloaded backends as "available" for runtime
+        gemma_available = gemma.backend in ("local", "downloaded")
         if gemma_available:
-            model_source["gemma"] = "local"
+            model_source["gemma"] = "local" if gemma.backend == "local" else "downloaded"
             if verbose:
-                print(" [✓] Gemma model loaded locally")
+                if gemma.backend == "local":
+                    print(" [✓] Gemma model loaded locally")
+                else:
+                    print(" [✓] Gemma model downloaded from the internet and loaded")
+            if gemma.backend == "downloaded":
+                internet_used = True
         else:
             model_source["gemma"] = "internet"
             internet_used = True
