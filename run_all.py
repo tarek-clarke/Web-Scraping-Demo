@@ -310,6 +310,18 @@ def run_preflight_checks(require_gpu=True, cpu_allowed=False, require_local_mode
         "pipeline_version": pipeline_version
     }
 
+    # If both models are now available locally (including after a one-time
+    # download), enforce offline mode for the remainder of the process so that
+    # no further network access occurs during the run.
+    try:
+        if bert_available and gemma_available:
+            os.environ["HF_HUB_OFFLINE"] = "1"
+            if verbose:
+                print(" [✓] Models available locally — enforcing HF_HUB_OFFLINE=1 for the run")
+    except Exception:
+        # Non-fatal; continue without forcing offline mode if env cannot be set.
+        pass
+
     if verbose:
         print(f" {'[✓]' if not (require_gpu and not gpu_available) else '[✗]'} Pre-flight passed")
         print(f"{'='*80}\n")
