@@ -225,25 +225,56 @@ def run_preflight_checks(require_gpu=True, cpu_allowed=False, require_local_mode
     # ── E: Gemma availability ──
     try:
         gemma = get_shared_gemma_model()
-        # Consider any initialized Gemma backend as usable: local, downloaded, or mock.
-        gemma_available = True
-        model_source["gemma"] = getattr(gemma, "backend", "mock")
+        gemma_backend = getattr(gemma, "backend", "local")
+        model_source["gemma"] = gemma_backend
+        gemma_available = gemma_backend == "local"
         if verbose:
-            if gemma.backend == "local":
+            if gemma_backend == "local":
                 print(" [✓] Gemma model loaded locally")
-            elif gemma.backend == "downloaded":
-                print(" [✓] Gemma model downloaded from the internet and loaded")
-            elif gemma.backend == "mock":
-                print(" [✓] Gemma using fallback response mode")
             else:
-                print(f" [✓] Gemma backend: {gemma.backend}")
-        if gemma.backend == "downloaded":
-            internet_used = True
+                print(f" [!] Gemma backend: {gemma_backend}")
+        if strict_mode and gemma_backend != "local":
+            msg = f"Strict mode: Gemma is not fully local (backend={gemma_backend})."
+            preflight = {
+                "gpu_available": gpu_available,
+                "gpu_backend": hw_backend,
+                "cpu_allowed": cpu_allowed,
+                "cpu_mode": cpu_mode,
+                "bert_available": bert_available,
+                "gemma_available": gemma_available,
+                "internet_used": internet_used,
+                "model_source": model_source,
+                "model_version": model_version,
+                "hardware_backend_verified": hardware_backend_verified,
+                "require_local_models": require_local_models,
+                "require_gpu": require_gpu,
+                "strict_mode": strict_mode,
+                "pipeline_version": pipeline_version,
+            }
+            return preflight, True, msg
     except Exception as e:
-        gemma_available = True
-        model_source["gemma"] = "mock"
+        gemma_available = False
+        model_source["gemma"] = "error"
         if verbose:
-            print(f" [WARN] Gemma load error ({e}); continuing with fallback response mode")
+            print(f" [WARN] Gemma load error ({e}); local/full Gemma is unavailable")
+        if strict_mode:
+            preflight = {
+                "gpu_available": gpu_available,
+                "gpu_backend": hw_backend,
+                "cpu_allowed": cpu_allowed,
+                "cpu_mode": cpu_mode,
+                "bert_available": bert_available,
+                "gemma_available": gemma_available,
+                "internet_used": internet_used,
+                "model_source": model_source,
+                "model_version": model_version,
+                "hardware_backend_verified": hardware_backend_verified,
+                "require_local_models": require_local_models,
+                "require_gpu": require_gpu,
+                "strict_mode": strict_mode,
+                "pipeline_version": pipeline_version,
+            }
+            return preflight, True, f"Strict mode: Gemma load error ({e})"
 
     # ── Strict mode checks ──
     if strict_mode:
@@ -870,7 +901,7 @@ def run_evaluation_pipeline():
     summary_no_gemma = build_summary(all_res_no_gemma, 'ablation_no_gemma')
 
     # Restore Gemma
-    from models.gemma_offline import GemmaModel
+    from models.gemma_model import GemmaModel
     runner.cp.gemma = GemmaReconciler(runner.g)
     runner.cp.compare_algorithms = types.MethodType(compare_full, runner.cp)
 

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 from models.bert_model import BERTModel
-from models.gemma_offline import GemmaModel
+from models.gemma_model import GemmaModel
 
 _BERT_SHARED: dict[bool, BERTModel] = {}
 _GEMMA_SHARED: dict[str, GemmaModel] = {}

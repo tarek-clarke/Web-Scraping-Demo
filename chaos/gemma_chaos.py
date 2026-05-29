@@ -1,7 +1,7 @@
 import random
 import json
 from uuid import uuid4
-from models.gemma_offline import GemmaModel
+from models.gemma_model import GemmaModel
 
 class GemmaChaos:
     def __init__(self, probability: float, gemma_model: GemmaModel = None):

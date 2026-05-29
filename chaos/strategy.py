@@ -1,7 +1,7 @@
 from chaos.json_chaos import JSONChaos
 from chaos.gemma_chaos import GemmaChaos
 from chaos.schema_drift import SchemaDrift
-from models.gemma_offline import GemmaModel
+from models.gemma_model import GemmaModel
 
 CHAOS_LEVELS = {
     "5": 0.05,
