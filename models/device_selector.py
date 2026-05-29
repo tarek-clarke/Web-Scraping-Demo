@@ -140,38 +140,11 @@ def detect_hardware_backend():
         pass
     if os.path.exists("/usr/local/cuda") or os.path.exists("/usr/bin/nvcc"):
         return "NVIDIA CUDA"
-        
-    # AMD ROCm check (Linux-style paths)
-    try:
-        import shutil
-        if shutil.which("rocm-smi") or shutil.which("rocminfo"):
-            return "AMD ROCm"
-    except Exception:
-        pass
-    if os.path.exists("/opt/rocm"):
-        return "AMD ROCm"
-    
-    # AMD ROCm/HIP check (Windows-style paths)
-    if system == "Windows":
-        try:
-            import shutil
-            # Check for HIP on Windows
-            if shutil.which("hipinfo") or shutil.which("hip-smi"):
-                return "AMD ROCm"
-            # Check for HIP in common Windows install paths
-            rocm_paths = [
-                "C:\\Program Files\\AMD\\ROCm\\bin",
-                "C:\\rocm\\bin",
-                "C:\\Program Files (x86)\\AMD\\ROCm\\bin"
-            ]
-            for path in rocm_paths:
-                if os.path.exists(os.path.join(path, "hipinfo.exe")) or \
-                   os.path.exists(os.path.join(path, "hip-smi.exe")):
-                    return "AMD ROCm"
-        except Exception:
-            pass
 
     # DirectML check (Windows AMD GPUs via torch-directml)
+    # MUST run BEFORE filesystem-based ROCm checks, because leftover ROCm
+    # install artifacts (hipinfo.exe, C:\Program Files\AMD\ROCm) will produce
+    # a false-positive "AMD ROCm" result even after ROCm has been uninstalled.
     if system == "Windows":
         try:
             import torch_directml
@@ -179,6 +152,20 @@ def detect_hardware_backend():
                 return "DirectML"
         except Exception:
             pass
+        
+    # AMD ROCm check (Linux-only filesystem paths)
+    # On Windows, ROCm is only valid if torch.cuda.is_available() returned True
+    # above (via HIP). Filesystem checks here are limited to Linux to avoid
+    # false positives from leftover Windows ROCm uninstall artifacts.
+    if system != "Windows":
+        try:
+            import shutil
+            if shutil.which("rocm-smi") or shutil.which("rocminfo"):
+                return "AMD ROCm"
+        except Exception:
+            pass
+        if os.path.exists("/opt/rocm"):
+            return "AMD ROCm"
         
     # Intel GPU check
     try:
