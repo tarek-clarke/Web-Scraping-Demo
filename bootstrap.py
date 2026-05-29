@@ -180,6 +180,11 @@ def detect_hardware_backend():
     if os.path.exists("/opt/rocm"):
         return "AMD ROCm"
 
+    # Windows AMD ROCm environment checks
+    if system == "Windows":
+        if os.getenv("HIP_PATH") or os.getenv("ROCM_PATH") or os.path.exists(r"C:\Program Files\AMD\ROCm"):
+            return "AMD ROCm"
+
     # Extra: check DRM sysfs vendor entries for AMD vendor id (0x1002)
     try:
         for path in glob.glob('/sys/class/drm/card*/device/vendor'):
@@ -316,6 +321,17 @@ def install_pytorch(hardware):
     if hardware == "NVIDIA CUDA":
         cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", cuda_url, "torch", "torchvision", "torchaudio"]
     elif hardware == "AMD ROCm":
+        # If on Windows, try native Windows ROCm wheel index
+        if platform.system() == "Windows":
+            rocm_win_url = "https://download.pytorch.org/whl/nightly/rocm"
+            cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", rocm_win_url, "torch", "torchvision", "torchaudio"]
+            print(f"[Bootstrap] Trying ROCm Windows native wheel index: {rocm_win_url}")
+            try:
+                subprocess.run(cmd, check=True)
+                return True
+            except subprocess.CalledProcessError:
+                print(f"[Bootstrap] ROCm Windows native install failed; falling back to CPU/DirectML...")
+
         # ROCm wheels already carry the HIP backend; the device extras pull in a huge
         # matrix of optional packages that are not needed for this project.
         cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", rocm_multiarch_url, "torch", "torchvision", "torchaudio"]

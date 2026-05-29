@@ -1,0 +1,40 @@
+[
+  {
+    "sample_id": "mock_sample_1",
+    "api_name": "finnhub",
+    "chaos_strategy": "schema",
+    "chaos_level": "5",
+    "run_number": 1,
+    "run_id": "mock_run_1",
+    "event_id": "mock_event_1",
+    "drift_type": "renamed_keys",
+    "original_payload": {
+      "price": 182.50,
+      "currency": "USD"
+    },
+    "mutated_payload": {
+      "unit_price": 182.50,
+      "currency": "USD"
+    },
+    "drift_present": true
+  },
+  {
+    "sample_id": "mock_sample_2",
+    "api_name": "openmeteo",
+    "chaos_strategy": "json",
+    "chaos_level": "5",
+    "run_number": 1,
+    "run_id": "mock_run_2",
+    "event_id": "mock_event_2",
+    "drift_type": "type_mismatch",
+    "original_payload": {
+      "temperature": 22.5,
+      "humidity": 65
+    },
+    "mutated_payload": {
+      "temperature": "22.5",
+      "humidity": 65
+    },
+    "drift_present": true
+  }
+]

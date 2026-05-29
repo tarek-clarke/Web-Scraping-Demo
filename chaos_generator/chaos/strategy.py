@@ -1,6 +1,6 @@
-from chaos.json_chaos import JSONChaos
-from chaos.gemma_chaos import GemmaChaos
-from chaos.schema_drift import SchemaDrift
+from chaos_generator.chaos.json_chaos import JSONChaos
+from chaos_generator.chaos.gemma_chaos import GemmaChaos
+from chaos_generator.chaos.schema_drift import SchemaDrift
 from models.gemma_model import GemmaModel
 
 CHAOS_LEVELS = {

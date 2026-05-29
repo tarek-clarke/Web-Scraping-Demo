@@ -8,7 +8,7 @@ import concurrent.futures
 from uuid import uuid4
 from models.device_selector import get_device_info
 from models.model_registry import get_shared_bert_model, get_shared_gemma_model, clear_shared_model_cache
-from chaos.strategy import select_chaos
+from chaos_generator.chaos.strategy import select_chaos
 from drift_logging.drift_logger import DriftLogger
 from resilience.scoring import ResilienceScoring
 from semantic.compare import SchemaComparer
