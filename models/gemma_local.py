@@ -368,26 +368,26 @@ class GemmaLocal:
         # Manually transfer when device_map was not used (MPS / DirectML / CPU)
         if device_type != "cuda":
             if is_directml:
-                # DirectML: transfer individual tensors to avoid Windows TDR timeout.
-                # Windows kills GPU operations exceeding ~2 seconds (TDR). Even
-                # transferring a single transformer layer block can trigger this for
-                # large models. Moving individual parameter tensors (1-50MB each)
-                # stays well within the TDR window.
+                # DirectML: transfer leaf modules individually to avoid TDR timeout.
+                # We can't use param.data = param.data.to(device) because DirectML
+                # tensors have an incompatible type for set_data. And we can't use
+                # model.to(device) because the entire model exceeds the 2-second
+                # TDR window. Solution: call .to() on each leaf module (Linear,
+                # Embedding, LayerNorm, etc.) which are 1-50MB each — small enough
+                # for TDR, and .to() on a Module properly handles type conversion.
                 import time
-                print("    > Transferring model parameters to GPU (tensor-by-tensor)...")
-                params = list(self.model.named_parameters())
-                total = len(params)
-                for i, (name, param) in enumerate(params):
-                    param.data = param.data.to(self.device)
-                    if (i + 1) % 50 == 0 or (i + 1) == total:
-                        print(f"    > Parameters: {i + 1}/{total}")
-                    # Brief yield to let GPU process the transfer and avoid TDR
-                    if (i + 1) % 20 == 0:
+                print("    > Transferring model to GPU (leaf module by leaf module)...")
+                leaves = [(name, m) for name, m in self.model.named_modules()
+                          if len(list(m.children())) == 0]
+                total = len(leaves)
+                for i, (name, module) in enumerate(leaves):
+                    module.to(self.device)
+                    if (i + 1) % 25 == 0 or (i + 1) == total:
+                        print(f"    > Modules: {i + 1}/{total}")
+                    # Brief yield every 10 modules to let GPU process transfers
+                    if (i + 1) % 10 == 0:
                         time.sleep(0.05)
-                # Also transfer any buffers (layer norms, etc.)
-                for name, buf in self.model.named_buffers():
-                    buf.data = buf.data.to(self.device)
-                print(f"    > All {total} parameters transferred to GPU successfully.")
+                print(f"    > All {total} leaf modules transferred to GPU successfully.")
             else:
                 self.model.to(self.device)
 
