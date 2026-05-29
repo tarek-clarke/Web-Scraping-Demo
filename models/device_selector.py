@@ -140,7 +140,7 @@ def detect_hardware_backend():
     if os.path.exists("/usr/local/cuda") or os.path.exists("/usr/bin/nvcc"):
         return "NVIDIA CUDA"
         
-    # AMD ROCm check
+    # AMD ROCm check (Linux-style paths)
     try:
         import shutil
         if shutil.which("rocm-smi") or shutil.which("rocminfo"):
@@ -149,6 +149,26 @@ def detect_hardware_backend():
         pass
     if os.path.exists("/opt/rocm"):
         return "AMD ROCm"
+    
+    # AMD ROCm/HIP check (Windows-style paths)
+    if system == "Windows":
+        try:
+            import shutil
+            # Check for HIP on Windows
+            if shutil.which("hipinfo") or shutil.which("hip-smi"):
+                return "AMD ROCm"
+            # Check for HIP in common Windows install paths
+            rocm_paths = [
+                "C:\\Program Files\\AMD\\ROCm\\bin",
+                "C:\\rocm\\bin",
+                "C:\\Program Files (x86)\\AMD\\ROCm\\bin"
+            ]
+            for path in rocm_paths:
+                if os.path.exists(os.path.join(path, "hipinfo.exe")) or \
+                   os.path.exists(os.path.join(path, "hip-smi.exe")):
+                    return "AMD ROCm"
+        except Exception:
+            pass
         
     # Intel GPU check
     try:
