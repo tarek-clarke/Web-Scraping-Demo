@@ -189,8 +189,19 @@ def main():
     results = []
     evaluator = resilience_metrics.ResilienceEvaluator()
     
+    try:
+        from tqdm import tqdm
+        has_tqdm = True
+    except ImportError:
+        has_tqdm = False
+
     print("\n[*] Running benchmark evaluation...")
-    for idx, sample in enumerate(dataset, 1):
+    if not args.verbose and has_tqdm:
+        eval_loop = tqdm(enumerate(dataset, 1), total=len(dataset), desc="Processing samples")
+    else:
+        eval_loop = enumerate(dataset, 1)
+
+    for idx, sample in eval_loop:
         original = sample["original_payload"]
         mutated = sample["mutated_payload"]
         drift_type = sample["drift_type"]
@@ -264,7 +275,7 @@ def main():
         }
         results.append(record)
         
-        if not args.verbose and (idx % 10 == 0 or idx == len(dataset)):
+        if not args.verbose and not has_tqdm and (idx % 10 == 0 or idx == len(dataset)):
             print(f"    - Processed {idx}/{len(dataset)} samples...")
 
     # 7. Aggregate Outputs
