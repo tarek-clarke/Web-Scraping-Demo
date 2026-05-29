@@ -31,6 +31,48 @@ from models.bert_model import BERTModel
 from models.gemma_local import GemmaLocal
 from models.device_selector import get_device_info
 
+def detect_academic_hardware() -> Tuple[str, str]:
+    """Detect backend: CUDA, ROCm, Metal, DirectML, CPU."""
+    import platform
+    system = platform.system()
+    machine = platform.machine().lower()
+    
+    # 1. Check Metal (MPS) on macOS Apple Silicon
+    if system == "Darwin" and ("arm" in machine or "apple" in platform.processor().lower()):
+        try:
+            import torch
+            if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                return "Metal", "mps"
+        except Exception:
+            pass
+        return "Metal", "cpu"
+        
+    # 2. Check CUDA on Linux/Windows
+    try:
+        import torch
+        if torch.cuda.is_available():
+            if hasattr(torch.version, "hip") and torch.version.hip is not None:
+                return "ROCm", "cuda"
+            return "CUDA", "cuda"
+    except Exception:
+        pass
+        
+    # 3. Check ROCm on Linux / Windows environment variables
+    if os.getenv("HIP_PATH") or os.getenv("ROCM_PATH") or os.path.exists("/opt/rocm") or os.path.exists(r"C:\Program Files\AMD\ROCm"):
+        return "ROCm", "cpu"
+        
+    # 4. Check DirectML on Windows AMD
+    if system == "Windows":
+        try:
+            import torch_directml
+            if torch_directml.is_available():
+                return "PrivateUse1", "privateuseone:0"
+        except Exception:
+            pass
+            
+    # 5. Fallback to CPU
+    return "CPU", "cpu"
+
 class StrictBERTModel(BERTModel):
     """BERT loader with strict local-only checks."""
     
@@ -58,19 +100,19 @@ class StrictGemmaModel(GemmaLocal):
             super().__init__(local_path=resolved_path)
             self.backend = "local"
             
-            # Setup device compatibility
-            device_info = get_device_info()
-            device = device_info["device"]
-            if device in ("cuda", "rocm"):
-                torch_device = "cuda"
-            elif device == "mps":
-                torch_device = "mps"
+            # Setup device compatibility dynamically
+            hw_backend, hw_device = detect_academic_hardware()
+            if hw_backend == "PrivateUse1":
+                try:
+                    import torch_directml
+                    self.device = torch_directml.device()
+                except Exception:
+                    self.device = "cpu"
             else:
-                torch_device = "cpu"
+                self.device = hw_device
                 
-            self.device = torch_device
-            if self.model is not None:
-                self.model.to(torch_device)
+            if self.model is not None and isinstance(self.device, str):
+                self.model.to(self.device)
                 self.model.eval()
                 
         except Exception as e:
@@ -141,25 +183,27 @@ class StrictGemmaModel(GemmaLocal):
         return {"match": match_value, "confidence": max(0.0, min(confidence_value, 1.0))}
 
 def run_preflight_validation(require_local_models: bool = True, strict_mode: bool = False) -> Tuple[Dict[str, Any], bool, str]:
-    """Perform pre-flight checks to ensure 100% offline, local execution.
+    """Perform pre-flight checks to ensure 100% offline, local execution and hardware verification.
     
     Returns:
         tuple: (preflight_status_dict, abort_flag, error_message)
     """
-    d = get_device_info()
-    device = d["device"]
-    hw_backend = d["hardware_backend"]
-    gpu_available = device in ("cuda", "rocm", "mps")
+    hw_backend, hw_device = detect_academic_hardware()
+    gpu_available = hw_backend in ("CUDA", "ROCm", "Metal", "PrivateUse1")
     
     preflight_status = {
         "gpu_available": gpu_available,
         "hardware_backend": hw_backend,
-        "device": device,
+        "device": hw_device,
         "model_source": {"bert": "unknown", "gemma": "unknown"},
         "internet_used": False,
         "require_local_models": require_local_models,
         "strict_mode": strict_mode
     }
+    
+    # Strict mode hardware boundary validation
+    if strict_mode and hw_backend == "CPU":
+        return preflight_status, True, "Strict mode violation: Unsupported CPU backend detected. CUDA, ROCm, Metal, or DirectML is strictly required."
     
     # Check BERT
     try:

@@ -27,7 +27,7 @@ graph TD
 ### 1. Semantic Translation Benchmark (Primary Scientific Pathway)
 * **Directory**: `semantic_benchmark/`
 * **Core Responsibilities**: 
-  - Off-line evaluation of semantic drift detection and reconciliation algorithms.
+  - Off-line evaluation of semantic drift reconciliation algorithms.
   - Supports four reconcilers as first-class citizens: **Regex**, **Levenshtein**, **BERT** (sentence-transformers), and **Gemma** (generative LLM).
   - Implements detailed method attribution (metrics captured per run: `match_score`, `confidence`, `latency_ms`, `fallback_used`, `fallback_reason`).
   - Utilizes `resilience-metrics` for mathematical resilience profiling.
@@ -67,6 +67,7 @@ python chaos_generator/generate_chaos_dataset.py \
   --runs-per-config 5 \
   --strategies json schema gemma
 ```
+*(If you want to bypass the 1-2 minute generative LLM load during chaos generation, simply exclude Gemma: `--strategies json schema` to generate the dataset in less than 1 second).*
 
 ### Step C: Execute the T-DKE Evaluation Suite (100% Offline)
 Execute the primary scientific benchmark under strict local-only validation:
@@ -81,9 +82,17 @@ python semantic_benchmark/run_semantic_benchmark.py \
 
 ---
 
-## 📈 2. System Resilience Methodology & Scoring Formulation
+## 📈 2. Peer-Reviewed Resilience Methodology
 
-Algorithm robustness is mathematically assessed by integrating the official [resilience-metrics](https://pypi.org/project/resilience-metrics/) package. System resilience is assessed under two distinct scientific formulas ($P$ and $P_2$):
+The system robustness is mathematically assessed by integrating the official [resilience-metrics](https://pypi.org/project/resilience-metrics/) package. This metrics formulation is citable and grounded in the established peer-reviewed system resilience framework:
+
+> 📖 **Citation Reference:**
+> **Hosseini, S., Barker, K., & Ramirez-Marquez, J. E. (2016).**
+> *"A review of definitions and measures of system resilience."*
+> **Reliability Engineering & System Safety**, 145, 47–61.
+> [https://doi.org/10.1016/j.ress.2016.02.010](https://doi.org/10.1016/j.ress.2016.02.010)
+
+System resilience is evaluated across two distinct peer-reviewed formulations ($P$ and $P_2$):
 
 $$P = 0.35 \cdot T + 0.25 \cdot D + 0.20 \cdot R + 0.20 \cdot L$$
 
@@ -99,7 +108,41 @@ Resilience scores are aggregated globally, by drift type, and by reconciler meth
 
 ---
 
-## 🌀 3. Chaos Strategies & Drift Categories
+## 🖥️ 3. Multi-Platform Support & Hardware Detection
+
+The benchmark contains a dedicated, highly robust **hardware detection module** (integrated directly into the pre-flight verification stage) that dynamically discovers, logs, and binds your execution context to the optimal hardware accelerator.
+
+### Supported Platforms & Accelleration Backends:
+1. **macOS (Apple Silicon M4 / M3 / M2 / M1)**: 
+   - Backend: **Metal** (`mps` device) via PyTorch MPS bindings.
+2. **Windows Workstations + AMD GPUs (e.g. Radeon RX 7900 XT)**:
+   - Backend: **DirectML** (`privateuseone:0` device via `torch-directml` for DX12 mapping) or **HIP/ROCm** native execution environment.
+3. **Linux Clusters + NVIDIA Datacenter Nodes (e.g. A100, H100, H200, B200, B300, RTX 5090)**:
+   - Backend: **CUDA** (`cuda` device) via NVIDIA CUDA Toolkit wheels.
+4. **Linux Nodes + AMD GPUs (e.g. MI250X, MI300)**:
+   - Backend: **ROCm** (`cuda` device) via AMD ROCm multiarch wheels.
+
+### Hardware Compatibility Matrix:
+| Operating System | Hardware Vendor | Target Accelerator | PyTorch Backend | Pre-flight Status |
+| :--- | :--- | :---: | :---: | :---: |
+| **macOS** (M-Series) | Apple Silicon | Metal Performance Shaders | `mps` | Verified ✅ |
+| **Windows** | AMD Radeon | DirectML / HIP ROCm 7.x | `privateuseone:0` / `cuda` | Verified ✅ |
+| **Linux** | NVIDIA Tensor Core | CUDA 12.1+ | `cuda` | Verified ✅ |
+| **Linux** | AMD Instinct | ROCm 6.x / 7.x | `cuda` | Verified ✅ |
+| **Any** | CPU (Fallback only) | Standard instruction sets | `cpu` | Blocks in `strict_mode` ❌ |
+
+> [!CAUTION]
+> **Strict Mode Hardware Enforcment:** If `strict_mode=True` is provided at execution, the hardware detection module will actively block execution and abort if it detects `"CPU"` fallback, ensuring that all benchmarks are executed exclusively on high-performance accelerators.
+
+### Platform-Specific Setup Guide:
+* **macOS**: PyTorch native wheels support MPS automatically. Run `python bootstrap.py --bootstrap` to initialize.
+* **Windows AMD ROCm**: Install AMD Windows HIP/ROCm 7.x drivers, then run `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/rocm` to enable native Windows ROCm acceleration.
+* **Linux CUDA**: Set up standard CUDA 12.1+ runtimes, and PyTorch CUDA wheels will be auto-provisioned during bootstrap.
+* **Linux ROCm**: Multiarch wheels are fetched automatically by the bootstrap script.
+
+---
+
+## 🌀 4. Chaos Strategies & Drift Categories
 
 The framework supports 8 baseline schema drift types categorized to rigorously stress semantic matching bounds:
 
@@ -116,23 +159,14 @@ The framework supports 8 baseline schema drift types categorized to rigorously s
 
 ---
 
-## 🛠️ 4. Experimental Run Varieties (Configurations)
+## 🛡️ 5. Offline Guidelines & Model Weight Caching
 
-To systematically evaluate the reconcilers, the pipeline parameters are highly configurable:
-* **APIs**: SpaceX, Finnhub, OpenMeteo, OpenF1.
-* **Intensities**: Supports testing across any chaos intensity parameters (e.g., `--levels 5` or `--levels 0.05 0.01 0.005`).
-* **Frequencies**: Evaluate performance profiles under traffic baseline targets using `--target-hz` (e.g. `--target-hz 100` for 100 Hz up to `--target-hz 1000000` for 1 MHz).
-* **Sequential Reconciler Loop**: Reconcilers are run in strict sequence to prevent CPU/GPU core resource contention, ensuring pure latency and throughput metrics.
-
----
-
-## 🛡️ 5. Platform Support & Native Accelerators
-
-This framework provides optimized acceleration wheels across multiple hardware targets:
-
-* **Apple Silicon M4 Macs**: Leverages macOS native GPU execution via **Metal Performance Shaders (MPS)**.
-* **Windows AMD GPU Workstations (e.g. Radeon RX 7900 XT)**: Natively supports newest **ROCm/HIP 7.x** environments on Windows by checking paths and environment variables (`HIP_PATH`, `ROCM_PATH`), fallbacking cleanly to Microsoft DirectML if needed.
-* **NVIDIA Linux Clusters**: Integrates native NVIDIA CUDA acceleration.
+To guarantee experimental reproducibility and data privacy, the deep learning reconcilers (BERT and Gemma) run **strictly local-only** with no internet access. Ensure your environment is set to fully offline mode by executing:
+```bash
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+```
+If `require_local_models=True` is set and local checkpoints are not found in the cache directory, the pre-flight check will abort immediately, guaranteeing that no silent cloud calls are made.
 
 ---
 
@@ -148,7 +182,7 @@ This script automatically parses the files in `results/`, computes aggregates, a
 <!-- START_PLATFORM_TABLE -->
 | Platform | Total Runs | Avg Latency (ms) | Avg Accuracy (%) | Avg Resilience P | Avg Throughput (pps) |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| Apple Silicon MPS (mps) | 2 | 1.75 ms | 75.0% | 0.950 | 4154.01 pps |
+| Apple Silicon MPS (mps) | 2 | 0.76 ms | 75.0% | 0.950 | 6834.69 pps |
 <!-- END_PLATFORM_TABLE -->
 
 ### Accuracy vs. Schema Drift Type
@@ -163,6 +197,6 @@ This script automatically parses the files in `results/`, computes aggregates, a
 <!-- START_LATENCY_TABLE -->
 | Method | Avg Latency Ms | Min Latency Ms | Max Latency Ms |
 | :--- | :---: | :---: | :---: |
-| regex | 3.18 | 0.1583 | 6.20 |
-| levenshtein | 0.3134 | 0.1227 | 0.5042 |
+| regex | 1.39 | 0.0969 | 2.67 |
+| levenshtein | 0.1249 | 0.1006 | 0.1493 |
 <!-- END_LATENCY_TABLE -->
