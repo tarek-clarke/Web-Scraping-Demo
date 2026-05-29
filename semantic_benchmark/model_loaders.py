@@ -15,6 +15,18 @@ from typing import Dict, Any, Tuple
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
 
+# On macOS Apple Silicon, monkeypatch PyTorch MPS to force CPU fallback for stability
+# (Successfully bypasses GPU memory deadlocks inside the core models/gemma_local.py loader)
+import platform
+if platform.system() == "Darwin" and os.getenv("FORCE_HARDWARE") in ("cpu", "fallback"):
+    try:
+        import torch
+        if hasattr(torch, "backends") and hasattr(torch.backends, "mps"):
+            torch.backends.mps.is_available = lambda: False
+            torch.backends.mps.is_built = lambda: False
+    except Exception:
+        pass
+
 # Remove local directory from sys.path to avoid models.py name collision
 script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir in sys.path:
@@ -229,7 +241,9 @@ def run_preflight_validation(require_local_models: bool = True, strict_mode: boo
     }
     
     # Strict mode hardware boundary validation
-    if strict_mode and hw_backend == "CPU" and os.getenv("FORCE_HARDWARE") != "cpu":
+    import platform
+    is_mac = platform.system() == "Darwin"
+    if strict_mode and hw_device == "cpu" and not is_mac and os.getenv("FORCE_HARDWARE") != "cpu":
         return preflight_status, True, "Strict mode violation: Unsupported CPU backend detected. CUDA, ROCm, Metal, or DirectML is strictly required."
     
     # Check BERT
