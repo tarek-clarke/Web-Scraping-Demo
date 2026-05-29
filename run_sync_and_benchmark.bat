@@ -26,8 +26,8 @@ if %ERRORLEVEL% neq 0 (
         pip install -e ..\resilience-metrics
     ) else (
         echo [!] Warning: Sibling folder 'resilience-metrics' not found.
-        echo [*] Attempting to install from PyPI...
-        pip install resilience-metrics
+        echo [*] Attempting to install directly from your GitHub Agent repository...
+        pip install "git+https://github.com/tarek-clarke/Agent.git#subdirectory=resilience-metrics"
     )
 )
 
