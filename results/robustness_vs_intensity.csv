@@ -1,0 +1,2 @@
+chaos_intensity,regex_resilience,levenshtein_resilience,bert_resilience,gemma_resilience
+5,0.9103448275862069,0.8448275862068966,0.8216382375199358,0.4747892640448674
