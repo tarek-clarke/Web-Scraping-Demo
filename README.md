@@ -1,4 +1,7 @@
-  # Semantic Drift Evaluation Pipeline
+# Semantic Drift Evaluation Pipeline
+
+Current branch: `complete`
+
 ## Quick Start (One-Shot Pipeline)
 
 Copy-paste onto any **fresh cloud instance** (vast.ai, runpod, Lambda, etc.):
