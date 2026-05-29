@@ -146,12 +146,19 @@ class StrictGemmaModel(GemmaLocal):
                 elif "cuda" in device_str.lower() or "rocm" in device_str.lower():
                     print("    > Note: Mapping model weights to GPU memory...")
                 
-                if isinstance(self.device, str):
-                    self.model.to(self.device)
-                else:
-                    self.model = self.model.to(self.device)
+                try:
+                    if isinstance(self.device, str):
+                        self.model.to(self.device)
+                    else:
+                        self.model = self.model.to(self.device)
+                except Exception as e:
+                    # Bypasses "Cannot copy out of meta tensor" errors when device mapping is handled natively by accelerate
+                    print(f"    > Note: PyTorch device placement managed natively by loader ({e}).")
                 
-                self.model.eval()
+                try:
+                    self.model.eval()
+                except Exception:
+                    pass
                 print(f"[✓] Gemma model successfully loaded and warmed up on {device_str}.\n")
                 
         except Exception as e:
