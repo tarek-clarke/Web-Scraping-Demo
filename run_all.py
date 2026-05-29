@@ -365,9 +365,8 @@ def baseline_raw_filename(record):
     cl = normalize_chaos_level_token(record.get('chaos_level', 'unknown'))
     tm = sanitize_method_token(record.get('translation_method', record.get('method_used', 'unknown')))
     hw = sanitize_hw_token(record.get('actual_device', 'unknown'))
-    vram = record.get('ram_gb', 'unknown')
     dt = 'drift' if record.get('drift_detected', False) else 'clean'
-    return f'baseline_run_{rn:03d}_{rid}_{an}_{pp}_{fp}_{cs}_{cl}_{tm}_{vram}GB_{hw}_{dt}.json'
+    return f'baseline_run_{rn:03d}_{rid}_{an}_{pp}_{fp}_{cs}_{cl}_{tm}_{hw}_{dt}.json'
 
 
 def standard_raw_filename(record):
@@ -380,9 +379,8 @@ def standard_raw_filename(record):
     cl = normalize_chaos_level_token(record.get('chaos_level', 'unknown'))
     tm = sanitize_method_token(record.get('translation_method', record.get('method_used', 'unknown')))
     hw = sanitize_hw_token(record.get('actual_device', 'unknown'))
-    vram = record.get('ram_gb', 'unknown')
     dt = 'drift' if record.get('drift_detected', False) else 'clean'
-    return f'run_{rn:03d}_{rid}_{an}_{pp}_{fp}_{cs}_{cl}_{tm}_{vram}GB_{hw}_{dt}.json'
+    return f'run_{rn:03d}_{rid}_{an}_{pp}_{fp}_{cs}_{cl}_{tm}_{hw}_{dt}.json'
 
 
 def write_json_atomic(path, payload):
@@ -394,7 +392,7 @@ def write_json_atomic(path, payload):
 
 def parse_existing_baseline_file_name(file_name):
     pattern = re.compile(
-        r'^baseline_run_(\d{3})_([a-f0-9]+)_([a-z0-9_]+)_(10k|1m)_(100hz|1mhz)_(json|schema|gemma)_(5)_([a-z0-9_]+)_([0-9]+)GB_.+_(clean|drift)\.json$',
+        r'^baseline_run_(\d{3})_([a-f0-9]+)_([a-z0-9_]+)_(10k|1m)_(100hz|1mhz)_(json|schema|gemma)_(5)_([a-z0-9_]+)_.+_(clean|drift)\.json$',
         re.IGNORECASE
     )
     m = pattern.match(file_name)
@@ -412,7 +410,7 @@ def parse_existing_baseline_file_name(file_name):
 def parse_run_file_name(file_name):
     """Parse run file names in the current standard format."""
     new_pattern = re.compile(
-        r'^run_(\d{3})_([a-f0-9]+)_([a-z0-9_]+)_(10k|1m)_(100hz|1mhz)_(json|schema|gemma)_(5)_([a-z0-9_]+)_([0-9]+)GB_.+_(clean|drift)\.json$',
+        r'^run_(\d{3})_([a-f0-9]+)_([a-z0-9_]+)_(10k|1m)_(100hz|1mhz)_(json|schema|gemma)_(5)_([a-z0-9_]+)_.+_(clean|drift)\.json$',
         re.IGNORECASE
     )
     m = new_pattern.match(file_name)
@@ -612,8 +610,8 @@ def update_readme(roc_data):
     lines.append('')
     lines.append('- **Raw mode**: `python run_all.py --generate-only` writes per-run JSON artifacts to `results/raw/<hardware_token>/`.')
     lines.append('- **Cross-platform layout**: one folder per hardware target (for example Apple Silicon, NVIDIA GPU, AMD GPU).')
-    lines.append('- **Raw file naming**: `run_{run:03d}_{run_id}_{api}_{packet}_{freq}_{chaos_strategy}_{chaos_pct}_{translation_method}_{vram}GB_{hardware}_{drift_or_clean}.json`.')
-    lines.append('- **Baseline file naming**: `baseline_run_{run:03d}_{run_id}_{api}_{packet}_{freq}_{chaos_strategy}_{chaos_pct}_{translation_method}_{vram}GB_{hardware}_{drift_or_clean}.json`.')
+    lines.append('- **Raw file naming**: `run_{run:03d}_{run_id}_{api}_{packet}_{freq}_{chaos_strategy}_{chaos_pct}_{translation_method}_{hardware}_{drift_or_clean}.json`.')
+    lines.append('- **Baseline file naming**: `baseline_run_{run:03d}_{run_id}_{api}_{packet}_{freq}_{chaos_strategy}_{chaos_pct}_{translation_method}_{hardware}_{drift_or_clean}.json`.')
     lines.append('- **Baseline policy**: baseline clean pipeline is topped up to at least 5 runs/config by default (`--min-baseline-runs`).')
     lines.append('- **Run policy**: configurable with `--runs-per-config` and tagged in-record using `policy_tag`.')
     lines.append('- **Stable statistics**: stable mean excludes run 1 (warmup/cold start) and uses runs 2..N.')
