@@ -158,7 +158,7 @@ def update_readme(roc_data):
         '',
         '## Methodology',
         '',
-        '- **864 configurations**: 2 packet profiles × 3 frequencies × 3 chaos strategies × 3 levels × 4 APIs, 4 runs each',
+        '- **144 configurations / 720 total runs**: 2 packet profiles × 2 frequencies × 3 chaos strategies × 3 levels × 4 APIs, 5 runs each',
         '- **Chaos strategies**: JSON mutation, schema drift, Gemma-generated adversarial mutations',
         '- **Reconcilers**: Levenshtein distance, regex, BERT semantic similarity (all-MiniLM-L6-v2), Gemma-4 E4B',
         '- **Metrics**: Detection rate, p95 latency, repair rate, recovery score, resilience P/P2',

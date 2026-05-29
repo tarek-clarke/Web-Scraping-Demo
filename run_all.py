@@ -388,7 +388,7 @@ def write_json_atomic(path, payload):
 
 def parse_existing_baseline_file_name(file_name):
     pattern = re.compile(
-        r'^baseline_run_(\d{3})_([a-z0-9_]+)_(short|long)_(100hz|1000hz|1mhz)_(5|1|0|high|medium|low)_([a-z0-9_]+)_.+_(clean|drift)\.json$',
+        r'^baseline_run_(\d{3})_([a-z0-9_]+)_(10k|1m|short|long)_(100hz|1mhz|1000hz)_(5|1|0|high|medium|low)_([a-z0-9_]+)_.+_(clean|drift)\.json$',
         re.IGNORECASE
     )
     m = pattern.match(file_name)
@@ -406,7 +406,7 @@ def parse_existing_baseline_file_name(file_name):
 def parse_run_file_name(file_name):
     """Parse run file names in either the old or new standard format."""
     new_pattern = re.compile(
-        r'^run_(\d{3})_([a-z0-9_]+)_(short|long)_(100hz|1000hz|1mhz)_(5|1|0|high|medium|low)_([a-z0-9_]+)_.+_(clean|drift)\.json$',
+        r'^run_(\d{3})_([a-z0-9_]+)_(10k|1m|short|long)_(100hz|1mhz|1000hz)_(5|1|0|high|medium|low)_([a-z0-9_]+)_.+_(clean|drift)\.json$',
         re.IGNORECASE
     )
     m = new_pattern.match(file_name)
@@ -420,7 +420,7 @@ def parse_run_file_name(file_name):
         return (p, f, x, l, api), rn
 
     pattern = re.compile(
-        r'^run_(\d{3})_([a-z0-9_]+)_(short|long)_(100hz|1000hz|1mhz)_(json|schema|gemma)_(high|medium|low)_.+_(clean|drift)\.json$',
+        r'^run_(\d{3})_([a-z0-9_]+)_(10k|1m|short|long)_(100hz|1mhz|1000hz)_(json|schema|gemma)_(high|medium|low)_.+_(clean|drift)\.json$',
         re.IGNORECASE
     )
     m = pattern.match(file_name)
@@ -698,8 +698,8 @@ def run_evaluation_pipeline():
         except:
             pass
 
-    P = ['short', 'long']
-    F = ['100hz', '1000hz', '1mhz']
+    P = ['10k', '1m']
+    F = ['100hz', '1mhz']
     X = ['json', 'schema', 'gemma']
     L = ['high', 'medium', 'low']
     A_list = ['finnhub', 'openmeteo', 'spacex', 'openf1']
@@ -803,7 +803,7 @@ def run_evaluation_pipeline():
         print(f'\n{"="*80}')
         print(f' BASELINE TOP-UP (target >= {baseline_target_runs} runs/config)')
         print(f'{"="*80}')
-        baseline_configs = [('short', '100hz', 'json', 'low', a) for a in A_list]
+        baseline_configs = [('10k', '100hz', 'json', 'low', a) for a in A_list]
         existing_baseline = load_existing_baseline_runs_from_raw(raw_dir)
         baseline_plan = []
         for cfg in baseline_configs:

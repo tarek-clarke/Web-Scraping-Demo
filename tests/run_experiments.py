@@ -21,8 +21,8 @@ try:
 except ImportError:
     cpp_accel = None
 
-PACKET_PROFILES = {'short': 30000, 'long': 3000000}
-FREQUENCY_PROFILES = {'100hz': 100, '1000hz': 1000, '1mhz': 1000000}
+PACKET_PROFILES = {'10k': 10000, '1m': 1000000}
+FREQUENCY_PROFILES = {'100hz': 100, '1mhz': 1000000}
 CHAOS_LEVELS = {'high': 5, 'medium': 1, 'low': 0}
 
 class ExperimentRunner:
@@ -48,7 +48,7 @@ class ExperimentRunner:
 
     def run_single_stream(self, **k):
         an = k.get('api_name', 'finnhub')
-        pp = k.get('packet_profile', 'short')
+        pp = k.get('packet_profile', '10k')
         fp = k.get('frequency_profile', '100hz')
         cs = k.get('chaos_strategy', 'json')
         cl = k.get('chaos_level', 'low')
@@ -58,7 +58,7 @@ class ExperimentRunner:
         preflight = k.get('preflight', {})
         api = self.ap[an]
         bs = api.fetch_data()
-        np_val = PACKET_PROFILES.get(pp, 30000)
+        np_val = PACKET_PROFILES.get(pp, 10000)
         th = FREQUENCY_PROFILES.get(fp, 100)
         st = time.perf_counter_ns()
 
