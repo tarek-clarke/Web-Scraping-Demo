@@ -15,7 +15,7 @@ dependencies = [
     "tqdm",
     "scikit-learn",
     "sentence-transformers",
-    "transformers",
+    "transformers @ git+https://github.com/huggingface/transformers.git",
     "accelerate",
     "huggingface-hub",
     "torch; sys_platform == 'darwin' and platform_machine == 'arm64'",

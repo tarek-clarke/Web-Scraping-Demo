@@ -8,6 +8,6 @@ python-dotenv
 tqdm
 scikit-learn
 sentence-transformers
-transformers
+transformers @ git+https://github.com/huggingface/transformers.git
 accelerate
 huggingface-hub
