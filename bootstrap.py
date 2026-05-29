@@ -11,6 +11,20 @@ import importlib.util
 import importlib.metadata
 
 
+def _version_tuple(version_string):
+    parts = []
+    for piece in str(version_string).split("."):
+        match = re.match(r"(\d+)", piece)
+        if not match:
+            break
+        parts.append(int(match.group(1)))
+        if len(parts) == 3:
+            break
+    while len(parts) < 3:
+        parts.append(0)
+    return tuple(parts[:3])
+
+
 def ensure_supported_python_version():
     """Verify Python version is 3.10-3.13 and load appropriate requirements."""
     major, minor = sys.version_info.major, sys.version_info.minor
@@ -245,21 +259,26 @@ def install_pytorch(hardware):
     """
     Installs the correct PyTorch wheel avoiding source builds.
     """
+    minimum_torch_version = (2, 4, 0)
+
     # Check if torch is already installed and matches the hardware
     torch_installed = False
     try:
-        import torch
-        if hardware == "NVIDIA CUDA" and torch.cuda.is_available() and (not hasattr(torch.version, "hip") or torch.version.hip is None):
-            torch_installed = True
-        elif hardware == "AMD ROCm" and torch.cuda.is_available() and hasattr(torch.version, "hip") and torch.version.hip is not None:
-            torch_installed = True
-        elif hardware == "Apple Silicon MPS" and hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-            torch_installed = True
-        elif hardware == "Intel GPU" and hasattr(torch, "xpu") and torch.xpu.is_available():
-            torch_installed = True
-        elif hardware == "CPU fallback":
-            torch_installed = True
-    except ImportError:
+        installed_torch_version = importlib.metadata.version("torch")
+        torch_version_ok = _version_tuple(installed_torch_version) >= minimum_torch_version
+        if torch_version_ok:
+            import torch
+            if hardware == "NVIDIA CUDA" and torch.cuda.is_available() and (not hasattr(torch.version, "hip") or torch.version.hip is None):
+                torch_installed = True
+            elif hardware == "AMD ROCm" and torch.cuda.is_available() and hasattr(torch.version, "hip") and torch.version.hip is not None:
+                torch_installed = True
+            elif hardware == "Apple Silicon MPS" and hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                torch_installed = True
+            elif hardware == "Intel GPU" and hasattr(torch, "xpu") and torch.xpu.is_available():
+                torch_installed = True
+            elif hardware == "CPU fallback":
+                torch_installed = True
+    except (importlib.metadata.PackageNotFoundError, ImportError):
         pass
 
     if torch_installed:
@@ -309,7 +328,7 @@ def install_pytorch(hardware):
         cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", cpu_url, "torch", "torchvision", "torchaudio"]
     elif hardware == "Apple Silicon MPS":
         # Standard wheels on macOS support MPS natively; do not add extra indexes
-        cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "torch", "torchvision", "torchaudio"]
+        cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "torch>=2.4.0", "torchvision", "torchaudio"]
     else: # CPU fallback
         cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "--index-url", cpu_url, "torch", "torchvision", "torchaudio"]
 
