@@ -57,7 +57,7 @@ This automatically interrogates your host OS and GPU drivers, fetches the optima
 
 ### 🧠 Execute the Full Experimental Matrix (New)
 
-To generate the streaming NDJSON datasets and execute the full combinatorial resilience matrix (36 runs, 10,000 packets each, ~34.5 hours of inference compute), use the stateful orchestrator. If the process crashes or your PC reboots, running this again will safely resume exactly where it left off:
+To generate the streaming NDJSON datasets and execute the full combinatorial resilience matrix (36 runs, 10,000 packets each), use the stateful orchestrator. If the process crashes or your PC reboots, running this again will safely resume exactly where it left off:
 
 ```bash
 python run_matrix.py
