@@ -400,11 +400,15 @@ class GemmaLocal:
             
         # Enterprise Linux NVIDIA acceleration: torch.compile
         if device_type == "cuda" and sys.platform.startswith("linux"):
-            try:
-                print("    > [Optimisation] Compiling model via torch.compile(mode='reduce-overhead')...")
-                self.model = torch.compile(self.model, mode="reduce-overhead")
-            except Exception as e:
-                print(f"    > [Warning] torch.compile failed or unsupported: {e}")
+            disable_compile = os.environ.get("DISABLE_COMPILE", "").strip().lower() in ("1", "true", "yes")
+            if disable_compile:
+                print("    > [Optimisation] torch.compile disabled via environment variable. Running in Eager mode.")
+            else:
+                try:
+                    print("    > [Optimisation] Compiling model via torch.compile(mode='reduce-overhead')...")
+                    self.model = torch.compile(self.model, mode="reduce-overhead")
+                except Exception as e:
+                    print(f"    > [Warning] torch.compile failed or unsupported: {e}")
 
     def _load_model_directml(self) -> None:
         """DirectML path: load tensors individually to avoid Windows TDR timeout.
