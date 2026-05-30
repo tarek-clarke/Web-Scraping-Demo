@@ -42,8 +42,8 @@ def main():
     # 3. Formulate Install Path
     print("\n[*] Installing PyTorch Core...")
     if has_nvidia and is_linux:
-        # Optimal Linux NVIDIA tier. Upgraded to Nightly cu124 to support Blackwell (sm_120) and Hopper (sm_90)
-        run_cmd("python -m pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu124")
+        # Optimal Linux NVIDIA tier. Upgraded to Nightly cu128 to support Blackwell (sm_120) and Hopper (sm_90)
+        run_cmd("python -m pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128")
     elif has_amd and is_windows:
         # Optimal Windows AMD tier (7900XT)
         run_cmd("python -m pip install torch --index-url https://download.pytorch.org/whl/rocm6.1")
@@ -55,7 +55,7 @@ def main():
         run_cmd("python -m pip install torch")
 
     print("\n[*] Installing HuggingFace Stack & API Dependencies...")
-    run_cmd("python -m pip install transformers accelerate sentence-transformers tqdm wheel httpx")
+    run_cmd("python -m pip install transformers accelerate sentence-transformers tqdm wheel httpx pybind11")
 
     if has_nvidia and is_linux:
         print("\n[*] Linux + NVIDIA detected: Installing Enterprise FlashAttention-2...")
