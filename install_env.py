@@ -42,8 +42,8 @@ def main():
     # 3. Formulate Install Path
     print("\n[*] Installing PyTorch Core...")
     if has_nvidia and is_linux:
-        # Optimal Linux NVIDIA tier (A100/H100/B200)
-        run_cmd("python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121")
+        # Optimal Linux NVIDIA tier. Upgraded to Nightly cu124 to support Blackwell (sm_120) and Hopper (sm_90)
+        run_cmd("python -m pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu124")
     elif has_amd and is_windows:
         # Optimal Windows AMD tier (7900XT)
         run_cmd("python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.1")
@@ -55,16 +55,22 @@ def main():
         run_cmd("python -m pip install torch torchvision torchaudio")
 
     print("\n[*] Installing HuggingFace Stack...")
-    run_cmd("python -m pip install transformers accelerate sentence-transformers tqdm")
+    run_cmd("python -m pip install transformers accelerate sentence-transformers tqdm wheel")
 
     if has_nvidia and is_linux:
         print("\n[*] Linux + NVIDIA detected: Installing Enterprise FlashAttention-2...")
         try:
-            # Requires ninja and build tools to be pre-installed on the Linux cluster
-            run_cmd("python -m pip install packaging ninja")
+            # Requires ninja, wheel, and build tools to be pre-installed on the Linux cluster
+            run_cmd("python -m pip install packaging ninja wheel")
             run_cmd("python -m pip install flash-attn --no-build-isolation")
         except Exception as e:
             print(f"[!] Warning: FlashAttention compilation failed. SDPA fallback will be used. ({e})")
+            
+    print("\n[*] Bootstrapping Local Model Weights...")
+    try:
+        run_cmd("python bootstrap.py --bootstrap")
+    except Exception as e:
+        print(f"[!] Warning: Failed to pre-cache models. ({e})")
     
     print("\n[✓] Environment Bootstrapped Successfully.")
 
