@@ -46,22 +46,32 @@ graph TD
 
 Get the framework running in a few simple steps. The system automatically detects your Python environment (Python 3.10–3.13) and optimizes the dependency wheels accordingly.
 
-### 🔄 Cross-Platform Hardware Bootstrapper (New)
+### 🔄 Single-Command Execution (Copy-Paste)
 
-If you are moving between Windows (AMD ROCm) and Linux (NVIDIA CUDA), run the hardware autodetector before executing the evaluation:
+This entire pipeline is designed to be completely hardware-agnostic and stateful. Whether you are cloning this repository onto a fresh Windows machine with an AMD GPU, or an enterprise Linux cluster with NVIDIA H100s, this single block will build your environment, detect your hardware, execute the matrix, and push the results back to Git:
 
 ```bash
+# 1. Clone the repository and enter the directory
+git clone https://github.com/tarek-clarke/resilient-rap-framework.git
+cd resilient-rap-framework
+
+# 2. Setup the isolated environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 3. Detect hardware and install optimal dependencies (CUDA/FlashAttention/ROCm)
 python install_env.py
-```
-This automatically interrogates your host OS and GPU drivers, fetches the optimal PyTorch wheels, and injects Enterprise `flash-attn` optimizations when available.
 
-### 🧠 Execute the Full Experimental Matrix (New)
-
-To generate the streaming NDJSON datasets and execute the full combinatorial resilience matrix (36 runs, 10,000 packets each), use the stateful orchestrator. If the process crashes or your PC reboots, running this again will safely resume exactly where it left off:
-
-```bash
+# 4. Execute the experimental matrix (Stateful orchestrator)
 python run_matrix.py
+
+# 5. Push the generated JSONL telemetry data back to GitHub
+git add results/
+git commit -m "Add full 36-run NDJSON telemetry output from execution"
+git push
 ```
+
+*(Note: Because `run_matrix.py` is stateful, if your SSH session drops or the cluster restarts, you can simply run `python run_matrix.py` again to safely resume exactly where the process died.)*
 
 ---
 
