@@ -65,55 +65,6 @@ python run_matrix.py
 
 ---
 
-### 🔄 Legacy One-Click Sync & Run (Copy-Paste Solution)
-
-If you are syncing with the latest code and want to run the legacy evaluation suite immediately, copy and paste the single-line command below into your terminal:
-
-**On macOS/Linux:**
-```bash
-./run_sync_and_benchmark.sh
-```
-
-**On Windows:**
-```cmd
-run_sync_and_benchmark.bat
-```
-
----
-
-### Step A: Dependency Setup & Model Weight Caching (Online)
-Run the bootstrap utility to install optimized PyTorch, compile the native C++ Levenshtein accelerator, and pre-cache model weights locally:
-```bash
-# 1. Initialize environment and pre-cache local BERT/Gemma weights
-python bootstrap.py --bootstrap
-
-# 2. Compile native C++ Levenshtein accelerator
-python setup.py build_ext --inplace
-```
-
-### Step B: Generate the Chaos Dataset
-Query the baseline APIs and inject adversarial chaos to compile your evaluation dataset:
-```bash
-python chaos_generator/generate_chaos_dataset.py \
-  --output-dir chaos_generator/datasets \
-  --runs-per-config 5 \
-  --strategies json schema gemma
-```
-*(If you want to bypass the 1-2 minute generative LLM load during chaos generation, simply exclude Gemma: `--strategies json schema` to generate the dataset in less than 1 second).*
-
-### Step C: Execute the T-DKE Evaluation Suite (100% Offline)
-Execute the primary scientific benchmark under strict local-only validation:
-```bash
-python semantic_benchmark/run_semantic_benchmark.py \
-  --dataset-path chaos_generator/datasets/chaos_dataset.json \
-  --require-local-models True \
-  --strict-mode \
-  --output-dir results
-```
-*(Use `--verbose` to view fine-grained matching scores, attributions, and latencies in real-time).*
-
----
-
 ## 📈 2. Peer-Reviewed Resilience Methodology
 
 The system robustness is mathematically assessed by integrating the official [resilience-metrics](https://pypi.org/project/resilience-metrics/) package. This metrics formulation is citable and grounded in the established peer-reviewed system resilience framework:
