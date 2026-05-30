@@ -350,6 +350,7 @@ class GemmaLocal:
 
     def _load_model_standard(self) -> None:
         """Standard from_pretrained path used on MPS and Cloud CUDA."""
+        import sys
         import torch
         from transformers import AutoModelForCausalLM
 
@@ -366,6 +367,15 @@ class GemmaLocal:
         if device_type == "cuda":
             load_kwargs["device_map"] = "auto"
 
+        # Auto-detect and inject FlashAttention-2 if on CUDA and package exists
+        try:
+            import flash_attn
+            if device_type == "cuda":
+                load_kwargs["attn_implementation"] = "flash_attention_2"
+                print("    > [Optimisation] FlashAttention-2 injected successfully.")
+        except ImportError:
+            pass
+
         self.model = AutoModelForCausalLM.from_pretrained(
             str(self.model_dir),
             **load_kwargs,
@@ -374,6 +384,14 @@ class GemmaLocal:
         # Manually transfer when device_map was not used (MPS / CPU)
         if device_type != "cuda":
             self.model.to(self.device)
+            
+        # Enterprise Linux NVIDIA acceleration: torch.compile
+        if device_type == "cuda" and sys.platform.startswith("linux"):
+            try:
+                print("    > [Optimisation] Compiling model via torch.compile(mode='reduce-overhead')...")
+                self.model = torch.compile(self.model, mode="reduce-overhead")
+            except Exception as e:
+                print(f"    > [Warning] torch.compile failed or unsupported: {e}")
 
     def _load_model_directml(self) -> None:
         """DirectML path: load tensors individually to avoid Windows TDR timeout.

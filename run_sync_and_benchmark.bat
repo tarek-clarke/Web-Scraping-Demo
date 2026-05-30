@@ -4,6 +4,8 @@ rem IEEE T-DKE Resilient Semantic Reconciliation under Drift Pipeline Runner (Wi
 rem ============================================================================
 
 setlocal enabledelayedexpansion
+chcp 65001 >nul
+set PYTHONIOENCODING=utf-8
 
 echo ================================================================================
 echo  ^|^| STARTING PIPELINE SYNC ^& RUN (IEEE T-DKE PRIMARY PATH)

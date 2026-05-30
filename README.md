@@ -232,21 +232,29 @@ This script automatically parses the files in `results/`, computes aggregates, a
 <!-- START_PLATFORM_TABLE -->
 | Platform | Total Runs | Avg Latency (ms) | Avg Accuracy (%) | Avg Resilience P | Avg Throughput (pps) |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| Apple Silicon MPS (mps) | 2 | 0.76 ms | 75.0% | 0.950 | 6834.69 pps |
+| ROCm (cuda) | 58 | 1334.47 ms | 37.1% | 0.763 | 76794.88 pps |
 <!-- END_PLATFORM_TABLE -->
 
 ### Accuracy vs. Schema Drift Type
 <!-- START_DRIFT_TABLE -->
 | Drift Type | Regex Acc | Levenshtein Acc | Bert Acc | Gemma Acc |
 | :--- | :---: | :---: | :---: | :---: |
-| renamed_keys | 1 | 0 | 0 | 0 |
-| type_mismatch | 1 | 1 | 0 | 0 |
+| split_fields | 0.4444 | 0.3333 | 0.3333 | 0.4444 |
+| merged_fields | 0.2727 | 0.7273 | 0.1818 | 0.2727 |
+| renamed_keys | 0.3333 | 0.6667 | 0.3333 | 0.3333 |
+| type_mismatch | 0.6364 | 0.1818 | 0 | 0.6364 |
+| extra_keys | 1 | 0 | 0.1667 | 1 |
+| value_contradiction | 0.5000 | 0.5000 | 0 | 0.5000 |
+| missing_keys | 0.3333 | 0.1667 | 0 | 0.3333 |
+| nested_corruption | 0.5000 | 0.3333 | 0.1667 | 0.5000 |
 <!-- END_DRIFT_TABLE -->
 
 ### Latency Profiles vs. Reconciliation Method
 <!-- START_LATENCY_TABLE -->
 | Method | Avg Latency Ms | Min Latency Ms | Max Latency Ms |
 | :--- | :---: | :---: | :---: |
-| regex | 1.39 | 0.0969 | 2.67 |
-| levenshtein | 0.1249 | 0.1006 | 0.1493 |
+| regex | 0.1656 | 0.0107 | 0.4831 |
+| levenshtein | 0.0151 | 0.0034 | 0.3210 |
+| bert | 75.19 | 0.0381 | 4119.10 |
+| gemma | 5887.50 | 0.0007 | 17380.00 |
 <!-- END_LATENCY_TABLE -->

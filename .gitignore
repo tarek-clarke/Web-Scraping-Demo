@@ -1,17 +1,30 @@
+# Python
 __pycache__/
-*.pyc
-build/
+*.py[cod]
+*$py.class
 *.so
-*.pyd
-.DS_Store
-.initialized
-.aider*
-archive_results_*.tar.gz
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv
+.venv/
+venv/
+ENV/
 
-# Archived results (preserved in tar.gz only)
+# Project Specific
+chaos_generator/datasets/
 results/
-logs/
-hardware_results/
-chaos_vs_repair_matrix*.csv
-combined_results.*
-pristine_chaos_vs_repair_matrix.csv
+matrix_state.json

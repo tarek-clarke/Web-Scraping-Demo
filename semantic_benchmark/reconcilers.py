@@ -46,9 +46,10 @@ class LevenshteinReconciler:
             elapsed = (time.perf_counter() - start_time) * 1000.0
             return {
                 "match": "unknown", 
-                "confidence": 0.0, 
-                "latency_ms": elapsed,
-                "fallback_used": True,
+                "confidence_raw": 0.0, 
+                "syntactic_parse_time_ms": elapsed,
+                "semantic_inference_time_ms": None,
+                "fallback_triggered": True,
                 "fallback_reason": "No canonical keys provided"
             }
 
@@ -70,9 +71,10 @@ class LevenshteinReconciler:
         
         return {
             "match": best_match,
-            "confidence": confidence,
-            "latency_ms": elapsed_ms,
-            "fallback_used": fallback_used,
+            "confidence_raw": confidence,
+            "syntactic_parse_time_ms": elapsed_ms,
+            "semantic_inference_time_ms": None,
+            "fallback_triggered": fallback_used,
             "fallback_reason": f"confidence={confidence:.4f} < 0.5" if fallback_used else None
         }
 
@@ -115,18 +117,20 @@ class RegexReconciler:
         if match_key:
             return {
                 "match": match_key,
-                "confidence": 1.0,
-                "latency_ms": elapsed_ms,
-                "fallback_used": False,
+                "confidence_raw": 1.0,
+                "syntactic_parse_time_ms": elapsed_ms,
+                "semantic_inference_time_ms": None,
+                "fallback_triggered": False,
                 "fallback_reason": None
             }
         else:
             fallback = canonical_keys[0] if canonical_keys else "unknown"
             return {
                 "match": fallback,
-                "confidence": 0.0,
-                "latency_ms": elapsed_ms,
-                "fallback_used": True,
+                "confidence_raw": 0.0,
+                "syntactic_parse_time_ms": elapsed_ms,
+                "semantic_inference_time_ms": None,
+                "fallback_triggered": True,
                 "fallback_reason": "No matching regex pattern found"
             }
 
@@ -151,9 +155,10 @@ class BERTReconciler:
             elapsed = (time.perf_counter() - start_time) * 1000.0
             return {
                 "match": "unknown", 
-                "confidence": 0.0, 
-                "latency_ms": elapsed,
-                "fallback_used": True,
+                "confidence_raw": 0.0, 
+                "syntactic_parse_time_ms": None,
+                "semantic_inference_time_ms": elapsed,
+                "fallback_triggered": True,
                 "fallback_reason": "No canonical keys provided"
             }
 
@@ -179,9 +184,10 @@ class BERTReconciler:
         
         return {
             "match": best_match,
-            "confidence": float(max_similarity),
-            "latency_ms": elapsed_ms,
-            "fallback_used": fallback_used,
+            "confidence_raw": float(max_similarity),
+            "syntactic_parse_time_ms": None,
+            "semantic_inference_time_ms": elapsed_ms,
+            "fallback_triggered": fallback_used,
             "fallback_reason": f"cosine_similarity={max_similarity:.4f} < 0.5" if fallback_used else None
         }
 
@@ -200,11 +206,11 @@ class GemmaReconciler:
         cached_result = self._prediction_cache.get(cache_key)
         if cached_result is not None:
             cached_copy = dict(cached_result)
-            cached_copy["latency_ms"] = (time.perf_counter() - start_time) * 1000.0
+            cached_copy["syntactic_parse_time_ms"] = None
+            cached_copy["semantic_inference_time_ms"] = (time.perf_counter() - start_time) * 1000.0
             return cached_copy
         
         result = self.gemma.predict_semantic_match(canonical_keys, query_key)
-        self._prediction_cache[cache_key] = dict(result)
         
         elapsed_ms = (time.perf_counter() - start_time) * 1000.0
         
@@ -223,10 +229,16 @@ class GemmaReconciler:
             fallback_used = True
             fallback_reason = f"Gemma confidence={confidence:.4f} < 0.5"
             
-        return {
+        final_result = {
             "match": match_val,
-            "confidence": min(max(confidence, 0.0), 1.0),
-            "latency_ms": elapsed_ms,
-            "fallback_used": fallback_used,
+            "confidence_raw": confidence,
+            "fallback_triggered": fallback_used,
             "fallback_reason": fallback_reason
         }
+        
+        self._prediction_cache[cache_key] = final_result
+        
+        ret_val = dict(final_result)
+        ret_val["syntactic_parse_time_ms"] = None
+        ret_val["semantic_inference_time_ms"] = elapsed_ms
+        return ret_val

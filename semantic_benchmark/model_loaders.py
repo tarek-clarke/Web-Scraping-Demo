@@ -131,8 +131,9 @@ class StrictGemmaModel(GemmaLocal):
             
             if self.model is not None:
                 device_str = str(self.device)
-                print(f"\n[✓] Gemma model successfully loaded and warmed up on {device_str}.\n")
-                
+            
+            print(f"\n[x] Gemma model successfully loaded and warmed up on {device_str}.\n")
+            
         except Exception as e:
             if require_local:
                 raise RuntimeError(
