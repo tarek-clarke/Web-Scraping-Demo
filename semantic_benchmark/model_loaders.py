@@ -123,14 +123,31 @@ class StrictGemmaModel(GemmaLocal):
     """Gemma loader with strict local-only checks."""
     
     def __init__(self, local_path: str | Path | None = None, require_local: bool = True):
+        if os.environ.get("GEMMA_API_URL") or os.environ.get("USE_API") in ("1", "true", "yes"):
+            self.backend = "api"
+            self.api_url = os.environ.get("GEMMA_API_URL", "http://localhost:1234/v1/chat/completions")
+            self.api_model = os.environ.get("GEMMA_API_MODEL", "google/gemma-4-E4B-it")
+            self.model = None
+            self.tokenizer = None
+            self.device = "cpu"
+            self.torch_dtype = None
+            self.model_dir = None
+            print(f"\n[x] Strict Gemma initialized in API Mode! Target Server: {self.api_url}\n")
+            return
+
         # Resolve path
         try:
             resolved_path = self.resolve_local_path(local_path)
             super().__init__(local_path=resolved_path)
-            self.backend = "local"
+            if getattr(self, "backend", None) == "api":
+                pass
+            else:
+                self.backend = "local"
             
             if self.model is not None:
                 device_str = str(self.device)
+            else:
+                device_str = "cpu"
             
             print(f"\n[x] Gemma model successfully loaded and warmed up on {device_str}.\n")
             

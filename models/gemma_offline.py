@@ -38,6 +38,19 @@ class GemmaModel(GemmaLocal):
         if getattr(self, "_initialized", False):
             return
 
+        if os.environ.get("GEMMA_API_URL") or os.environ.get("USE_API") in ("1", "true", "yes"):
+            self.backend = "api"
+            self.api_url = os.environ.get("GEMMA_API_URL", "http://localhost:1234/v1/chat/completions")
+            self.api_model = os.environ.get("GEMMA_API_MODEL", "google/gemma-4-E4B-it")
+            self.model = None
+            self.tokenizer = None
+            self.device = "cpu"
+            self.torch_dtype = None
+            self.model_dir = None
+            self._initialized = True
+            print(f"\n[x] Gemma Model wrapper initialized in API Mode! Target Server: {self.api_url}\n")
+            return
+
         self.backend = "mock"
         self.model = None
         self.tokenizer = None
@@ -52,7 +65,11 @@ class GemmaModel(GemmaLocal):
 
         try:
             super().__init__(local_path=local_path)
-            self.backend = "local"
+            # If parent init detected api, keep it
+            if getattr(self, "backend", None) == "api":
+                pass
+            else:
+                self.backend = "local"
             # Move model to the appropriate device (MPS, CUDA, CPU)
             device_info = get_device_info()
             device = device_info["device"]  # "cuda", "rocm", "mps", "cpu"

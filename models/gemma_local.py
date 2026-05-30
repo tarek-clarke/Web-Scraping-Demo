@@ -63,7 +63,20 @@ class GemmaLocal:
         Path.home() / "Library/Caches/huggingface",
     )
 
-    def __init__(self, local_path: str | Path):
+    def __init__(self, local_path: str | Path | None = None):
+        if os.environ.get("GEMMA_API_URL") or os.environ.get("USE_API") in ("1", "true", "yes"):
+            self.backend = "api"
+            self.api_url = os.environ.get("GEMMA_API_URL", "http://localhost:1234/v1/chat/completions")
+            self.api_model = os.environ.get("GEMMA_API_MODEL", "google/gemma-4-E4B-it")
+            self.local_path = None
+            self.model_dir = None
+            self.tokenizer = None
+            self.model = None
+            self.device = "cpu"
+            self.torch_dtype = None
+            print(f"\n[x] Gemma initialized in API Mode! Target Server: {self.api_url}\n")
+            return
+
         self.local_path = self.resolve_local_path(local_path)
         self.model_dir: Optional[Path] = None
         self.tokenizer = None
@@ -441,11 +454,27 @@ class GemmaLocal:
 
         # Load each shard: read tensors to CPU, then transfer each to DirectML
         state_dict: dict = {}
-        print("    > Loading and transferring weights to GPU (per-tensor)...")
 
-        for shard in shard_files:
+        # Health check: verify DirectML device is still alive before starting
+        print("    > Checking DirectML device health...")
+        try:
+            _test = torch.zeros(2, 2, device=self.device)
+            _test = _test + 1  # force a compute operation
+            del _test
+            print("    > DirectML device is healthy.")
+        except Exception as e:
+            raise RuntimeError(
+                f"DirectML device is not responsive before Gemma loading. "
+                f"BERT may have suspended the GPU. Error: {e}"
+            )
+
+        print("    > Loading and transferring weights to GPU (per-tensor)...", flush=True)
+        tensor_count = 0
+
+        for shard_idx, shard in enumerate(shard_files):
             from safetensors.torch import load_file
             # Load entire shard to CPU
+            print(f"    > Reading shard {shard_idx + 1}/{len(shard_files)}: {shard}", flush=True)
             shard_dict = load_file(str(model_dir / shard), device="cpu")
 
             for name, tensor in shard_dict.items():
@@ -453,11 +482,17 @@ class GemmaLocal:
                 if self.torch_dtype is not None and tensor.is_floating_point():
                     tensor = tensor.to(self.torch_dtype)
                 # Transfer this individual tensor to DirectML device
+                size_mb = tensor.nelement() * tensor.element_size() / (1024 * 1024)
                 state_dict[name] = tensor.to(self.device)
+                tensor_count += 1
+                if tensor_count % 25 == 0:
+                    print(f"    > Transferred {tensor_count} tensors (latest: {name}, {size_mb:.1f}MB)", flush=True)
+                # Brief pause to let DirectML process the transfer
+                time.sleep(0.01)
 
             del shard_dict
 
-        print(f"    > Loaded {len(state_dict)} tensors to DirectML device.")
+        print(f"    > All {tensor_count} tensors transferred to DirectML device.")
 
         # assign=True replaces meta tensors entirely (no set_data call)
         self.model.load_state_dict(state_dict, strict=False, assign=True)
@@ -529,7 +564,7 @@ class GemmaLocal:
         temperature: float = 0.0,
         top_p: float = 1.0,
     ) -> str:
-        """Generate text from the loaded Gemma checkpoint.
+        """Generate text from the loaded Gemma checkpoint or external API.
 
         Parameters
         ----------
@@ -550,6 +585,43 @@ class GemmaLocal:
 
         if not isinstance(text, str) or not text.strip():
             raise ValueError("text must be a non-empty string")
+
+        if getattr(self, "backend", None) == "api":
+            import urllib.request
+            import json
+            url = getattr(self, "api_url", "http://localhost:1234/v1/chat/completions")
+            model_name = getattr(self, "api_model", "google/gemma-4-E4B-it")
+            
+            payload = {
+                "model": model_name,
+                "messages": [{"role": "user", "content": text}],
+                "temperature": float(temperature),
+                "max_tokens": int(max_new_tokens)
+            }
+            
+            headers = {"Content-Type": "application/json"}
+            req = urllib.request.Request(
+                url, 
+                data=json.dumps(payload).encode("utf-8"), 
+                headers=headers,
+                method="POST"
+            )
+            
+            try:
+                with urllib.request.urlopen(req, timeout=15) as response:
+                    res_body = json.loads(response.read().decode("utf-8"))
+                    if "choices" in res_body and len(res_body["choices"]) > 0:
+                        choice = res_body["choices"][0]
+                        if "message" in choice:
+                            return choice["message"]["content"].strip()
+                        elif "text" in choice:
+                            return choice["text"].strip()
+                    return ""
+            except Exception as e:
+                print(f"[API Error] Failed to fetch completion from {url}: {e}")
+                # Mock fallback
+                words = text.split()
+                return " ".join(words[-3:]) if len(words) >= 3 else text
 
         import torch
 

@@ -5,6 +5,7 @@ for each method.
 """
 
 import time
+import os
 import re
 from typing import List, Dict, Any
 
@@ -203,7 +204,11 @@ class GemmaReconciler:
         start_time = time.perf_counter()
 
         cache_key = (tuple(canonical_keys), str(query_key))
-        cached_result = self._prediction_cache.get(cache_key)
+        disable_cache = (
+            os.environ.get("DISABLE_CACHE", "").strip().lower() in ("1", "true", "yes") or
+            os.environ.get("GEMMA_DISABLE_CACHE", "").strip().lower() in ("1", "true", "yes")
+        )
+        cached_result = None if disable_cache else self._prediction_cache.get(cache_key)
         if cached_result is not None:
             cached_copy = dict(cached_result)
             cached_copy["syntactic_parse_time_ms"] = None
