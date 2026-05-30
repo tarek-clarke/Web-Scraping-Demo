@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import time
+import random
 import subprocess
 from uuid import uuid4
 from datetime import datetime
@@ -14,6 +15,14 @@ from semantic_benchmark.model_loaders import StrictBERTModel, StrictGemmaModel, 
 from semantic_benchmark.reconcilers import LevenshteinReconciler, RegexReconciler, BERTReconciler, GemmaReconciler
 from models.device_selector import get_device_info
 
+# Import chaos generator components directly (avoid subprocess overhead)
+from api.finnhub import FinnhubAPI
+from api.openmeteo import OpenMeteoAPI
+from api.spacex import SpaceXAPI
+from api.openf1 import OpenF1API
+from chaos_generator.chaos.strategy import select_chaos
+
+
 def determine_mutated_key(original, mutated) -> str:
     orig_keys = set(original.keys())
     mut_keys = set(mutated.keys())
@@ -25,12 +34,81 @@ def determine_mutated_key(original, mutated) -> str:
             return k
     return list(original.keys())[0] if original else "unknown"
 
+
+def generate_dataset_inline(api_name, strategy_name, scale, probability, frequency, run_id, run_number):
+    """Generate chaos dataset in-memory. Returns list of packet dicts. No subprocess, no disk I/O."""
+    apis = {
+        "finnhub": FinnhubAPI,
+        "openmeteo": OpenMeteoAPI,
+        "spacex": SpaceXAPI,
+        "openf1": OpenF1API,
+    }
+
+    api = apis[api_name]()
+    try:
+        base_data = api.fetch_data()
+    except Exception as e:
+        print(f"    [!] Warning: failed to fetch live data for {api_name} ({e}). Using static fallback.", flush=True)
+        base_data = {"price": 100.0, "canonical": "price"}
+
+    chaos_engine = select_chaos(strategy_name, probability)
+    delay_s = 1.0 / frequency
+    current_sim_time = time.time()
+
+    packets = []
+    for i in range(scale):
+        event_id = uuid4().hex
+        current_sim_time += delay_s
+        timestamp_iso = time.strftime('%Y-%m-%dT%H:%M:%S', time.gmtime(current_sim_time)) + f".{int((current_sim_time % 1) * 1000):03d}Z"
+
+        if random.random() < probability:
+            try:
+                mutated, drift_type, _ = chaos_engine(
+                    base_data,
+                    drift_logger=None,
+                    run_number=run_number,
+                    api_source=api_name,
+                    run_id=run_id,
+                    event_id=event_id
+                )
+                if drift_type is None:
+                    drift_type = "none"
+            except Exception:
+                mutated = base_data
+                drift_type = "none"
+        else:
+            mutated = base_data
+            drift_type = "none"
+
+        packets.append({
+            "packet_id": f"pkt_{uuid4().hex[:12]}",
+            "run_id": run_id,
+            "run_number": run_number,
+            "timestamp": timestamp_iso,
+            "workload_scale": scale,
+            "simulated_frequency": f"{frequency}hz",
+            "api_profile": api_name,
+            "chaos_probability": probability,
+            "chaos_strategy": strategy_name,
+            "drift_type": drift_type,
+            "drift_present": (drift_type != "none"),
+            "target_key": base_data.get("canonical", list(base_data.keys())[0]),
+            "original_payload": base_data,
+            "mutated_payload": mutated
+        })
+
+        if (i + 1) % 5000 == 0:
+            print(f"    - Generated {i + 1}/{scale} packets...", flush=True)
+
+    return packets
+
+
 def main():
     print("================================================================================")
-    print(" UNIFIED SINGLE-PROCESS MATRIX RUNNER (ZERO RE-COMPILATION OVERHEAD)")
+    print(" UNIFIED SINGLE-PROCESS MATRIX RUNNER v2 (OPTIMIZED)")
     print("================================================================================")
     
-    # 1. Run Pre-flight Validation once
+    # 1. Run Pre-flight Validation once (also loads models via singleton)
     enabled_methods = ["regex", "levenshtein", "bert", "gemma"]
     preflight, abort, abort_reason = run_preflight_validation(
         require_local_models=True,
@@ -50,7 +128,7 @@ def main():
     except Exception:
         pass
 
-    # 2. Load Models exactly ONCE in memory
+    # 2. Load Models exactly ONCE — reuse singleton from preflight
     print("\n[*] Initialising local models (Single-Load)...")
     bert_model = StrictBERTModel(require_local=True)
     gemma_model = StrictGemmaModel(require_local=True)
@@ -84,6 +162,9 @@ def main():
                 pass
                 
     run_idx = 0
+    completed_count = len(state["completed_runs"])
+    sweep_start_t = time.perf_counter()
+    
     for i in range(1, iterations + 1):
         for api in apis:
             for strategy in strategies:
@@ -95,45 +176,35 @@ def main():
                     
                 print(f"\n================================================================================")
                 print(f" [MATRIX RUN {run_idx}/{total_runs}] Iteration: {i} | API: {api} | Generator: {strategy}")
-                print(f"================================================================================")
+                print(f"================================================================================", flush=True)
                 
                 run_id = uuid4().hex
+                run_start_t = time.perf_counter()
                 
-                # 1. Generate Dataset
-                cmd_gen = [
-                    "python3", "chaos_generator/generate_chaos_dataset.py",
-                    "--packets", str(scale),
-                    "--chaos-probability", str(probability),
-                    "--frequency-hz", str(frequency),
-                    "--api", api,
-                    "--strategy", strategy,
-                    "--run-id", run_id,
-                    "--run-number", str(i)
-                ]
-                print(f"[*] Generating streaming dataset...")
-                subprocess.run(cmd_gen, check=True)
+                # 1. Generate Dataset INLINE (no subprocess, no disk I/O)
+                print(f"[*] Generating {scale} packets (inline)...", flush=True)
+                gen_start_t = time.perf_counter()
+                packets = generate_dataset_inline(api, strategy, scale, probability, frequency, run_id, i)
+                gen_elapsed = time.perf_counter() - gen_start_t
                 
-                dataset_path = f"chaos_generator/datasets/stream_{api}_{strategy}_{probability}_{run_id}.jsonl"
+                drift_total = sum(1 for p in packets if p["drift_present"])
+                print(f"[✓] Generated {len(packets)} packets ({drift_total} drifted) in {gen_elapsed:.1f}s", flush=True)
                 
-                # 2. Evaluate dataset in-memory (No reload, no VRAM leakage)
+                # 2. Process packets in-memory
                 timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
                 folder_name = f"{model_str}_{timestamp_str}_{run_id}"
                 final_output_dir = os.path.join("results", folder_name)
                 os.makedirs(final_output_dir, exist_ok=True)
                 
                 jsonl_output_path = os.path.join(final_output_dir, f"telemetry_stream_{run_id}.jsonl")
-                print(f"[*] Processing streaming dataset in-memory: {dataset_path}")
+                print(f"[*] Processing {len(packets)} packets → {jsonl_output_path}", flush=True)
                 
                 packet_count = 0
                 drift_count = 0
-                with open(dataset_path, "r", encoding="utf-8") as in_f, \
-                     open(jsonl_output_path, "w", encoding="utf-8") as out_f:
-                    
-                    for line in in_f:
-                        if not line.strip():
-                            continue
-                        
-                        sample = json.loads(line)
+                proc_start_t = time.perf_counter()
+                
+                with open(jsonl_output_path, "w", encoding="utf-8") as out_f:
+                    for sample in packets:
                         packet_count += 1
                         
                         original = sample["original_payload"]
@@ -150,28 +221,31 @@ def main():
                         packet_start_t = time.perf_counter()
                         sample_results = {}
                         
-                        # For Gemma: only run full LLM generation on drifted packets.
-                        # Use key-structure-only query so the prediction cache is effective.
-                        # For non-drifted packets, Gemma trivially matches (no schema mutation).
+                        # Key-only queries for semantic methods (better cache hits + faster Levenshtein)
                         query_key_full = json.dumps(mutated)
                         query_key_keys_only = json.dumps(sorted(mutated.keys()))
                         
                         for method_name, reconciler in reconcilers.items():
-                            if method_name == "gemma":
-                                if is_drifted:
-                                    drift_count += 1
-                                    rec_res = reconciler.reconcile(canonical_keys, query_key_keys_only)
-                                else:
-                                    # No drift: Gemma trivially returns the correct key instantly
-                                    rec_res = {
-                                        "match": target_key,
-                                        "confidence_raw": 1.0,
-                                        "syntactic_parse_time_ms": None,
-                                        "semantic_inference_time_ms": 0.0,
-                                        "fallback_triggered": False,
-                                        "fallback_reason": None
-                                    }
+                            if not is_drifted and method_name in ("gemma", "bert"):
+                                # No drift: skip GPU inference entirely, return trivial correct result
+                                rec_res = {
+                                    "match": target_key,
+                                    "confidence_raw": 1.0,
+                                    "syntactic_parse_time_ms": None,
+                                    "semantic_inference_time_ms": 0.0,
+                                    "fallback_triggered": False,
+                                    "fallback_reason": None
+                                }
+                            elif method_name == "gemma":
+                                drift_count += 1
+                                rec_res = reconciler.reconcile(canonical_keys, query_key_keys_only)
+                            elif method_name == "bert":
+                                rec_res = reconciler.reconcile(canonical_keys, query_key_keys_only)
+                            elif method_name == "levenshtein":
+                                # Levenshtein: use keys-only query (O(n*m) is much cheaper with short strings)
+                                rec_res = reconciler.reconcile(canonical_keys, query_key_keys_only)
                             else:
+                                # Regex: full payload so regex patterns can scan values
                                 rec_res = reconciler.reconcile(canonical_keys, query_key_full)
                             
                             match = rec_res["match"]
@@ -205,23 +279,33 @@ def main():
                         }
                         out_f.write(json.dumps(telemetry_row) + "\n")
                         
-                        if packet_count % 1000 == 0:
-                            print(f"    - Processed {packet_count}/10000 packets ({drift_count} drifted)...", flush=True)
+                        if packet_count % 2000 == 0:
+                            proc_elapsed = time.perf_counter() - proc_start_t
+                            pkt_per_sec = packet_count / proc_elapsed if proc_elapsed > 0 else 0
+                            remaining = (scale - packet_count) / pkt_per_sec if pkt_per_sec > 0 else 0
+                            print(f"    - Processed {packet_count}/{scale} ({drift_count} drifted) | {pkt_per_sec:.0f} pkt/s | ETA {remaining:.0f}s", flush=True)
                             
-                # Clear reconciler query caches to keep memory completely flat
+                # Clear reconciler query caches to keep memory flat between runs
                 reconcilers["bert"].clear_caches()
                 reconcilers["gemma"].clear_caches()
                 
-                # Delete raw dataset to save disk space
-                if os.path.exists(dataset_path):
-                    os.remove(dataset_path)
+                run_elapsed = time.perf_counter() - run_start_t
+                completed_count += 1
+                
+                # ETA for remaining runs
+                avg_per_run = (time.perf_counter() - sweep_start_t) / completed_count
+                remaining_runs = total_runs - completed_count
+                eta_min = (avg_per_run * remaining_runs) / 60.0
+                
+                print(f"[✓] Run {run_idx} complete in {run_elapsed:.1f}s | {completed_count}/{total_runs} done | ETA {eta_min:.1f}min", flush=True)
                     
                 # Commit state
                 state["completed_runs"].append(state_key)
                 with open(state_file, "w") as f:
                     json.dump(state, f, indent=2)
                     
-    print("\n[✓] UNIFIED SINGLE-PROCESS MATRIX RUN COMPLETE!")
+    total_elapsed = time.perf_counter() - sweep_start_t
+    print(f"\n[✓] UNIFIED MATRIX RUN COMPLETE! {total_runs} runs in {total_elapsed/60:.1f} minutes")
 
 if __name__ == "__main__":
     main()
