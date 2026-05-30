@@ -1,0 +1,8 @@
+{
+  "initialized": true,
+  "cloud_platform": "vast.ai",
+  "hardware_backend": "NVIDIA CUDA",
+  "bootstrap_duration_sec": 151.27,
+  "fresh_install": false,
+  "timestamp": "2026-05-30T00:56:21Z"
+}
