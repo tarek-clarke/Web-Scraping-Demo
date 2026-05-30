@@ -629,6 +629,17 @@ class GemmaLocal:
 
         import torch
 
+        # Format input using chat template if available to keep Gemma strictly instructed and fast
+        if self.tokenizer is not None and hasattr(self.tokenizer, "apply_chat_template"):
+            try:
+                messages = [{"role": "user", "content": text}]
+                text_templated = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+                # Verify we got a valid templated string back
+                if text_templated:
+                    text = text_templated
+            except Exception:
+                pass
+
         inputs = self.tokenizer(text, return_tensors="pt")
         inputs = {key: value.to(self.device) for key, value in inputs.items()}
 
