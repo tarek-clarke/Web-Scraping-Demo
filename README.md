@@ -46,9 +46,28 @@ graph TD
 
 Get the framework running in a few simple steps. The system automatically detects your Python environment (Python 3.10–3.13) and optimizes the dependency wheels accordingly.
 
-### 🔄 One-Click Sync & Run (Copy-Paste Solution)
+### 🔄 Cross-Platform Hardware Bootstrapper (New)
 
-If you are switching machines or need to sync with the latest code and run the full primary evaluation suite immediately (including automated dataset validation, execution, and updating of README.md tables), simply copy and paste the single-line command below into your terminal:
+If you are moving between Windows (AMD ROCm) and Linux (NVIDIA CUDA), run the hardware autodetector before executing the evaluation:
+
+```bash
+python install_env.py
+```
+This automatically interrogates your host OS and GPU drivers, fetches the optimal PyTorch wheels, and injects Enterprise `flash-attn` optimizations when available.
+
+### 🧠 Execute the Full Experimental Matrix (New)
+
+To generate the streaming NDJSON datasets and execute the full combinatorial resilience matrix (36 runs, 10,000 packets each, ~34.5 hours of inference compute), use the stateful orchestrator. If the process crashes or your PC reboots, running this again will safely resume exactly where it left off:
+
+```bash
+python run_matrix.py
+```
+
+---
+
+### 🔄 Legacy One-Click Sync & Run (Copy-Paste Solution)
+
+If you are syncing with the latest code and want to run the legacy evaluation suite immediately, copy and paste the single-line command below into your terminal:
 
 **On macOS/Linux:**
 ```bash
