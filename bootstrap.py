@@ -537,14 +537,9 @@ def run_bootstrap(force=False):
     elif hardware == "NVIDIA CUDA":
         print("[Bootstrap] GPU Model Detected       : NVIDIA GPU (nvidia-smi unavailable)")
     
-    # 2. Install PyTorch
-    torch_fresh = install_pytorch(hardware)
-    
-    # 3. Install version-specific requirements
-    req_ok = install_version_specific_requirements()
-    
-    # 4. Install remaining hardware-specific libraries
-    libs_fresh = install_required_libraries(hardware)
+    # Dependency installation is now managed exclusively by install_env.py
+    torch_fresh = False
+    libs_fresh = False
     
     # 5. Build C++ acceleration layer
     cpp_built = False
