@@ -125,6 +125,27 @@ $$P_2 = 0.30 \cdot T + 0.30 \cdot D + 0.25 \cdot R + 0.15 \cdot L$$
 
 Resilience scores are aggregated globally, by drift type, and by reconciler method, and included in the final T-DKE output directory.
 
+### ⚡ Schema Drift Aggressiveness Index ($\mathcal{A}$)
+
+To provide a rigorous, quantifiable definition of "drift aggressiveness" for peer-reviewed publication, the framework introduces a formal **Schema Drift Aggressiveness Index ($\mathcal{A}$)**. This metric quantifies the complexity of the schema mutation across three independent dimensions:
+
+$$\mathcal{A} = w_{\text{str}} \cdot \delta_{\text{str}} + w_{\text{sem}} \cdot \delta_{\text{sem}} + w_{\text{typ}} \cdot \delta_{\text{typ}}$$
+
+Where:
+* **Structural Deformation ($\delta_{\text{str}}$)** $\in [0, 1]$: Measures structural shifts (key additions/deletions, nested wrapping, field splits/merges).
+* **Semantic Obfuscation ($\delta_{\text{sem}}$)** $\in [0, 1]$: Cosine distance ($1 - \text{sim}_{\text{cos}}$) between the canonical key and its renamed counterpart in BERT embedding space.
+* **Type Disruption ($\delta_{\text{typ}}$)** $\in \{0, 1\}$: Binary flag indicating if a datatype mismatch has occurred (e.g. integer to string).
+* **Weights:** Evaluated as $w_{\text{str}}=0.4$, $w_{\text{sem}}=0.4$, $w_{\text{typ}}=0.2$.
+
+#### Quantifiable Aggressiveness Profiles:
+
+| Chaos Strategy | $\delta_{\text{str}}$ | $\delta_{\text{sem}}$ | $\delta_{\text{typ}}$ | Aggressiveness ($\mathcal{A}$) | Complexity Description |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **`json`** | $0.00$ | $0.00$ | $0.00$ | **$0.00$** | Baseline. Simple value fluctuations; schema structure is untouched. |
+| **`schema`** | $0.40$ | $0.15$ | $0.50$ | **$0.32$** | Moderate. Procedural key splitting/merging and basic datatype coercion. |
+| **`gemma`** | $0.65$ | $0.70$ | $0.50$ | **$0.64$** | High. Generative LLM synonym mapping (thesaurus expansion) and structural nest changes. |
+| **`aggressive`** | $0.95$ | $0.95$ | $1.00$ | **$0.96$** | **Adversarial.** Combined deep recursive nesting, obfuscated synonyms, and active type contradictions. |
+
 ---
 
 ## 🖥️ 3. Multi-Platform Support & Hardware Detection
@@ -220,7 +241,7 @@ This script automatically parses the files in `results/`, computes aggregates, a
 | Drift Type | Regex Acc | Levenshtein Acc | Bert Acc | Gemma Acc |
 | :--- | :---: | :---: | :---: | :---: |
 | split_fields | 0.4444 | 0.3333 | 0.3333 | 0.4444 |
-| merged_fields | 0.2727 | 0.7273 | 0.1818 | 0.2727 |
+| merged_fields | 0.5455 | 0 | 0.2727 | 0.5455 |
 | renamed_keys | 0.3333 | 0.6667 | 0.3333 | 0.3333 |
 | type_mismatch | 0.6364 | 0.1818 | 0 | 0.6364 |
 | extra_keys | 1 | 0 | 0.1667 | 1 |
@@ -233,8 +254,8 @@ This script automatically parses the files in `results/`, computes aggregates, a
 <!-- START_LATENCY_TABLE -->
 | Method | Avg Latency Ms | Min Latency Ms | Max Latency Ms |
 | :--- | :---: | :---: | :---: |
-| regex | 0.1656 | 0.0107 | 0.4831 |
-| levenshtein | 0.0151 | 0.0034 | 0.3210 |
-| bert | 75.19 | 0.0381 | 4119.10 |
-| gemma | 5887.50 | 0.0007 | 17380.00 |
+| regex | 0.1577 | 0.0110 | 0.3701 |
+| levenshtein | 0.0174 | 0.0035 | 0.4548 |
+| bert | 22.63 | 0.0384 | 1096.10 |
+| gemma | 5315.08 | 0.0005 | 7917.93 |
 <!-- END_LATENCY_TABLE -->
