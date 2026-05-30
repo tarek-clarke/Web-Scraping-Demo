@@ -52,10 +52,18 @@ class GemmaModel(GemmaLocal):
         )
 
         raw_response = self.generate(prompt, max_new_tokens=128, temperature=0.0)
+        
+        # Strip conversational padding and markdown JSON wraps (like ```json ... ```)
+        clean_response = raw_response.strip()
+        if "```json" in clean_response:
+            clean_response = clean_response.split("```json")[-1].split("```")[0].strip()
+        elif "```" in clean_response:
+            clean_response = clean_response.split("```")[-1].split("```")[0].strip()
+
         try:
-            if "{" in raw_response and "}" in raw_response:
-                raw_response = raw_response[raw_response.index("{") : raw_response.rindex("}") + 1]
-            parsed = json.loads(raw_response)
+            if "{" in clean_response and "}" in clean_response:
+                clean_response = clean_response[clean_response.index("{") : clean_response.rindex("}") + 1]
+            parsed = json.loads(clean_response)
         except Exception:
             parsed = {}
 
