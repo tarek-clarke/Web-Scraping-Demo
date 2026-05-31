@@ -48,16 +48,16 @@ Get the framework running in a few simple steps. The system automatically detect
 
 ### ⏱️ Estimated Execution Time & Resource Requirements
 
-The full experimental sweep consists of **192 runs** (4 APIs × 4 Chaos Strategies × 2 Frequencies × 2 Chaos Probabilities × 3 Iterations), with each run processing a workload scale of **100,000 (100K) packets**. Due to the dynamic GPU bypass optimization (clean packets skip heavy inference), the execution time scales linearly with the chaos probability.
+The full experimental sweep consists of **48 runs** (4 APIs × 4 Chaos Strategies × 1 Frequency × 1 Chaos Probability × 3 Iterations), with each run processing a workload scale of **100,000 (100K) packets**. Due to the dynamic GPU bypass optimization (clean packets skip heavy inference), the execution time scales linearly with the chaos probability.
 
 Below are the estimated end-to-end execution times based on your hardware backend:
 
-| Hardware Tier / Accelerator | Avg. Time per Run | Full 192-Run Sweep Duration | Notes / Optimization Mode |
+| Hardware Tier / Accelerator | Avg. Time per Run | Full 48-Run Sweep Duration | Notes / Optimization Mode |
 | :--- | :---: | :---: | :--- |
-| **HPC Tier** (RTX 5090, RTX 6000 Blackwell, H200) | **~25 - 35 sec** | **~1.5 - 2.0 hours** | Warp-aligned Tensor Core allocation, BS=512 |
-| **Workstation Tier** (RTX 4090, Apple M3/M4 Max) | **~50 - 75 sec** | **~2.6 - 4.0 hours** | Optimized Local Execution, BS=256 |
-| **Standard Tier** (RTX 3080, Apple M1/M2/M3 Pro) | **~100 - 150 sec** | **~5.3 - 8.0 hours** | Local Execution with Active VRAM management, BS=128 |
-| **CPU Fallback Mode** (Threadripper / Multi-core) | **~450+ sec** | **~24+ hours** | Bypasses GPU. Force via `FORCE_HARDWARE=cpu` |
+| **HPC Tier** (RTX 5090, RTX 6000 Blackwell, H200) | **~20 - 25 sec** | **~15 - 20 minutes** | Warp-aligned Tensor Core allocation, BS=512 |
+| **Workstation Tier** (RTX 4090, Apple M3/M4 Max) | **~50 - 75 sec** | **~40 - 60 minutes** | Optimized Local Execution, BS=256 |
+| **Standard Tier** (RTX 3080, Apple M1/M2/M3 Pro) | **~100 - 150 sec** | **~1.3 - 2.0 hours** | Local Execution with Active VRAM management, BS=128 |
+| **CPU Fallback Mode** (Threadripper / Multi-core) | **~450+ sec** | **~6+ hours** | Bypasses GPU. Force via `FORCE_HARDWARE=cpu` |
 
 > [!TIP]
 > **Stateful Resumption:** The unified runner maintains a persistent state in `matrix_unified_state.json`. If your cloud container restarts, your SSH session drops, or you experience a VRAM collision, you can re-run the benchmark command and it will **automatically resume** exactly where it left off without duplicating results.
