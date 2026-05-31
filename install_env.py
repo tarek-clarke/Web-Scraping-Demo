@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
+import os
 import sys
 import subprocess
+
+# Bypass Ubuntu 24.04 (Noble) PEP 668 system protection in secure VM container environment
+os.environ["PIP_BREAK_SYSTEM_PACKAGES"] = "1"
 
 def run_cmd(cmd):
     print(f"[*] Executing: {cmd}")
@@ -19,21 +23,21 @@ def ensure_pip():
         except subprocess.CalledProcessError:
             pass
 
-        # 2. Try apt-get fallback (Debian/Ubuntu)
+        # 2. Try apt-get fallback (Debian/Ubuntu Noble compatible)
         try:
             print("[*] ensurepip failed. Attempting system package manager (apt-get)...")
-            subprocess.run("apt-get update && apt-get install -y python3-pip python3-distutils", shell=True, check=True)
+            subprocess.run("apt-get update && apt-get install -y python3-pip python3-venv", shell=True, check=True)
             print("[✓] pip installed via apt-get.")
             return
         except subprocess.CalledProcessError:
             pass
 
-        # 3. Try get-pip.py download fallback
+        # 3. Try get-pip.py download fallback with system package override
         try:
             print("[*] apt-get failed. Fetching official get-pip.py bootstrapper...")
             import urllib.request
             urllib.request.urlretrieve("https://bootstrap.pypa.io/get-pip.py", "get-pip.py")
-            subprocess.run([sys.executable, "get-pip.py"], check=True)
+            subprocess.run([sys.executable, "get-pip.py", "--break-system-packages"], check=True)
             print("[✓] pip installed via get-pip.py.")
             return
         except Exception as e:
