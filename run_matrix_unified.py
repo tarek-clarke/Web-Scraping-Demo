@@ -434,7 +434,7 @@ def main():
                                     with torch.no_grad():
                                         output_ids = gemma_model.model.generate(
                                             **inputs,
-                                            max_new_tokens=128,
+                                            max_new_tokens=32,
                                             do_sample=False,
                                             pad_token_id=int(gemma_model.tokenizer.pad_token_id),
                                             eos_token_id=eos_ids
@@ -525,7 +525,7 @@ def main():
                         
                         # ─── C. WRITE STREAMING TELEMETRY (COMPRESSED & OPTIMISED) ───
                         # Write as compressed gzip .jsonl.gz to save 90% SSD space, and strip payload bloat
-                        with gzip.open(jsonl_output_path, "wt", encoding="utf-8") as out_f:
+                        with gzip.open(jsonl_output_path, "wt", encoding="utf-8", compresslevel=1) as out_f:
                             for idx, sample in enumerate(packets):
                                 original = sample["original_payload"]
                                 mutated = sample["mutated_payload"]
