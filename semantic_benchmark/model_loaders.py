@@ -217,6 +217,31 @@ class StrictGemmaModel(GemmaLocal):
             confidence_value = 0.0
 
         return {"match": match_value, "confidence": max(0.0, min(confidence_value, 1.0))}
+class StrictGemma30BModel(StrictGemmaModel):
+    """Gemma 4 30B loader with strict local-only checks."""
+    
+    def __init__(self, local_path: str | Path | None = None, require_local: bool = True):
+        # Allow overriding via environment variable
+        path_override = os.environ.get("GEMMA_30B_PATH")
+        if path_override:
+            local_path = path_override
+        else:
+            local_path = local_path or "google/gemma-4-30b"
+            
+        if os.environ.get("GEMMA_30B_API_URL") or os.environ.get("USE_API") in ("1", "true", "yes"):
+            self.backend = "api"
+            self.api_url = os.environ.get("GEMMA_30B_API_URL", "http://localhost:1234/v1/chat/completions")
+            self.api_model = os.environ.get("GEMMA_30B_API_MODEL", "lmstudio-community/gemma-4-30B-it-GGUF")
+            self.model = None
+            self.tokenizer = None
+            self.device = "cpu"
+            self.torch_dtype = None
+            self.model_dir = None
+            print(f"\n[x] Strict Gemma 30B initialized in API Mode! Target Server: {self.api_url}\n")
+            return
+
+        super().__init__(local_path=local_path, require_local=require_local)
+
 
 def run_preflight_validation(require_local_models: bool = True, strict_mode: bool = False, enabled_methods: list = None) -> Tuple[Dict[str, Any], bool, str]:
     """Perform pre-flight checks to ensure 100% offline, local execution and hardware verification.

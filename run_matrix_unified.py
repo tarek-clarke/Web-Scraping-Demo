@@ -10,10 +10,12 @@ from datetime import datetime
 import torch
 import psutil
 
+import gc
+
 # Add root folder to sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from semantic_benchmark.model_loaders import StrictBERTModel, StrictGemmaModel, run_preflight_validation
+from semantic_benchmark.model_loaders import StrictBERTModel, StrictGemmaModel, StrictGemma30BModel, run_preflight_validation
 from semantic_benchmark.reconcilers import LevenshteinReconciler, RegexReconciler, BERTReconciler, GemmaReconciler
 from models.device_selector import get_device_info
 
