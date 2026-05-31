@@ -176,14 +176,13 @@ def main():
     # 2. Load Models exactly ONCE — reuse singleton from preflight
     print("\n[*] Initialising local models (Single-Load)...")
     bert_model = StrictBERTModel(require_local=True)
+    gemma_model = StrictGemmaModel(require_local=True)
     
     use_30b = os.getenv("USE_GEMMA_30B", "").strip().lower() in ("1", "true", "yes")
+    gemma30b_model = None
     if use_30b:
-        print("[*] Initialising local Gemma 30B Model for high-fidelity reconciliation...")
-        gemma_model = StrictGemma30BModel(require_local=True)
-    else:
-        print("[*] Initialising local Gemma 4B Model...")
-        gemma_model = StrictGemmaModel(require_local=True)
+        print("[*] Initialising local Gemma 30B Model for side-by-side high-fidelity reconciliation...")
+        gemma30b_model = StrictGemma30BModel(require_local=True)
     
     print("\n[*] Instantiating reconcilers...")
     reconcilers = {
@@ -191,7 +190,9 @@ def main():
         "levenshtein": LevenshteinReconciler(),
         "bert": BERTReconciler(bert_model),
         "gemma": GemmaReconciler(gemma_model)
-    }    # Matrix configuration
+    }
+    if use_30b and gemma30b_model is not None:
+        reconcilers["gemma30b"] = GemmaReconciler(gemma30b_model)    # Matrix configuration
     scale = 100000
     frequencies = [1000]
     probabilities = [0.05]
@@ -204,7 +205,14 @@ def main():
     # 1. Clean up local telemetry directory for the active GPU to prevent failed/dirty run mixtures
     import shutil
     gpu_results_dir = os.path.join("results", model_str)
-    if os.path.exists(gpu_results_dir):
+    resume = os.getenv("RAP_RESUME", "").strip().lower() in ("1", "true", "yes")
+    skip_wipe = os.getenv("RAP_SKIP_WIPE", "").strip().lower() in ("1", "true", "yes")
+    
+    if resume:
+        skip_wipe = True
+        print("[*] Resume mode enabled (RAP_RESUME=1). Existing telemetry files will be kept.")
+        
+    if os.path.exists(gpu_results_dir) and not skip_wipe:
         print(f"[*] Wiping existing telemetry directory for active GPU ({model_str}) to prevent failed/dirty run mixtures...")
         try:
             shutil.rmtree(gpu_results_dir)
@@ -212,7 +220,7 @@ def main():
             print(f"[!] Warning: failed to clean telemetry directory: {e}")
     os.makedirs(gpu_results_dir, exist_ok=True)
 
-    # 2. Reset completed runs state for the active GPU
+    # 2. Reset or load completed runs state for the active GPU
     state_file = "matrix_unified_state.json"
     state = {}
     if os.path.exists(state_file):
@@ -222,14 +230,47 @@ def main():
             except json.JSONDecodeError:
                 pass
 
-    print(f"[*] Resetting completed runs state for active GPU ({model_str}) to ensure a 100% clean run...")
-    state[model_str] = []
-    
-    with open(state_file, "w") as f:
-        json.dump(state, f, indent=2)
+    if resume:
+        completed_runs = set(state.get(model_str, []))
+        print(f"[*] Resuming from existing state file. Active GPU ({model_str}) has {len(completed_runs)} already completed runs in state.")
+        
+        # Auto-recover/sync state from disk characteristics
+        disk_runs = 0
+        if os.path.exists(gpu_results_dir):
+            for entry in os.listdir(gpu_results_dir):
+                entry_path = os.path.join(gpu_results_dir, entry)
+                if os.path.isdir(entry_path):
+                    char_file = os.path.join(entry_path, "run_characteristics.json")
+                    if os.path.exists(char_file):
+                        try:
+                            with open(char_file, "r") as cf:
+                                cdata = json.load(cf)
+                                iteration = cdata.get("iteration")
+                                api = cdata.get("api_profile")
+                                strategy = cdata.get("chaos_strategy")
+                                freq = cdata.get("simulated_frequency_hz")
+                                prob = cdata.get("chaos_probability")
+                                if all(v is not None for v in [iteration, api, strategy, freq, prob]):
+                                    disk_key = f"run_{iteration}_{api}_{strategy}_{freq}hz_{prob}prob"
+                                    if disk_key not in completed_runs:
+                                        completed_runs.add(disk_key)
+                                        disk_runs += 1
+                        except Exception:
+                            pass
+        if disk_runs > 0:
+            print(f"[✓] Auto-detected and synced {disk_runs} completed runs from folders on disk!")
+        state[model_str] = list(completed_runs)
+        with open(state_file, "w") as f:
+            json.dump(state, f, indent=2)
+    else:
+        print(f"[*] Resetting completed runs state for active GPU ({model_str}) to ensure a 100% clean run...")
+        state[model_str] = []
+        with open(state_file, "w") as f:
+            json.dump(state, f, indent=2)
                 
     run_idx = 0
-    completed_count = 0
+    completed_count = len(state.get(model_str, [])) if resume else 0
+    session_completed = 0
     sweep_start_t = time.perf_counter()
     
     for i in range(1, iterations + 1):
@@ -567,6 +608,7 @@ def main():
                         
                         run_elapsed = time.perf_counter() - run_start_t
                         completed_count += 1
+                        session_completed += 1
                         
                         # ─── D. EXPORT RUN CHARACTERISTICS JSON ───
                         char_path = os.path.join(final_output_dir, "run_characteristics.json")
@@ -597,8 +639,8 @@ def main():
                         with open(char_path, "w", encoding="utf-8") as char_f:
                             json.dump(characteristics, char_f, indent=2)
                         
-                        # ETA for remaining runs
-                        avg_per_run = (time.perf_counter() - sweep_start_t) / completed_count
+                        # ETA for remaining runs based on session-specific speed
+                        avg_per_run = (time.perf_counter() - sweep_start_t) / session_completed
                         remaining_runs = total_runs - completed_count
                         eta_min = (avg_per_run * remaining_runs) / 60.0
                         
