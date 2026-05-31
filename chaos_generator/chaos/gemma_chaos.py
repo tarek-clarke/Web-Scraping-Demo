@@ -7,6 +7,9 @@ class GemmaChaos:
     def __init__(self, probability: float, gemma_model: GemmaModel = None):
         self.probability = probability
         self.gemma = gemma_model or GemmaModel()
+        self._paraphrase_cache = {}
+        self._rename_cache = {}
+        self._structural_cache = {}
 
         self.adversarial_renames = {
             "price": "monetary_compensation_equivalent_usd",
@@ -37,18 +40,29 @@ class GemmaChaos:
     def _paraphrase_value(self, val: str) -> str:
         if not isinstance(val, str):
             return val
+        if val in self._paraphrase_cache:
+            return self._paraphrase_cache[val]
         for k, v in self.paraphrases.items():
             if k.lower() in val.lower():
-                return val.lower().replace(k.lower(), v)
+                res = val.lower().replace(k.lower(), v)
+                self._paraphrase_cache[val] = res
+                return res
         prompt = f"Paraphrase this short API string value to be verbose and semantically drifted but keep original meaning: \"{val}\". Return ONLY the paraphrased string."
-        return self.gemma.query(prompt, temperature=0.7).strip().strip('"')
+        res = self.gemma.query(prompt, temperature=0.7).strip().strip('"')
+        self._paraphrase_cache[val] = res
+        return res
 
     def _adversarial_rename_field(self, key: str) -> str:
+        if key in self._rename_cache:
+            return self._rename_cache[key]
         for k, v in self.adversarial_renames.items():
             if k in key:
+                self._rename_cache[key] = v
                 return v
         prompt = f"Create an overly verbose, academic, or adversarial synonym for the API schema field name \"{key}\" (e.g., price -> monetary_exchange_value). Return ONLY the new field name in snake_case."
-        return self.gemma.query(prompt, temperature=0.7).strip().strip('"').replace(" ", "_")
+        res = self.gemma.query(prompt, temperature=0.7).strip().strip('"').replace(" ", "_")
+        self._rename_cache[key] = res
+        return res
 
     def _apply_semantic_drift(self, key: str, val):
         if "temp" in key or "temperature" in key:
@@ -61,6 +75,9 @@ class GemmaChaos:
 
     def _structural_drift(self, data: dict, drift_logger=None, run_number=1, api_source="api"):
         """Use Gemma to generate a structurally drifted version of the data."""
+        data_str = json.dumps(data, sort_keys=True)
+        if data_str in self._structural_cache:
+            return self._structural_cache[data_str]
         prompt = f"""
 You are a data mutation engine. Given the following JSON object, produce a structurally different JSON object.
 You may split fields, merge fields, rename keys (e.g., address -> addr, open_price -> openPx),
@@ -85,11 +102,17 @@ Modified JSON:
                 orig_keys = set(data.keys())
                 mod_keys = set(modified.keys())
                 if len(orig_keys & mod_keys) < min(len(orig_keys), len(mod_keys)):
-                    return modified, "gemma_structural_renamed"
+                    res = (modified, "gemma_structural_renamed")
+                    self._structural_cache[data_str] = res
+                    return res
                 for k in orig_keys & mod_keys:
                     if type(data[k]) != type(modified[k]):
-                        return modified, "gemma_structural_nested"
-                return modified, "gemma_structural"
+                        res = (modified, "gemma_structural_nested")
+                        self._structural_cache[data_str] = res
+                        return res
+                res = (modified, "gemma_structural")
+                self._structural_cache[data_str] = res
+                return res
         except Exception:
             pass
         # fallback: apply deterministic split/merge
