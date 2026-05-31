@@ -321,8 +321,10 @@ def main():
                             batch_size = 64
                             
                             if getattr(gemma_model, "backend", None) == "api":
-                                for p in prompts:
-                                    gemma_responses.append(gemma_model.generate(p))
+                                from concurrent.futures import ThreadPoolExecutor
+                                print(f"    - Querying LM Studio concurrently with 16 parallel workers...", flush=True)
+                                with ThreadPoolExecutor(max_workers=16) as executor:
+                                    gemma_responses = list(executor.map(gemma_model.generate, prompts))
                             else:
                                 gemma_model.tokenizer.padding_side = "left"
                                 for i in range(0, len(prompts), batch_size):
