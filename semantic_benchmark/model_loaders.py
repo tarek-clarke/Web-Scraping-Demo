@@ -126,7 +126,7 @@ class StrictGemmaModel(GemmaLocal):
         if os.environ.get("GEMMA_API_URL") or os.environ.get("USE_API") in ("1", "true", "yes"):
             self.backend = "api"
             self.api_url = os.environ.get("GEMMA_API_URL", "http://localhost:1234/v1/chat/completions")
-            self.api_model = os.environ.get("GEMMA_API_MODEL", "google/gemma-4-E4B-it")
+            self.api_model = os.environ.get("GEMMA_API_MODEL", "lmstudio-community/gemma-4-E4B-it-GGUF")
             self.model = None
             self.tokenizer = None
             self.device = "cpu"
