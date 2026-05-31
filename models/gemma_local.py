@@ -278,6 +278,12 @@ class GemmaLocal:
 
         import torch
 
+        import platform
+        if platform.system() == "Darwin":
+            # Causal autoregressive generation (Gemma) under PyTorch MPS experiences severe
+            # Metal driver compiler deadlocks during dynamic shape batching. CPU fallback is required.
+            return torch.device("cpu"), torch.float32
+
         if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
             return torch.device("mps"), torch.float16
         if torch.cuda.is_available():
