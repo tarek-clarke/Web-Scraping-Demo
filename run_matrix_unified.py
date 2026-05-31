@@ -319,8 +319,11 @@ def main():
                             print(f"    - Running batched BERT on {len(drifted_indices)} drifted packets...", flush=True)
                             bert_start_t = time.perf_counter()
                             
-                            # We can batch get embeddings for all drifted query keys
-                            queries = [json.dumps(packets[idx]["mutated_payload"]) for idx in drifted_indices]
+                            # Strip transient/dynamic data values to enable perfect schema-level deduplication
+                            queries = []
+                            for idx in drifted_indices:
+                                mutated_clean = {k: 0 for k in packets[idx]["mutated_payload"].keys()}
+                                queries.append(json.dumps(mutated_clean))
                             unique_queries = list(set(queries))
                             print(f"    - Deduplicated {len(queries)} BERT queries to {len(unique_queries)} unique items...", flush=True)
                             unique_embeddings = bert_model.get_embeddings_batch(unique_queries)
@@ -394,9 +397,10 @@ def main():
                                 original = sample["original_payload"]
                                 mutated = sample["mutated_payload"]
                                 canonical_keys = list(original.keys())
+                                mutated_clean = {k: 0 for k in mutated.keys()}
                                 prompt = (
                                     f"Given a list of canonical API schema fields: {canonical_keys}\n"
-                                    f"And a query key from a drifted/mutated schema: \"{json.dumps(mutated)}\"\n\n"
+                                    f"And a query key from a drifted/mutated schema: \"{json.dumps(mutated_clean)}\"\n\n"
                                     "Select the canonical field that is the best semantic match for this query key.\n"
                                     "Return your response strictly in the following JSON format:\n"
                                     '{"match": "canonical_field_name", "confidence": 0.0}'
