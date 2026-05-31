@@ -188,7 +188,7 @@ def main():
     scale = 100000
     frequencies = [1000]
     probabilities = [0.05]
-    iterations = 3
+    iterations = 5
     apis = ["finnhub", "openmeteo", "spacex", "openf1"]
     strategies = ["json", "schema", "gemma", "gemma30b"]
     
