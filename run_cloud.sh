@@ -1,0 +1,35 @@
+#!/bin/bash
+# High-Performance Cloud Benchmarking and Telemetry Pipeline Orchestrator
+# Auto-installs, runs 100K-scale benchmark, profiles GPU, and auto-pushes back to GitHub
+
+set -e # Exit immediately if a command exits with a non-zero status
+
+echo "================================================================================"
+echo " STARTING CLOUD BENCHMARK ORCHESTRATION"
+echo "================================================================================"
+
+# 1. Install dependencies and compile C++ acceleration
+echo "[Cloud Orchestrator] Installing dependencies..."
+python3 install_env.py
+
+# 2. Run the dynamic matrix benchmark
+echo "[Cloud Orchestrator] Executing benchmark matrix..."
+python3 run_matrix_unified.py
+
+# 3. Auto-detect GPU name
+if command -v nvidia-smi &> /dev/null; then
+    GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader,nounits | head -n 1 | sed 's/NVIDIA //g' | tr ' ' '_')
+else
+    GPU_NAME="CPU_Fallback"
+fi
+
+echo "================================================================================"
+echo " UPLOADING DATASETS TO GITHUB"
+echo "================================================================================"
+git add results/
+git commit -m "data: upload benchmark telemetry results for ${GPU_NAME} ($(hostname))"
+git push origin main
+
+echo "================================================================================"
+echo " BENCHMARK & AUTO-PUSH COMPLETE!"
+echo "================================================================================"

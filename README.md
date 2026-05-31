@@ -44,11 +44,26 @@ graph TD
 
 ## 🚀 1. Quickstart
 
-Get the framework running in a few simple steps. The system automatically detects your Python environment (Python 3.10–3.13) and optimizes the dependency wheels accordingly.
+Get the framework running in a few simple steps. The system automatically detects your Python environment and optimizes the dependency wheels accordingly.
 
-### 🔄 Single-Command Execution (Copy-Paste)
+### 🌐 Option A: Cloud Orchestration & Auto-Push (Recommended for RTX 5090 / B300 / Vast.ai)
 
-This entire pipeline is designed to be completely hardware-agnostic and stateful. Whether you are cloning this repository onto a fresh Windows machine with an AMD GPU, or an enterprise Linux cluster with NVIDIA H100s, this single block will build your environment, detect your hardware, execute the matrix, and push the results back to Git:
+This is the ultimate hands-off benchmarking workflow designed for headless cloud instances. A single copy-paste block clones the repository, installs the CUDA compiler stack globally (no venv needed in Docker), runs the 100K-scale benchmark with VRAM auto-scaling, dynamically queries GPU clock/power metrics from `nvidia-smi`, and auto-pushes the results back to GitHub:
+
+```bash
+# 1. Clone the repository fresh:
+git clone git@github.com:tarek-clarke/resilient-rap-framework.git
+cd resilient-rap-framework
+
+# 2. Run the automated cloud orchestrator:
+bash run_cloud.sh
+```
+
+---
+
+### 🔄 Option B: Standard Local Setup (Workstations & Laptops)
+
+This workflow is designed for manual execution on local machines (macOS, Windows, or local Linux workstations):
 
 ```bash
 # 1. Clone the repository and enter the directory
@@ -63,15 +78,15 @@ source .venv/bin/activate
 python install_env.py
 
 # 4. Execute the experimental matrix (Stateful orchestrator)
-python run_matrix.py
+python run_matrix_unified.py
 
 # 5. Push the generated JSONL telemetry data back to GitHub
 git add results/
-git commit -m "Add full 36-run NDJSON telemetry output from execution"
+git commit -m "Add full telemetry output from execution"
 git push
 ```
 
-*(Note: Because `run_matrix.py` is stateful, if your SSH session drops or the cluster restarts, you can simply run `python run_matrix.py` again to safely resume exactly where the process died.)*
+*(Note: Because the benchmark orchestrator is stateful, if your SSH session drops or the cluster restarts, you can simply run it again to safely resume exactly where the process died.)*
 
 ---
 
