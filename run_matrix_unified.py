@@ -340,19 +340,23 @@ def main():
                                 }
                             
                             # 3. Gemma Batched Generation (GPU Tensor Batching)
-                            # Dynamic Auto-Scaling Batch Size based on GPU VRAM (optimised for B300, GH200, MI250X)
+                            # Dynamic Granular VRAM-to-Batch Allocation Algorithm (optimised for Warp and Tensor Core alignment)
                             batch_size = 64
                             if torch.cuda.is_available():
                                 try:
                                     total_vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
-                                    if total_vram_gb >= 140.0:    # B300, GH200, MI300X (141GB-192GB HBM3e)
-                                        batch_size = 1024
-                                    elif total_vram_gb >= 80.0:  # Blackwell 96GB / A100 80GB / H100 80GB
-                                        batch_size = 512
-                                    elif total_vram_gb >= 40.0:  # RTX 6000 / A6000 / A40
-                                        batch_size = 256
-                                    elif total_vram_gb >= 20.0:  # RTX 3090 / 4090 / 5090 (24GB-32GB)
-                                        batch_size = 128
+                                    # Gemma-4 E4B (4B) in bf16: W = 8.5 GB base weights
+                                    # KV cache / activations at sequence N=256: C = ~40 MB (0.040 GB) per batch element
+                                    static_weights = 8.5
+                                    mb_per_element = 40.0
+                                    available_vram_gb = total_vram_gb - static_weights
+                                    if available_vram_gb > 0:
+                                        # Max safe ceiling with 20% memory buffer for compiler workspace
+                                        raw_bs = (available_vram_gb * 1024 / mb_per_element) * 0.8
+                                        # Round down to nearest multiple of 64 for optimal GPU Warp & Tensor Core alignment
+                                        batch_size = int((raw_bs // 64) * 64)
+                                        # Clamp to safe bounds [32, 1024] to avoid dynamic shape recompilation limits
+                                        batch_size = max(32, min(1024, batch_size))
                                 except Exception:
                                     batch_size = 64
                                     
