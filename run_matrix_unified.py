@@ -390,8 +390,8 @@ def main():
                                     gemma_responses = list(executor.map(gemma_model.generate, prompts))
                             else:
                                 gemma_model.tokenizer.padding_side = "left"
-                                for i in range(0, len(prompts), batch_size):
-                                    batch_prompts = prompts[i:i+batch_size]
+                                for b_start in range(0, len(prompts), batch_size):
+                                    batch_prompts = prompts[b_start:b_start+batch_size]
                                     inputs = gemma_model.tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True)
                                     inputs = {k: v.to(gemma_model.device) for k, v in inputs.items()}
                                     
