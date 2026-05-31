@@ -318,7 +318,7 @@ def main():
                             
                             # Hugging Face Left-Padding Batched Matrix Generation
                             gemma_responses = []
-                            batch_size = 64
+                            batch_size = 256
                             
                             if getattr(gemma_model, "backend", None) == "api":
                                 from concurrent.futures import ThreadPoolExecutor
