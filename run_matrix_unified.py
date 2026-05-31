@@ -7,6 +7,7 @@ import subprocess
 from uuid import uuid4
 from datetime import datetime
 import torch
+import psutil
 
 # Add root folder to sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -21,6 +22,22 @@ from api.openmeteo import OpenMeteoAPI
 from api.spacex import SpaceXAPI
 from api.openf1 import OpenF1API
 from chaos_generator.chaos.strategy import select_chaos
+
+
+def get_concurrency_level() -> int:
+    """Detect number of concurrent active run_matrix_unified.py processes."""
+    try:
+        count = 0
+        for proc in psutil.process_iter(['pid', 'cmdline']):
+            try:
+                cmdline = proc.info['cmdline']
+                if cmdline and any('run_matrix_unified.py' in arg for arg in cmdline):
+                    count += 1
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+        return max(1, count)
+    except Exception:
+        return 1
 
 
 def determine_mutated_key(original, mutated) -> str:
@@ -141,7 +158,7 @@ def main():
         "bert": BERTReconciler(bert_model),
         "gemma": GemmaReconciler(gemma_model)
     }    # Matrix configuration
-    scale = 10000
+    scale = 1000000
     frequencies = [100, 1000, 1000000]
     probabilities = [0.05, 0.01, 0.005]
     iterations = 3
@@ -198,7 +215,8 @@ def main():
                         pct_str = f"{int(prob*100)}pct" if (prob*100).is_integer() else f"{str(prob*100).replace('.', '_')}pct"
                         freq_str = "1mhz" if freq == 1000000 else f"{freq}hz"
                         methods_str = "_".join(enabled_methods)
-                        run_folder_name = f"scale_10K_freq_{freq_str}_chaos_{pct_str}_strat_{strategy}_methods_{methods_str}_{timestamp_str}_{run_id[:8]}"
+                        scale_str = "1M" if scale == 1000000 else (f"{scale // 1000}K" if scale % 1000 == 0 else str(scale))
+                        run_folder_name = f"scale_{scale_str}_freq_{freq_str}_chaos_{pct_str}_strat_{strategy}_methods_{methods_str}_{timestamp_str}_{run_id[:8]}"
                         
                         # Sort into subfolder grouped by hardware device name
                         final_output_dir = os.path.join("results", model_str, run_folder_name)
@@ -466,6 +484,7 @@ def main():
                                     "event_id": sample.get("event_id"),
                                     "timestamp": sample["timestamp"],
                                     "pipeline_version": git_commit,
+                                    "concurrency_level": get_concurrency_level(),
                                     "workload_scale": sample["workload_scale"],
                                     "simulated_frequency": sample["simulated_frequency"],
                                     "api_profile": sample["api_profile"],
@@ -501,6 +520,7 @@ def main():
                             "vram_capacity_gb": dev_info.get("vram_gb"),
                             "hardware_backend": preflight["hardware_backend"],
                             "cloud_platform": dev_info.get("cloud"),
+                            "concurrency_level": get_concurrency_level(),
                             "run_id": run_id,
                             "iteration": i,
                             "api_profile": api,
