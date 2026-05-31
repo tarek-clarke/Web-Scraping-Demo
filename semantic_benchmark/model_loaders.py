@@ -114,7 +114,9 @@ class StrictBERTModel(BERTModel):
         
         # Validate that model was loaded
         if not self.is_loaded:
-            print("[BERT] WARNING: BERT model could not be loaded. Proceeding with mock/fallback embedding generator for offline compatibility.")
+            raise RuntimeError(
+                f"Strict Mode Violation: BERT model could not be loaded locally (is_loaded={self.is_loaded})."
+            )
 
 class StrictGemmaModel(GemmaLocal):
     """Gemma loader with strict local-only checks."""
