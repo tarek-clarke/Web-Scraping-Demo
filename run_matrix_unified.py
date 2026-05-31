@@ -182,7 +182,7 @@ def main():
         "bert": BERTReconciler(bert_model),
         "gemma": GemmaReconciler(gemma_model)
     }    # Matrix configuration
-    scale = 1000000
+    scale = 100000
     frequencies = [100, 1000, 1000000]
     probabilities = [0.05, 0.01, 0.005]
     iterations = 3
