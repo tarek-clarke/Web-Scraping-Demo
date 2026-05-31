@@ -25,7 +25,7 @@ def select_chaos(strategy_name: str, chaos_level: str, gemma_model: GemmaModel =
     # Return specific chaos strategy instance
     if strategy_name.lower() == "json":
         return JSONChaos(prob)
-    elif strategy_name.lower() == "gemma":
+    elif strategy_name.lower() in ("gemma", "gemma30b"):
         return GemmaChaos(prob, gemma_model)
     elif strategy_name.lower() == "schema":
         return SchemaDrift(prob)

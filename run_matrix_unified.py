@@ -185,11 +185,11 @@ def main():
         "gemma": GemmaReconciler(gemma_model)
     }    # Matrix configuration
     scale = 100000
-    frequencies = [100, 1000, 1000000]
-    probabilities = [0.05, 0.01, 0.005]
+    frequencies = [1000]
+    probabilities = [0.05]
     iterations = 3
     apis = ["finnhub", "openmeteo", "spacex", "openf1"]
-    strategies = ["json", "schema", "gemma", "aggressive"]
+    strategies = ["json", "schema", "gemma", "gemma30b"]
     
     total_runs = len(apis) * len(strategies) * len(frequencies) * len(probabilities) * iterations
     state_file = "matrix_unified_state.json"
