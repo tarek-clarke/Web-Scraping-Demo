@@ -176,7 +176,14 @@ def main():
     # 2. Load Models exactly ONCE — reuse singleton from preflight
     print("\n[*] Initialising local models (Single-Load)...")
     bert_model = StrictBERTModel(require_local=True)
-    gemma_model = StrictGemmaModel(require_local=True)
+    
+    use_30b = os.getenv("USE_GEMMA_30B", "").strip().lower() in ("1", "true", "yes")
+    if use_30b:
+        print("[*] Initialising local Gemma 30B Model for high-fidelity reconciliation...")
+        gemma_model = StrictGemma30BModel(require_local=True)
+    else:
+        print("[*] Initialising local Gemma 4B Model...")
+        gemma_model = StrictGemmaModel(require_local=True)
     
     print("\n[*] Instantiating reconcilers...")
     reconcilers = {
