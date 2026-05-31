@@ -85,19 +85,19 @@ def main():
     print("\n[*] Installing PyTorch Core...")
     if has_nvidia and is_linux:
         # Optimal Linux NVIDIA tier. Upgraded to Nightly cu128 to support Blackwell (sm_120) and Hopper (sm_90)
-        run_cmd(f"{sys.executable} -m pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128")
+        run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128")
     elif has_amd and is_windows:
         # Optimal Windows AMD tier (7900XT)
-        run_cmd(f"{sys.executable} -m pip install torch --index-url https://download.pytorch.org/whl/rocm6.1")
+        run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 torch --index-url https://download.pytorch.org/whl/rocm6.1")
     elif has_nvidia and is_windows:
         # Fallback Windows NVIDIA
-        run_cmd(f"{sys.executable} -m pip install torch --index-url https://download.pytorch.org/whl/cu121")
+        run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 torch --index-url https://download.pytorch.org/whl/cu121")
     else:
         # Fallback CPU / Mac
-        run_cmd(f"{sys.executable} -m pip install torch")
+        run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 torch")
 
     print("\n[*] Installing HuggingFace Stack & API Dependencies...")
-    run_cmd(f"{sys.executable} -m pip install transformers accelerate sentence-transformers tqdm wheel httpx pybind11")
+    run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 transformers accelerate sentence-transformers tqdm wheel httpx pybind11")
 
     if has_nvidia and is_linux:
         print("\n[*] Linux + NVIDIA detected: Installing Enterprise FlashAttention-2...")
