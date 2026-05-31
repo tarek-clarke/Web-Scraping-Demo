@@ -179,6 +179,53 @@ Where:
 | **`gemma`** | $0.65$ | $0.70$ | $0.50$ | **$0.64$** | High. Generative LLM synonym mapping (thesaurus expansion) and structural nest changes. |
 | **`aggressive`** | $0.95$ | $0.95$ | $1.00$ | **$0.96$** | **Adversarial.** Combined deep recursive nesting, obfuscated synonyms, and active type contradictions. |
 
+#### 📚 Aggressiveness Index Sub-Metric Foundations & Citations
+
+To ensure high-tier peer-review compliance for publications such as IEEE T-DKE, the individual components of the Schema Drift Aggressiveness Index ($\mathcal{A}$) are mathematically grounded in the following established scientific works:
+
+* **Semantic Obfuscation ($\delta_{\text{sem}}$):** Measured via Cosine Distance ($1 - \text{sim}_{\text{cos}}$) within dense transformer vector spaces to evaluate high-dimensional semantic mismatches.
+  > 📖 **Reference:** Reimers, N., & Gurevych, I. (2019). *Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks.* EMNLP 2019. [ArXiv Link](https://arxiv.org/abs/1908.10084).
+* **Structural Deformation ($\delta_{\text{str}}$):** Grounded in relational schema-matching taxonomies and hierarchical Tree Edit Distance (TED) metrics.
+  > 📖 **Reference 1:** Rahm, E., & Bernstein, P. A. (2001). *A comparison of approaches to schema matching.* The VLDB Journal, 10(4), 334–350. [Springer Link](https://doi.org/10.1007/s007780100057).
+  > 📖 **Reference 2:** Bille, P. (2005). *A survey on tree edit distance and related problems.* Theoretical Computer Science, 337(1-3), 217–239. [ScienceDirect Link](https://doi.org/10.1016/j.tcs.2004.12.030).
+
+##### BibTeX Citations for your Manuscript:
+
+```bibtex
+@inproceedings{reimers2019sentence,
+  title={Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks},
+  author={Reimers, Nils and Gurevych, Iryna},
+  booktitle={Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing},
+  pages={3982--3992},
+  year={2019},
+  url={https://arxiv.org/abs/1908.10084}
+}
+
+@article{rahm2001comparison,
+  title={A comparison of approaches to schema matching},
+  author={Rahm, Erhard and Bernstein, Philip A},
+  journal={The VLDB Journal},
+  volume={10},
+  number={4},
+  pages={334--350},
+  year={2001},
+  publisher={Springer},
+  doi={10.1007/s007780100057}
+}
+
+@article{bille2005survey,
+  title={A survey on tree edit distance and related problems},
+  author={Bille, Philip},
+  journal={Theoretical Computer Science},
+  volume={337},
+  number={1-3},
+  pages={217--239},
+  year={2005},
+  publisher={Elsevier},
+  doi={10.1016/j.tcs.2004.12.030}
+}
+```
+
 ### 🎲 Stochastic Drift Generation & Statistical Rigor
 
 Rather than relying on a deterministic partition of drifted packets (which would introduce experimental bias), the framework adopts a **stochastic (probabilistic) drift injection engine**. Each streaming packet is treated as an independent **Bernoulli trial** with a drift success probability $p \in [0.005, 0.01, 0.05]$. 
