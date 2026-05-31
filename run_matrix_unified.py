@@ -403,50 +403,50 @@ def main():
                                 )
                                 prompts.append(prompt)
                             
-                             unique_prompts = list(set(prompts))
-                             print(f"    - Deduplicated {len(prompts)} Gemma prompts to {len(unique_prompts)} unique items...", flush=True)
-                             unique_responses = []
-                             
-                             if getattr(gemma_model, "backend", None) == "api":
-                                 from concurrent.futures import ThreadPoolExecutor
-                                 print(f"    - Querying LM Studio concurrently with 16 parallel workers...", flush=True)
-                                 with ThreadPoolExecutor(max_workers=16) as executor:
-                                     unique_responses = list(executor.map(gemma_model.generate, unique_prompts))
-                             else:
-                                 gemma_model.tokenizer.padding_side = "left"
-                                 for b_start in range(0, len(unique_prompts), batch_size):
-                                     batch_prompts = unique_prompts[b_start:b_start+batch_size]
-                                     inputs = gemma_model.tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True)
-                                     inputs = {k: v.to(gemma_model.device) for k, v in inputs.items()}
-                                     
-                                     eos_ids = gemma_model.tokenizer.eos_token_id
-                                     if eos_ids is None:
-                                         eos_ids = []
-                                     elif isinstance(eos_ids, (list, tuple)):
-                                         eos_ids = [int(x.cpu()) if torch.is_tensor(x) else int(x) for x in eos_ids]
-                                     else:
-                                         eos_ids = [int(eos_ids)]
-                                     
-                                     with torch.no_grad():
-                                         output_ids = gemma_model.model.generate(
-                                             **inputs,
-                                             max_new_tokens=128,
-                                             do_sample=False,
-                                             pad_token_id=int(gemma_model.tokenizer.pad_token_id),
-                                             eos_token_id=eos_ids
-                                         )
-                                     
-                                     for idx, out_ids in enumerate(output_ids):
-                                         prompt_length = inputs["input_ids"][idx].shape[0]
-                                         gen_tokens = out_ids[prompt_length:]
-                                         decoded = gemma_model.tokenizer.decode(gen_tokens, skip_special_tokens=True).strip()
-                                         unique_responses.append(decoded)
-                             
-                             # Map unique responses back to all prompts
-                             unique_prompt_map = dict(zip(unique_prompts, unique_responses))
-                             gemma_responses = [unique_prompt_map[p] for p in prompts]
-                             
-                             gemma_elapsed_ms_per_packet = ((time.perf_counter() - gemma_start_t) * 1000.0) / len(drifted_indices)
+                            unique_prompts = list(set(prompts))
+                            print(f"    - Deduplicated {len(prompts)} Gemma prompts to {len(unique_prompts)} unique items...", flush=True)
+                            unique_responses = []
+                            
+                            if getattr(gemma_model, "backend", None) == "api":
+                                from concurrent.futures import ThreadPoolExecutor
+                                print(f"    - Querying LM Studio concurrently with 16 parallel workers...", flush=True)
+                                with ThreadPoolExecutor(max_workers=16) as executor:
+                                    unique_responses = list(executor.map(gemma_model.generate, unique_prompts))
+                            else:
+                                gemma_model.tokenizer.padding_side = "left"
+                                for b_start in range(0, len(unique_prompts), batch_size):
+                                    batch_prompts = unique_prompts[b_start:b_start+batch_size]
+                                    inputs = gemma_model.tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True)
+                                    inputs = {k: v.to(gemma_model.device) for k, v in inputs.items()}
+                                    
+                                    eos_ids = gemma_model.tokenizer.eos_token_id
+                                    if eos_ids is None:
+                                        eos_ids = []
+                                    elif isinstance(eos_ids, (list, tuple)):
+                                        eos_ids = [int(x.cpu()) if torch.is_tensor(x) else int(x) for x in eos_ids]
+                                    else:
+                                        eos_ids = [int(eos_ids)]
+                                    
+                                    with torch.no_grad():
+                                        output_ids = gemma_model.model.generate(
+                                            **inputs,
+                                            max_new_tokens=128,
+                                            do_sample=False,
+                                            pad_token_id=int(gemma_model.tokenizer.pad_token_id),
+                                            eos_token_id=eos_ids
+                                        )
+                                    
+                                    for idx, out_ids in enumerate(output_ids):
+                                        prompt_length = inputs["input_ids"][idx].shape[0]
+                                        gen_tokens = out_ids[prompt_length:]
+                                        decoded = gemma_model.tokenizer.decode(gen_tokens, skip_special_tokens=True).strip()
+                                        unique_responses.append(decoded)
+                            
+                            # Map unique responses back to all prompts
+                            unique_prompt_map = dict(zip(unique_prompts, unique_responses))
+                            gemma_responses = [unique_prompt_map[p] for p in prompts]
+                            
+                            gemma_elapsed_ms_per_packet = ((time.perf_counter() - gemma_start_t) * 1000.0) / len(drifted_indices)
                             
                             for batch_idx, idx in enumerate(drifted_indices):
                                 sample = packets[idx]
