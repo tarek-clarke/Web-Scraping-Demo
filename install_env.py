@@ -6,10 +6,48 @@ def run_cmd(cmd):
     print(f"[*] Executing: {cmd}")
     subprocess.run(cmd, shell=True, check=True)
 
+def ensure_pip():
+    try:
+        import pip
+    except ImportError:
+        print("[*] pip is missing. Bootstrapping pip automatically...")
+        # 1. Try standard ensurepip
+        try:
+            subprocess.run([sys.executable, "-m", "ensurepip", "--default-pip"], check=True)
+            print("[✓] pip bootstrapped via ensurepip.")
+            return
+        except subprocess.CalledProcessError:
+            pass
+
+        # 2. Try apt-get fallback (Debian/Ubuntu)
+        try:
+            print("[*] ensurepip failed. Attempting system package manager (apt-get)...")
+            subprocess.run("apt-get update && apt-get install -y python3-pip python3-distutils", shell=True, check=True)
+            print("[✓] pip installed via apt-get.")
+            return
+        except subprocess.CalledProcessError:
+            pass
+
+        # 3. Try get-pip.py download fallback
+        try:
+            print("[*] apt-get failed. Fetching official get-pip.py bootstrapper...")
+            import urllib.request
+            urllib.request.urlretrieve("https://bootstrap.pypa.io/get-pip.py", "get-pip.py")
+            subprocess.run([sys.executable, "get-pip.py"], check=True)
+            print("[✓] pip installed via get-pip.py.")
+            return
+        except Exception as e:
+            print(f"[!] Failed to bootstrap pip automatically: {e}")
+            print("[!] Please run manually: apt-get update && apt-get install -y python3-pip")
+            sys.exit(1)
+
 def main():
     print("================================================================================")
     print(" CROSS-PLATFORM HARDWARE ORCHESTRATION & DEPENDENCY BOOTSTRAPPER")
     print("================================================================================")
+    
+    # Ensure pip is present before executing package commands
+    ensure_pip()
 
     # 1. Detect OS
     is_windows = sys.platform.startswith("win")
