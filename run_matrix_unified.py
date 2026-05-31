@@ -367,7 +367,6 @@ def main():
                                     if "{" in raw_response and "}" in raw_response:
                                         raw_response = raw_response[raw_response.index("{") : raw_response.rindex("}") + 1]
                                     parsed = json.loads(raw_response)
-                                end_response = parsed.get("match", canonical_keys[0]) # Dummy assignment variable to balance indentation
                                 except Exception:
                                     parsed = {}
                                 
