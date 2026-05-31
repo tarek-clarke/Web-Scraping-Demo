@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import time
+import gzip
 import random
 import subprocess
 from uuid import uuid4
@@ -38,6 +39,29 @@ def get_concurrency_level() -> int:
         return max(1, count)
     except Exception:
         return 1
+
+
+def _query_nvidia_telemetry():
+    """Query real-time NVIDIA GPU clock, memory speed, active utilization, and power draw."""
+    try:
+        cmd = [
+            "nvidia-smi",
+            "--query-gpu=clocks.current.graphics,clocks.current.memory,utilization.gpu,utilization.memory,power.draw",
+            "--format=csv,noheader,nounits"
+        ]
+        output = subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL).strip()
+        if not output:
+            return {}
+        parts = [part.strip() for part in output.split(",")]
+        return {
+            "gpu_clock_mhz": float(parts[0]) if len(parts) > 0 else None,
+            "vram_clock_mhz": float(parts[1]) if len(parts) > 1 else None,
+            "gpu_utilization_pct": float(parts[2]) if len(parts) > 2 else None,
+            "vram_utilization_pct": float(parts[3]) if len(parts) > 3 else None,
+            "power_draw_watts": float(parts[4]) if len(parts) > 4 else None
+        }
+    except Exception:
+        return {}
 
 
 def determine_mutated_key(original, mutated) -> str:
@@ -222,7 +246,7 @@ def main():
                         final_output_dir = os.path.join("results", model_str, run_folder_name)
                         os.makedirs(final_output_dir, exist_ok=True)
                         
-                        jsonl_output_path = os.path.join(final_output_dir, f"telemetry_stream_{run_id}.jsonl")
+                        jsonl_output_path = os.path.join(final_output_dir, f"telemetry_stream_{run_id}.jsonl.gz")
                         print(f"[*] Processing {len(packets)} packets → {jsonl_output_path}", flush=True)
                         
                         proc_start_t = time.perf_counter()
@@ -461,8 +485,9 @@ def main():
                                         "semantic_recovery_success": True
                                     }
                         
-                        # ─── C. WRITE STREAMING TELEMETRY ───
-                        with open(jsonl_output_path, "w", encoding="utf-8") as out_f:
+                        # ─── C. WRITE STREAMING TELEMETRY (COMPRESSED & OPTIMISED) ───
+                        # Write as compressed gzip .jsonl.gz to save 90% SSD space, and strip payload bloat
+                        with gzip.open(jsonl_output_path, "wt", encoding="utf-8") as out_f:
                             for idx, sample in enumerate(packets):
                                 original = sample["original_payload"]
                                 mutated = sample["mutated_payload"]
@@ -479,28 +504,13 @@ def main():
                                 
                                 telemetry_row = {
                                     "packet_id": sample["packet_id"],
-                                    "run_id": sample["run_id"],
-                                    "run_number": sample["run_number"],
                                     "event_id": sample.get("event_id"),
                                     "timestamp": sample["timestamp"],
-                                    "pipeline_version": git_commit,
-                                    "concurrency_level": get_concurrency_level(),
-                                    "workload_scale": sample["workload_scale"],
-                                    "simulated_frequency": sample["simulated_frequency"],
-                                    "api_profile": sample["api_profile"],
-                                    "chaos_probability": sample["chaos_probability"],
                                     "drift_present": sample["drift_present"],
                                     "drift_type": sample["drift_type"],
-                                    "target_key": target_key,
                                     "original_key": target_key,
                                     "mutated_key": mutated_key,
-                                    "original_payload": original,
-                                    "mutated_payload": mutated,
-                                    "hardware_backend": preflight["hardware_backend"],
-                                    "gpu_name": dev_info.get("gpu_name"),
-                                    "vram_capacity_gb": dev_info.get("vram_gb"),
                                     "gpu_vram_allocated_mb": gpu_vram_allocated_mb,
-                                    "compute_utilization_pct": 100.0,
                                     "per_packet_processing_time_ms": (results_list[idx]["gemma"]["semantic_inference_time_ms"] or 0.0) + (results_list[idx]["regex"]["syntactic_parse_time_ms"] or 0.0),
                                     "reconciliation": results_list[idx]
                                 }
@@ -515,12 +525,14 @@ def main():
                         
                         # ─── D. EXPORT RUN CHARACTERISTICS JSON ───
                         char_path = os.path.join(final_output_dir, "run_characteristics.json")
+                        gpu_telemetry = _query_nvidia_telemetry()
                         characteristics = {
                             "device_model": dev_info.get("model"),
                             "vram_capacity_gb": dev_info.get("vram_gb"),
                             "hardware_backend": preflight["hardware_backend"],
                             "cloud_platform": dev_info.get("cloud"),
                             "concurrency_level": get_concurrency_level(),
+                            "gpu_telemetry": gpu_telemetry,
                             "run_id": run_id,
                             "iteration": i,
                             "api_profile": api,
