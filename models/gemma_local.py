@@ -618,7 +618,7 @@ class GemmaLocal:
             )
             
             try:
-                with urllib.request.urlopen(req, timeout=15) as response:
+                with urllib.request.urlopen(req, timeout=120) as response:
                     res_body = json.loads(response.read().decode("utf-8"))
                     if "choices" in res_body and len(res_body["choices"]) > 0:
                         choice = res_body["choices"][0]
