@@ -23,10 +23,13 @@ else
     GPU_NAME="CPU_Fallback"
 fi
 
+# Write hardware name to the Note file
+echo "${GPU_NAME}" > Note
+
 echo "================================================================================"
 echo " UPLOADING DATASETS TO GITHUB"
 echo "================================================================================"
-git add results/
+git add Note results/
 git commit -m "data: upload benchmark telemetry results for ${GPU_NAME} ($(hostname))"
 git push origin main
 
