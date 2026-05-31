@@ -386,14 +386,11 @@ class GemmaLocal:
         if device_type == "cuda":
             load_kwargs["device_map"] = "auto"
 
-        # Auto-detect and inject FlashAttention-2 if on CUDA and package exists
-        try:
-            import flash_attn
-            if device_type == "cuda":
-                load_kwargs["attn_implementation"] = "flash_attention_2"
-                print("    > [Optimisation] FlashAttention-2 injected successfully.")
-        except ImportError:
-            pass
+        # Standardise on PyTorch native Scaled Dot Product Attention (SDPA)
+        # which dynamically chooses FlashAttention-2 or memory-efficient attention
+        # without crashing on head dimensions exceeding 256.
+        if device_type == "cuda":
+            load_kwargs["attn_implementation"] = "sdpa"
 
         self.model = AutoModelForCausalLM.from_pretrained(
             str(self.model_dir),
