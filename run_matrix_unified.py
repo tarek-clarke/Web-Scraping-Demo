@@ -298,7 +298,23 @@ def main():
                                 }
                             
                             # 3. Gemma Batched Generation (GPU Tensor Batching)
-                            print(f"    - Running GPU batched Gemma (BS=64) on {len(drifted_indices)} drifted packets...", flush=True)
+                            # Dynamic Auto-Scaling Batch Size based on GPU VRAM (optimised for B300, GH200, MI250X)
+                            batch_size = 64
+                            if torch.cuda.is_available():
+                                try:
+                                    total_vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
+                                    if total_vram_gb >= 140.0:    # B300, GH200, MI300X (141GB-192GB HBM3e)
+                                        batch_size = 1024
+                                    elif total_vram_gb >= 80.0:  # Blackwell 96GB / A100 80GB / H100 80GB
+                                        batch_size = 512
+                                    elif total_vram_gb >= 40.0:  # RTX 6000 / A6000 / A40
+                                        batch_size = 256
+                                    elif total_vram_gb >= 20.0:  # RTX 3090 / 4090 / 5090 (24GB-32GB)
+                                        batch_size = 128
+                                except Exception:
+                                    batch_size = 64
+                                    
+                            print(f"    - Running GPU batched Gemma (BS={batch_size}) on {len(drifted_indices)} drifted packets...", flush=True)
                             gemma_start_t = time.perf_counter()
                             
                             prompts = []
@@ -318,7 +334,6 @@ def main():
                             
                             # Hugging Face Left-Padding Batched Matrix Generation
                             gemma_responses = []
-                            batch_size = 256
                             
                             if getattr(gemma_model, "backend", None) == "api":
                                 from concurrent.futures import ThreadPoolExecutor
