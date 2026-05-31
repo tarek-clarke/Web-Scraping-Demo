@@ -1,6 +1,7 @@
 import os
 import glob
 import json
+import gzip
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -11,7 +12,15 @@ def main():
     print("ANALYZING RTX 6000 BLACKWELL TELEMETRY STREAMS...")
     print("================================================================================")
     
-    files = sorted(glob.glob('results/RTX_PRO_6000*/*.jsonl'))
+    all_files = sorted(glob.glob('results/RTX_PRO_6000*/*/*.jsonl.gz') + glob.glob('results/RTX_PRO_6000*/*/*.jsonl'))
+    target_ids = [
+        "18a574a30f07463ab808588dfd89e326",  # finnhub json
+        "5c957e5b6f5b4f78aab899dcfa3f79c0",  # finnhub schema
+        "d0fa9eb4350443acbd1859cbfe335fa1",  # finnhub gemma
+        "be171af948ee47a98e47dc3aeae16d7f"   # finnhub gemma30b
+    ]
+    files = [f for f in all_files if any(tid in f for tid in target_ids)]
+    print(f"Targeting {len(files)} files for assessment under Finnhub API source.")
     if not files:
         print("No telemetry stream files found!")
         return
@@ -30,7 +39,8 @@ def main():
         
         # We can read the jsonl file line by line
         packets = []
-        with open(fp, 'r', encoding='utf-8') as f:
+        open_func = gzip.open if fp.endswith('.gz') else open
+        with open_func(fp, 'rt', encoding='utf-8') as f:
             for line in f:
                 if not line.strip():
                     continue
@@ -155,7 +165,8 @@ def main():
     print("Compiling granular drift type accuracy...")
     drift_records = []
     for fp in files:
-        with open(fp, 'r', encoding='utf-8') as f:
+        open_func = gzip.open if fp.endswith('.gz') else open
+        with open_func(fp, 'rt', encoding='utf-8') as f:
             for line in f:
                 if not line.strip():
                     continue
