@@ -70,9 +70,11 @@ class BERTModel:
                 self.model_source = "downloaded"
 
             # Cast model parameters and move them to GPU/target device.
-            # Using float16 enables highly optimized, functional GPU kernel paths on Windows ROCm.
+            # Using bfloat16 on native NVIDIA CUDA (especially Ampere/Hopper/Blackwell) prevents overflow/underflow
+            # and utilizes native Tensor Cores, while float16 is kept for AMD ROCm compatibility.
             if self.torch_device == "cuda":
-                dtype = torch.float16  # Force float16 for maximum kernel compatibility on AMD ROCm Windows
+                is_rocm = hasattr(torch, "version") and hasattr(torch.version, "hip") and torch.version.hip is not None
+                dtype = torch.float16 if is_rocm else torch.bfloat16
                 print(f"\n[*] Mapping BERT model to {self.torch_device} in {dtype} format...")
                 self.model = self.model.to(dtype=dtype, device=self.torch_device)
             elif self.device == "directml":

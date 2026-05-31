@@ -81,6 +81,16 @@ def main():
     print(f"[*] Detected NVIDIA GPU: {has_nvidia}")
     print(f"[*] Detected AMD GPU: {has_amd}")
 
+    # Check if a compatible PyTorch is already installed (e.g. in NGC container)
+    has_compatible_torch = False
+    try:
+        import torch
+        if torch.cuda.is_available() and has_nvidia:
+            has_compatible_torch = True
+            print(f"\n[✓] PyTorch {torch.__version__} with CUDA is already pre-installed in the container environment (NGC detected). Preserving pre-installed PyTorch.")
+    except ImportError:
+        pass
+
     # 3. Formulate Install Path
     print("\n[*] Removing conflicting pre-installed torchvision to prevent CUDA/operator mismatch...")
     try:
@@ -88,31 +98,43 @@ def main():
     except Exception:
         pass
 
-    print("\n[*] Installing PyTorch Core...")
-    if has_nvidia and is_linux:
-        # Optimal Linux NVIDIA tier. Upgraded to Nightly cu128 to support Blackwell (sm_120) and Hopper (sm_90)
-        run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128")
-    elif has_amd and is_windows:
-        # Optimal Windows AMD tier (7900XT)
-        run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 torch --index-url https://download.pytorch.org/whl/rocm6.1")
-    elif has_nvidia and is_windows:
-        # Fallback Windows NVIDIA
-        run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 torch --index-url https://download.pytorch.org/whl/cu121")
+    if not has_compatible_torch:
+        print("\n[*] Installing PyTorch Core...")
+        if has_nvidia and is_linux:
+            # Optimal Linux NVIDIA tier. Upgraded to Nightly cu128 to support Blackwell (sm_120) and Hopper (sm_90)
+            run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128")
+        elif has_amd and is_windows:
+            # Optimal Windows AMD tier (7900XT)
+            run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 torch --index-url https://download.pytorch.org/whl/rocm6.1")
+        elif has_nvidia and is_windows:
+            # Fallback Windows NVIDIA
+            run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 torch --index-url https://download.pytorch.org/whl/cu121")
+        else:
+            # Fallback CPU / Mac
+            run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 torch")
     else:
-        # Fallback CPU / Mac
-        run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 torch")
+        print("\n[*] Preserving pre-installed PyTorch Core.")
 
     print("\n[*] Installing HuggingFace Stack & API Dependencies...")
     run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 --ignore-installed transformers accelerate sentence-transformers tqdm wheel httpx pybind11")
 
     if has_nvidia and is_linux:
-        print("\n[*] Linux + NVIDIA detected: Installing Enterprise FlashAttention-2...")
+        has_flash_attn = False
         try:
-            # Requires ninja, wheel, and build tools to be pre-installed on the Linux cluster
-            run_cmd(f"{sys.executable} -m pip install --ignore-installed packaging ninja wheel")
-            run_cmd(f"{sys.executable} -m pip install flash-attn --no-build-isolation")
-        except Exception as e:
-            print(f"[!] Warning: FlashAttention compilation failed. SDPA fallback will be used. ({e})")
+            import flash_attn
+            has_flash_attn = True
+            print("\n[✓] FlashAttention is already pre-installed in the container environment. Skipping installation.")
+        except ImportError:
+            pass
+
+        if not has_flash_attn:
+            print("\n[*] Linux + NVIDIA detected: Installing Enterprise FlashAttention-2...")
+            try:
+                # Requires ninja, wheel, and build tools to be pre-installed on the Linux cluster
+                run_cmd(f"{sys.executable} -m pip install --ignore-installed packaging ninja wheel")
+                run_cmd(f"{sys.executable} -m pip install flash-attn --no-build-isolation")
+            except Exception as e:
+                print(f"[!] Warning: FlashAttention compilation failed. SDPA fallback will be used. ({e})")
             
     print("\n[*] Bootstrapping Local Model Weights...")
     try:
