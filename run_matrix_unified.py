@@ -1,4 +1,5 @@
 import os
+os.environ["DISABLE_COMPILE"] = "1"
 import sys
 import json
 import time
