@@ -225,7 +225,7 @@ class StrictGemma30BModel(StrictGemmaModel):
         if path_override:
             local_path = path_override
         else:
-            local_path = local_path or "google/gemma-4-30b"
+            local_path = local_path or "google/gemma-4-31B-it"
             
         if os.environ.get("GEMMA_30B_API_URL") or os.environ.get("USE_API") in ("1", "true", "yes"):
             self.backend = "api"
