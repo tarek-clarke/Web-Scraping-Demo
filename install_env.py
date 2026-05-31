@@ -115,8 +115,22 @@ def main():
     else:
         print("\n[*] Preserving pre-installed PyTorch Core.")
 
-    print("\n[*] Installing HuggingFace Stack & API Dependencies...")
-    run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 --ignore-installed transformers accelerate sentence-transformers tqdm wheel httpx pybind11")
+    # Check if HuggingFace Stack & API Dependencies are already importable
+    has_hf_deps = False
+    try:
+        import transformers
+        import accelerate
+        import sentence_transformers
+        import httpx
+        import pybind11
+        has_hf_deps = True
+        print("\n[✓] HuggingFace Stack & API Dependencies are already pre-installed. Skipping reinstall.")
+    except ImportError:
+        pass
+
+    if not has_hf_deps:
+        print("\n[*] Installing HuggingFace Stack & API Dependencies...")
+        run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 --ignore-installed transformers accelerate sentence-transformers tqdm wheel httpx pybind11")
 
     if has_nvidia and is_linux:
         has_flash_attn = False
@@ -136,11 +150,15 @@ def main():
             except Exception as e:
                 print(f"[!] Warning: FlashAttention compilation failed. SDPA fallback will be used. ({e})")
             
-    print("\n[*] Bootstrapping Local Model Weights...")
-    try:
-        run_cmd(f"{sys.executable} bootstrap.py --bootstrap")
-    except Exception as e:
-        print(f"[!] Warning: Failed to pre-cache models. ({e})")
+    # Check if local model weights are already cached/initialized to avoid slow redundancy
+    if not os.path.exists(".initialized"):
+        print("\n[*] Bootstrapping Local Model Weights...")
+        try:
+            run_cmd(f"{sys.executable} bootstrap.py --bootstrap")
+        except Exception as e:
+            print(f"[!] Warning: Failed to pre-cache models. ({e})")
+    else:
+        print("\n[✓] Model weights and environment already initialized. Skipping bootstrap phase.")
     
     print("\n[✓] Environment Bootstrapped Successfully.")
 
