@@ -82,6 +82,12 @@ def main():
     print(f"[*] Detected AMD GPU: {has_amd}")
 
     # 3. Formulate Install Path
+    print("\n[*] Removing conflicting pre-installed torchvision to prevent CUDA/operator mismatch...")
+    try:
+        run_cmd(f"{sys.executable} -m pip uninstall -y torchvision")
+    except Exception:
+        pass
+
     print("\n[*] Installing PyTorch Core...")
     if has_nvidia and is_linux:
         # Optimal Linux NVIDIA tier. Upgraded to Nightly cu128 to support Blackwell (sm_120) and Hopper (sm_90)
