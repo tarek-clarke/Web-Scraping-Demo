@@ -192,19 +192,36 @@ def main():
     strategies = ["json", "schema", "gemma", "gemma30b"]
     
     total_runs = len(apis) * len(strategies) * len(frequencies) * len(probabilities) * iterations
-    state_file = "matrix_unified_state.json"
-    state = {"completed_runs": []}
     
+    # 1. Clean up local telemetry directory for the active GPU to prevent failed/dirty run mixtures
+    import shutil
+    gpu_results_dir = os.path.join("results", model_str)
+    if os.path.exists(gpu_results_dir):
+        print(f"[*] Wiping existing telemetry directory for active GPU ({model_str}) to prevent failed/dirty run mixtures...")
+        try:
+            shutil.rmtree(gpu_results_dir)
+        except Exception as e:
+            print(f"[!] Warning: failed to clean telemetry directory: {e}")
+    os.makedirs(gpu_results_dir, exist_ok=True)
+
+    # 2. Reset completed runs state for the active GPU
+    state_file = "matrix_unified_state.json"
+    state = {}
     if os.path.exists(state_file):
         with open(state_file, "r") as f:
             try:
                 state = json.load(f)
-                print(f"[*] Loaded state file. Resuming matrix... ({len(state['completed_runs'])}/{total_runs} completed)")
             except json.JSONDecodeError:
                 pass
+
+    print(f"[*] Resetting completed runs state for active GPU ({model_str}) to ensure a 100% clean run...")
+    state[model_str] = []
+    
+    with open(state_file, "w") as f:
+        json.dump(state, f, indent=2)
                 
     run_idx = 0
-    completed_count = len(state["completed_runs"])
+    completed_count = 0
     sweep_start_t = time.perf_counter()
     
     for i in range(1, iterations + 1):
@@ -215,7 +232,7 @@ def main():
                         run_idx += 1
                         state_key = f"run_{i}_{api}_{strategy}_{freq}hz_{prob}prob"
                         
-                        if state_key in state["completed_runs"]:
+                        if state_key in state.get(model_str, []):
                             continue
                             
                         print(f"\n================================================================================")
@@ -566,7 +583,9 @@ def main():
                         print(f"[✓] Run {run_idx} complete in {run_elapsed:.1f}s | {completed_count}/{total_runs} done | ETA {eta_min:.1f}min", flush=True)
                             
                         # Commit state
-                        state["completed_runs"].append(state_key)
+                        if model_str not in state:
+                            state[model_str] = []
+                        state[model_str].append(state_key)
                         with open(state_file, "w") as f:
                             json.dump(state, f, indent=2)
                             

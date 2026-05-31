@@ -97,13 +97,13 @@ def main():
         run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 torch")
 
     print("\n[*] Installing HuggingFace Stack & API Dependencies...")
-    run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 transformers accelerate sentence-transformers tqdm wheel httpx pybind11")
+    run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 --ignore-installed transformers accelerate sentence-transformers tqdm wheel httpx pybind11")
 
     if has_nvidia and is_linux:
         print("\n[*] Linux + NVIDIA detected: Installing Enterprise FlashAttention-2...")
         try:
             # Requires ninja, wheel, and build tools to be pre-installed on the Linux cluster
-            run_cmd(f"{sys.executable} -m pip install packaging ninja wheel")
+            run_cmd(f"{sys.executable} -m pip install --ignore-installed packaging ninja wheel")
             run_cmd(f"{sys.executable} -m pip install flash-attn --no-build-isolation")
         except Exception as e:
             print(f"[!] Warning: FlashAttention compilation failed. SDPA fallback will be used. ({e})")
