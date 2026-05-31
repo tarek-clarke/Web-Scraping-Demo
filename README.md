@@ -146,6 +146,19 @@ Where:
 | **`gemma`** | $0.65$ | $0.70$ | $0.50$ | **$0.64$** | High. Generative LLM synonym mapping (thesaurus expansion) and structural nest changes. |
 | **`aggressive`** | $0.95$ | $0.95$ | $1.00$ | **$0.96$** | **Adversarial.** Combined deep recursive nesting, obfuscated synonyms, and active type contradictions. |
 
+### 🎲 Stochastic Drift Generation & Statistical Rigor
+
+Rather than relying on a deterministic partition of drifted packets (which would introduce experimental bias), the framework adopts a **stochastic (probabilistic) drift injection engine**. Each streaming packet is treated as an independent **Bernoulli trial** with a drift success probability $p \in [0.005, 0.01, 0.05]$. 
+
+Consequently, over a workload scale of $N = 10,000$ packets, the total number of drifted packets ($X$) follows a **Binomial Distribution**:
+
+$$X \sim \text{Binomial}(N, p)$$
+
+* **Expected Value (Mean):** $\mathbb{E}[X] = N \cdot p$ (e.g., 500 packets for $p=0.05$).
+* **Standard Deviation ($\sigma$):** $\sigma = \sqrt{N \cdot p \cdot (1 - p)}$ (e.g., $\approx 21.8$ packets for $p=0.05$).
+
+This probabilistic modeling ensures that the evaluation is structurally representative of an actual real-world production stream, where API drift occurs as an independent random variable. By executing **3 independent iterations** per scenario, the pipeline calculates stable, mathematically sound metrics that average out these minor random fluctuations for the final IEEE T-DKE report.
+
 ---
 
 ## 🖥️ 3. Multi-Platform Support & Hardware Detection
