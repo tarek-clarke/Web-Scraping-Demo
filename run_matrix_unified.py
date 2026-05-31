@@ -154,11 +154,15 @@ def main():
     print("================================================================================")
     
     # 1. Run Pre-flight Validation once (also loads models via singleton)
+    use_30b = os.getenv("USE_GEMMA_30B", "").strip().lower() in ("1", "true", "yes")
     enabled_methods = ["regex", "levenshtein", "bert", "gemma"]
+    if use_30b:
+        enabled_methods.append("gemma30b")
+        
     preflight, abort, abort_reason = run_preflight_validation(
         require_local_models=True,
         strict_mode=False,
-        enabled_methods=enabled_methods
+        enabled_methods=["regex", "levenshtein", "bert", "gemma"]
     )
     if abort:
         print(f"[!] PRE-FLIGHT ERROR: {abort_reason}")
@@ -251,10 +255,17 @@ def main():
                                 freq = cdata.get("simulated_frequency_hz")
                                 prob = cdata.get("chaos_probability")
                                 if all(v is not None for v in [iteration, api, strategy, freq, prob]):
-                                    disk_key = f"run_{iteration}_{api}_{strategy}_{freq}hz_{prob}prob"
-                                    if disk_key not in completed_runs:
-                                        completed_runs.add(disk_key)
-                                        disk_runs += 1
+                                    # If Gemma 30B is enabled, a run is only complete if it actually includes gemma30b results!
+                                    is_complete = True
+                                    if use_30b:
+                                        if "gemma30b" not in entry and "gemma30b_average_latency_ms" not in cdata:
+                                            is_complete = False
+                                            
+                                    if is_complete:
+                                        disk_key = f"run_{iteration}_{api}_{strategy}_{freq}hz_{prob}prob"
+                                        if disk_key not in completed_runs:
+                                            completed_runs.add(disk_key)
+                                            disk_runs += 1
                         except Exception:
                             pass
         if disk_runs > 0:
@@ -338,10 +349,12 @@ def main():
                         lev_rec = reconcilers["levenshtein"]
                         bert_rec = reconcilers["bert"]
                         gemma_rec = reconcilers["gemma"]
+                        gemma30b_rec = reconcilers.get("gemma30b")
                         
                         # ─── A. PROCESS DRIFTED PACKETS VIA TENSOR BATCHING ───
                         bert_elapsed_ms_per_packet = 0.0
                         gemma_elapsed_ms_per_packet = 0.0
+                        gemma30b_elapsed_ms_per_packet = 0.0
                         
                         if drifted_indices:
                             # 1. Regex & Levenshtein (CPU - sequential but fast)
@@ -415,129 +428,135 @@ def main():
                                     "semantic_recovery_success": (best_match == target_key)
                                 }
                             
-                            # 3. Gemma Batched Generation (GPU Tensor Batching)
-                            # Dynamic Granular VRAM-to-Batch Allocation Algorithm (optimised for Warp and Tensor Core alignment)
-                            batch_size = 64
-                            if torch.cuda.is_available():
-                                try:
-                                    total_vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
-                                    # Gemma-4 E4B (4B) in bf16: W = 8.5 GB base weights
-                                    # KV cache / activations at sequence N=256: C = ~40 MB (0.040 GB) per batch element
-                                    static_weights = 8.5
-                                    mb_per_element = 40.0
-                                    available_vram_gb = total_vram_gb - static_weights
-                                    if available_vram_gb > 0:
-                                        # Max safe ceiling with 20% memory buffer for compiler workspace
-                                        raw_bs = (available_vram_gb * 1024 / mb_per_element) * 0.8
-                                        # Round down to nearest multiple of 64 for optimal GPU Warp & Tensor Core alignment
-                                        batch_size = int((raw_bs // 64) * 64)
-                                        # Clamp to safe bounds [32, 1024] to avoid dynamic shape recompilation limits
-                                        batch_size = max(32, min(1024, batch_size))
-                                except Exception:
-                                    batch_size = 64
-                                    
-                            print(f"    - Running GPU batched Gemma (BS={batch_size}) on {len(drifted_indices)} drifted packets...", flush=True)
-                            gemma_start_t = time.perf_counter()
-                            
-                            prompts = []
-                            for idx in drifted_indices:
-                                sample = packets[idx]
-                                original = sample["original_payload"]
-                                mutated = sample["mutated_payload"]
-                                canonical_keys = list(original.keys())
-                                mutated_clean = {k: 0 for k in mutated.keys()}
-                                prompt = (
-                                    f"Given a list of canonical API schema fields: {canonical_keys}\n"
-                                    f"And a query key from a drifted/mutated schema: \"{json.dumps(mutated_clean)}\"\n\n"
-                                    "Select the canonical field that is the best semantic match for this query key.\n"
-                                    "Return your response strictly in the following JSON format:\n"
-                                    '{"match": "canonical_field_name", "confidence": 0.0}'
-                                )
-                                prompts.append(prompt)
-                            
-                            unique_prompts = list(set(prompts))
-                            print(f"    - Deduplicated {len(prompts)} Gemma prompts to {len(unique_prompts)} unique items...", flush=True)
-                            unique_responses = []
-                            
-                            if getattr(gemma_model, "backend", None) == "api":
-                                from concurrent.futures import ThreadPoolExecutor
-                                print(f"    - Querying LM Studio concurrently with 16 parallel workers...", flush=True)
-                                with ThreadPoolExecutor(max_workers=16) as executor:
-                                    unique_responses = list(executor.map(gemma_model.generate, unique_prompts))
-                            else:
-                                gemma_model.tokenizer.padding_side = "left"
-                                for b_start in range(0, len(unique_prompts), batch_size):
-                                    batch_prompts = unique_prompts[b_start:b_start+batch_size]
-                                    inputs = gemma_model.tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True)
-                                    inputs = {k: v.to(gemma_model.device) for k, v in inputs.items()}
-                                    
-                                    eos_ids = gemma_model.tokenizer.eos_token_id
-                                    if eos_ids is None:
-                                        eos_ids = []
-                                    elif isinstance(eos_ids, (list, tuple)):
-                                        eos_ids = [int(x.cpu()) if torch.is_tensor(x) else int(x) for x in eos_ids]
-                                    else:
-                                        eos_ids = [int(eos_ids)]
-                                    
-                                    with torch.no_grad():
-                                        output_ids = gemma_model.model.generate(
-                                            **inputs,
-                                            max_new_tokens=32,
-                                            do_sample=False,
-                                            pad_token_id=int(gemma_model.tokenizer.pad_token_id),
-                                            eos_token_id=eos_ids
-                                        )
-                                    
-                                    for idx, out_ids in enumerate(output_ids):
-                                        prompt_length = inputs["input_ids"][idx].shape[0]
-                                        gen_tokens = out_ids[prompt_length:]
-                                        decoded = gemma_model.tokenizer.decode(gen_tokens, skip_special_tokens=True).strip()
-                                        unique_responses.append(decoded)
-                            
-                            # Map unique responses back to all prompts
-                            unique_prompt_map = dict(zip(unique_prompts, unique_responses))
-                            gemma_responses = [unique_prompt_map[p] for p in prompts]
-                            
-                            gemma_elapsed_ms_per_packet = ((time.perf_counter() - gemma_start_t) * 1000.0) / len(drifted_indices)
-                            
-                            for batch_idx, idx in enumerate(drifted_indices):
-                                sample = packets[idx]
-                                original = sample["original_payload"]
-                                mutated = sample["mutated_payload"]
-                                target_key = determine_mutated_key(original, mutated)
-                                canonical_keys = list(original.keys())
+                            # 3. Gemma (and Gemma 30B) Batched Generation (GPU Tensor Batching)
+                            llm_targets = []
+                            if "gemma" in enabled_methods:
+                                llm_targets.append(("gemma", gemma_model))
+                            if "gemma30b" in enabled_methods and gemma30b_model is not None:
+                                llm_targets.append(("gemma30b", gemma30b_model))
                                 
-                                raw_response = gemma_responses[batch_idx]
-                                try:
-                                    if "{" in raw_response and "}" in raw_response:
-                                        raw_response = raw_response[raw_response.index("{") : raw_response.rindex("}") + 1]
-                                    parsed = json.loads(raw_response)
-                                except Exception:
-                                    parsed = {}
+                            for method_key, model_inst in llm_targets:
+                                # Dynamic Granular VRAM-to-Batch Allocation Algorithm (optimised for Warp and Tensor Core alignment)
+                                batch_size = 64
+                                if torch.cuda.is_available():
+                                    try:
+                                        total_vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
+                                        # Gemma-4 E4B (4B) is 8.5GB, Gemma 30B is roughly ~65GB
+                                        static_weights = 65.0 if method_key == "gemma30b" else 8.5
+                                        mb_per_element = 40.0
+                                        available_vram_gb = total_vram_gb - static_weights
+                                        if available_vram_gb > 0:
+                                            raw_bs = (available_vram_gb * 1024 / mb_per_element) * 0.8
+                                            batch_size = int((raw_bs // 64) * 64)
+                                            batch_size = max(32, min(1024, batch_size))
+                                    except Exception:
+                                        batch_size = 64
+                                        
+                                print(f"    - Running GPU batched {method_key.upper()} (BS={batch_size}) on {len(drifted_indices)} drifted packets...", flush=True)
+                                llm_start_t = time.perf_counter()
                                 
-                                match_val = parsed.get("match", canonical_keys[0])
-                                confidence = float(parsed.get("confidence", 0.0))
+                                prompts = []
+                                for idx in drifted_indices:
+                                    sample = packets[idx]
+                                    original = sample["original_payload"]
+                                    mutated = sample["mutated_payload"]
+                                    canonical_keys = list(original.keys())
+                                    mutated_clean = {k: 0 for k in mutated.keys()}
+                                    prompt = (
+                                        f"Given a list of canonical API schema fields: {canonical_keys}\n"
+                                        f"And a query key from a drifted/mutated schema: \"{json.dumps(mutated_clean)}\"\n\n"
+                                        "Select the canonical field that is the best semantic match for this query key.\n"
+                                        "Return your response strictly in the following JSON format:\n"
+                                        '{"match": "canonical_field_name", "confidence": 0.0}'
+                                    )
+                                    prompts.append(prompt)
                                 
-                                fallback_used = False
-                                fallback_reason = None
-                                if match_val not in canonical_keys:
-                                    match_val = canonical_keys[0]
-                                    confidence = 0.1
-                                    fallback_used = True
-                                    fallback_reason = "Gemma returned field not in canonical keys list"
-                                elif confidence < 0.5:
-                                    fallback_used = True
-                                    fallback_reason = f"Gemma confidence={confidence:.4f} < 0.5"
+                                unique_prompts = list(set(prompts))
+                                print(f"    - Deduplicated {len(prompts)} {method_key.upper()} prompts to {len(unique_prompts)} unique items...", flush=True)
+                                unique_responses = []
                                 
-                                results_list[idx]["gemma"] = {
-                                    "match": match_val,
-                                    "confidence_raw": confidence,
-                                    "syntactic_parse_time_ms": None,
-                                    "semantic_inference_time_ms": gemma_elapsed_ms_per_packet,
-                                    "fallback_triggered": fallback_used,
-                                    "fallback_reason": fallback_reason,
-                                    "semantic_recovery_success": (match_val == target_key)
-                                }
+                                if getattr(model_inst, "backend", None) == "api":
+                                    from concurrent.futures import ThreadPoolExecutor
+                                    print(f"    - Querying LM Studio concurrently with 16 parallel workers...", flush=True)
+                                    with ThreadPoolExecutor(max_workers=16) as executor:
+                                        unique_responses = list(executor.map(model_inst.generate, unique_prompts))
+                                else:
+                                    model_inst.tokenizer.padding_side = "left"
+                                    for b_start in range(0, len(unique_prompts), batch_size):
+                                        batch_prompts = unique_prompts[b_start:b_start+batch_size]
+                                        inputs = model_inst.tokenizer(batch_prompts, return_tensors="pt", padding=True, truncation=True)
+                                        inputs = {k: v.to(model_inst.device) for k, v in inputs.items()}
+                                        
+                                        eos_ids = model_inst.tokenizer.eos_token_id
+                                        if eos_ids is None:
+                                            eos_ids = []
+                                        elif isinstance(eos_ids, (list, tuple)):
+                                            eos_ids = [int(x.cpu()) if torch.is_tensor(x) else int(x) for x in eos_ids]
+                                        else:
+                                            eos_ids = [int(eos_ids)]
+                                        
+                                        with torch.no_grad():
+                                            output_ids = model_inst.model.generate(
+                                                **inputs,
+                                                max_new_tokens=32,
+                                                do_sample=False,
+                                                pad_token_id=int(model_inst.tokenizer.pad_token_id),
+                                                eos_token_id=eos_ids
+                                            )
+                                        
+                                        for idx, out_ids in enumerate(output_ids):
+                                            prompt_length = inputs["input_ids"][idx].shape[0]
+                                            gen_tokens = out_ids[prompt_length:]
+                                            decoded = model_inst.tokenizer.decode(gen_tokens, skip_special_tokens=True).strip()
+                                            unique_responses.append(decoded)
+                                
+                                unique_prompt_map = dict(zip(unique_prompts, unique_responses))
+                                llm_responses = [unique_prompt_map[p] for p in prompts]
+                                
+                                llm_elapsed_ms_per_packet = ((time.perf_counter() - llm_start_t) * 1000.0) / len(drifted_indices)
+                                if method_key == "gemma":
+                                    gemma_elapsed_ms_per_packet = llm_elapsed_ms_per_packet
+                                elif method_key == "gemma30b":
+                                    gemma30b_elapsed_ms_per_packet = llm_elapsed_ms_per_packet
+                                    
+                                for batch_idx, idx in enumerate(drifted_indices):
+                                    sample = packets[idx]
+                                    original = sample["original_payload"]
+                                    mutated = sample["mutated_payload"]
+                                    target_key = determine_mutated_key(original, mutated)
+                                    canonical_keys = list(original.keys())
+                                    
+                                    raw_response = llm_responses[batch_idx]
+                                    try:
+                                        if "{" in raw_response and "}" in raw_response:
+                                            raw_response = raw_response[raw_response.index("{") : raw_response.rindex("}") + 1]
+                                        parsed = json.loads(raw_response)
+                                    except Exception:
+                                        parsed = {}
+                                    
+                                    match_val = parsed.get("match", canonical_keys[0])
+                                    confidence = float(parsed.get("confidence", 0.0))
+                                    
+                                    fallback_used = False
+                                    fallback_reason = None
+                                    if match_val not in canonical_keys:
+                                        match_val = canonical_keys[0]
+                                        confidence = 0.1
+                                        fallback_used = True
+                                        fallback_reason = f"{method_key.upper()} returned field not in canonical keys list"
+                                    elif confidence < 0.5:
+                                        fallback_used = True
+                                        fallback_reason = f"{method_key.upper()} confidence={confidence:.4f} < 0.5"
+                                    
+                                    results_list[idx][method_key] = {
+                                        "match": match_val,
+                                        "confidence_raw": confidence,
+                                        "syntactic_parse_time_ms": None,
+                                        "semantic_inference_time_ms": llm_elapsed_ms_per_packet,
+                                        "fallback_triggered": fallback_used,
+                                        "fallback_reason": fallback_reason,
+                                        "semantic_recovery_success": (match_val == target_key)
+                                    }
                         
                         # ─── B. PROCESS CLEAN PACKETS (BYPASS OPTIMIZATION) ───
                         if non_drifted_indices:
@@ -560,7 +579,7 @@ def main():
                                 results_list[idx]["levenshtein"] = rec_res_lev
                                 
                                 # GPU Reconcilers bypass: return bypassed statistics
-                                for method_name in ("bert", "gemma"):
+                                for method_name in [m for m in enabled_methods if m in ("bert", "gemma", "gemma30b")]:
                                     results_list[idx][method_name] = {
                                         "match": target_key,
                                         "confidence_raw": 1.0,
@@ -597,7 +616,7 @@ def main():
                                     "original_key": target_key,
                                     "mutated_key": mutated_key,
                                     "gpu_vram_allocated_mb": gpu_vram_allocated_mb,
-                                    "per_packet_processing_time_ms": (results_list[idx]["gemma"]["semantic_inference_time_ms"] or 0.0) + (results_list[idx]["regex"]["syntactic_parse_time_ms"] or 0.0),
+                                    "per_packet_processing_time_ms": sum((results_list[idx].get(m, {}).get("semantic_inference_time_ms") or 0.0) for m in enabled_methods) + sum((results_list[idx].get(m, {}).get("syntactic_parse_time_ms") or 0.0) for m in enabled_methods),
                                     "reconciliation": results_list[idx]
                                 }
                                 out_f.write(json.dumps(telemetry_row) + "\n")
@@ -605,6 +624,8 @@ def main():
                         # Clear reconciler query caches to keep memory flat between runs
                         reconcilers["bert"].clear_caches()
                         reconcilers["gemma"].clear_caches()
+                        if "gemma30b" in reconcilers:
+                            reconcilers["gemma30b"].clear_caches()
                         
                         run_elapsed = time.perf_counter() - run_start_t
                         completed_count += 1
@@ -633,6 +654,7 @@ def main():
                             "total_run_time_seconds": run_elapsed,
                             "bert_average_latency_ms": bert_elapsed_ms_per_packet,
                             "gemma_average_latency_ms": gemma_elapsed_ms_per_packet,
+                            "gemma30b_average_latency_ms": gemma30b_elapsed_ms_per_packet,
                             "timestamp": datetime.now().isoformat(),
                             "pipeline_version": git_commit
                         }
