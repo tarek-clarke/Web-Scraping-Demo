@@ -4,12 +4,13 @@ from uuid import uuid4
 from models.gemma_model import GemmaModel
 
 class GemmaChaos:
+    _paraphrase_cache = {}
+    _rename_cache = {}
+    _structural_cache = {}
+
     def __init__(self, probability: float, gemma_model: GemmaModel = None):
         self.probability = probability
         self.gemma = gemma_model or GemmaModel()
-        self._paraphrase_cache = {}
-        self._rename_cache = {}
-        self._structural_cache = {}
 
         self.adversarial_renames = {
             "price": "monetary_compensation_equivalent_usd",
