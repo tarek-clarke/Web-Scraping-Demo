@@ -469,6 +469,8 @@ def cache_model_weights():
     except Exception as e:
         cache_ok = False
         print(f"[Bootstrap] ERROR: Failed to pre-cache MiniLM ({e}).")
+        import traceback
+        traceback.print_exc()
 
     # 2. Gemma-4 E4B
     try:
@@ -497,6 +499,8 @@ def cache_model_weights():
     except Exception as e:
         cache_ok = False
         print(f"[Bootstrap] ERROR: local Gemma checkpoint validation failed ({e}).")
+        import traceback
+        traceback.print_exc()
 
     return cache_ok
 
