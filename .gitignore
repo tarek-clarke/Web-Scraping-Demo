@@ -26,5 +26,4 @@ ENV/
 
 # Project Specific
 chaos_generator/datasets/
-results/
 matrix_state.json

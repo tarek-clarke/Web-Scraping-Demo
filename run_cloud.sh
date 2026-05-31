@@ -29,7 +29,13 @@ echo "${GPU_NAME}" > Note
 echo "================================================================================"
 echo " UPLOADING DATASETS TO GITHUB"
 echo "================================================================================"
-git add Note results/
+# Configure Git identity locally inside the container to prevent author autodetect crashes
+git config --local user.name "tarek-clarke"
+git config --local user.email "tarek.clarke15@gmail.com"
+
+# Force add results and Note file to bypass any cache blocks
+git add Note
+git add -f results/
 git commit -m "data: upload benchmark telemetry results for ${GPU_NAME} ($(hostname))"
 git push origin main
 
