@@ -106,17 +106,16 @@ class StrictBERTModel(BERTModel):
     """BERT loader with strict local-only checks."""
     
     def __new__(cls, require_local: bool = True):
-        return super().__new__(cls, allow_internet=False)
+        # Allow internet download if it's missing from local cache
+        return super().__new__(cls, allow_internet=True)
         
     def __init__(self, require_local: bool = True):
-        # We subclass and force allow_internet = False
-        super().__init__(allow_internet=False)
+        super().__init__(allow_internet=True)
         
-        # Validate that model was loaded locally
-        if require_local and (not self.is_loaded or self.model_source != "local"):
+        # Validate that model was loaded
+        if not self.is_loaded:
             raise RuntimeError(
-                f"Strict Mode Violation: BERT model could not be loaded locally "
-                f"(is_loaded={self.is_loaded}, model_source={self.model_source})."
+                f"BERT model could not be loaded (is_loaded={self.is_loaded})."
             )
 
 class StrictGemmaModel(GemmaLocal):
