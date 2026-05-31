@@ -79,7 +79,7 @@ def determine_mutated_key(original, mutated) -> str:
     return list(original.keys())[0] if original else "unknown"
 
 
-def generate_dataset_inline(api_name, strategy_name, scale, probability, frequency, run_id, run_number):
+def generate_dataset_inline(api_name, strategy_name, scale, probability, frequency, run_id, run_number, gemma_model=None):
     """Generate chaos dataset in-memory. Returns list of packet dicts. No subprocess, no disk I/O."""
     apis = {
         "finnhub": FinnhubAPI,
@@ -95,7 +95,7 @@ def generate_dataset_inline(api_name, strategy_name, scale, probability, frequen
         print(f"    [!] Warning: failed to fetch live data for {api_name} ({e}). Using static fallback.", flush=True)
         base_data = {"price": 100.0, "canonical": "price"}
 
-    chaos_engine = select_chaos(strategy_name, probability)
+    chaos_engine = select_chaos(strategy_name, probability, gemma_model)
     delay_s = 1.0 / frequency
     current_sim_time = time.time()
 
@@ -246,7 +246,7 @@ def main():
                         # 1. Generate Dataset INLINE (no subprocess, no disk I/O)
                         print(f"[*] Generating {scale} packets (inline)...", flush=True)
                         gen_start_t = time.perf_counter()
-                        packets = generate_dataset_inline(api, strategy, scale, prob, freq, run_id, i)
+                        packets = generate_dataset_inline(api, strategy, scale, prob, freq, run_id, i, gemma_model)
                         gen_elapsed = time.perf_counter() - gen_start_t
                         
                         drift_total = sum(1 for p in packets if p["drift_present"])
