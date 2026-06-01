@@ -1,0 +1,30 @@
+{
+  "device_model": "B200 (179GB)",
+  "vram_capacity_gb": 179,
+  "hardware_backend": "CUDA",
+  "cloud_platform": "local",
+  "concurrency_level": 1,
+  "gpu_telemetry": {
+    "gpu_clock_mhz": 1965.0,
+    "vram_clock_mhz": 3996.0,
+    "gpu_utilization_pct": 0.0,
+    "vram_utilization_pct": 0.0,
+    "power_draw_watts": 195.01
+  },
+  "run_id": "110c56ea9cc4466fa6057f7a1e69cb50",
+  "iteration": 3,
+  "api_profile": "finnhub",
+  "chaos_strategy": "gemma",
+  "workload_scale": 100000,
+  "chaos_probability": 0.05,
+  "simulated_frequency_hz": 1000,
+  "total_packets": 100000,
+  "drifted_packets": 4948,
+  "bypassed_packets": 95052,
+  "total_run_time_seconds": 64.6783839159998,
+  "bert_average_latency_ms": 0.02148048201291357,
+  "gemma_average_latency_ms": 0.5708995254647737,
+  "gemma30b_average_latency_ms": 0.0,
+  "timestamp": "2026-06-01T02:49:53.232846",
+  "pipeline_version": "47199b8de684af894455ebc766af7b5332c2c236"
+}

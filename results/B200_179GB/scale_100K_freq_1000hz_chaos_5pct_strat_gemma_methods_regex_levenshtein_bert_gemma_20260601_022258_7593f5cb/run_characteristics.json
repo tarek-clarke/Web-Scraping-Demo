@@ -1,0 +1,30 @@
+{
+  "device_model": "B200 (179GB)",
+  "vram_capacity_gb": 179,
+  "hardware_backend": "CUDA",
+  "cloud_platform": "local",
+  "concurrency_level": 1,
+  "gpu_telemetry": {
+    "gpu_clock_mhz": 1965.0,
+    "vram_clock_mhz": 3996.0,
+    "gpu_utilization_pct": 0.0,
+    "vram_utilization_pct": 0.0,
+    "power_draw_watts": 194.3
+  },
+  "run_id": "7593f5cb885843f79e8099df48c3419f",
+  "iteration": 1,
+  "api_profile": "spacex",
+  "chaos_strategy": "gemma",
+  "workload_scale": 100000,
+  "chaos_probability": 0.05,
+  "simulated_frequency_hz": 1000,
+  "total_packets": 100000,
+  "drifted_packets": 5133,
+  "bypassed_packets": 94867,
+  "total_run_time_seconds": 68.84360222700002,
+  "bert_average_latency_ms": 0.01533991135790701,
+  "gemma_average_latency_ms": 0.40013041515681763,
+  "gemma30b_average_latency_ms": 0.0,
+  "timestamp": "2026-06-01T02:24:06.783878",
+  "pipeline_version": "47199b8de684af894455ebc766af7b5332c2c236"
+}
