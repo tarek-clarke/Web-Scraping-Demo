@@ -186,8 +186,6 @@ def main():
     gemma30b_model = None
     if use_30b:
         print("[*] Clearing VRAM cache before loading Gemma 30B...")
-        import gc
-        import torch
         gc.collect()
         torch.cuda.empty_cache()
         
