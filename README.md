@@ -108,6 +108,48 @@ git push
 
 ---
 
+### 🌌 Option C: Spheron B300/GH200 High-Performance Setup (NGC Containers)
+
+This workflow is optimized for state-of-the-art **NVIDIA Grace Hopper (GH200)** or **Blackwell (B300)** supercomputing instances running under **NVIDIA NGC Deep Learning Containers** on Spheron:
+
+1. **Sync the codebase from your local Mac terminal (Excluding massive `.git` history):**
+   ```bash
+   rsync -avz --exclude '.git' --exclude '.venv' --exclude 'results' -e 'ssh' /Users/tarekclarke/.gemini/antigravity/scratch/resilient-rap-framework root@<SPHERON_VM_IP>:/root/
+   ```
+
+2. **SSH into the Spheron VM and enter the directory:**
+   ```bash
+   ssh root@<SPHERON_VM_IP>
+   cd /root/resilient-rap-framework
+   ```
+
+3. **Install pip and initialize the local environment:**
+   NGC containers come with pre-installed PyTorch. Run our robust hardware bootstrapper to verify packages and install Hugging Face libraries:
+   ```bash
+   apt update && apt install -y python3-pip
+   python3 install_env.py
+   ```
+
+4. **Pre-download the models directly inside the VM at gigabit speeds:**
+   ```bash
+   # Download Gemma 31B GGUF Model:
+   python3 -c "from huggingface_hub import hf_hub_download; import os; hf_hub_download(repo_id='bartowski/google_gemma-4-31B-it-GGUF', filename='google_gemma-4-31B-it-Q4_K_M.gguf', local_dir=os.path.expanduser('~/.cache/huggingface/hub/'), local_dir_use_symlinks=False)"
+
+   # Download BERT & Gemma 4B Models:
+   python3 -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='sentence-transformers/all-MiniLM-L6-v2')"
+   HF_TOKEN=\"your_hf_token\" python3 -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='google/gemma-4-E4B-it')"
+   ```
+
+5. **Start the pristine, high-throughput Blackwell sweep:**
+   ```bash
+   export HF_HUB_OFFLINE=1
+   export TRANSFORMERS_OFFLINE=1
+   python3 run_matrix_unified.py
+   ```
+
+---
+
+
 ## 📈 2. Peer-Reviewed Resilience Methodology
 
 The system robustness is mathematically assessed by integrating the official [resilience-metrics](https://pypi.org/project/resilience-metrics/) package. This metrics formulation is citable and grounded in the established peer-reviewed system resilience framework:
