@@ -406,3 +406,13 @@ This script automatically parses the files in `results/`, computes aggregates, a
 | bert | 22.63 | 0.0384 | 1096.10 |
 | gemma | 5315.08 | 0.0005 | 7917.93 |
 <!-- END_LATENCY_TABLE -->
+
+
+## Unified Telemetry Benchmark Performance (OpenF1)
+| Hardware Profile | System RAM | GPU/MPS Model | Outbound Security | Runs Matrix |
+| --- | --- | --- | --- | --- |
+| `VAST_AI_INSTANCE` | 125.66 GB | `NVIDIA RTX PRO 6000 Blackwell Workstation Edition` | `100% Local GPU Execution / Offline Mode` | `5x5 Matrix Sweeps` |
+
+### Platform Validation Credentials Profile
+- **SSH Profile context**: Authorized across GitHub, Vast.ai, and Spheron clusters via matching local keys.
+- **Network proxy configuration**: Injected endpoint redirection for Hugging Face mirror `hf-mirror.com` dynamically.
