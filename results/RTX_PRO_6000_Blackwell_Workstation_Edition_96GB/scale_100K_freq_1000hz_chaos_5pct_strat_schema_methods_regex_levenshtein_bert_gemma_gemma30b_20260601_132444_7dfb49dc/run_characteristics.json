@@ -1,0 +1,30 @@
+{
+  "device_model": "RTX PRO 6000 Blackwell Workstation Edition (96GB)",
+  "vram_capacity_gb": 96,
+  "hardware_backend": "CUDA",
+  "cloud_platform": "vast.ai",
+  "concurrency_level": 1,
+  "gpu_telemetry": {
+    "gpu_clock_mhz": 2280.0,
+    "vram_clock_mhz": 13365.0,
+    "gpu_utilization_pct": 0.0,
+    "vram_utilization_pct": 0.0,
+    "power_draw_watts": 88.48
+  },
+  "run_id": "7dfb49dc95854f8b874e17d5643f32bf",
+  "iteration": 1,
+  "api_profile": "openf1",
+  "chaos_strategy": "schema",
+  "workload_scale": 100000,
+  "chaos_probability": 0.05,
+  "simulated_frequency_hz": 1000,
+  "total_packets": 100000,
+  "drifted_packets": 5011,
+  "bypassed_packets": 94989,
+  "total_run_time_seconds": 25.499423399800435,
+  "bert_average_latency_ms": 0.007072607019250442,
+  "gemma_average_latency_ms": 0.4849899612717305,
+  "gemma30b_average_latency_ms": 0.7299326577769696,
+  "timestamp": "2026-06-01T13:25:08.059819",
+  "pipeline_version": "a86a828e07b55c65aa5ee8ad72f61facbe14ea1b"
+}
