@@ -482,7 +482,7 @@ def cache_model_weights():
 
     # 2. Gemma-4 E4B
     try:
-        gemma_repo_id = "google/gemma-4-E4B"
+        gemma_repo_id = "google/gemma-4-E4B-it"
 
         gemma_local_path = GemmaLocal.discover_local_path()
 
