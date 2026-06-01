@@ -39,7 +39,11 @@ git config --local user.email "tarek.clarke15@gmail.com"
 # Force add results and Note file to bypass any cache blocks
 git add Note
 git add -f results/
-git commit -m "data: upload benchmark telemetry results for ${GPU_NAME} ($(hostname))"
+git commit -m "data: upload benchmark telemetry results for ${GPU_NAME} ($(hostname))" || true
+
+# Seamlessly pull and rebase concurrent results from other parallel VM runs
+git pull --rebase origin main
+
 git push origin main
 
 echo "================================================================================"

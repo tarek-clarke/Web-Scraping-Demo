@@ -268,10 +268,32 @@ class GemmaLocal:
             return True
 
         # Sharded checkpoints use an index file plus shard files.
-        if (model_dir / "model.safetensors.index.json").is_file():
-            return any(model_dir.glob("model-*.safetensors"))
-        if (model_dir / "pytorch_model.bin.index.json").is_file():
-            return any(model_dir.glob("pytorch_model-*.bin"))
+        # We parse the index and verify that ALL listed shards exist on disk.
+        index_file = model_dir / "model.safetensors.index.json"
+        if index_file.is_file():
+            try:
+                import json
+                with open(index_file, "r", encoding="utf-8") as f:
+                    weight_map = json.load(f).get("weight_map", {})
+                shards = set(weight_map.values())
+                if shards and all((model_dir / shard).is_file() for shard in shards):
+                    return True
+            except Exception:
+                pass
+            return False
+
+        bin_index_file = model_dir / "pytorch_model.bin.index.json"
+        if bin_index_file.is_file():
+            try:
+                import json
+                with open(bin_index_file, "r", encoding="utf-8") as f:
+                    weight_map = json.load(f).get("weight_map", {})
+                shards = set(weight_map.values())
+                if shards and all((model_dir / shard).is_file() for shard in shards):
+                    return True
+            except Exception:
+                pass
+            return False
 
         return False
 

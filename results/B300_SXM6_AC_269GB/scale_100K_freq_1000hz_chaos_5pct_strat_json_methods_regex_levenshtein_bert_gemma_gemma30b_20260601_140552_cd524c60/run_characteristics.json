@@ -1,0 +1,30 @@
+{
+  "device_model": "B300 SXM6 AC (269GB)",
+  "vram_capacity_gb": 269,
+  "hardware_backend": "CUDA",
+  "cloud_platform": "local",
+  "concurrency_level": 1,
+  "gpu_telemetry": {
+    "gpu_clock_mhz": 2032.0,
+    "vram_clock_mhz": 3996.0,
+    "gpu_utilization_pct": 0.0,
+    "vram_utilization_pct": 0.0,
+    "power_draw_watts": 245.2
+  },
+  "run_id": "cd524c606ba14feb858496d23a7db064",
+  "iteration": 5,
+  "api_profile": "openmeteo",
+  "chaos_strategy": "json",
+  "workload_scale": 100000,
+  "chaos_probability": 0.05,
+  "simulated_frequency_hz": 1000,
+  "total_packets": 100000,
+  "drifted_packets": 5058,
+  "bypassed_packets": 94942,
+  "total_run_time_seconds": 31.92224476499996,
+  "bert_average_latency_ms": 0.016520391261443862,
+  "gemma_average_latency_ms": 0.5294549003558484,
+  "gemma30b_average_latency_ms": 4.165391469948563,
+  "timestamp": "2026-06-01T14:06:23.531395",
+  "pipeline_version": "4cc3d0c5b7b1ec6dbbd7a5d08579146dfd08aa8c"
+}

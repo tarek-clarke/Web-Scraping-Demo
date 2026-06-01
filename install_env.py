@@ -92,11 +92,11 @@ def main():
         pass
 
     # 3. Formulate Install Path
-    print("\n[*] Removing conflicting pre-installed torchvision to prevent CUDA/operator mismatch...")
-    try:
-        run_cmd(f"{sys.executable} -m pip uninstall -y torchvision")
-    except Exception:
-        pass
+    # print("\n[*] Removing conflicting pre-installed torchvision to prevent CUDA/operator mismatch...")
+    # try:
+    #     run_cmd(f"{sys.executable} -m pip uninstall -y torchvision")
+    # except Exception:
+    #     pass
 
     if not has_compatible_torch:
         print("\n[*] Installing PyTorch Core...")
@@ -130,7 +130,7 @@ def main():
 
     if not has_hf_deps:
         print("\n[*] Installing HuggingFace Stack & API Dependencies...")
-        run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 --ignore-installed transformers accelerate sentence-transformers tqdm wheel httpx pybind11")
+        run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 --ignore-installed transformers accelerate sentence-transformers tqdm wheel httpx pybind11 \"numpy<2\"")
 
     if has_nvidia and is_linux:
         has_flash_attn = False
