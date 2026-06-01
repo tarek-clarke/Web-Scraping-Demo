@@ -18,7 +18,10 @@ def main():
         print("[!] Error: No benchmark results directory found under results/")
         return
         
-    active_dir_name = results_subdirs[0]
+    active_dir_name = os.environ.get("ACTIVE_DIR", results_subdirs[0])
+    if active_dir_name not in results_subdirs:
+        # Fallback to the first found directory if override is invalid
+        active_dir_name = results_subdirs[0]
     active_dir_path = os.path.join('results', active_dir_name)
     print(f"[*] Detected active platform directory: {active_dir_name}")
     
