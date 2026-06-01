@@ -273,6 +273,7 @@ def run_matrix():
     with open(json_path, "w") as json_f:
         pass
         
+    run_summaries = []
     for iteration in range(1, 6):
         for run in range(1, 6):
             print(f"\n[*] Starting Iteration {iteration} Run {run}/5...")
@@ -450,7 +451,37 @@ def run_matrix():
             elapsed = time.perf_counter() - start_t
             print(f"[✓] Run {run} completed in {elapsed:.2f}s.")
             
+            # Calculate aggregate stats for the summary
+            drifted_count = len(drifted)
+            clean_count = len(clean)
+            reconciled_success_count = sum(1 for res in reconciliation_results.values() if res["success"])
+            reconciliation_rate = (reconciled_success_count / drifted_count * 100.0) if drifted_count > 0 else 100.0
+            avg_packet_ms = (elapsed * 1000.0) / len(packets)
+            
+            run_summary = {
+                "iteration": iteration,
+                "run": run,
+                "clean_packets": clean_count,
+                "drifted_packets": drifted_count,
+                "reconciliation_success_rate_pct": round(reconciliation_rate, 2),
+                "avg_processing_time_ms_per_packet": round(avg_packet_ms, 4),
+                "gpu_vram_allocated_mb": round(gpu_vram, 2),
+                "elapsed_seconds": round(elapsed, 2)
+            }
+            run_summaries.append(run_summary)
+            
     print("\n[✓] 5x5 Matrix Sweep Completed Successfully!")
+    
+    summary_path = os.path.join(log_dir, "performance_summary.json")
+    with open(summary_path, "w") as f:
+        json.dump({
+            "hardware_profile": detected_profile,
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "total_iterations": 5,
+            "runs_per_iteration": 5,
+            "run_summaries": run_summaries
+        }, f, indent=2)
+    print(f"[✓] Logged performance summary to: {summary_path}")
 
 # 6. PROGRAMMATIC CONCURRENT RACE-CONDITION MITIGATION (ATOMIC REBASE LOOP)
 def run_git(cmd):
@@ -462,8 +493,12 @@ def atomic_git_push():
     run_git(["git", "config", "--local", "user.name", "tarek-clarke"])
     run_git(["git", "config", "--local", "user.email", "tarek.clarke15@gmail.com"])
     
+    # Ensure large telemetry streams are completely untracked from git index cache
+    run_git(["git", "rm", "--cached", "-r", "logs/"])
+    
     run_git(["git", "add", "logs/"])
     run_git(["git", "add", "README.md"])
+    run_git(["git", "add", ".gitignore"])
     
     commit_msg = f"bench(telemetry): completed sweep on {detected_profile}"
     code, stdout, stderr = run_git(["git", "commit", "-m", commit_msg])
