@@ -38,17 +38,30 @@ print(f"[*] Bootstrapping execution environment: {detected_profile}")
 os.environ["HF_HUB_OFFLINE"] = "0"
 os.environ["TRANSFORMERS_OFFLINE"] = "0"
 
-print("[*] Pulling BERT and Gemma models from HF cache (once during initialization)...")
+print("[*] Verifying/pulling BERT and Gemma models from local HF cache...")
 try:
     from transformers import AutoTokenizer, AutoModel, AutoModelForCausalLM
-    AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2", local_files_only=False)
-    AutoModel.from_pretrained("sentence-transformers/all-MiniLM-L6-v2", local_files_only=False)
+    # Check if BERT is already present locally
+    try:
+        AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2", local_files_only=True)
+        print("[✓] BERT model is already cached locally. Skipping network checks.")
+    except Exception:
+        print("[*] BERT not found locally. Pulling from Hugging Face...")
+        AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2", local_files_only=False)
+        AutoModel.from_pretrained("sentence-transformers/all-MiniLM-L6-v2", local_files_only=False)
 except Exception as e:
     print(f"[!] Warning pulling BERT: {e}")
 
 try:
-    AutoTokenizer.from_pretrained("google/gemma-4-E4B-it", local_files_only=False)
-    AutoModelForCausalLM.from_pretrained("google/gemma-4-E4B-it", local_files_only=False)
+    from transformers import AutoTokenizer, AutoModelForCausalLM
+    # Check if Gemma is already present locally
+    try:
+        AutoTokenizer.from_pretrained("google/gemma-4-E4B-it", local_files_only=True)
+        print("[✓] Gemma model is already cached locally. Skipping network checks.")
+    except Exception:
+        print("[*] Gemma not found locally. Pulling from Hugging Face...")
+        AutoTokenizer.from_pretrained("google/gemma-4-E4B-it", local_files_only=False)
+        AutoModelForCausalLM.from_pretrained("google/gemma-4-E4B-it", local_files_only=False)
 except Exception as e:
     print(f"[!] Warning pulling Gemma: {e}")
 
