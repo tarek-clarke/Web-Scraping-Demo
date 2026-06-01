@@ -472,6 +472,27 @@ def run_matrix():
             
     print("\n[✓] 5x5 Matrix Sweep Completed Successfully!")
     
+    import gzip
+    import shutil
+    print("\n[*] Compressing raw telemetry streams to bypass GitHub size limits...")
+    try:
+        csv_gz = csv_path + ".gz"
+        json_gz = json_path + ".gz"
+        
+        with open(csv_path, 'rb') as f_in:
+            with gzip.open(csv_gz, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        os.remove(csv_path)
+        print(f"[✓] Compressed CSV to: {csv_gz}")
+        
+        with open(json_path, 'rb') as f_in:
+            with gzip.open(json_gz, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        os.remove(json_path)
+        print(f"[✓] Compressed JSON to: {json_gz}")
+    except Exception as e:
+        print(f"[!] Error compressing raw files: {e}")
+        
     summary_path = os.path.join(log_dir, "performance_summary.json")
     with open(summary_path, "w") as f:
         json.dump({
