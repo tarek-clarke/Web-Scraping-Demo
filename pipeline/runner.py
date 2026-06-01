@@ -292,7 +292,19 @@ def run_matrix():
             
             # Batch process drifted packets on GPU with memory maximization
             if drifted:
-                batch_size = 128 if device == "cuda" else 16
+                if device == "cuda":
+                    total_vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+                    if total_vram_gb > 100:
+                        batch_size = 1024  # H200 / B300 (141GB+)
+                    elif total_vram_gb > 40:
+                        batch_size = 512   # RTX 6000 / A100 (40GB - 80GB)
+                    else:
+                        batch_size = 256   # T4 / L4 (16GB - 24GB)
+                elif device == "mps":
+                    batch_size = 64        # Apple Silicon Mac
+                else:
+                    batch_size = 16        # CPU fallback
+                
                 for b_idx in range(0, len(drifted), batch_size):
                     batch = drifted[b_idx : b_idx + batch_size]
                     
