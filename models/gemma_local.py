@@ -117,7 +117,7 @@ class GemmaLocal:
                     discovered = cls._discover_in_cache_root(candidate_repo)
                     if discovered is not None:
                         return discovered
-            return path_obj
+            raise FileNotFoundError(f"Gemma local_path does not exist: {local_path}")
 
         env_path = os.getenv("GEMMA_LOCAL_PATH")
         if env_path:
