@@ -282,7 +282,7 @@ def run_preflight_validation(require_local_models: bool = True, strict_mode: boo
     # Check Gemma
     if enabled_methods is None or "gemma" in enabled_methods:
         try:
-            gemma = StrictGemmaModel(require_local=require_local_models)
+            gemma = StrictGemmaModel(local_path="google/gemma-4-E4B-it", require_local=require_local_models)
             preflight_status["model_source"]["gemma"] = gemma.backend
         except Exception as e:
             preflight_status["model_source"]["gemma"] = "unavailable"

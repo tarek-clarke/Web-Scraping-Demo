@@ -178,19 +178,21 @@ def main():
         pass
 
     # 2. Load Models exactly ONCE — reuse singleton from preflight
-    print("\n[*] Initialising local models (Single-Load)...")
-    bert_model = StrictBERTModel(require_local=True)
-    gemma_model = StrictGemmaModel(require_local=True)
-    
     use_30b = os.getenv("USE_GEMMA_30B", "").strip().lower() in ("1", "true", "yes")
     gemma30b_model = None
     if use_30b:
-        print("[*] Clearing VRAM cache before loading Gemma 30B...")
-        gc.collect()
-        torch.cuda.empty_cache()
-        
-        print("[*] Initialising local Gemma 30B Model for side-by-side high-fidelity reconciliation...")
+        print("[*] Loading Gemma 30B FIRST to bypass caching allocator warmup OOM...")
         gemma30b_model = StrictGemma30BModel(require_local=True)
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            import gc
+            gc.collect()
+
+    print("\n[*] Loading Gemma 4B model...")
+    gemma_model = StrictGemmaModel(local_path="google/gemma-4-E4B-it", require_local=True)
+
+    print("\n[*] Loading BERT model...")
+    bert_model = StrictBERTModel(require_local=True)
     
     print("\n[*] Instantiating reconcilers...")
     reconcilers = {
@@ -459,7 +461,7 @@ def main():
                                 if method_key == "gemma30b":
                                     batch_size = min(32, batch_size)
                                 else:
-                                    batch_size = min(128, batch_size)
+                                    batch_size = min(32, batch_size)
                                         
                                 print(f"    - Running GPU batched {method_key.upper()} (BS={batch_size}) on {len(drifted_indices)} drifted packets...", flush=True)
                                 llm_start_t = time.perf_counter()
