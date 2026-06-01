@@ -27,3 +27,5 @@ ENV/
 # Project Specific
 chaos_generator/datasets/
 matrix_state.json
+.initialized
+
