@@ -130,7 +130,7 @@ def main():
 
     if not has_hf_deps:
         print("\n[*] Installing HuggingFace Stack & API Dependencies...")
-        run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 transformers accelerate sentence-transformers tqdm wheel httpx pybind11")
+        run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 --ignore-installed transformers accelerate sentence-transformers tqdm wheel httpx pybind11")
 
     if has_nvidia and is_linux:
         has_flash_attn = False
@@ -146,7 +146,7 @@ def main():
             try:
                 # Requires ninja, wheel, and build tools to be pre-installed on the Linux cluster
                 run_cmd(f"{sys.executable} -m pip install --ignore-installed packaging ninja wheel")
-                run_cmd(f"{sys.executable} -m pip install flash-attn --no-build-isolation")
+                run_cmd(f"{sys.executable} -m pip install --ignore-installed flash-attn --no-build-isolation")
             except Exception as e:
                 print(f"[!] Warning: FlashAttention compilation failed. SDPA fallback will be used. ({e})")
             
