@@ -370,7 +370,7 @@ def main():
                                 rec_res_regex = regex_rec.reconcile(canonical_keys, query_key_full)
                                 rec_res_regex["semantic_recovery_success"] = (rec_res_regex["match"] == target_key)
                                 
-                                rec_res_lev = lev_rec.reconcile(canonical_keys, target_key)
+                                rec_res_lev = lev_rec.reconcile(canonical_keys, query_key_full)
                                 rec_res_lev["semantic_recovery_success"] = (rec_res_lev["match"] == target_key)
                                 
                                 results_list[idx]["regex"] = rec_res_regex
@@ -380,11 +380,10 @@ def main():
                             print(f"    - Running batched BERT on {len(drifted_indices)} drifted packets...", flush=True)
                             bert_start_t = time.perf_counter()
                             
-                            # Strip transient/dynamic data values to enable perfect schema-level deduplication
+                            # Construct batched queries with full payload to preserve semantic details
                             queries = []
                             for idx in drifted_indices:
-                                mutated_clean = {k: 0 for k in packets[idx]["mutated_payload"].keys()}
-                                queries.append(json.dumps(mutated_clean))
+                                queries.append(json.dumps(packets[idx]["mutated_payload"]))
                             unique_queries = list(set(queries))
                             print(f"    - Deduplicated {len(queries)} BERT queries to {len(unique_queries)} unique items...", flush=True)
                             unique_embeddings = bert_model.get_embeddings_batch(unique_queries)
@@ -461,10 +460,9 @@ def main():
                                     original = sample["original_payload"]
                                     mutated = sample["mutated_payload"]
                                     canonical_keys = list(original.keys())
-                                    mutated_clean = {k: 0 for k in mutated.keys()}
                                     prompt = (
                                         f"Given a list of canonical API schema fields: {canonical_keys}\n"
-                                        f"And a query key from a drifted/mutated schema: \"{json.dumps(mutated_clean)}\"\n\n"
+                                        f"And a query key from a drifted/mutated schema: \"{json.dumps(mutated)}\"\n\n"
                                         "Select the canonical field that is the best semantic match for this query key.\n"
                                         "Return your response strictly in the following JSON format:\n"
                                         '{"match": "canonical_field_name", "confidence": 0.0}'
@@ -572,7 +570,7 @@ def main():
                                 rec_res_regex = regex_rec.reconcile(canonical_keys, query_key_full)
                                 rec_res_regex["semantic_recovery_success"] = (rec_res_regex["match"] == target_key)
                                 
-                                rec_res_lev = lev_rec.reconcile(canonical_keys, target_key)
+                                rec_res_lev = lev_rec.reconcile(canonical_keys, query_key_full)
                                 rec_res_lev["semantic_recovery_success"] = (rec_res_lev["match"] == target_key)
                                 
                                 results_list[idx]["regex"] = rec_res_regex
@@ -584,7 +582,7 @@ def main():
                                         "match": target_key,
                                         "confidence_raw": 1.0,
                                         "syntactic_parse_time_ms": None,
-                                        "semantic_inference_time_ms": 0.0,  # Explicitly marked 0.0 for bypass tracking
+                                        "semantic_inference_time_ms": None,  # Marked None to prevent statistical dilution
                                         "fallback_triggered": False,
                                         "fallback_reason": None,
                                         "semantic_recovery_success": True
@@ -592,34 +590,39 @@ def main():
                         
                         # ─── C. WRITE STREAMING TELEMETRY (COMPRESSED & OPTIMISED) ───
                         # Write as compressed gzip .jsonl.gz to save 90% SSD space, and strip payload bloat
+                        print(f"    - Serializing and compressing {len(packets)} telemetry logs...", flush=True)
+                        telemetry_rows = []
+                        for idx, sample in enumerate(packets):
+                            original = sample["original_payload"]
+                            mutated = sample["mutated_payload"]
+                            target_key = determine_mutated_key(original, mutated)
+                            # Determine the mutated key name if a key was renamed
+                            orig_keys = set(original.keys())
+                            mut_keys = set(mutated.keys())
+                            added_keys = mut_keys - orig_keys
+                            mutated_key = list(added_keys)[0] if added_keys else None
+                            
+                            gpu_vram_allocated_mb = 0.0
+                            if torch.cuda.is_available():
+                                gpu_vram_allocated_mb = torch.cuda.memory_allocated() / (1024 * 1024)
+                            
+                            telemetry_row = {
+                                "packet_id": sample["packet_id"],
+                                "event_id": sample.get("event_id"),
+                                "timestamp": sample["timestamp"],
+                                "drift_present": sample["drift_present"],
+                                "drift_type": sample["drift_type"],
+                                "original_key": target_key,
+                                "mutated_key": mutated_key,
+                                "gpu_vram_allocated_mb": gpu_vram_allocated_mb,
+                                "per_packet_processing_time_ms": sum((results_list[idx].get(m, {}).get("semantic_inference_time_ms") or 0.0) for m in enabled_methods) + sum((results_list[idx].get(m, {}).get("syntactic_parse_time_ms") or 0.0) for m in enabled_methods),
+                                "reconciliation": results_list[idx]
+                            }
+                            telemetry_rows.append(json.dumps(telemetry_row))
+                        
+                        # Single-shot write to bypass 100,000 Python gzip write calls
                         with gzip.open(jsonl_output_path, "wt", encoding="utf-8", compresslevel=1) as out_f:
-                            for idx, sample in enumerate(packets):
-                                original = sample["original_payload"]
-                                mutated = sample["mutated_payload"]
-                                target_key = determine_mutated_key(original, mutated)
-                                # Determine the mutated key name if a key was renamed
-                                orig_keys = set(original.keys())
-                                mut_keys = set(mutated.keys())
-                                added_keys = mut_keys - orig_keys
-                                mutated_key = list(added_keys)[0] if added_keys else None
-                                
-                                gpu_vram_allocated_mb = 0.0
-                                if torch.cuda.is_available():
-                                    gpu_vram_allocated_mb = torch.cuda.memory_allocated() / (1024 * 1024)
-                                
-                                telemetry_row = {
-                                    "packet_id": sample["packet_id"],
-                                    "event_id": sample.get("event_id"),
-                                    "timestamp": sample["timestamp"],
-                                    "drift_present": sample["drift_present"],
-                                    "drift_type": sample["drift_type"],
-                                    "original_key": target_key,
-                                    "mutated_key": mutated_key,
-                                    "gpu_vram_allocated_mb": gpu_vram_allocated_mb,
-                                    "per_packet_processing_time_ms": sum((results_list[idx].get(m, {}).get("semantic_inference_time_ms") or 0.0) for m in enabled_methods) + sum((results_list[idx].get(m, {}).get("syntactic_parse_time_ms") or 0.0) for m in enabled_methods),
-                                    "reconciliation": results_list[idx]
-                                }
-                                out_f.write(json.dumps(telemetry_row) + "\n")
+                            out_f.write("\n".join(telemetry_rows) + "\n")
                         
                         # Clear reconciler query caches to keep memory flat between runs
                         reconcilers["bert"].clear_caches()
