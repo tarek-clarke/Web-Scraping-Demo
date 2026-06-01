@@ -15,23 +15,31 @@ import torch
 # Add repository root folder to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# 1. AUTO-DETECTION & SPHERON HF PROXY BOOTSTRAPPING
+# 1. AUTO-DETECTION & SPHERON/NEBIUS HF PROXY BOOTSTRAPPING
 import socket
 detected_profile = "LOCAL_MACBOOK_M4"
 is_spheron = False
+is_b300 = False
 hostname = socket.gethostname().lower()
 if "computeinstance" in hostname or "spheron" in hostname or os.path.exists("/home/spheron") or os.path.exists("/app/spheron"):
     is_spheron = True
+elif "arcane" in hostname or "nebius" in hostname or os.path.exists("/home/nebius") or os.path.exists("/app/nebius"):
+    is_b300 = True
 
 for k in os.environ:
     if k.startswith("SPHERON_") or k == "SPHERON":
         is_spheron = True
+        break
+    elif k.startswith("NEBIUS_") or k == "NEBIUS" or "B300" in k:
+        is_b300 = True
         break
 
 if "CONTAINER_ID" in os.environ or "CONTAINER_API_KEY" in os.environ:
     detected_profile = "VAST_AI_INSTANCE"
 elif is_spheron:
     detected_profile = "SPHERON_INSTANCE"
+elif is_b300:
+    detected_profile = "B300_INSTANCE"
 
 # Inject Spheron network proxy immediately before importing transformers to bypass blocks
 if detected_profile == "SPHERON_INSTANCE":
