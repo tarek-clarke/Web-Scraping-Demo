@@ -1,0 +1,30 @@
+{
+  "device_model": "B300 SXM6 AC (269GB)",
+  "vram_capacity_gb": 269,
+  "hardware_backend": "CUDA",
+  "cloud_platform": "local",
+  "concurrency_level": 1,
+  "gpu_telemetry": {
+    "gpu_clock_mhz": 2032.0,
+    "vram_clock_mhz": 3996.0,
+    "gpu_utilization_pct": 0.0,
+    "vram_utilization_pct": 0.0,
+    "power_draw_watts": 236.52
+  },
+  "run_id": "b50dc2a291a14db98c6da8887158e6da",
+  "iteration": 5,
+  "api_profile": "finnhub",
+  "chaos_strategy": "schema",
+  "workload_scale": 100000,
+  "chaos_probability": 0.05,
+  "simulated_frequency_hz": 1000,
+  "total_packets": 100000,
+  "drifted_packets": 4995,
+  "bypassed_packets": 95005,
+  "total_run_time_seconds": 45.056103193000126,
+  "bert_average_latency_ms": 0.010698431431372007,
+  "gemma_average_latency_ms": 0.3659564572572108,
+  "gemma30b_average_latency_ms": 0.0,
+  "timestamp": "2026-06-01T02:47:47.547380",
+  "pipeline_version": "9e0ba3e9-unified"
+}
