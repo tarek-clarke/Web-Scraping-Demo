@@ -153,16 +153,44 @@ def main():
     print(" UNIFIED SINGLE-PROCESS MATRIX RUNNER v2 (OPTIMIZED)")
     print("================================================================================")
     
-    # 1. Run Pre-flight Validation once (also loads models via singleton)
-    use_30b = os.getenv("USE_GEMMA_30B", "").strip().lower() in ("1", "true", "yes")
-    enabled_methods = ["regex", "levenshtein", "bert", "gemma"]
-    if use_30b:
-        enabled_methods.append("gemma30b")
+    # Parse command line arguments for highly dynamic configurations (supports target short runs)
+    import argparse
+    parser = argparse.ArgumentParser(description="Unified Single-Process Matrix Runner")
+    parser.add_argument("--apis", nargs="+", default=["finnhub", "openmeteo", "spacex", "openf1"], help="API profiles to run")
+    parser.add_argument("--strategies", nargs="+", default=["json", "schema", "gemma", "gemma30b"], help="Chaos strategies to run")
+    parser.add_argument("--methods", nargs="+", default=None, help="Reconciliation methods to run")
+    parser.add_argument("--scale", type=int, default=100000, help="Workload scale (number of packets)")
+    parser.add_argument("--iterations", type=int, default=5, help="Number of iterations")
+    parser.add_argument("--frequencies", nargs="+", type=int, default=[1000], help="Simulated frequencies")
+    parser.add_argument("--probabilities", nargs="+", type=float, default=[0.05], help="Chaos probabilities")
+    args, unknown = parser.parse_known_args()
+
+    apis = args.apis
+    strategies = args.strategies
+    scale = args.scale
+    iterations = args.iterations
+    frequencies = args.frequencies
+    probabilities = args.probabilities
+
+    # 1. Determine enabled methods and models to load
+    use_30b = "gemma30b" in strategies or (args.methods and "gemma30b" in args.methods) or (not args.methods and os.getenv("USE_GEMMA_30B", "").strip().lower() in ("1", "true", "yes"))
+    
+    if args.methods:
+        enabled_methods = args.methods
+    else:
+        enabled_methods = ["regex", "levenshtein", "bert", "gemma"]
+        if use_30b:
+            enabled_methods.append("gemma30b")
+
+    # Determine preflight validation methods
+    preflight_methods = list(enabled_methods)
+    if "gemma" in strategies and "gemma" not in preflight_methods:
+        preflight_methods.append("gemma")
         
     preflight, abort, abort_reason = run_preflight_validation(
         require_local_models=True,
         strict_mode=False,
-        enabled_methods=["regex", "levenshtein", "bert", "gemma"]
+        enabled_methods=preflight_methods
     )
     if abort:
         print(f"[!] PRE-FLIGHT ERROR: {abort_reason}")
@@ -177,8 +205,7 @@ def main():
     except Exception:
         pass
 
-    # 2. Load Models exactly ONCE — reuse singleton from preflight
-    use_30b = os.getenv("USE_GEMMA_30B", "").strip().lower() in ("1", "true", "yes")
+    # 2. Load Models conditionally based on active methods/strategies
     gemma30b_model = None
     if use_30b:
         print("[*] Loading Gemma 30B FIRST to bypass caching allocator warmup OOM...")
@@ -188,28 +215,29 @@ def main():
             import gc
             gc.collect()
 
-    print("\n[*] Loading Gemma 4B model...")
-    gemma_model = StrictGemmaModel(local_path="google/gemma-4-E4B-it", require_local=True)
+    gemma_model = None
+    if "gemma" in enabled_methods or "gemma" in strategies:
+        print("\n[*] Loading Gemma 4B model...")
+        gemma_model = StrictGemmaModel(local_path="google/gemma-4-E4B-it", require_local=True)
 
-    print("\n[*] Loading BERT model...")
-    bert_model = StrictBERTModel(require_local=True)
+    bert_model = None
+    if "bert" in enabled_methods:
+        print("\n[*] Loading BERT model...")
+        bert_model = StrictBERTModel(require_local=True)
     
     print("\n[*] Instantiating reconcilers...")
-    reconcilers = {
-        "regex": RegexReconciler(),
-        "levenshtein": LevenshteinReconciler(),
-        "bert": BERTReconciler(bert_model),
-        "gemma": GemmaReconciler(gemma_model)
-    }
-    if use_30b and gemma30b_model is not None:
-        reconcilers["gemma30b"] = GemmaReconciler(gemma30b_model)    # Matrix configuration
-    scale = 100000
-    frequencies = [1000]
-    probabilities = [0.05]
-    iterations = 5
-    apis = ["finnhub", "openmeteo", "spacex", "openf1"]
-    strategies = ["json", "schema", "gemma", "gemma30b"]
-    
+    reconcilers = {}
+    if "regex" in enabled_methods:
+        reconcilers["regex"] = RegexReconciler()
+    if "levenshtein" in enabled_methods:
+        reconcilers["levenshtein"] = LevenshteinReconciler()
+    if "bert" in enabled_methods and bert_model is not None:
+        reconcilers["bert"] = BERTReconciler(bert_model)
+    if "gemma" in enabled_methods and gemma_model is not None:
+        reconcilers["gemma"] = GemmaReconciler(gemma_model)
+    if "gemma30b" in enabled_methods and gemma30b_model is not None:
+        reconcilers["gemma30b"] = GemmaReconciler(gemma30b_model)
+
     total_runs = len(apis) * len(strategies) * len(frequencies) * len(probabilities) * iterations
     
     # 1. Clean up local telemetry directory for the active GPU to prevent failed/dirty run mixtures
