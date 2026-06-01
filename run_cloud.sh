@@ -4,6 +4,9 @@
 
 set -e # Exit immediately if a command exits with a non-zero status
 
+# Prevent CUDA memory fragmentation and OOMs during concurrent model loading
+export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+
 echo "================================================================================"
 echo " STARTING CLOUD BENCHMARK ORCHESTRATION"
 echo "================================================================================"

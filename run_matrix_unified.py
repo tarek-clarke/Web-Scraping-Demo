@@ -185,6 +185,12 @@ def main():
     use_30b = os.getenv("USE_GEMMA_30B", "").strip().lower() in ("1", "true", "yes")
     gemma30b_model = None
     if use_30b:
+        print("[*] Clearing VRAM cache before loading Gemma 30B...")
+        import gc
+        import torch
+        gc.collect()
+        torch.cuda.empty_cache()
+        
         print("[*] Initialising local Gemma 30B Model for side-by-side high-fidelity reconciliation...")
         gemma30b_model = StrictGemma30BModel(require_local=True)
     
