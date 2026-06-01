@@ -459,10 +459,18 @@ def cache_model_weights():
     print("[Bootstrap] This step will download and validate BERT (MiniLM) and Gemma locally.")
     cache_ok = True
     
+    try:
+        from transformers import AutoTokenizer, AutoModel, AutoModelForCausalLM
+        from models.gemma_local import GemmaLocal
+    except Exception as e:
+        print(f"[Bootstrap] ERROR: Failed to import HuggingFace transformers or local models ({e}).")
+        import traceback
+        traceback.print_exc()
+        return False
+    
     # 1. MiniLM
     try:
         print("[Bootstrap] Downloading BERT model: sentence-transformers/all-MiniLM-L6-v2...")
-        from transformers import AutoTokenizer, AutoModel
         AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
         AutoModel.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
         print("[Bootstrap] BERT model successfully cached.")
@@ -474,9 +482,6 @@ def cache_model_weights():
 
     # 2. Gemma-4 E4B
     try:
-        from models.gemma_local import GemmaLocal
-        from transformers import AutoModelForCausalLM, AutoTokenizer
-
         gemma_repo_id = "google/gemma-4-E4B"
 
         gemma_local_path = GemmaLocal.discover_local_path()
