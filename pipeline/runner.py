@@ -322,6 +322,8 @@ def run_matrix():
                             if "{" in raw_resp and "}" in raw_resp:
                                 raw_resp = raw_resp[raw_resp.index("{") : raw_resp.rindex("}") + 1]
                             parsed = json.loads(raw_resp)
+                            if not isinstance(parsed, dict):
+                                parsed = {}
                         except Exception:
                             parsed = {}
                         
