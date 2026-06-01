@@ -104,7 +104,20 @@ class GemmaLocal:
         """Resolve a Gemma checkpoint path from an explicit or discovered location."""
 
         if local_path:
-            return Path(local_path).expanduser().resolve()
+            path_obj = Path(local_path).expanduser().resolve()
+            if path_obj.exists():
+                return path_obj
+            # If the path doesn't exist, check if it's a Hugging Face repo ID (e.g. google/gemma-4-31B-it)
+            # and try to resolve it in the Hugging Face hub cache directory!
+            repo_cache_name = f"models--{str(local_path).replace('/', '--')}"
+            for root in cls.DEFAULT_CACHE_ROOTS:
+                resolved_root = root.expanduser()
+                candidate_repo = resolved_root / repo_cache_name
+                if candidate_repo.exists():
+                    discovered = cls._discover_in_cache_root(candidate_repo)
+                    if discovered is not None:
+                        return discovered
+            return path_obj
 
         env_path = os.getenv("GEMMA_LOCAL_PATH")
         if env_path:
