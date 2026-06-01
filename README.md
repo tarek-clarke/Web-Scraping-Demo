@@ -44,20 +44,14 @@ graph TD
 
 ## 🚀 1. Quickstart
 
-Get the framework running in a few simple steps. The system automatically detects your Python environment and optimizes the dependency wheels accordingly.
+Run the unified, high-throughput OpenF1 telemetry sweep on any platform with a single command. The runner automatically detects your hardware environment (Mac MPS, Spheron H200 CUDA, Nebius B300 CUDA, or Vast.ai CUDA), optimizes the batch size dynamically to match your GPU's VRAM capacity, compiles the model graph using `torch.compile`, executes the 5x5 matrix sweeps, compresses the raw logs into GZIP formats to bypass GitHub limits, updates this README, and auto-pushes all telemetry upstream hands-free:
 
-### ⏱️ Estimated Execution Time & Resource Requirements
+```bash
+# Execute the dynamic VRAM-scaled telemetry sweep:
+python3 pipeline/runner.py
+```
 
-The full experimental sweep consists of **48 runs** (4 APIs × 4 Chaos Strategies × 1 Frequency × 1 Chaos Probability × 3 Iterations), with each run processing a workload scale of **100,000 (100K) packets**. Due to the dynamic GPU bypass optimization (clean packets skip heavy inference), the execution time scales linearly with the chaos probability.
-
-Below are the estimated end-to-end execution times based on your hardware backend:
-
-| Hardware Tier / Accelerator | Avg. Time per Run | Full 48-Run Sweep Duration | Notes / Optimization Mode |
-| :--- | :---: | :---: | :--- |
-| **HPC Tier** (RTX 5090, RTX 6000 Blackwell, H200) | **~20 - 25 sec** | **~15 - 20 minutes** | Warp-aligned Tensor Core allocation, BS=512 |
-| **Workstation Tier** (RTX 4090, Apple M3/M4 Max) | **~50 - 75 sec** | **~40 - 60 minutes** | Optimized Local Execution, BS=256 |
-| **Standard Tier** (RTX 3080, Apple M1/M2/M3 Pro) | **~100 - 150 sec** | **~1.3 - 2.0 hours** | Local Execution with Active VRAM management, BS=128 |
-| **CPU Fallback Mode** (Threadripper / Multi-core) | **~450+ sec** | **~6+ hours** | Bypasses GPU. Force via `FORCE_HARDWARE=cpu` |
+---
 
 > [!TIP]
 > **Stateful Resumption:** The unified runner maintains a persistent state in `matrix_unified_state.json`. If your cloud container restarts, your SSH session drops, or you experience a VRAM collision, you can re-run the benchmark command and it will **automatically resume** exactly where it left off without duplicating results.
