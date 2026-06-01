@@ -92,11 +92,11 @@ def main():
         pass
 
     # 3. Formulate Install Path
-    print("\n[*] Removing conflicting pre-installed torchvision to prevent CUDA/operator mismatch...")
-    try:
-        run_cmd(f"{sys.executable} -m pip uninstall -y torchvision")
-    except Exception:
-        pass
+    # print("\n[*] Removing conflicting pre-installed torchvision to prevent CUDA/operator mismatch...")
+    # try:
+    #     run_cmd(f"{sys.executable} -m pip uninstall -y torchvision")
+    # except Exception:
+    #     pass
 
     if not has_compatible_torch:
         print("\n[*] Installing PyTorch Core...")
