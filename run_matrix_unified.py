@@ -457,6 +457,10 @@ def main():
                                     except Exception:
                                         batch_size = 64
                                         
+                                # Cap the massive 31B model batch size to avoid activation and KV cache memory OOMs
+                                if method_key == "gemma30b":
+                                    batch_size = min(32, batch_size)
+                                        
                                 print(f"    - Running GPU batched {method_key.upper()} (BS={batch_size}) on {len(drifted_indices)} drifted packets...", flush=True)
                                 llm_start_t = time.perf_counter()
                                 

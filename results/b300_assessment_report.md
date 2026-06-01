@@ -1,6 +1,6 @@
-# NVIDIA Blackwell B300 SXM6 Empirical Benchmark Assessment
+# Unknown GPU Empirical Benchmark Assessment
 1. System Performance Overview
-- **Device**: NVIDIA Blackwell B300 SXM6 (269GB VRAM)
+- **Device**: Unknown GPU (269GB)
 - **Backend**: CUDA 12.8 / PyTorch Nightly
 - **Total Runs**: 4
 - **Total Packets Processed**: 400,000
