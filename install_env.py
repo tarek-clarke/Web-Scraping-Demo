@@ -130,7 +130,7 @@ def main():
 
     if not has_hf_deps:
         print("\n[*] Installing HuggingFace Stack & API Dependencies...")
-        run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 --ignore-installed transformers accelerate sentence-transformers tqdm wheel httpx pybind11 \"numpy<2\"")
+        run_cmd(f"{sys.executable} -m pip install --default-timeout=1000 --retries 10 transformers accelerate sentence-transformers tqdm wheel httpx pybind11")
 
     if has_nvidia and is_linux:
         has_flash_attn = False
