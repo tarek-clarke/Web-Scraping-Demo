@@ -502,6 +502,32 @@ def cache_model_weights():
         import traceback
         traceback.print_exc()
 
+    # 2.5. Gemma-4 31B (Optional)
+    use_30b = os.environ.get("USE_GEMMA_30B", "").strip().lower() in ("1", "true", "yes")
+    if use_30b:
+        try:
+            gemma_30b_repo_id = "google/gemma-4-31B-it"
+            try:
+                gemma_30b_local = GemmaLocal.resolve_local_path(gemma_30b_repo_id)
+            except FileNotFoundError:
+                gemma_30b_local = None
+
+            if gemma_30b_local is None:
+                print(f"[Bootstrap] Downloading Gemma 31B model: {gemma_30b_repo_id} into the local Hugging Face cache...")
+                AutoTokenizer.from_pretrained(gemma_30b_repo_id)
+                AutoModelForCausalLM.from_pretrained(gemma_30b_repo_id)
+                gemma_30b_local = GemmaLocal.resolve_local_path(gemma_30b_repo_id)
+
+            print(f"[Bootstrap] Validating local Gemma 31B checkpoint at {gemma_30b_local}...")
+            AutoTokenizer.from_pretrained(gemma_30b_local, local_files_only=True)
+            AutoModelForCausalLM.from_pretrained(gemma_30b_local, local_files_only=True)
+            print("[Bootstrap] Gemma 31B model successfully cached.")
+        except Exception as e:
+            cache_ok = False
+            print(f"[Bootstrap] ERROR: local Gemma 31B checkpoint validation failed ({e}).")
+            import traceback
+            traceback.print_exc()
+
     return cache_ok
 
 def run_bootstrap(force=False):
