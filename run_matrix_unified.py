@@ -545,7 +545,10 @@ def main():
                                         parsed = {}
                                     
                                     match_val = parsed.get("match", canonical_keys[0])
-                                    confidence = float(parsed.get("confidence", 0.0))
+                                    try:
+                                        confidence = float(parsed.get("confidence", 0.0))
+                                    except (ValueError, TypeError):
+                                        confidence = 0.0
                                     
                                     fallback_used = False
                                     fallback_reason = None
