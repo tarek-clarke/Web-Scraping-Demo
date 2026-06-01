@@ -16,17 +16,22 @@ import torch
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # 1. AUTO-DETECTION & SPHERON HF PROXY BOOTSTRAPPING
+import socket
 detected_profile = "LOCAL_MACBOOK_M4"
+is_spheron = False
+hostname = socket.gethostname().lower()
+if "computeinstance" in hostname or "spheron" in hostname or os.path.exists("/home/spheron") or os.path.exists("/app/spheron"):
+    is_spheron = True
+
+for k in os.environ:
+    if k.startswith("SPHERON_") or k == "SPHERON":
+        is_spheron = True
+        break
+
 if "CONTAINER_ID" in os.environ or "CONTAINER_API_KEY" in os.environ:
     detected_profile = "VAST_AI_INSTANCE"
-else:
-    is_spheron = False
-    for k in os.environ:
-        if k.startswith("SPHERON_") or k == "SPHERON":
-            is_spheron = True
-            break
-    if is_spheron or os.path.exists("/home/spheron") or os.path.exists("/app/spheron"):
-        detected_profile = "SPHERON_INSTANCE"
+elif is_spheron:
+    detected_profile = "SPHERON_INSTANCE"
 
 # Inject Spheron network proxy immediately before importing transformers to bypass blocks
 if detected_profile == "SPHERON_INSTANCE":

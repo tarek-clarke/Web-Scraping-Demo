@@ -61,12 +61,15 @@ def main():
     has_nvidia = False
     has_amd = False
 
-    try:
-        res = subprocess.run(["nvidia-smi"], capture_output=True, text=True)
-        if res.returncode == 0:
-            has_nvidia = True
-    except FileNotFoundError:
-        pass
+    nvidia_smi_paths = ["nvidia-smi", "/usr/bin/nvidia-smi", "/usr/sbin/nvidia-smi", "/usr/local/cuda/bin/nvidia-smi"]
+    for path in nvidia_smi_paths:
+        try:
+            res = subprocess.run([path], capture_output=True, text=True)
+            if res.returncode == 0:
+                has_nvidia = True
+                break
+        except FileNotFoundError:
+            pass
 
     if not has_nvidia:
         # Check AMD
