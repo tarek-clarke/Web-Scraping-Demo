@@ -71,6 +71,33 @@ python3 run_matrix.py
 
 Auto-detects hardware, probes VRAM, executes 60-combination matrix.
 
+## Cloud GPU (Vast.ai / Spheron)
+
+Single command for any NVIDIA GPU instance (RTX 5090, A100, H100, etc.):
+
+```bash
+git clone https://github.com/tarek-clarke/resilient-rap-framework.git && \
+  cd resilient-rap-framework && git checkout domain_testing && cd deploy && \
+  CUDA_VERSION=12.4.0 docker-compose -f docker-compose.cloud.yml build rap-cuda && \
+  docker-compose -f docker-compose.cloud.yml run --rm rap-cuda bash -c "\
+    cd /app/models && \
+    curl -L -O https://pub-66196916eecb44259146d96cf3604b80.r2.dev/models/gemma4-e4b-it.gguf && \
+    curl -L -O https://pub-66196916eecb44259146d96cf3604b80.r2.dev/models/gemma4-31b-gguf.gguf" && \
+  docker-compose -f docker-compose.cloud.yml run --rm rap-cuda bash -c "cd /app/go/ingestion && go run main.go" && \
+  docker-compose -f docker-compose.cloud.yml up rap-cuda
+```
+
+This builds the image, downloads models, ingests 100k packets, and runs the 60-combination matrix. Results saved to Docker volume. Copy locally with:
+
+```bash
+docker cp rap-cuda-cloud:/app/data/reports ./data/reports
+```
+
+**CUDA version tips**:
+- RTX 5090 / B300 → `CUDA_VERSION=12.4.0`
+- A100 / H100 / GH200 → `CUDA_VERSION=12.3.0`
+- RTX 3090 / older drivers → `CUDA_VERSION=11.8.0`
+
 ## Platform-Specific Instructions
 
 ### NVIDIA CUDA (H100, A100, RTX 5090, RTX 6000, GH200, B300)
