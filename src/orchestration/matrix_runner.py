@@ -1,8 +1,9 @@
 import json
 import time
 import random
+import hashlib
 import numpy as np
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from ..chaos.injector import ChaosInjector
 from ..reconciliation.engine import ReconciliationEngine
@@ -20,6 +21,7 @@ class MatrixRunner:
         self.chaos_injector = ChaosInjector(chaos_rate=0.05)
         self.reconciliation_engine = ReconciliationEngine(hw_type, batch_size)
         self.telemetry = TelemetryLogger(hw_type, hw_model)
+        self._drift_cache: Dict[str, List[Dict]] = {}
 
         self.apis = ["openf1", "finnhub", "spacex", "openmeteo"]
         self.chaos_methods = ["gemma", "json_manip", "schema_alter"]
@@ -29,6 +31,17 @@ class MatrixRunner:
             ("gemma_e4b", ["gemma_e4b"]),
             ("gemma_31b", ["gemma_31b"])
         ]
+
+    def _cache_key(self, api_packets: List[Dict], chaos_method: str, seed: int) -> str:
+        h = hashlib.md5(str(len(api_packets)).encode()).hexdigest()
+        return f"{api_packets[0]['source']}_{chaos_method}_{seed}_{h}"
+
+    def _get_drifted(self, api_packets: List[Dict], chaos_method: str, seed: int) -> List[Dict]:
+        key = self._cache_key(api_packets, chaos_method, seed)
+        if key not in self._drift_cache:
+            random.seed(seed)
+            self._drift_cache[key] = self.chaos_injector.inject(api_packets)
+        return self._drift_cache[key]
 
     def run(self, packets: List[Dict]) -> Dict:
         results = {
@@ -52,9 +65,12 @@ class MatrixRunner:
                 for api in self.apis:
                     api_packets = [p for p in packets if p.get("source") == api]
                     for chaos_method in self.chaos_methods:
+                        seeds = [random.randint(0, 2**31) for _ in range(self.repetitions)]
+                        for _ in seeds:
+                            pass  # already generated
                         for reconciler in reconcilers:
                             for rep in range(self.repetitions):
-                                seed = random.randint(0, 2**31)
+                                seed = seeds[rep]
                                 future = executor.submit(
                                     self._run_combination,
                                     api_packets, api, chaos_method, reconciler,
@@ -84,47 +100,43 @@ class MatrixRunner:
             })
             print(f"  Completed in {phase_time:.0f} ms")
 
+        self._drift_cache.clear()
         self.telemetry.log_results(results)
         return results
 
     def _run_combination(self, packets: List[Dict], api: str, chaos_method: str,
                          reconciler: str, phase: str, iteration: int, seed: int) -> Dict:
-        random.seed(seed)
         start_time = time.perf_counter()
-        drifted = self.chaos_injector.inject(packets)
+        drifted = self._get_drifted(packets, chaos_method, seed)
 
         drift_events = []
         accuracies = []
         latencies = []
+        all_mapped = []
+        all_unmapped = []
 
         for idx, (orig, drift) in enumerate(zip(packets, drifted)):
             if orig != drift:
                 rec_result = self.reconciliation_engine.reconcile(orig, drift, reconciler)
                 accuracies.append(rec_result["accuracy"])
                 latencies.append(rec_result["latency_ms"])
+                all_mapped.append((idx, rec_result.get("mapped_fields", [])))
+                all_unmapped.append((idx, rec_result.get("unmapped_fields", [])))
 
-                for src, dst in rec_result.get("mapped_fields", []):
-                    drift_events.append({
-                        "phase": phase,
-                        "api": api,
-                        "chaos_method": chaos_method,
-                        "reconciler": reconciler,
-                        "iteration": iteration,
-                        "packet_idx": idx,
-                        "source_field": src,
-                        "drifted_field": dst,
-                    })
-                for src in rec_result.get("unmapped_fields", []):
-                    drift_events.append({
-                        "phase": phase,
-                        "api": api,
-                        "chaos_method": chaos_method,
-                        "reconciler": reconciler,
-                        "iteration": iteration,
-                        "packet_idx": idx,
-                        "source_field": src,
-                        "drifted_field": None,
-                    })
+        for idx, mapped in all_mapped:
+            for src, dst in mapped:
+                drift_events.append({
+                    "phase": phase, "api": api, "chaos_method": chaos_method,
+                    "reconciler": reconciler, "iteration": iteration,
+                    "packet_idx": idx, "source_field": src, "drifted_field": dst,
+                })
+        for idx, unmapped in all_unmapped:
+            for src in unmapped:
+                drift_events.append({
+                    "phase": phase, "api": api, "chaos_method": chaos_method,
+                    "reconciler": reconciler, "iteration": iteration,
+                    "packet_idx": idx, "source_field": src, "drifted_field": None,
+                })
 
         total_time = (time.perf_counter() - start_time) * 1000
         throughput = len(packets) / (total_time / 1000) if total_time > 0 else 0
@@ -132,12 +144,8 @@ class MatrixRunner:
         hosseini = self._hosseini_resilience(acc, 1.0, total_time / 1000)
 
         return {
-            "phase": phase,
-            "api": api,
-            "chaos_method": chaos_method,
-            "reconciler": reconciler,
-            "iteration": iteration,
-            "seed": seed,
+            "phase": phase, "api": api, "chaos_method": chaos_method,
+            "reconciler": reconciler, "iteration": iteration, "seed": seed,
             "accuracy": acc,
             "avg_latency_ms": sum(latencies) / len(latencies) if latencies else 0.0,
             "min_latency_ms": min(latencies) if latencies else 0.0,
@@ -168,8 +176,7 @@ class MatrixRunner:
             }
 
         return {
-            "phase": iters[0]["phase"],
-            "api": iters[0]["api"],
+            "phase": iters[0]["phase"], "api": iters[0]["api"],
             "chaos_method": iters[0]["chaos_method"],
             "reconciler": iters[0]["reconciler"],
             "n_iterations": len(iters),
@@ -185,6 +192,4 @@ class MatrixRunner:
     def _hosseini_resilience(self, degraded: float, baseline: float, duration_s: float) -> float:
         if baseline == 0 or duration_s == 0:
             return 0.0
-        auc = degraded * duration_s
-        max_auc = baseline * duration_s
-        return float(np.clip(auc / max_auc, 0.0, 1.0))
+        return float(np.clip((degraded * duration_s) / (baseline * duration_s), 0.0, 1.0))

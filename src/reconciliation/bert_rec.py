@@ -2,6 +2,7 @@ import os
 import time
 from typing import Dict, List
 from pathlib import Path
+import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -32,10 +33,8 @@ class BERTReconciler:
     def reconcile(self, original: Dict, drifted: Dict) -> Dict:
         if not self.model:
             return {
-                "accuracy": 0.0,
-                "latency_ms": 0.0,
-                "mapped_fields": [],
-                "unmapped_fields": list(original.keys()),
+                "accuracy": 0.0, "latency_ms": 0.0,
+                "mapped_fields": [], "unmapped_fields": list(original.keys()),
                 "batch_size": self.batch_size
             }
 
@@ -44,25 +43,31 @@ class BERTReconciler:
         orig_keys = list(original.keys())
         drift_keys = list(drifted.keys())
 
-        orig_embeddings = self.model.encode(orig_keys, batch_size=self.batch_size)
-        drift_embeddings = self.model.encode(drift_keys, batch_size=self.batch_size)
+        if not orig_keys or not drift_keys:
+            return {
+                "accuracy": 0.0, "latency_ms": (time.perf_counter() - start) * 1000,
+                "mapped_fields": [], "unmapped_fields": orig_keys,
+                "batch_size": self.batch_size
+            }
+
+        orig_emb = self.model.encode(orig_keys, batch_size=self.batch_size)
+        drift_emb = self.model.encode(drift_keys, batch_size=self.batch_size)
+
+        # Vectorized cosine similarity: (N x D) @ (D x M) = N x M
+        orig_norm = orig_emb / np.linalg.norm(orig_emb, axis=1, keepdims=True)
+        drift_norm = drift_emb / np.linalg.norm(drift_emb, axis=1, keepdims=True)
+        sim_matrix = np.dot(orig_norm, drift_norm.T)  # (n_orig x n_drift)
 
         mapped = []
         unmapped = []
         total_score = 0.0
 
         for i, ok in enumerate(orig_keys):
-            best_match = None
-            best_sim = 0.0
-
-            for j, dk in enumerate(drift_keys):
-                sim = self._cosine_similarity(orig_embeddings[i], drift_embeddings[j])
-                if sim > best_sim:
-                    best_sim = sim
-                    best_match = dk
+            best_idx = np.argmax(sim_matrix[i])
+            best_sim = sim_matrix[i, best_idx]
 
             if best_sim > 0.7:
-                mapped.append((ok, best_match))
+                mapped.append((ok, drift_keys[best_idx]))
                 total_score += best_sim
             else:
                 unmapped.append(ok)
@@ -71,13 +76,7 @@ class BERTReconciler:
         latency = (time.perf_counter() - start) * 1000
 
         return {
-            "accuracy": accuracy,
-            "latency_ms": latency,
-            "mapped_fields": mapped,
-            "unmapped_fields": unmapped,
+            "accuracy": accuracy, "latency_ms": latency,
+            "mapped_fields": mapped, "unmapped_fields": unmapped,
             "batch_size": self.batch_size
         }
-
-    def _cosine_similarity(self, a, b):
-        import numpy as np
-        return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
