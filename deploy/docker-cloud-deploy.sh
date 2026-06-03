@@ -6,11 +6,24 @@ echo "=== Resilient RAP Framework - Docker Cloud Deployment ==="
 
 COMPOSE_FILE=${1:-docker-compose.cloud.yml}
 HARDWARE_TYPE=${2:-cuda}
+CUDA_VERSION=${3:-12.3.0}
+ROCM_VERSION=${4:-6.0}
+UBUNTU_VERSION=${5:-22.04}
+PYTORCH_VERSION=${6:-2.1.1}
 
 echo "Using compose file: $COMPOSE_FILE"
 echo "Hardware type: $HARDWARE_TYPE"
-
+echo "CUDA Version: $CUDA_VERSION"
+echo "ROCm Version: $ROCM_VERSION"
+echo "Ubuntu Version: $UBUNTU_VERSION"
+echo "PyTorch Version: $PYTORCH_VERSION"
 echo ""
+
+export CUDA_VERSION
+export ROCM_VERSION
+export UBUNTU_VERSION
+export PYTORCH_VERSION
+
 echo "Building Docker image..."
 docker-compose -f $COMPOSE_FILE build rap-$HARDWARE_TYPE
 
@@ -48,4 +61,4 @@ echo ""
 echo "=== Execution Complete ==="
 echo "Results saved to Docker volume: rap-data"
 echo "To copy results locally:"
-echo "  docker cp rap-cuda-cloud:/app/data/reports ./data/reports"
+echo "  docker cp rap-${HARDWARE_TYPE}-cloud:/app/data/reports ./data/reports"

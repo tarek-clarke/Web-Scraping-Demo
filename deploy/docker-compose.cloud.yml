@@ -5,7 +5,10 @@ services:
     build:
       context: ../..
       dockerfile: deploy/docker/Dockerfile.cuda
-    image: resilient-rap:cuda
+      args:
+        CUDA_VERSION: ${CUDA_VERSION:-12.3.0}
+        UBUNTU_VERSION: ${UBUNTU_VERSION:-22.04}
+    image: resilient-rap:cuda-${CUDA_VERSION:-12.3.0}-ubuntu${UBUNTU_VERSION:-22.04}
     container_name: rap-cuda-cloud
     runtime: nvidia
     environment:

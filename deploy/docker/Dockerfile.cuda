@@ -1,11 +1,17 @@
-FROM nvidia/cuda:12.3.0-devel-ubuntu22.04 as builder
+ARG CUDA_VERSION=12.3.0
+ARG UBUNTU_VERSION=22.04
+
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION} as builder
+
+ARG CUDA_VERSION=12.3.0
+ARG PYTHON_VERSION=3.11
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 
 RUN apt-get update && apt-get install -y \
-    python3.11 \
-    python3.11-venv \
+    python${PYTHON_VERSION} \
+    python${PYTHON_VERSION}-venv \
     python3-pip \
     golang-go \
     git \
@@ -14,21 +20,36 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-RUN python3.11 -m venv /opt/venv
+RUN python${PYTHON_VERSION} -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-COPY requirements.txt .
+COPY requirements-base.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements-base.txt
 
-FROM nvidia/cuda:12.3.0-runtime-ubuntu22.04
+RUN if [ "$CUDA_VERSION" = "11.8.0" ]; then \
+        pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu118; \
+    elif [ "$CUDA_VERSION" = "12.1.0" ]; then \
+        pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu121; \
+    elif [ "$CUDA_VERSION" = "12.3.0" ]; then \
+        pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu121; \
+    elif [ "$CUDA_VERSION" = "12.4.0" ]; then \
+        pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu124; \
+    else \
+        pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu121; \
+    fi
+
+FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
+
+ARG CUDA_VERSION=12.3.0
+ARG PYTHON_VERSION=3.11
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PATH="/opt/venv/bin:$PATH"
 
 RUN apt-get update && apt-get install -y \
-    python3.11 \
+    python${PYTHON_VERSION} \
     golang-go \
     curl \
     && rm -rf /var/lib/apt/lists/*
@@ -44,7 +65,7 @@ RUN cd go/ingestion && go mod download
 RUN mkdir -p /app/models /app/data/ingested /app/data/chaos_log /app/data/reports
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python3 -c "import torch; print('CUDA available:', torch.cuda.is_available())" || exit 1
+    CMD python3 -c "import torch; print('CUDA available:', torch.cuda.is_available()); print('CUDA version:', torch.version.cuda)" || exit 1
 
 ENTRYPOINT ["python3"]
 CMD ["run_matrix.py"]

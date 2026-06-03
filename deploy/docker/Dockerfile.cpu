@@ -1,3 +1,5 @@
+ARG UBUNTU_VERSION=22.04
+
 FROM python:3.11-slim as builder
 
 ENV PYTHONUNBUFFERED=1
@@ -10,9 +12,10 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY requirements-base.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements-base.txt && \
+    pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
 FROM python:3.11-slim
 

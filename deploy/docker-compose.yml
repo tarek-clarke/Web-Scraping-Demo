@@ -5,7 +5,10 @@ services:
     build:
       context: ../..
       dockerfile: deploy/docker/Dockerfile.cuda
-    image: resilient-rap:cuda
+      args:
+        CUDA_VERSION: ${CUDA_VERSION:-12.3.0}
+        UBUNTU_VERSION: ${UBUNTU_VERSION:-22.04}
+    image: resilient-rap:cuda-${CUDA_VERSION:-12.3.0}-ubuntu${UBUNTU_VERSION:-22.04}
     container_name: rap-cuda
     runtime: nvidia
     environment:
@@ -29,7 +32,11 @@ services:
     build:
       context: ../..
       dockerfile: deploy/docker/Dockerfile.rocm
-    image: resilient-rap:rocm
+      args:
+        ROCM_VERSION: ${ROCM_VERSION:-6.0}
+        UBUNTU_VERSION: ${UBUNTU_VERSION:-22.04}
+        PYTORCH_VERSION: ${PYTORCH_VERSION:-2.1.1}
+    image: resilient-rap:rocm-${ROCM_VERSION:-6.0}-ubuntu${UBUNTU_VERSION:-22.04}
     container_name: rap-rocm
     environment:
       - PYTHONUNBUFFERED=1
@@ -49,7 +56,9 @@ services:
     build:
       context: ../..
       dockerfile: deploy/docker/Dockerfile.cpu
-    image: resilient-rap:cpu
+      args:
+        UBUNTU_VERSION: ${UBUNTU_VERSION:-22.04}
+    image: resilient-rap:cpu-ubuntu${UBUNTU_VERSION:-22.04}
     container_name: rap-cpu
     environment:
       - PYTHONUNBUFFERED=1
@@ -64,7 +73,9 @@ services:
     build:
       context: ../..
       dockerfile: deploy/docker/Dockerfile.cpu
-    image: resilient-rap:cpu
+      args:
+        UBUNTU_VERSION: ${UBUNTU_VERSION:-22.04}
+    image: resilient-rap:cpu-ubuntu${UBUNTU_VERSION:-22.04}
     container_name: rap-ingestion
     environment:
       - PYTHONUNBUFFERED=1
