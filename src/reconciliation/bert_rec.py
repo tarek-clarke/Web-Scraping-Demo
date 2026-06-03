@@ -16,7 +16,7 @@ class BERTReconciler:
     def _load_model(self):
         try:
             from sentence_transformers import SentenceTransformer
-            model_path = str(ROOT / "models" / "all-MiniLM-L6-v2")
+            model_path = str(ROOT / "models" / "bert-minilm-v2")
             if not os.path.exists(model_path):
                 print(f"ERROR: BERT model not found at {model_path}")
                 print("Run: ./models/download_from_r2.sh")

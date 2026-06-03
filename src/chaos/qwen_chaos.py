@@ -6,15 +6,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent.parent
 
 class QwenChaos:
-    """
-    Qwen2.5-7B-Instruct chaos generator.
-    Prompt: temperature=0.9 for creative semantic field renames.
-    Different family from Gemma reconcilers — zero weight overlap.
-    """
-
     def __init__(self, model_path: Optional[str] = None):
         if model_path is None:
-            model_path = str(ROOT / "models" / "qwen2.5-7b-instruct-q4_k_m.gguf")
+            model_path = str(ROOT / "models" / "Qwen2.5-7B-Instruct-Q4_K_M.gguf")
         self.model_path = model_path
         self.model = None
 

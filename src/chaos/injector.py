@@ -18,7 +18,7 @@ class ChaosInjector:
             "json_manip": self._apply_json_drift,
             "schema_alter": self._apply_schema_drift,
         }
-        self.qwen_chaos = QwenChaos(str(ROOT / "models" / "qwen2.5-7b-instruct-q4_k_m.gguf"))
+        self.qwen_chaos = QwenChaos(str(ROOT / "models" / "Qwen2.5-7B-Instruct-Q4_K_M.gguf"))
         self.json_chaos = JSONChaos()
         self.schema_chaos = SchemaChaos()
 
