@@ -1,7 +1,7 @@
 services:
   rap-cuda:
     build:
-      context: ../..
+      context: ..
       dockerfile: deploy/docker/Dockerfile.cuda
       args:
         CUDA_VERSION: ${CUDA_VERSION:-13.3.0}

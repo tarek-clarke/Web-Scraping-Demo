@@ -1,7 +1,7 @@
 services:
   rap-cuda:
     build:
-      context: ../..
+      context: ..
       dockerfile: deploy/docker/Dockerfile.cuda
       args:
         CUDA_VERSION: ${CUDA_VERSION:-13.3.0}
@@ -13,9 +13,9 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - PYTHONUNBUFFERED=1
     volumes:
-      - ../../models:/app/models:ro
-      - ../../data:/app/data
-      - ../../configs:/app/configs:ro
+      - ../models:/app/models:ro
+      - ../data:/app/data
+      - ../configs:/app/configs:ro
     deploy:
       resources:
         reservations:
@@ -28,7 +28,7 @@ services:
 
   rap-rocm:
     build:
-      context: ../..
+      context: ..
       dockerfile: deploy/docker/Dockerfile.rocm
       args:
         ROCM_VERSION: ${ROCM_VERSION:-7.2.4}
@@ -40,9 +40,9 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     volumes:
-      - ../../models:/app/models:ro
-      - ../../data:/app/data
-      - ../../configs:/app/configs:ro
+      - ../models:/app/models:ro
+      - ../data:/app/data
+      - ../configs:/app/configs:ro
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri
@@ -53,33 +53,29 @@ services:
 
   rap-cpu:
     build:
-      context: ../..
+      context: ..
       dockerfile: deploy/docker/Dockerfile.cpu
-      args:
-        UBUNTU_VERSION: ${UBUNTU_VERSION:-26.04}
     image: resilient-rap:cpu-ubuntu${UBUNTU_VERSION:-26.04}
     container_name: rap-cpu
     environment:
       - PYTHONUNBUFFERED=1
     volumes:
-      - ../../models:/app/models:ro
-      - ../../data:/app/data
-      - ../../configs:/app/configs:ro
+      - ../models:/app/models:ro
+      - ../data:/app/data
+      - ../configs:/app/configs:ro
     command: ["run_matrix.py"]
     restart: unless-stopped
 
   ingestion:
     build:
-      context: ../..
+      context: ..
       dockerfile: deploy/docker/Dockerfile.cpu
-      args:
-        UBUNTU_VERSION: ${UBUNTU_VERSION:-26.04}
     image: resilient-rap:cpu-ubuntu${UBUNTU_VERSION:-26.04}
     container_name: rap-ingestion
     environment:
       - PYTHONUNBUFFERED=1
     volumes:
-      - ../../data:/app/data
+      - ../data:/app/data
     working_dir: /app/go/ingestion
     command: ["sh", "-c", "go run main.go"]
     restart: "no"
