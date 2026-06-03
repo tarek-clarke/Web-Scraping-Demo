@@ -1,5 +1,5 @@
 ARG CUDA_VERSION=13.3.0
-ARG UBUNTU_VERSION=26.04
+ARG UBUNTU_VERSION=24.04
 
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION} as builder
 
@@ -41,11 +41,13 @@ RUN if [ "$CUDA_VERSION" = "11.8.0" ]; then \
         pip install --no-cache-dir torch; \
     fi
 
-FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
-
 ARG CUDA_VERSION=13.3.0
+ARG UBUNTU_VERSION=24.04
 ARG PYTHON_VERSION=3.12
 
+FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
+
+ARG PYTHON_VERSION=3.12
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PATH="/opt/venv/bin:$PATH"
