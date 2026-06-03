@@ -11,6 +11,12 @@ class GemmaE4BReconciler:
 
     def _load_model(self, hardware_profile: str):
         try:
+            import os
+            if not os.path.exists(self.model_path):
+                print(f"ERROR: Gemma E4B model not found at {self.model_path}")
+                print("Run: ./models/download_from_r2.sh")
+                return
+            
             from llama_cpp import Llama
             n_gpu_layers = -1 if hardware_profile in ["cuda", "rocm"] else 0
             self.model = Llama(
