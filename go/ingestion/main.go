@@ -22,7 +22,7 @@ const (
 func main() {
 	os.MkdirAll(OutputDir, 0755)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
 
 	var totalPackets int64
