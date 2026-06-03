@@ -22,7 +22,7 @@ const (
 func main() {
 	os.MkdirAll(OutputDir, 0755)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	var totalPackets int64
@@ -68,14 +68,28 @@ func main() {
 	os.Symlink(absPath, latestPath)
 
 	var packets []clients.Packet
+	logTicker := time.NewTicker(10 * time.Second)
+	defer logTicker.Stop()
 
-	for packet := range packetChan {
-		if atomic.LoadInt64(&totalPackets) >= TargetPackets {
-			cancel()
-			break
+	for {
+		select {
+		case packet, ok := <-packetChan:
+			if !ok {
+				goto done
+			}
+			packets = append(packets, packet)
+			if atomic.LoadInt64(&totalPackets) >= TargetPackets {
+				cancel()
+				goto done
+			}
+		case <-logTicker.C:
+			log.Printf("Progress: %d packets collected", len(packets))
+		case <-ctx.Done():
+			log.Printf("Timeout reached: %d packets collected", len(packets))
+			goto done
 		}
-		packets = append(packets, packet)
 	}
+done:
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
