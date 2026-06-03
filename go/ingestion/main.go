@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"resilient-rap/ingestion/clients"
 	"sync"
 	"sync/atomic"
@@ -61,9 +62,10 @@ func main() {
 	}
 	defer file.Close()
 
+	absPath, _ := filepath.Abs(file.Name())
 	latestPath := fmt.Sprintf("%s/telemetry_latest.json", OutputDir)
 	os.Remove(latestPath)
-	os.Symlink(file.Name(), latestPath)
+	os.Symlink(absPath, latestPath)
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
