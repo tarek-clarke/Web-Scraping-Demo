@@ -34,6 +34,17 @@ services:
       retries: 3
       start_period: 60s
 
+  ingestion:
+    image: resilient-rap:cuda-${CUDA_VERSION:-13.3.0}-ubuntu${UBUNTU_VERSION:-24.04}
+    container_name: rap-ingestion-cloud
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - rap-data:/app/data
+    working_dir: /app/go/ingestion
+    command: ["sh", "-c", "go run main.go"]
+    restart: "no"
+
 volumes:
   rap-models:
     driver: local
