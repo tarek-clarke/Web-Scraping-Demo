@@ -28,7 +28,7 @@ Executes 60-combination matrix: **4 APIs × 3 Chaos Types × 5 Reconcilers** acr
 | NVIDIA H100 | CUDA | 80 GB | 8 | 32 | Docker CUDA |
 | NVIDIA A100 | CUDA | 80 GB | 8 | 32 | Slurm (TalTech) |
 | NVIDIA RTX 5090 | CUDA | 32 GB | 3 | 16 | Docker CUDA |
-| NVIDIA RTX 6000 | CUDA | 48 GB | 5 | 16 | Docker CUDA |
+| NVIDIA RTX 6000 Blackwell WS | CUDA | 96 GB | 12 | 32 | Docker CUDA |
 | NVIDIA GH200 | CUDA | 96 GB | 10 | 32 | Docker CUDA |
 | NVIDIA B300 | CUDA | 288 GB | 20 | 64 | Docker CUDA |
 | AMD MI250X | ROCm | 128 GB | 12 | 32 | Slurm (LUMI) |
@@ -162,26 +162,90 @@ Results saved to `data/reports/<hardware_type>/`:
 - **Total Time**: End-to-end matrix execution time (ms)
 - **Batch Size**: GPU batch size for model inference (auto-scaled by VRAM)
 
-## Chaos Methods
+## Methodology
 
-1. **Gemma4-e4b-it**: LLM-generated semantic drift
-2. **JSON Manipulation**: Noise injection, key shuffling, nested wrapping
-3. **Schema Alteration**: Type coercion, field renaming, nested flattening
+### Execution Phases
 
-### Drift Types
+The matrix executes in **4 sequential phases**, each phase running concurrently within itself:
+
+| Phase | Reconcilers | Combos | Runtime | Notes |
+|-------|-------------|--------|---------|-------|
+| 1. Fast | Levenshtein, Regex | 24 | ~6s each | CPU-bound, warmup |
+| 2. BERT | BERT (MiniLM-v2) | 12 | ~30-60s each | GPU batch encoding |
+| 3. Gemma E4B | Gemma4-E4B-it | 12 | ~1-10 min each | LLM-based, GPU |
+| 4. Gemma 31B | Gemma4-31b-gguf | 12 | ~2-20 min each | Large LLM, GPU |
+
+**BERT and Gemma never run simultaneously.** Each GPU model type gets exclusive hardware access during its phase with `concurrent_runs` parallel instances.
+
+### Full Combination Matrix (60 Runs)
+
+```
+Phase 1: Fast CPU (24 runs)
+├── Levenshtein × 12
+│   ├── openf1 × (gemma, json_manip, schema_alter)
+│   ├── finnhub × (gemma, json_manip, schema_alter)
+│   ├── spacex × (gemma, json_manip, schema_alter)
+│   └── openmeteo × (gemma, json_manip, schema_alter)
+└── Regex × 12 (same structure)
+
+Phase 2: BERT (12 runs)
+└── BERT × 12
+    ├── openf1 × (gemma, json_manip, schema_alter)
+    ├── finnhub × (gemma, json_manip, schema_alter)
+    ├── spacex × (gemma, json_manip, schema_alter)
+    └── openmeteo × (gemma, json_manip, schema_alter)
+
+Phase 3: Gemma E4B (12 runs)
+└── Gemma4-E4B-it × 12 (same structure)
+
+Phase 4: Gemma 31B (12 runs)
+└── Gemma4-31b-gguf × 12 (same structure)
+```
+
+### Run Criteria
+
+Each combination processes one API source through one chaos method and one reconciler:
+
+| Criterion | Values | Count |
+|-----------|--------|-------|
+| API Source | OpenF1, Finnhub, SpaceX, OpenMeteo | 4 |
+| Chaos Method | Gemma4-e4b-it (LLM drift), JSON manipulation (noise/shuffle/wrap), Schema alteration (coerce/rename/flatten) | 3 |
+| Reconciler | Levenshtein (edit distance), Regex (pattern match), BERT (embedding sim), Gemma4-E4B-it (LLM), Gemma4-31b-gguf (LLM) | 5 |
+| **Total** | | **60** |
+
+### Hardware Volume
+
+- **100,000 packets** total ingested (25,000 per API)
+- **5,000 chaos injections** (5% of packets randomly selected)
+- **1,250 drifted packets per combination**
+- **100Hz ingestion rate** per source (adaptive throttling)
+
+### Chaos Methods
+
+1. **Gemma4-e4b-it** — LLM-generated semantic drift (field renames, value transformations)
+2. **JSON Manipulation** — Noise injection, key shuffling, nested wrapping
+3. **Schema Alteration** — Type coercion, field renaming, nested flattening
+
+#### Drift Types
 
 - **Field Split**: `temperature` → `temperature_part1`, `temperature_part2`
 - **Field Join**: `speed` + `direction` → `speed_direction`
 - **Translation**: `temperature` → `temp_c`
 - **Variable Drop**: Random field deletion
 
-## Reconciliation Methods
+### Reconciliation Methods
 
-1. **Levenshtein**: Edit distance-based fuzzy matching (threshold ≤ 3)
-2. **Regex**: Pattern-based semantic matching
-3. **BERT (MiniLM-v2)**: Embedding similarity (threshold > 0.7)
-4. **Gemma4-E4B-it**: LLM-based field mapping (small model)
-5. **Gemma4-31b-gguf**: LLM-based field mapping (large model, quantized)
+1. **Levenshtein** — Edit distance fuzzy matching (threshold ≤ 3). Fast, deterministic.
+2. **Regex** — Pattern-based semantic matching using predefined field patterns. Fast, deterministic.
+3. **BERT (MiniLM-v2)** — Sentence embedding cosine similarity (threshold > 0.7). GPU-accelerated batch encoding.
+4. **Gemma4-E4B-it** — 4B parameter LLM for schema field mapping. GPU-accelerated via llama.cpp.
+5. **Gemma4-31b-gguf** — 31B parameter quantized LLM for schema field mapping. GPU-accelerated via llama.cpp.
+
+### Hardware Scaling
+
+- GPU compute scaled to VRAM via `VRAMProber` at startup
+- BERT and Gemma models use exclusive GPU time in separate phases
+- Concurrent runs within each phase = `free_vram_gb / 8`
 
 ## Dependencies
 
