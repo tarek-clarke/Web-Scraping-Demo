@@ -3,6 +3,7 @@ import json
 import sys
 import os
 import time as time_mod
+import argparse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from src.hardware.detector import HardwareDetector
@@ -10,6 +11,10 @@ from src.hardware.vram_prober import VRAMProber
 from src.orchestration.matrix_runner import MatrixRunner
 
 def main():
+    parser = argparse.ArgumentParser(description="Resilient RAP Framework")
+    parser.add_argument("--repetitions", type=int, default=3, help="Iterations per combination (default: 3)")
+    args = parser.parse_args()
+
     run_start = time_mod.time()
 
     print("=== Resilient RAP Framework ===\n")
@@ -29,7 +34,8 @@ def main():
     print(f"Driver: {hardware.get('driver', 'N/A')}")
     print(f"OS: {hardware['os']}")
     print(f"Concurrent Runs: {vram_info['concurrent_runs']}")
-    print(f"Batch Size: {vram_info['batch_size']}\n")
+    print(f"Batch Size: {vram_info['batch_size']}")
+    print(f"Iterations: {args.repetitions}\n")
 
     packets_file = "data/ingested/telemetry_latest.json"
     if not os.path.exists(packets_file):
@@ -44,10 +50,13 @@ def main():
     runner = MatrixRunner(
         hardware_profile=hardware,
         concurrent_runs=vram_info['concurrent_runs'],
-        batch_size=vram_info['batch_size']
+        batch_size=vram_info['batch_size'],
+        repetitions=args.repetitions
     )
 
-    print("Running matrix (60 combinations in 4 phases)...\n")
+    total_runs = len(runner.apis) * len(runner.chaos_methods) * 5 * args.repetitions
+    print(f"Running {total_runs} matrix runs ({4} APIs x {3} chaos x 5 reconcilers x {args.repetitions} iterations)...\n")
+
     results = runner.run(packets)
 
     results["run_metadata"] = {
@@ -72,7 +81,8 @@ def main():
         "method_reference": "Hosseini, S., Barker, K., & Ramirez-Marquez, J.E. (2016). A review of definitions and measures of system resilience. Reliability Engineering & System Safety, 145, 47-61."
     }
 
-    print(f"\nCompleted {len(results['matrix'])} matrix runs in {results['run_metadata']['total_duration_s']:.0f}s")
+    print(f"\nCompleted {len(results['matrix'])} aggregated combinations ({len(results['iterations'])} total iterations)")
+    print(f"Duration: {results['run_metadata']['total_duration_s']:.0f}s")
     print(f"Results saved to data/reports/{hardware['type']}/")
 
 if __name__ == "__main__":

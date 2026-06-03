@@ -7,14 +7,14 @@ from datetime import datetime
 class TelemetryLogger:
     def __init__(self, hardware_profile: str):
         self.hardware_profile = hardware_profile
-        self.output_dir = f"../../data/reports/{hardware_profile}"
+        self.output_dir = f"data/reports/{hardware_profile}"
         os.makedirs(self.output_dir, exist_ok=True)
 
     def log_results(self, results: Dict):
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-
         self._write_manifest(results, timestamp)
         self._write_csv(results, timestamp)
+        self._write_iterations_csv(results, timestamp)
         self._write_latex(results, timestamp)
         self._write_json(results, timestamp)
 
@@ -22,7 +22,6 @@ class TelemetryLogger:
         meta = results.get("run_metadata", {})
         hw = meta.get("hardware", {})
         filepath = f"{self.output_dir}/manifest_{timestamp}.json"
-
         manifest = {
             "run_id": timestamp,
             "hardware_model": hw.get("model", "unknown"),
@@ -36,58 +35,101 @@ class TelemetryLogger:
             "python_version": hw.get("python_version", "unknown"),
             "concurrent_runs": hw.get("concurrent_runs", 1),
             "batch_size": hw.get("batch_size", 1),
+            "repetitions": results.get("repetitions", 3),
             "total_duration_s": round(meta.get("total_duration_s", 0), 2),
             "total_packets": meta.get("total_packets", 0),
+            "total_iterations": len(results.get("iterations", [])),
+            "total_aggregates": len(results.get("matrix", [])),
             "cite_method": meta.get("cite_method", ""),
             "method_reference": meta.get("method_reference", ""),
-            "phases": results.get("phases", []),
-            "matrix_count": len(results.get("matrix", []))
+            "phases": results.get("phases", [])
         }
-
         with open(filepath, 'w') as f:
             json.dump(manifest, f, indent=2)
 
     def _write_csv(self, results: Dict, timestamp: str):
         filepath = f"{self.output_dir}/matrix_results_{timestamp}.csv"
-
         with open(filepath, 'w', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=[
-                "phase", "api", "chaos_method", "reconciler",
-                "accuracy", "avg_latency_ms", "min_latency_ms", "max_latency_ms",
-                "total_time_ms", "throughput_pps", "packets_processed",
-                "batch_size", "hosseini_resilience"
+                "phase", "api", "chaos_method", "reconciler", "n_iterations",
+                "accuracy_mean", "accuracy_std", "accuracy_min", "accuracy_max",
+                "hosseini_mean", "hosseini_std", "hosseini_min", "hosseini_max",
+                "latency_mean_ms", "latency_std_ms",
+                "throughput_mean_pps", "throughput_std_pps",
+                "throughput_min_pps", "throughput_max_pps",
+                "total_time_mean_ms", "total_time_std_ms",
+                "batch_size"
             ])
             writer.writeheader()
-
             for row in results["matrix"]:
-                writer.writerow(row)
+                writer.writerow({
+                    "phase": row["phase"],
+                    "api": row["api"],
+                    "chaos_method": row["chaos_method"],
+                    "reconciler": row["reconciler"],
+                    "n_iterations": row["n_iterations"],
+                    "accuracy_mean": row["accuracy"]["mean"],
+                    "accuracy_std": row["accuracy"]["std"],
+                    "accuracy_min": row["accuracy"]["min"],
+                    "accuracy_max": row["accuracy"]["max"],
+                    "hosseini_mean": row["hosseini_resilience"]["mean"],
+                    "hosseini_std": row["hosseini_resilience"]["std"],
+                    "hosseini_min": row["hosseini_resilience"]["min"],
+                    "hosseini_max": row["hosseini_resilience"]["max"],
+                    "latency_mean_ms": row["avg_latency_ms"]["mean"],
+                    "latency_std_ms": row["avg_latency_ms"]["std"],
+                    "throughput_mean_pps": row["throughput_pps"]["mean"],
+                    "throughput_std_pps": row["throughput_pps"]["std"],
+                    "throughput_min_pps": row["throughput_pps"]["min"],
+                    "throughput_max_pps": row["throughput_pps"]["max"],
+                    "total_time_mean_ms": row["total_time_ms"]["mean"],
+                    "total_time_std_ms": row["total_time_ms"]["std"],
+                    "batch_size": row["batch_size"]
+                })
+
+    def _write_iterations_csv(self, results: Dict, timestamp: str):
+        filepath = f"{self.output_dir}/matrix_iterations_{timestamp}.csv"
+        with open(filepath, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=[
+                "phase", "api", "chaos_method", "reconciler", "iteration", "seed",
+                "accuracy", "hosseini_resilience",
+                "avg_latency_ms", "min_latency_ms", "max_latency_ms",
+                "throughput_pps", "total_time_ms",
+                "packets_processed", "batch_size"
+            ])
+            writer.writeheader()
+            for it in results["iterations"]:
+                writer.writerow(it)
 
     def _write_latex(self, results: Dict, timestamp: str):
         filepath = f"{self.output_dir}/ieee_table_{timestamp}.tex"
-
         with open(filepath, 'w') as f:
-            f.write("% Hosseini et al. (2016) Resilience Index\n")
-            f.write("% Reference: Hosseini, S., Barker, K., & Ramirez-Marquez, J.E. (2016)\n")
-            f.write("% Reliability Engineering & System Safety, 145, 47-61.\n\n")
-
             meta = results.get("run_metadata", {})
             hw = meta.get("hardware", {})
+            reps = results.get("repetitions", 3)
+            f.write(f"% Hosseini et al. (2016) Resilience Index — {reps} iterations per combination\n")
             f.write(f"% Hardware: {hw.get('model', 'unknown')} | VRAM: {hw.get('vram_gb', 0)} GB | Driver: {hw.get('driver', 'unknown')}\n")
-            f.write(f"% Batch Size: {hw.get('batch_size', 1)} | Concurrent Runs: {hw.get('concurrent_runs', 1)}\n\n")
+            f.write(f"% CPU: {hw.get('cpu', 'unknown')} | Motherboard: {hw.get('motherboard', 'unknown')}\n")
+            f.write(f"% Batch: {hw.get('batch_size', 1)} | Concurrent: {hw.get('concurrent_runs', 1)} | Iterations: {reps}\n\n")
 
             f.write("\\begin{table}[htbp]\n")
-            f.write("\\caption{Resilience Matrix Results --- " + hw.get("model", self.hardware_profile) + "}\n")
-            f.write("\\begin{tabular}{l l l r r r r r r}\n")
+            f.write("\\caption{Aggregated Resilience Metrics ($n=" + str(reps) + "$ iterations) --- " + hw.get("model", self.hardware_profile) + "}\n")
+            f.write("\\begin{tabular}{l l l r r r r}\n")
             f.write("\\hline\n")
-            f.write("Phase & API & Reconciler & Accuracy & Hosseini Index & Latency (ms) & Throughput (pps) & Batch Size \\\\\n")
+            f.write("Phase & API & Reconciler & Accuracy & Hosseini Index & Throughput (pps) & Batch \\\\\n")
             f.write("\\hline\n")
 
             for row in results["matrix"]:
-                phase = row.get("phase", "??").replace("_", "\\_")
+                phase = row["phase"].replace("_", "\\_")
                 api = row["api"].replace("_", "\\_")
                 rec = row["reconciler"].replace("_", "\\_")
-                hoss = row.get("hosseini_resilience", 0.0)
-                f.write(f"{phase} & {api} & {rec} & {row['accuracy']:.3f} & {hoss:.3f} & {row['avg_latency_ms']:.2f} & {row['throughput_pps']:.0f} & {row['batch_size']} \\\\\n")
+                am = row["accuracy"]["mean"]
+                as_ = row["accuracy"]["std"]
+                hm = row["hosseini_resilience"]["mean"]
+                hs = row["hosseini_resilience"]["std"]
+                tm = row["throughput_pps"]["mean"]
+                ts = row["throughput_pps"]["std"]
+                f.write(f"{phase} & {api} & {rec} & ${am:.3f}\\pm{as_:.3f}$ & ${hm:.3f}\\pm{hs_:.3f}$ & ${tm:.0f}\\pm{ts:.0f}$ & {row['batch_size']} \\\\\n")
 
             f.write("\\hline\n")
             f.write("\\end{tabular}\n")
