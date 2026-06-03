@@ -38,7 +38,7 @@ Executes 60-combination matrix: **4 APIs × 3 Chaos Types × 5 Reconcilers** acr
 ### 1. Clone and Setup
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/tarek-clarke/resilient-rap-framework.git
 cd resilient-data
 git checkout domain_testing
 ```
