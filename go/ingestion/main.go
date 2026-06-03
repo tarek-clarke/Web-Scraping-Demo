@@ -18,12 +18,6 @@ const (
 	OutputDir     = "../../data/ingested"
 )
 
-type Packet struct {
-	Source    string                 `json:"source"`
-	Timestamp string                 `json:"timestamp"`
-	Data      map[string]interface{} `json:"data"`
-}
-
 func main() {
 	os.MkdirAll(OutputDir, 0755)
 
@@ -31,7 +25,7 @@ func main() {
 	defer cancel()
 
 	var totalPackets int64
-	packetChan := make(chan Packet, 10000)
+	packetChan := make(chan clients.Packet, 10000)
 
 	var wg sync.WaitGroup
 	wg.Add(4)
@@ -66,6 +60,10 @@ func main() {
 		log.Fatal(err)
 	}
 	defer file.Close()
+
+	latestPath := fmt.Sprintf("%s/telemetry_latest.json", OutputDir)
+	os.Remove(latestPath)
+	os.Symlink(file.Name(), latestPath)
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
