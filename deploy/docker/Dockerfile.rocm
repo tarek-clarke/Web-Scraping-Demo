@@ -1,0 +1,21 @@
+FROM rocm/pytorch:rocm6.0_ubuntu22.04_py3.10_pytorch_2.1.1
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y \
+    python3-pip \
+    golang-go \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+RUN cd go/ingestion && go mod download
+
+CMD ["python3", "run_matrix.py"]

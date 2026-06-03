@@ -1,0 +1,237 @@
+# Resilient RAP Framework
+
+**Resilient API Adaptation Protocol** - End-to-end chaos engineering and reconciliation framework for telemetry data streams.
+
+## Overview
+
+Executes 60-combination matrix: **4 APIs × 3 Chaos Types × 5 Reconcilers** across heterogeneous hardware platforms.
+
+### Components
+
+- **Ingestion**: Go-based async streaming from 4 live APIs (OpenF1, Finnhub, SpaceX, OpenMeteo) at 100Hz
+- **Chaos Engineering**: 5% injection rate via Gemma4-e4b-it, JSON manipulation, schema alteration
+- **Reconciliation**: Levenshtein, Regex, BERT (MiniLM-v2), Gemma4-E4B-it, Gemma4-31b-gguf
+- **Hardware Detection**: Auto-bootstrap for CUDA, ROCm, Apple Silicon, CPU with VRAM probing
+
+### Target Volume
+
+- **100,000 packets** total (25,000 per API source)
+- **5,000 chaos injections** (5% of total)
+
+## Hardware Matrix
+
+| Platform | Type | VRAM | Concurrent Runs | Batch Size | Setup Method |
+|----------|------|------|-----------------|------------|--------------|
+| Intel 12600K | CPU | 0 GB | 4 | 4 | Docker CPU |
+| AMD 7900XT | ROCm | 20 GB | 2 | 8 | Docker ROCm |
+| Apple M4 | Silicon | 16 GB | 3 | 8 | Native Shell |
+| NVIDIA H100 | CUDA | 80 GB | 8 | 32 | Docker CUDA |
+| NVIDIA A100 | CUDA | 80 GB | 8 | 32 | Slurm (TalTech) |
+| NVIDIA RTX 5090 | CUDA | 32 GB | 3 | 16 | Docker CUDA |
+| NVIDIA RTX 6000 | CUDA | 48 GB | 5 | 16 | Docker CUDA |
+| NVIDIA GH200 | CUDA | 96 GB | 10 | 32 | Docker CUDA |
+| NVIDIA B300 | CUDA | 288 GB | 20 | 64 | Docker CUDA |
+| AMD MI250X | ROCm | 128 GB | 12 | 32 | Slurm (LUMI) |
+
+## Quick Start
+
+### 1. Clone and Setup
+
+```bash
+git clone <repo-url>
+cd resilient-data
+git checkout domain_testing
+```
+
+### 2. Download Models
+
+Edit `models/download_from_r2.sh` with your Cloudflare R2 bucket URL:
+
+```bash
+chmod +x models/download_from_r2.sh
+./models/download_from_r2.sh
+```
+
+### 3. Run Ingestion (Go)
+
+```bash
+cd go/ingestion
+go mod download
+go run main.go
+cd ../..
+```
+
+This generates `data/ingested/telemetry_<timestamp>.json` with 100k packets.
+
+### 4. Run Matrix (Python)
+
+```bash
+python3 run_matrix.py
+```
+
+Auto-detects hardware, probes VRAM, executes 60-combination matrix.
+
+## Platform-Specific Instructions
+
+### NVIDIA CUDA (H100, A100, RTX 5090, RTX 6000, GH200, B300)
+
+#### Docker
+
+```bash
+docker build -f deploy/docker/Dockerfile.cuda -t rap-cuda .
+docker run --gpus all -v $(pwd)/data:/app/data rap-cuda
+```
+
+#### Slurm (TalTech A100)
+
+```bash
+sbatch deploy/slurm/taltech_a100.slurm
+```
+
+### AMD ROCm (7900XT, MI250X)
+
+#### Docker
+
+```bash
+docker build -f deploy/docker/Dockerfile.rocm -t rap-rocm .
+docker run --device=/dev/kfd --device=/dev/dri -v $(pwd)/data:/app/data rap-rocm
+```
+
+#### Slurm (LUMI MI250X)
+
+```bash
+sbatch deploy/slurm/lumi_mi250x.slurm
+```
+
+### Apple Silicon (M4)
+
+```bash
+chmod +x deploy/macos/setup_m4.sh
+./deploy/macos/setup_m4.sh
+source venv/bin/activate
+python3 run_matrix.py
+```
+
+### CPU Only (12600K, fallback)
+
+```bash
+docker build -f deploy/docker/Dockerfile.cpu -t rap-cpu .
+docker run -v $(pwd)/data:/app/data rap-cpu
+```
+
+## Output
+
+Results saved to `data/reports/<hardware_type>/`:
+
+- `matrix_results_<timestamp>.csv` - Raw metrics (accuracy, latency, throughput)
+- `ieee_table_<timestamp>.tex` - LaTeX table for IEEE TDKE paper
+- `full_results_<timestamp>.json` - Complete run data
+
+### Metrics
+
+- **Accuracy**: Field mapping success rate (0.0 - 1.0)
+- **Latency**: Per-reconciliation time (ms)
+- **Throughput**: Packets processed per second (pps)
+- **Total Time**: End-to-end matrix execution time (ms)
+- **Batch Size**: GPU batch size for model inference (auto-scaled by VRAM)
+
+## Chaos Methods
+
+1. **Gemma4-e4b-it**: LLM-generated semantic drift
+2. **JSON Manipulation**: Noise injection, key shuffling, nested wrapping
+3. **Schema Alteration**: Type coercion, field renaming, nested flattening
+
+### Drift Types
+
+- **Field Split**: `temperature` → `temperature_part1`, `temperature_part2`
+- **Field Join**: `speed` + `direction` → `speed_direction`
+- **Translation**: `temperature` → `temp_c`
+- **Variable Drop**: Random field deletion
+
+## Reconciliation Methods
+
+1. **Levenshtein**: Edit distance-based fuzzy matching (threshold ≤ 3)
+2. **Regex**: Pattern-based semantic matching
+3. **BERT (MiniLM-v2)**: Embedding similarity (threshold > 0.7)
+4. **Gemma4-E4B-it**: LLM-based field mapping (small model)
+5. **Gemma4-31b-gguf**: LLM-based field mapping (large model, quantized)
+
+## Dependencies
+
+### Python
+
+- `torch>=2.1.0` - PyTorch for ML models
+- `transformers>=4.36.0` - Hugging Face transformers
+- `sentence-transformers>=2.2.2` - BERT embeddings
+- `python-Levenshtein>=0.23.0` - Edit distance
+- `pynvml>=11.5.0` - NVIDIA GPU monitoring
+- `psutil>=5.9.0` - System resource monitoring
+- `llama-cpp-python>=0.2.0` - GGUF model inference
+
+### Go
+
+- `gorilla/websocket` - WebSocket client (optional)
+
+## Troubleshooting
+
+### Models Not Found
+
+Ensure `models/download_from_r2.sh` has correct R2 bucket URL and models are downloaded to `models/` directory.
+
+### CUDA Out of Memory
+
+Reduce `concurrent_runs` in `configs/hardware_profiles.json` or let VRAM prober auto-scale.
+
+### ROCm Device Not Detected
+
+Verify `rocm-smi` is installed and GPU is visible: `rocm-smi --showproductname`
+
+### Apple Silicon Low Throughput
+
+M4 uses CPU fallback for some models. Expect 2-3x slower than CUDA.
+
+### Go Ingestion Rate Limited
+
+APIs may throttle at 100Hz. Framework auto-throttles on 429 errors.
+
+## Architecture
+
+```
+resilient-data/
+├── go/ingestion/          # Go async streaming clients
+├── src/
+│   ├── chaos/             # Chaos injection engines
+│   ├── reconciliation/    # 5 reconciliation methods
+│   ├── hardware/          # Detection & VRAM probing
+│   ├── orchestration/     # Matrix executor
+│   └── telemetry/         # IEEE-formatted logging
+├── models/                # GGUF model storage
+├── deploy/                # Docker, Slurm, native scripts
+├── configs/               # API endpoints, hardware profiles
+└── data/                  # Ingestion, chaos logs, results
+```
+
+## Batch Size Scaling
+
+The framework automatically scales batch size based on available VRAM:
+
+| VRAM | Batch Size | Target Hardware |
+|------|------------|-----------------|
+| < 16 GB | 4 | CPU, M4 |
+| 16-31 GB | 8 | 7900XT, M4 Pro |
+| 32-79 GB | 16 | RTX 5090, RTX 6000 |
+| 80-199 GB | 32 | A100, H100, GH200, MI250X |
+| ≥ 200 GB | 64 | B300 |
+
+**Benefits**:
+- Larger batches = faster GPU inference (especially BERT, Gemma)
+- Auto-calculated by `VRAMProber` on startup
+- Logged in all output files (CSV, LaTeX, JSON)
+
+## Citation
+
+For IEEE TDKE paper submission, use generated LaTeX tables from `data/reports/<hardware>/ieee_table_*.tex`.
+
+## License
+
+Copyright (c) 2026 Tarek Clarke. All rights reserved.

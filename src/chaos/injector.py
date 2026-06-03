@@ -1,0 +1,94 @@
+import json
+import random
+from typing import Dict, List, Any
+from datetime import datetime
+
+class ChaosInjector:
+    def __init__(self, chaos_rate: float = 0.05):
+        self.chaos_rate = chaos_rate
+        self.chaos_log = []
+
+    def inject(self, packets: List[Dict]) -> List[Dict]:
+        injected = []
+        methods = ["gemma", "json_manip", "schema_alter"]
+        
+        for i, packet in enumerate(packets):
+            if random.random() < self.chaos_rate:
+                method = random.choice(methods)
+                drifted, drift_event = self._apply_drift(packet, method)
+                self.chaos_log.append(drift_event)
+                injected.append(drifted)
+            else:
+                injected.append(packet)
+        
+        with open("../../data/chaos_log/chaos_events.json", "w") as f:
+            json.dump(self.chaos_log, f, indent=2)
+        
+        return injected
+
+    def _apply_drift(self, packet: Dict, method: str) -> tuple:
+        drift_types = ["field_split", "field_join", "translation", "variable_drop"]
+        drift_type = random.choice(drift_types)
+        
+        event = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "method": method,
+            "drift_type": drift_type,
+            "original_packet": packet.copy(),
+            "source": packet.get("source", "unknown")
+        }
+        
+        drifted = packet.copy()
+        data = drifted.get("data", {})
+        
+        if drift_type == "field_split":
+            data = self._field_split(data)
+        elif drift_type == "field_join":
+            data = self._field_join(data)
+        elif drift_type == "translation":
+            data = self._translation(data)
+        elif drift_type == "variable_drop":
+            data = self._variable_drop(data)
+        
+        drifted["data"] = data
+        event["drifted_packet"] = drifted
+        
+        return drifted, event
+
+    def _field_split(self, data: Dict) -> Dict:
+        if not data:
+            return data
+        key = random.choice(list(data.keys()))
+        val = data.pop(key)
+        data[f"{key}_part1"] = val
+        data[f"{key}_part2"] = val
+        return data
+
+    def _field_join(self, data: Dict) -> Dict:
+        keys = list(data.keys())
+        if len(keys) < 2:
+            return data
+        k1, k2 = random.sample(keys, 2)
+        joined = f"{k1}_{k2}"
+        data[joined] = data.pop(k1)
+        data.pop(k2, None)
+        return data
+
+    def _translation(self, data: Dict) -> Dict:
+        translations = {
+            "temperature": "temp_c",
+            "speed": "velocity",
+            "price": "cost",
+            "timestamp": "ts"
+        }
+        for old, new in translations.items():
+            if old in data:
+                data[new] = data.pop(old)
+        return data
+
+    def _variable_drop(self, data: Dict) -> Dict:
+        if not data:
+            return data
+        key = random.choice(list(data.keys()))
+        data.pop(key)
+        return data

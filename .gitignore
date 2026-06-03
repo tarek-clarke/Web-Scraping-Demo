@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
+*.log
+.DS_Store
+.aider*
+data/ingested/*.json
+data/chaos_log/*.json
+data/reports/*/*.csv
+data/reports/*/*.tex
+data/reports/*/*.json
+models/*.gguf
+*.egg-info/
+dist/
+build/
