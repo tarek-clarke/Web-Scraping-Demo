@@ -1,3 +1,4 @@
+import os
 import time
 from typing import Dict, List
 
@@ -11,7 +12,15 @@ class BERTReconciler:
     def _load_model(self):
         try:
             from sentence_transformers import SentenceTransformer
-            self.model = SentenceTransformer('all-MiniLM-L6-v2', device=self.device)
+            
+            model_path = os.path.join(os.path.dirname(__file__), '../../models/all-MiniLM-L6-v2')
+            
+            if os.path.exists(model_path):
+                self.model = SentenceTransformer(model_path, device=self.device)
+                print(f"BERT model loaded from local path: {model_path}")
+            else:
+                self.model = SentenceTransformer('all-MiniLM-L6-v2', device=self.device)
+                print("BERT model downloaded from HuggingFace")
         except Exception as e:
             print(f"BERT model not available: {e}")
 
