@@ -61,13 +61,14 @@ Single command for any NVIDIA GPU instance (RTX 5090, A100, H100, etc.):
 ```bash
 git clone https://github.com/tarek-clarke/resilient-rap-framework.git && \
   cd resilient-rap-framework && git checkout domain_testing && cd deploy && \
-  CUDA_VERSION=13.3.0 docker-compose -f docker-compose.cloud.yml build rap-cuda && \
-  docker-compose -f docker-compose.cloud.yml run --rm rap-cuda bash -c "\
+  command -v docker-compose >/dev/null 2>&1 || (apt-get update && apt-get install -y docker-compose-v2) && \
+  CUDA_VERSION=13.3.0 docker compose -f docker-compose.cloud.yml build rap-cuda && \
+  docker compose -f docker-compose.cloud.yml run --rm rap-cuda bash -c "\
     cd /app/models && \
     curl -L -O https://pub-66196916eecb44259146d96cf3604b80.r2.dev/models/gemma4-e4b-it.gguf && \
     curl -L -O https://pub-66196916eecb44259146d96cf3604b80.r2.dev/models/gemma4-31b-gguf.gguf" && \
-  docker-compose -f docker-compose.cloud.yml run --rm rap-cuda bash -c "cd /app/go/ingestion && go run main.go" && \
-  docker-compose -f docker-compose.cloud.yml up rap-cuda
+  docker compose -f docker-compose.cloud.yml run --rm rap-cuda bash -c "cd /app/go/ingestion && go run main.go" && \
+  docker compose -f docker-compose.cloud.yml up rap-cuda
 ```
 
 This builds the image, downloads models, ingests 100k packets, and runs the 60-combination matrix. Results saved to Docker volume. Copy locally with:
