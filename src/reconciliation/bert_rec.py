@@ -15,13 +15,13 @@ class BERTReconciler:
             
             model_path = os.path.join(os.path.dirname(__file__), '../../models/all-MiniLM-L6-v2')
             
-            if not os.path.exists(model_path):
-                print(f"ERROR: BERT model not found at {model_path}")
-                print("Run: ./models/download_from_r2.sh")
-                return
-            
-            self.model = SentenceTransformer(model_path, device=self.device)
-            print(f"BERT model loaded from local path: {model_path}")
+            if os.path.exists(model_path):
+                self.model = SentenceTransformer(model_path, device=self.device)
+                print(f"BERT loaded from local: {model_path}")
+            else:
+                print(f"Local BERT not found at {model_path}, downloading from HuggingFace...")
+                self.model = SentenceTransformer('all-MiniLM-L6-v2', device=self.device)
+                print("BERT downloaded from HuggingFace")
         except Exception as e:
             print(f"BERT model not available: {e}")
 

@@ -13,9 +13,15 @@ class Gemma31BReconciler:
         try:
             import os
             if not os.path.exists(self.model_path):
-                print(f"ERROR: Gemma 31B model not found at {self.model_path}")
+                print(f"Local Gemma 31B not found at {self.model_path}")
                 print("Run: ./models/download_from_r2.sh")
-                return
+                print("Attempting HuggingFace fallback...")
+                try:
+                    from huggingface_hub import hf_hub_download
+                    self.model_path = hf_hub_download("google/gemma-4-31b-gguf", "model.gguf")
+                except Exception as hf_err:
+                    print(f"HuggingFace fallback failed: {hf_err}")
+                    return
             
             from llama_cpp import Llama
             n_gpu_layers = -1 if hardware_profile in ["cuda", "rocm"] else 0
