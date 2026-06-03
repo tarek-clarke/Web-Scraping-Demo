@@ -6,10 +6,11 @@ echo "=== Resilient RAP Framework - Docker Cloud Deployment ==="
 
 COMPOSE_FILE=${1:-docker-compose.cloud.yml}
 HARDWARE_TYPE=${2:-cuda}
-CUDA_VERSION=${3:-12.3.0}
-ROCM_VERSION=${4:-6.0}
-UBUNTU_VERSION=${5:-22.04}
-PYTORCH_VERSION=${6:-2.1.1}
+CUDA_VERSION=${3:-13.3.0}
+ROCM_VERSION=${4:-7.2.4}
+UBUNTU_VERSION=${5:-26.04}
+PYTHON_VERSION=${6:-3.12}
+PYTORCH_VERSION=${7:-2.10.0}
 
 echo "Using compose file: $COMPOSE_FILE"
 echo "Hardware type: $HARDWARE_TYPE"
@@ -22,6 +23,7 @@ echo ""
 export CUDA_VERSION
 export ROCM_VERSION
 export UBUNTU_VERSION
+export PYTHON_VERSION
 export PYTORCH_VERSION
 
 echo "Building Docker image..."

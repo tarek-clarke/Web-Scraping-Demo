@@ -205,7 +205,7 @@ docker-compose -f docker-compose.cloud.yml logs rap-cuda
 
 Verify NVIDIA Container Toolkit:
 ```bash
-docker run --rm --gpus all nvidia/cuda:12.3.0-base-ubuntu22.04 nvidia-smi
+docker run --rm --gpus all nvidia/cuda:13.3.0-base-ubuntu26.04 nvidia-smi
 ```
 
 ## Cost Estimates

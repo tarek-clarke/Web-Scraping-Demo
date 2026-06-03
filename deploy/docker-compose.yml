@@ -6,9 +6,9 @@ services:
       context: ../..
       dockerfile: deploy/docker/Dockerfile.cuda
       args:
-        CUDA_VERSION: ${CUDA_VERSION:-12.3.0}
-        UBUNTU_VERSION: ${UBUNTU_VERSION:-22.04}
-    image: resilient-rap:cuda-${CUDA_VERSION:-12.3.0}-ubuntu${UBUNTU_VERSION:-22.04}
+        CUDA_VERSION: ${CUDA_VERSION:-13.3.0}
+        UBUNTU_VERSION: ${UBUNTU_VERSION:-26.04}
+    image: resilient-rap:cuda-${CUDA_VERSION:-13.3.0}-ubuntu${UBUNTU_VERSION:-26.04}
     container_name: rap-cuda
     runtime: nvidia
     environment:
@@ -33,10 +33,11 @@ services:
       context: ../..
       dockerfile: deploy/docker/Dockerfile.rocm
       args:
-        ROCM_VERSION: ${ROCM_VERSION:-6.0}
-        UBUNTU_VERSION: ${UBUNTU_VERSION:-22.04}
-        PYTORCH_VERSION: ${PYTORCH_VERSION:-2.1.1}
-    image: resilient-rap:rocm-${ROCM_VERSION:-6.0}-ubuntu${UBUNTU_VERSION:-22.04}
+        ROCM_VERSION: ${ROCM_VERSION:-7.2.4}
+        UBUNTU_VERSION: ${UBUNTU_VERSION:-24.04}
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.12}
+        PYTORCH_VERSION: ${PYTORCH_VERSION:-2.10.0}
+    image: resilient-rap:rocm-${ROCM_VERSION:-7.2.4}-ubuntu${UBUNTU_VERSION:-24.04}
     container_name: rap-rocm
     environment:
       - PYTHONUNBUFFERED=1
@@ -57,8 +58,8 @@ services:
       context: ../..
       dockerfile: deploy/docker/Dockerfile.cpu
       args:
-        UBUNTU_VERSION: ${UBUNTU_VERSION:-22.04}
-    image: resilient-rap:cpu-ubuntu${UBUNTU_VERSION:-22.04}
+        UBUNTU_VERSION: ${UBUNTU_VERSION:-26.04}
+    image: resilient-rap:cpu-ubuntu${UBUNTU_VERSION:-26.04}
     container_name: rap-cpu
     environment:
       - PYTHONUNBUFFERED=1
@@ -74,8 +75,8 @@ services:
       context: ../..
       dockerfile: deploy/docker/Dockerfile.cpu
       args:
-        UBUNTU_VERSION: ${UBUNTU_VERSION:-22.04}
-    image: resilient-rap:cpu-ubuntu${UBUNTU_VERSION:-22.04}
+        UBUNTU_VERSION: ${UBUNTU_VERSION:-26.04}
+    image: resilient-rap:cpu-ubuntu${UBUNTU_VERSION:-26.04}
     container_name: rap-ingestion
     environment:
       - PYTHONUNBUFFERED=1

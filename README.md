@@ -43,7 +43,15 @@ cd resilient-data
 git checkout domain_testing
 ```
 
-### 2. Download Models
+### 2. Detect Hardware
+
+```bash
+./deploy/detect_hardware.sh
+```
+
+This detects your GPU (NVIDIA/AMD/Apple Silicon) and recommends the correct CUDA/ROCm version and build command.
+
+### 3. Download Models
 
 Edit `models/download_from_r2.sh` with your Cloudflare R2 bucket URL:
 
@@ -52,7 +60,7 @@ chmod +x models/download_from_r2.sh
 ./models/download_from_r2.sh
 ```
 
-### 3. Run Ingestion (Go)
+### 4. Run Ingestion (Go)
 
 ```bash
 cd go/ingestion
@@ -63,7 +71,7 @@ cd ../..
 
 This generates `data/ingested/telemetry_<timestamp>.json` with 100k packets.
 
-### 4. Run Matrix (Python)
+### 5. Run Matrix (Python)
 
 ```bash
 python3 run_matrix.py
@@ -78,7 +86,7 @@ Single command for any NVIDIA GPU instance (RTX 5090, A100, H100, etc.):
 ```bash
 git clone https://github.com/tarek-clarke/resilient-rap-framework.git && \
   cd resilient-rap-framework && git checkout domain_testing && cd deploy && \
-  CUDA_VERSION=12.4.0 docker-compose -f docker-compose.cloud.yml build rap-cuda && \
+  CUDA_VERSION=13.3.0 docker-compose -f docker-compose.cloud.yml build rap-cuda && \
   docker-compose -f docker-compose.cloud.yml run --rm rap-cuda bash -c "\
     cd /app/models && \
     curl -L -O https://pub-66196916eecb44259146d96cf3604b80.r2.dev/models/gemma4-e4b-it.gguf && \
@@ -94,9 +102,9 @@ docker cp rap-cuda-cloud:/app/data/reports ./data/reports
 ```
 
 **CUDA version tips**:
-- RTX 5090 / B300 → `CUDA_VERSION=12.4.0`
-- A100 / H100 / GH200 → `CUDA_VERSION=12.3.0`
-- RTX 3090 / older drivers → `CUDA_VERSION=11.8.0`
+- RTX 5090 / B300 → `CUDA_VERSION=13.3.0`
+- A100 / H100 / GH200 → `CUDA_VERSION=12.8.0`
+- RTX 3090 / older drivers → `CUDA_VERSION=12.4.0`
 
 ## Platform-Specific Instructions
 
