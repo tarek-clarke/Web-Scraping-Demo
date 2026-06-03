@@ -10,12 +10,6 @@ import (
 	"time"
 )
 
-type Packet struct {
-	Source    string                 `json:"source"`
-	Timestamp string                 `json:"timestamp"`
-	Data      map[string]interface{} `json:"data"`
-}
-
 const FinnhubURL = "https://finnhub.io/api/v1/quote?symbol=AAPL"
 
 func StreamFinnhub(ctx context.Context, ch chan<- Packet, counter *int64) {

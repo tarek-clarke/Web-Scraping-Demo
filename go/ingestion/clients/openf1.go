@@ -10,12 +10,6 @@ import (
 	"time"
 )
 
-type Packet struct {
-	Source    string                 `json:"source"`
-	Timestamp string                 `json:"timestamp"`
-	Data      map[string]interface{} `json:"data"`
-}
-
 const OpenF1URL = "https://api.openf1.org/v1/car_data"
 
 func StreamOpenF1(ctx context.Context, ch chan<- Packet, counter *int64) {

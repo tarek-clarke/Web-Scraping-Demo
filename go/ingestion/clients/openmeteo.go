@@ -10,12 +10,6 @@ import (
 	"time"
 )
 
-type Packet struct {
-	Source    string                 `json:"source"`
-	Timestamp string                 `json:"timestamp"`
-	Data      map[string]interface{} `json:"data"`
-}
-
 const OpenMeteoURL = "https://api.open-meteo.com/v1/forecast?latitude=59.4370&longitude=24.7536&current_weather=true"
 
 func StreamOpenMeteo(ctx context.Context, ch chan<- Packet, counter *int64) {

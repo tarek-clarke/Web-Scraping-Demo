@@ -10,12 +10,6 @@ import (
 	"time"
 )
 
-type Packet struct {
-	Source    string                 `json:"source"`
-	Timestamp string                 `json:"timestamp"`
-	Data      map[string]interface{} `json:"data"`
-}
-
 const SpaceXURL = "https://api.spacexdata.com/v4/launches/latest"
 
 func StreamSpaceX(ctx context.Context, ch chan<- Packet, counter *int64) {
