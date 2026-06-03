@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-const FinnhubURL = "https://finnhub.io/api/v1/quote?symbol=AAPL"
+const IEXCloudURL = "https://sandbox.iexapis.com/stable/stock/aapl/quote?token=Tpk_eda11ba05d5349c285f46e089b8f1355"
 
-func StreamFinnhub(ctx context.Context, ch chan<- Packet, counter *int64) {
+func StreamIEXCloud(ctx context.Context, ch chan<- Packet, counter *int64) {
 	client := &http.Client{Timeout: 10 * time.Second}
 	ticker := time.NewTicker(10 * time.Millisecond)
 	defer ticker.Stop()
@@ -22,9 +22,9 @@ func StreamFinnhub(ctx context.Context, ch chan<- Packet, counter *int64) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			resp, err := client.Get(FinnhubURL)
+			resp, err := client.Get(IEXCloudURL)
 			if err != nil {
-				log.Printf("Finnhub error: %v", err)
+				log.Printf("IEX Cloud error: %v", err)
 				continue
 			}
 
@@ -40,7 +40,7 @@ func StreamFinnhub(ctx context.Context, ch chan<- Packet, counter *int64) {
 			}
 
 			ch <- Packet{
-				Source:    "finnhub",
+				Source:    "iexcloud",
 				Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
 				Data:      data,
 			}
