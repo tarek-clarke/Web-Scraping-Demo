@@ -1,10 +1,9 @@
 import json
 import random
-import os
 from typing import Dict, List
 from datetime import datetime
 from pathlib import Path
-from .gemma_chaos import GemmaChaos
+from .qwen_chaos import QwenChaos
 from .json_chaos import JSONChaos
 from .schema_chaos import SchemaChaos
 
@@ -15,17 +14,17 @@ class ChaosInjector:
         self.chaos_rate = chaos_rate
         self.chaos_log = []
         self.chaos_methods = {
-            "gemma": self._apply_gemma_drift,
+            "qwen": self._apply_qwen_drift,
             "json_manip": self._apply_json_drift,
             "schema_alter": self._apply_schema_drift,
         }
-        self.gemma_chaos = GemmaChaos(str(ROOT / "models" / "gemma4-e4b-it.gguf"))
+        self.qwen_chaos = QwenChaos(str(ROOT / "models" / "qwen2.5-7b-instruct-q4_k_m.gguf"))
         self.json_chaos = JSONChaos()
         self.schema_chaos = SchemaChaos()
 
     def inject(self, packets: List[Dict], force_method: str = None) -> List[Dict]:
         injected = []
-        methods_list = ["gemma", "json_manip", "schema_alter"]
+        methods_list = ["qwen", "json_manip", "schema_alter"]
 
         for i, packet in enumerate(packets):
             if random.random() < self.chaos_rate:
@@ -45,7 +44,6 @@ class ChaosInjector:
 
     def _apply_drift(self, packet: Dict, method: str) -> tuple:
         method_fn = self.chaos_methods.get(method, self._apply_json_drift)
-
         event = {
             "timestamp": datetime.utcnow().isoformat(),
             "method": method,
@@ -54,18 +52,16 @@ class ChaosInjector:
             "source": packet.get("source", "unknown"),
             "drift_description": None,
         }
+        return method_fn(packet, event)
 
-        result = method_fn(packet, event)
-        return result
-
-    def _apply_gemma_drift(self, packet: Dict, event: Dict) -> tuple:
+    def _apply_qwen_drift(self, packet: Dict, event: Dict) -> tuple:
         drifted = packet.copy()
-        result = self.gemma_chaos.generate_drift(packet)
+        result = self.qwen_chaos.generate_drift(packet)
         if result and result.get("data"):
             drifted["data"] = result["data"]
-            event["drift_type"] = "llm_semantic_31b"
-            event["drift_description"] = result.get("_drift_note", "Gemma4-31B semantic drift")
-            event["chaos_model"] = "gemma4-31b"
+            event["drift_type"] = "qwen_semantic"
+            event["drift_description"] = "Qwen2.5-7B semantic field rename"
+            event["chaos_model"] = "qwen2.5-7b"
         else:
             drifted, ev = self._fallback_traditional(packet)
             event["drift_type"] = ev["drift_type"]
@@ -78,7 +74,7 @@ class ChaosInjector:
         drifted = packet.copy()
         drifted["data"] = self.json_chaos.inject(drifted.get("data", {}))
         event["drift_type"] = "json_manipulation"
-        event["drift_description"] = "JSON structure manipulation (noise/shuffle/wrap)"
+        event["drift_description"] = "JSON structure manipulation"
         event["drifted_packet"] = drifted
         return drifted, event
 
@@ -86,26 +82,22 @@ class ChaosInjector:
         drifted = packet.copy()
         drifted["data"] = self.schema_chaos.alter(drifted.get("data", {}))
         event["drift_type"] = "schema_alteration"
-        event["drift_description"] = "Schema structural alteration (type_coerce/rename/flatten)"
+        event["drift_description"] = "Schema structural alteration"
         event["drifted_packet"] = drifted
         return drifted, event
 
     def _fallback_traditional(self, packet: Dict) -> tuple:
-        """Fallback if Gemma LLM fails — use traditional drift types."""
         drift_types = ["field_split", "field_join", "translation", "variable_drop"]
         drift_type = random.choice(drift_types)
-
         event = {
             "timestamp": datetime.utcnow().isoformat(),
-            "method": "gemma_fallback",
+            "method": "fallback",
             "drift_type": drift_type,
             "original_packet": packet.copy(),
             "source": packet.get("source", "unknown"),
         }
-
         drifted = packet.copy()
         data = drifted.get("data", {})
-
         if drift_type == "field_split":
             data = self._field_split(data)
         elif drift_type == "field_join":
@@ -114,14 +106,12 @@ class ChaosInjector:
             data = self._translation(data)
         elif drift_type == "variable_drop":
             data = self._variable_drop(data)
-
         drifted["data"] = data
         event["drifted_packet"] = drifted
         return drifted, event
 
     def _field_split(self, data: Dict) -> Dict:
-        if not data:
-            return data
+        if not data: return data
         key = random.choice(list(data.keys()))
         val = data.pop(key)
         data[f"{key}_part1"] = val
@@ -130,8 +120,7 @@ class ChaosInjector:
 
     def _field_join(self, data: Dict) -> Dict:
         keys = list(data.keys())
-        if len(keys) < 2:
-            return data
+        if len(keys) < 2: return data
         k1, k2 = random.sample(keys, 2)
         joined = f"{k1}_{k2}"
         data[joined] = data.pop(k1)
@@ -139,20 +128,12 @@ class ChaosInjector:
         return data
 
     def _translation(self, data: Dict) -> Dict:
-        translations = {
-            "temperature": "temp_c",
-            "speed": "velocity",
-            "price": "cost",
-            "timestamp": "ts"
-        }
-        for old, new in translations.items():
-            if old in data:
-                data[new] = data.pop(old)
+        t = {"temperature": "temp_c", "speed": "velocity", "price": "cost", "timestamp": "ts"}
+        for old, new in t.items():
+            if old in data: data[new] = data.pop(old)
         return data
 
     def _variable_drop(self, data: Dict) -> Dict:
-        if not data:
-            return data
-        key = random.choice(list(data.keys()))
-        data.pop(key)
+        if not data: return data
+        data.pop(random.choice(list(data.keys())))
         return data

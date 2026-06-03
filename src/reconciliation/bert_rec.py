@@ -16,17 +16,13 @@ class BERTReconciler:
     def _load_model(self):
         try:
             from sentence_transformers import SentenceTransformer
-
             model_path = str(ROOT / "models" / "all-MiniLM-L6-v2")
-
-            if os.path.exists(model_path):
-                self.model = SentenceTransformer(model_path, device=self.device)
-                print(f"BERT loaded from local: {model_path}")
-            else:
-                print(f"BERT not found locally, downloading from HuggingFace to {model_path}...")
-                self.model = SentenceTransformer('all-MiniLM-L6-v2', device=self.device)
-                self.model.save(model_path)
-                print(f"BERT saved to {model_path} (future runs will use local copy)")
+            if not os.path.exists(model_path):
+                print(f"ERROR: BERT model not found at {model_path}")
+                print("Run: ./models/download_from_r2.sh")
+                return
+            self.model = SentenceTransformer(model_path, device=self.device)
+            print(f"BERT loaded from: {model_path}")
         except Exception as e:
             print(f"BERT model not available: {e}")
 

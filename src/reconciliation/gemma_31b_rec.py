@@ -16,34 +16,14 @@ class Gemma31BReconciler:
     def _load_model(self, hardware_profile: str):
         try:
             if not os.path.exists(self.model_path):
-                print(f"Gemma 31B not found at {self.model_path}")
-                print("Downloading from HuggingFace and saving locally...")
-                try:
-                    from huggingface_hub import hf_hub_download
-                    os.makedirs(str(ROOT / "models"), exist_ok=True)
-                    downloaded = hf_hub_download(
-                        repo_id="google/gemma-4-31b-it-GGUF",
-                        filename="gemma-4-31b-it-Q4_K_M.gguf",
-                        local_dir=str(ROOT / "models"),
-                        local_dir_use_symlinks=False
-                    )
-                    self.model_path = downloaded
-                    print(f"Gemma 31B saved to {downloaded} (future runs will use local copy)")
-                except Exception as hf_err:
-                    print(f"HuggingFace download failed: {hf_err}")
-                    print("Run: ./models/download_from_r2.sh")
-                    return
-
+                print(f"ERROR: Gemma 31B not found at {self.model_path}")
+                print("Run: ./models/download_from_r2.sh")
+                return
             from llama_cpp import Llama
             n_gpu_layers = -1 if hardware_profile in ["cuda", "rocm"] else 0
-            self.model = Llama(
-                model_path=self.model_path,
-                n_ctx=4096,
-                n_gpu_layers=n_gpu_layers,
-                verbose=False
-            )
+            self.model = Llama(model_path=self.model_path, n_ctx=4096, n_gpu_layers=n_gpu_layers, verbose=False)
         except Exception as e:
-            print(f"Gemma 31B model not available: {e}")
+            print(f"Gemma 31B not available: {e}")
 
     def reconcile(self, original: Dict, drifted: Dict) -> Dict:
         if not self.model:

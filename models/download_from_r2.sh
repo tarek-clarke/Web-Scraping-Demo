@@ -7,10 +7,13 @@ mkdir -p $MODEL_DIR
 
 echo "Downloading models from Cloudflare R2..."
 
-echo "Downloading Gemma4 E4B..."
+echo "Downloading Qwen2.5-7B-Instruct (chaos generator)..."
+curl -L -o $MODEL_DIR/qwen2.5-7b-instruct-q4_k_m.gguf "$R2_BUCKET/qwen2.5-7b-instruct-q4_k_m.gguf"
+
+echo "Downloading Gemma4 E4B (reconciler)..."
 curl -L -o $MODEL_DIR/gemma4-e4b-it.gguf "$R2_BUCKET/gemma4-e4b-it.gguf"
 
-echo "Downloading Gemma4 31B..."
+echo "Downloading Gemma4 31B (reconciler)..."
 curl -L -o $MODEL_DIR/gemma4-31b-gguf.gguf "$R2_BUCKET/gemma4-31b-gguf.gguf"
 
 echo "Downloading BERT (all-MiniLM-L6-v2)..."

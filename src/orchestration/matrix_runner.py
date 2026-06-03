@@ -24,7 +24,7 @@ class MatrixRunner:
         self._drift_cache: Dict[str, List[Dict]] = {}
 
         self.apis = ["openf1", "finnhub", "spacex", "openmeteo"]
-        self.chaos_methods = ["gemma", "json_manip", "schema_alter"]
+        self.chaos_methods = ["qwen", "json_manip", "schema_alter"]
         self.phases = [
             ("fast", ["levenshtein", "regex"]),
             ("bert", ["bert"]),

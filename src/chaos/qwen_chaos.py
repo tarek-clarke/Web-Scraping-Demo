@@ -5,21 +5,22 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
-class GemmaChaos:
+class QwenChaos:
     """
-    LLM-generated semantic schema drift.
-    Prompt: temperature=0.9 for creative field renames
+    Qwen2.5-7B-Instruct chaos generator.
+    Prompt: temperature=0.9 for creative semantic field renames.
+    Different family from Gemma reconcilers — zero weight overlap.
     """
 
     def __init__(self, model_path: Optional[str] = None):
         if model_path is None:
-            model_path = str(ROOT / "models" / "gemma4-31b-gguf.gguf")
+            model_path = str(ROOT / "models" / "qwen2.5-7b-instruct-q4_k_m.gguf")
         self.model_path = model_path
         self.model = None
 
     def load_model(self):
         if not os.path.exists(self.model_path):
-            print(f"Gemma chaos model not found at {self.model_path}")
+            print(f"Qwen model not found at {self.model_path}")
             return
         try:
             from llama_cpp import Llama
@@ -29,9 +30,9 @@ class GemmaChaos:
                 n_gpu_layers=-1,
                 verbose=False
             )
-            print("Gemma4-31B chaos generator loaded")
+            print("Qwen2.5-7B chaos generator loaded")
         except Exception as e:
-            print(f"Gemma chaos model not available: {e}")
+            print(f"Qwen model not available: {e}")
 
     def generate_drift(self, packet: Dict) -> Optional[Dict]:
         if not self.model:
@@ -46,47 +47,41 @@ class GemmaChaos:
                 max_tokens=512,
                 temperature=0.9,
                 top_p=0.95,
-                stop=["```"],
+                stop=["<|im_end|>", "```"],
             )
             text = output["choices"][0]["text"].strip()
-            text = text.strip()
 
-            if text.startswith("```json"):
-                text = text[7:]
-            if text.startswith("```"):
-                text = text[3:]
-            text = text.strip()
+            if "```json" in text:
+                text = text.split("```json")[1].split("```")[0].strip()
+            elif "```" in text:
+                text = text.split("```")[1].split("```")[0].strip()
 
             result = json.loads(text)
             if not isinstance(result, dict):
                 return None
 
-            result["_drift_note"] = text[:200]
             return result
 
         except (json.JSONDecodeError, KeyError, IndexError) as e:
-            print(f"Gemma chaos parse error: {e}")
+            print(f"Qwen chaos parse error: {e}")
             return None
 
     def _build_prompt(self, packet: Dict) -> str:
         data = packet.get("data", {})
         source = packet.get("source", "unknown")
+        keys = json.dumps(list(data.keys()))
 
-        key_list = json.dumps(list(data.keys()), indent=2)
-
-        prompt = f"""You are a chaos engineering agent. Introduce realistic semantic drift into the following telemetry JSON from a "{source}" data source.
-
+        return f"""<|im_start|>system
+You are a chaos engineering agent. Introduce realistic semantic drift into telemetry JSON.
 Rules:
-- Rename 1-2 fields to realistic alternative names that a human operator might use
+- Rename 1-2 fields to realistic alternative names
 - Keep all values unchanged
-- Maintain valid JSON format
-- Be creative but realistic — use real-world field naming conventions
-- Example: "temperature" -> "temp_c", "vehicle_speed" -> "speed_mps", "price_usd" -> "cost"
-
-Original fields: {key_list}
-
-Return ONLY the modified JSON object. Do not wrap in markdown.
-
+- Valid JSON only
+- Be creative: "temperature" -> "temp_c", "speed" -> "velocity_mps"<|im_end|>
+<|im_start|>user
+Source: {source}
+Fields: {keys}
+Return ONLY the modified JSON object.<|im_end|>
+<|im_start|>assistant
 ```json
 """
-        return prompt

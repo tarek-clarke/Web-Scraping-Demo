@@ -24,8 +24,6 @@ class TelemetryLogger:
         self._write_latex(results, timestamp)
         self._write_json(results, timestamp)
 
-...
-
     def _write_drift_events_csv(self, results: Dict, timestamp: str):
         events = results.get("drift_events", [])
         if not events:
