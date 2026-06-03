@@ -21,7 +21,63 @@ class HardwareDetector:
         system = platform.system().lower()
         profile = self._detect_gpu(system)
         profile["os"] = system
+        profile["driver"] = self._detect_driver(profile["type"])
+        profile["python_version"] = platform.python_version()
+        profile["cpu"] = self._detect_cpu()
+        profile["motherboard"] = self._detect_motherboard(system)
         return profile
+
+    def _detect_cpu(self) -> str:
+        try:
+            if platform.system().lower() == "darwin":
+                r = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True, text=True)
+                return r.stdout.strip()
+            elif platform.system().lower() == "linux":
+                r = subprocess.run(["lscpu"], capture_output=True, text=True)
+                for line in r.stdout.split("\n"):
+                    if "Model name" in line:
+                        return line.split(":")[-1].strip()
+                return platform.processor()
+            elif platform.system().lower() == "windows":
+                r = subprocess.run(["wmic", "cpu", "get", "name"], capture_output=True, text=True)
+                lines = r.stdout.strip().split("\n")
+                return lines[1].strip() if len(lines) > 1 else platform.processor()
+            return platform.processor()
+        except:
+            return platform.processor()
+
+    def _detect_motherboard(self, system: str) -> str:
+        try:
+            if system == "linux":
+                r = subprocess.run(["cat", "/sys/devices/virtual/dmi/id/board_vendor", "/sys/devices/virtual/dmi/id/board_name"], capture_output=True, text=True)
+                parts = r.stdout.strip().split("\n")
+                return " ".join(parts) if parts[0] else "unknown"
+            elif system == "windows":
+                r = subprocess.run(["wmic", "baseboard", "get", "manufacturer,product"], capture_output=True, text=True)
+                lines = r.stdout.strip().split("\n")
+                return lines[1].strip() if len(lines) > 1 else "unknown"
+            return "unknown"
+        except:
+            return "unknown"
+
+    def _detect_driver(self, hw_type: str) -> str:
+        try:
+            if hw_type == "cuda":
+                import pynvml
+                pynvml.nvmlInit()
+                ver = pynvml.nvmlSystemGetDriverVersion()
+                pynvml.nvmlShutdown()
+                return f"CUDA (driver {ver.decode() if isinstance(ver, bytes) else ver})"
+            elif hw_type == "rocm":
+                result = subprocess.run(["rocm-smi", "--version"], capture_output=True, text=True)
+                return f"ROCm {result.stdout.strip()}"
+            elif hw_type == "silicon":
+                result = subprocess.run(["sw_vers", "-productVersion"], capture_output=True, text=True)
+                return f"macOS {result.stdout.strip()}"
+            else:
+                return f"{platform.system()} {platform.release()}"
+        except:
+            return "unknown"
 
     def _detect_gpu(self, system: str) -> Dict:
         if system == "darwin":
