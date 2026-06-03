@@ -40,7 +40,7 @@ class MatrixRunner:
         key = self._cache_key(api_packets, chaos_method, seed)
         if key not in self._drift_cache:
             random.seed(seed)
-            self._drift_cache[key] = self.chaos_injector.inject(api_packets)
+            self._drift_cache[key] = self.chaos_injector.inject(api_packets, force_method=chaos_method)
         return self._drift_cache[key]
 
     def run(self, packets: List[Dict]) -> Dict:
