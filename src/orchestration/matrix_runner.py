@@ -37,7 +37,8 @@ class MatrixRunner:
             "repetitions": self.repetitions,
             "phases": [],
             "iterations": [],
-            "matrix": []
+            "matrix": [],
+            "drift_events": []
         }
 
         for phase_name, reconcilers in self.phases:
@@ -64,6 +65,7 @@ class MatrixRunner:
                 for future in as_completed(futures):
                     it = future.result()
                     results["iterations"].append(it)
+                    results["drift_events"].extend(it.pop("_drift_events", []))
                     key = (it["phase"], it["api"], it["chaos_method"], it["reconciler"])
                     if key not in iteration_data:
                         iteration_data[key] = []
@@ -89,17 +91,45 @@ class MatrixRunner:
         random.seed(seed)
         start_time = time.perf_counter()
         drifted = self.chaos_injector.inject(packets)
+
+        drift_events = []
         accuracies = []
         latencies = []
-        for orig, drift in zip(packets, drifted):
+
+        for idx, (orig, drift) in enumerate(zip(packets, drifted)):
             if orig != drift:
                 rec_result = self.reconciliation_engine.reconcile(orig, drift, reconciler)
                 accuracies.append(rec_result["accuracy"])
                 latencies.append(rec_result["latency_ms"])
+
+                for src, dst in rec_result.get("mapped_fields", []):
+                    drift_events.append({
+                        "phase": phase,
+                        "api": api,
+                        "chaos_method": chaos_method,
+                        "reconciler": reconciler,
+                        "iteration": iteration,
+                        "packet_idx": idx,
+                        "source_field": src,
+                        "drifted_field": dst,
+                    })
+                for src in rec_result.get("unmapped_fields", []):
+                    drift_events.append({
+                        "phase": phase,
+                        "api": api,
+                        "chaos_method": chaos_method,
+                        "reconciler": reconciler,
+                        "iteration": iteration,
+                        "packet_idx": idx,
+                        "source_field": src,
+                        "drifted_field": None,
+                    })
+
         total_time = (time.perf_counter() - start_time) * 1000
         throughput = len(packets) / (total_time / 1000) if total_time > 0 else 0
         acc = sum(accuracies) / len(accuracies) if accuracies else 0.0
         hosseini = self._hosseini_resilience(acc, 1.0, total_time / 1000)
+
         return {
             "phase": phase,
             "api": api,
@@ -115,7 +145,9 @@ class MatrixRunner:
             "throughput_pps": throughput,
             "packets_processed": len(packets),
             "batch_size": self.batch_size,
-            "hosseini_resilience": hosseini
+            "hosseini_resilience": hosseini,
+            "drift_event_count": len(drift_events),
+            "_drift_events": drift_events
         }
 
     def _aggregate(self, iters: List[Dict]) -> Dict:
@@ -124,6 +156,7 @@ class MatrixRunner:
         lats = [i["avg_latency_ms"] for i in iters]
         thrs = [i["throughput_pps"] for i in iters]
         times = [i["total_time_ms"] for i in iters]
+        events = [i["drift_event_count"] for i in iters]
 
         def stats(vals):
             return {
@@ -144,6 +177,7 @@ class MatrixRunner:
             "avg_latency_ms": stats(lats),
             "throughput_pps": stats(thrs),
             "total_time_ms": stats(times),
+            "drift_events": stats(events),
             "batch_size": iters[0]["batch_size"]
         }
 

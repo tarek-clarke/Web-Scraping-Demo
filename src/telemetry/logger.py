@@ -15,8 +15,34 @@ class TelemetryLogger:
         self._write_manifest(results, timestamp)
         self._write_csv(results, timestamp)
         self._write_iterations_csv(results, timestamp)
+        self._write_drift_events_csv(results, timestamp)
         self._write_latex(results, timestamp)
         self._write_json(results, timestamp)
+
+...
+
+    def _write_drift_events_csv(self, results: Dict, timestamp: str):
+        events = results.get("drift_events", [])
+        if not events:
+            return
+        filepath = f"{self.output_dir}/drift_events_{timestamp}.csv"
+        with open(filepath, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=[
+                "phase", "api", "chaos_method", "reconciler", "iteration",
+                "packet_idx", "source_field", "drifted_field"
+            ])
+            writer.writeheader()
+            for e in events:
+                writer.writerow({
+                    "phase": e["phase"],
+                    "api": e["api"],
+                    "chaos_method": e["chaos_method"],
+                    "reconciler": e["reconciler"],
+                    "iteration": e["iteration"],
+                    "packet_idx": e["packet_idx"],
+                    "source_field": e["source_field"],
+                    "drifted_field": e["drifted_field"] if e.get("drifted_field") else ""
+                })
 
     def _write_manifest(self, results: Dict, timestamp: str):
         meta = results.get("run_metadata", {})
@@ -40,6 +66,7 @@ class TelemetryLogger:
             "total_packets": meta.get("total_packets", 0),
             "total_iterations": len(results.get("iterations", [])),
             "total_aggregates": len(results.get("matrix", [])),
+            "total_drift_events": len(results.get("drift_events", [])),
             "cite_method": meta.get("cite_method", ""),
             "method_reference": meta.get("method_reference", ""),
             "phases": results.get("phases", [])
