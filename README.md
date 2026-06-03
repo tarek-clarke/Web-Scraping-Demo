@@ -35,49 +35,24 @@ Executes 60-combination matrix: **4 APIs × 3 Chaos Types × 5 Reconcilers** acr
 
 ## Quick Start
 
-### 1. Clone and Setup
-
 ```bash
+# 1. Clone
 git clone https://github.com/tarek-clarke/resilient-rap-framework.git
 cd resilient-rap-framework
 git checkout domain_testing
-```
 
-### 2. Detect Hardware
-
-```bash
+# 2. Detect hardware (recommends CUDA/ROCm version)
 ./deploy/detect_hardware.sh
+
+# 3. Download models from R2
+chmod +x models/download_from_r2.sh && ./models/download_from_r2.sh
+
+# 4. Ingest 100k packets
+cd go/ingestion && go mod download && go run main.go && cd ../..
+
+# 5. Run matrix (60 combos × 3 iterations = 180 runs)
+python3 run_matrix.py --repetitions 3
 ```
-
-This detects your GPU (NVIDIA/AMD/Apple Silicon) and recommends the correct CUDA/ROCm version and build command.
-
-### 3. Download Models
-
-Edit `models/download_from_r2.sh` with your Cloudflare R2 bucket URL:
-
-```bash
-chmod +x models/download_from_r2.sh
-./models/download_from_r2.sh
-```
-
-### 4. Run Ingestion (Go)
-
-```bash
-cd go/ingestion
-go mod download
-go run main.go
-cd ../..
-```
-
-This generates `data/ingested/telemetry_<timestamp>.json` with 100k packets.
-
-### 5. Run Matrix (Python)
-
-```bash
-python3 run_matrix.py
-```
-
-Auto-detects hardware, probes VRAM, executes 60-combination matrix.
 
 ## Cloud GPU (Vast.ai / Spheron)
 
