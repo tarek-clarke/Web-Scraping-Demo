@@ -66,15 +66,12 @@ class MatrixRunner:
                     api_packets = [p for p in packets if p.get("source") == api]
                     for chaos_method in self.chaos_methods:
                         seeds = [random.randint(0, 2**31) for _ in range(self.repetitions)]
-                        for _ in seeds:
-                            pass  # already generated
                         for reconciler in reconcilers:
                             for rep in range(self.repetitions):
-                                seed = seeds[rep]
                                 future = executor.submit(
                                     self._run_combination,
                                     api_packets, api, chaos_method, reconciler,
-                                    phase_name, rep + 1, seed
+                                    phase_name, rep + 1, seeds[rep]
                                 )
                                 futures.append(future)
 
