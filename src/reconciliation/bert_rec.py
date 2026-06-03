@@ -19,9 +19,10 @@ class BERTReconciler:
                 self.model = SentenceTransformer(model_path, device=self.device)
                 print(f"BERT loaded from local: {model_path}")
             else:
-                print(f"Local BERT not found at {model_path}, downloading from HuggingFace...")
+                print(f"BERT not found locally, downloading from HuggingFace to {model_path}...")
                 self.model = SentenceTransformer('all-MiniLM-L6-v2', device=self.device)
-                print("BERT downloaded from HuggingFace")
+                self.model.save(model_path)
+                print(f"BERT saved to {model_path} (future runs will use local copy)")
         except Exception as e:
             print(f"BERT model not available: {e}")
 

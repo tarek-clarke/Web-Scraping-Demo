@@ -13,14 +13,21 @@ class GemmaE4BReconciler:
         try:
             import os
             if not os.path.exists(self.model_path):
-                print(f"Local Gemma E4B not found at {self.model_path}")
-                print("Run: ./models/download_from_r2.sh")
-                print("Attempting HuggingFace fallback...")
+                print(f"Gemma E4B not found at {self.model_path}")
+                print("Downloading from HuggingFace and saving locally...")
                 try:
                     from huggingface_hub import hf_hub_download
-                    self.model_path = hf_hub_download("google/gemma-4-e4b-it", "model.gguf")
+                    downloaded = hf_hub_download(
+                        repo_id="google/gemma-4-e4b-it-GGUF",
+                        filename="gemma-4-e4b-it-Q4_K_M.gguf",
+                        local_dir=os.path.dirname(self.model_path),
+                        local_dir_use_symlinks=False
+                    )
+                    self.model_path = downloaded
+                    print(f"Gemma E4B saved to {downloaded} (future runs will use local copy)")
                 except Exception as hf_err:
-                    print(f"HuggingFace fallback failed: {hf_err}")
+                    print(f"HuggingFace download failed: {hf_err}")
+                    print("Run: ./models/download_from_r2.sh")
                     return
             
             from llama_cpp import Llama
