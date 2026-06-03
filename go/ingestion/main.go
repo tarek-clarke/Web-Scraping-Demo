@@ -67,26 +67,21 @@ func main() {
 	os.Remove(latestPath)
 	os.Symlink(absPath, latestPath)
 
-	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "  ")
-
-	file.WriteString("[\n")
-	first := true
+	var packets []clients.Packet
 
 	for packet := range packetChan {
 		if atomic.LoadInt64(&totalPackets) >= TargetPackets {
 			cancel()
 			break
 		}
-
-		if !first {
-			file.WriteString(",\n")
-		}
-		encoder.Encode(packet)
-		first = false
+		packets = append(packets, packet)
 	}
 
-	file.WriteString("\n]")
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(packets); err != nil {
+		log.Fatal(err)
+	}
 
-	log.Printf("Ingestion complete: %d packets", atomic.LoadInt64(&totalPackets))
+	log.Printf("Ingestion complete: %d packets", len(packets))
 }
