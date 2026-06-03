@@ -60,16 +60,17 @@ class ChaosInjector:
 
     def _apply_gemma_drift(self, packet: Dict, event: Dict) -> tuple:
         drifted = packet.copy()
-        data = drifted.get("data", {})
         result = self.gemma_chaos.generate_drift(packet)
         if result and result.get("data"):
             drifted["data"] = result["data"]
-            event["drift_type"] = "llm_semantic"
-            event["drift_description"] = result.get("_drift_note", "LLM-generated semantic drift")
+            event["drift_type"] = "llm_semantic_31b"
+            event["drift_description"] = result.get("_drift_note", "Gemma4-31B semantic drift")
+            event["chaos_model"] = "gemma4-31b"
         else:
             drifted, ev = self._fallback_traditional(packet)
             event["drift_type"] = ev["drift_type"]
-            event["drift_description"] = "LLM fallback to traditional drift"
+            event["drift_description"] = "Fallback to traditional drift"
+            event["chaos_model"] = "fallback"
         event["drifted_packet"] = drifted
         return drifted, event
 

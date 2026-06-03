@@ -13,7 +13,7 @@ class GemmaChaos:
 
     def __init__(self, model_path: Optional[str] = None):
         if model_path is None:
-            model_path = str(ROOT / "models" / "gemma4-e4b-it.gguf")
+            model_path = str(ROOT / "models" / "gemma4-31b-gguf.gguf")
         self.model_path = model_path
         self.model = None
 
@@ -29,7 +29,7 @@ class GemmaChaos:
                 n_gpu_layers=-1,
                 verbose=False
             )
-            print("Gemma chaos model loaded")
+            print("Gemma4-31B chaos generator loaded")
         except Exception as e:
             print(f"Gemma chaos model not available: {e}")
 
