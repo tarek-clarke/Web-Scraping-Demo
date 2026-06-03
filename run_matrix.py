@@ -2,6 +2,7 @@
 import json
 import sys
 import os
+import re
 import time as time_mod
 import argparse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -81,9 +82,12 @@ def main():
         "method_reference": "Hosseini, S., Barker, K., & Ramirez-Marquez, J.E. (2016). A review of definitions and measures of system resilience. Reliability Engineering & System Safety, 145, 47-61."
     }
 
+    folder = re.sub(r'[^a-zA-Z0-9_-]', '', hardware.get("model", hardware['type']).replace(' ', '_'))
+    if not folder:
+        folder = hardware['type']
     print(f"\nCompleted {len(results['matrix'])} aggregated combinations ({len(results['iterations'])} total iterations)")
     print(f"Duration: {results['run_metadata']['total_duration_s']:.0f}s")
-    print(f"Results saved to data/reports/{hardware['type']}/")
+    print(f"Results saved to data/reports/{folder}/")
 
 if __name__ == "__main__":
     main()

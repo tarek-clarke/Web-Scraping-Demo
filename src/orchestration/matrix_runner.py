@@ -11,6 +11,7 @@ from ..telemetry.logger import TelemetryLogger
 class MatrixRunner:
     def __init__(self, hardware_profile: Dict, concurrent_runs: int = 1, batch_size: int = 4, repetitions: int = 3):
         hw_type = hardware_profile.get("type", "cpu")
+        hw_model = hardware_profile.get("model")
         self.hardware_type = hw_type
         self.hardware_profile = hardware_profile
         self.concurrent_runs = concurrent_runs
@@ -18,7 +19,7 @@ class MatrixRunner:
         self.repetitions = repetitions
         self.chaos_injector = ChaosInjector(chaos_rate=0.05)
         self.reconciliation_engine = ReconciliationEngine(hw_type, batch_size)
-        self.telemetry = TelemetryLogger(hw_type)
+        self.telemetry = TelemetryLogger(hw_type, hw_model)
 
         self.apis = ["openf1", "finnhub", "spacex", "openmeteo"]
         self.chaos_methods = ["gemma", "json_manip", "schema_alter"]

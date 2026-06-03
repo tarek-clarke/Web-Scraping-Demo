@@ -1,13 +1,18 @@
 import json
 import csv
 import os
-from typing import Dict
+import re
+from typing import Dict, Optional
 from datetime import datetime
 
 class TelemetryLogger:
-    def __init__(self, hardware_profile: str):
-        self.hardware_profile = hardware_profile
-        self.output_dir = f"data/reports/{hardware_profile}"
+    def __init__(self, hw_type: str, model_name: Optional[str] = None):
+        self.hardware_profile = hw_type
+        folder = model_name if model_name else hw_type
+        folder = re.sub(r'[^a-zA-Z0-9_-]', '', folder.replace(' ', '_'))
+        if not folder:
+            folder = hw_type
+        self.output_dir = f"data/reports/{folder}"
         os.makedirs(self.output_dir, exist_ok=True)
 
     def log_results(self, results: Dict):
