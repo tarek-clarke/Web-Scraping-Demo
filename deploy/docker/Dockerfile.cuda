@@ -1,22 +1,50 @@
-FROM nvidia/cuda:12.3.0-devel-ubuntu22.04
+FROM nvidia/cuda:12.3.0-devel-ubuntu22.04 as builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 
 RUN apt-get update && apt-get install -y \
     python3.11 \
+    python3.11-venv \
     python3-pip \
     golang-go \
     git \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
+RUN python3.11 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+FROM nvidia/cuda:12.3.0-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN apt-get update && apt-get install -y \
+    python3.11 \
+    golang-go \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /opt/venv /opt/venv
+
+WORKDIR /app
 
 COPY . .
 
 RUN cd go/ingestion && go mod download
 
-CMD ["python3", "run_matrix.py"]
+RUN mkdir -p /app/models /app/data/ingested /app/data/chaos_log /app/data/reports
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python3 -c "import torch; print('CUDA available:', torch.cuda.is_available())" || exit 1
+
+ENTRYPOINT ["python3"]
+CMD ["run_matrix.py"]

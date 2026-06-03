@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  rap-cuda:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.cuda
+    image: resilient-rap:cuda
+    container_name: rap-cuda-cloud
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - PYTHONUNBUFFERED=1
+      - BATCH_SIZE=${BATCH_SIZE:-32}
+      - CONCURRENT_RUNS=${CONCURRENT_RUNS:-8}
+    volumes:
+      - rap-models:/app/models
+      - rap-data:/app/data
+      - rap-configs:/app/configs:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: ["run_matrix.py"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import torch; assert torch.cuda.is_available()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  rap-models:
+    driver: local
+  rap-data:
+    driver: local
+  rap-configs:
+    driver: local

@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  rap-cuda:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.cuda
+    image: resilient-rap:cuda
+    container_name: rap-cuda
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ../../models:/app/models:ro
+      - ../../data:/app/data
+      - ../../configs:/app/configs:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: ["run_matrix.py"]
+    restart: unless-stopped
+
+  rap-rocm:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.rocm
+    image: resilient-rap:rocm
+    container_name: rap-rocm
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ../../models:/app/models:ro
+      - ../../data:/app/data
+      - ../../configs:/app/configs:ro
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    security_opt:
+      - seccomp:unconfined
+    command: ["run_matrix.py"]
+    restart: unless-stopped
+
+  rap-cpu:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.cpu
+    image: resilient-rap:cpu
+    container_name: rap-cpu
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ../../models:/app/models:ro
+      - ../../data:/app/data
+      - ../../configs:/app/configs:ro
+    command: ["run_matrix.py"]
+    restart: unless-stopped
+
+  ingestion:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.cpu
+    image: resilient-rap:cpu
+    container_name: rap-ingestion
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ../../data:/app/data
+    working_dir: /app/go/ingestion
+    command: ["sh", "-c", "go run main.go"]
+    restart: "no"
