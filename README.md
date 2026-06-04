@@ -4,34 +4,30 @@
 
 ## Overview
 
-Executes 60-combination matrix: **4 APIs × 3 Chaos Types × 5 Reconcilers** across heterogeneous hardware platforms.
+Executes 48-combination matrix: **4 APIs × 3 Chaos Methods × 4 Reconcilers × 1 Iteration** across heterogeneous hardware platforms.
 
 ### Components
 
-- **Ingestion**: Go-based async streaming from 4 live APIs (OpenF1, Finnhub, SpaceX, OpenMeteo) at 100Hz
-- **Chaos Engineering**: 5% injection rate via Gemma4-e4b-it, JSON manipulation, schema alteration
-- **Reconciliation**: Levenshtein, Regex, BERT (MiniLM-v2), Gemma4-E4B-it, Gemma4-31b-gguf
+- **Ingestion**: Go-based async streaming from 4 live APIs (OpenF1, IEX Cloud, SpaceX, OpenMeteo)
+- **Chaos Engineering**: 10% injection rate via Qwen2.5-7B (semantic), JSON manipulation, schema alteration
+- **Reconciliation**: Levenshtein, Regex, BERT (MiniLM-v2), Gemma E4B-it
 - **Hardware Detection**: Auto-bootstrap for CUDA, ROCm, Apple Silicon, CPU with VRAM probing
 
 ### Target Volume
 
-- **100,000 packets** total (25,000 per API source)
-- **5,000 chaos injections** (5% of total)
+- **10,000 packets** total (2,500 per API source)
+- **1,000 chaos injections** (10% of total)
+- **9,000 clean packets** (fast-path bypass, no GPU)
 
 ## Hardware Matrix
 
-| Platform | Type | VRAM | Concurrent Runs | Batch Size | Setup Method |
-|----------|------|------|-----------------|------------|--------------|
-| Intel 12600K | CPU | 0 GB | 4 | 4 | Docker CPU |
-| AMD 7900XT | ROCm | 20 GB | 2 | 8 | Docker ROCm |
-| Apple M4 | Silicon | 16 GB | 3 | 8 | Native Shell |
-| NVIDIA H100 | CUDA | 80 GB | 8 | 32 | Docker CUDA |
-| NVIDIA A100 | CUDA | 80 GB | 8 | 32 | Slurm (TalTech) |
-| NVIDIA RTX 5090 | CUDA | 32 GB | 3 | 16 | Docker CUDA |
-| NVIDIA RTX 6000 Blackwell WS | CUDA | 96 GB | 12 | 32 | Docker CUDA |
-| NVIDIA GH200 | CUDA | 96 GB | 10 | 32 | Docker CUDA |
-| NVIDIA B300 | CUDA | 288 GB | 20 | 64 | Docker CUDA |
-| AMD MI250X | ROCm | 128 GB | 12 | 32 | Slurm (LUMI) |
+| Platform | Type | VRAM | Concurrent Runs | Batch Size |
+|----------|------|------|-----------------|------------|
+| NVIDIA B300 | CUDA | 268 GB | 33 | 64 |
+| NVIDIA RTX 6000 Blackwell | CUDA | 96 GB | 12 | 32 |
+| NVIDIA RTX 5090 | CUDA | 32 GB | 3 | 16 |
+| AMD MI250X | ROCm | 128 GB | 12 | 32 |
+| Apple M4 | Silicon | 16 GB | 3 | 8 |
 
 ## Quick Start
 
@@ -41,254 +37,144 @@ git clone https://github.com/tarek-clarke/resilient-rap-framework.git
 cd resilient-rap-framework
 git checkout domain_testing
 
-# 2. Detect hardware (recommends CUDA/ROCm version)
+# 2. Detect hardware
 ./deploy/detect_hardware.sh
 
 # 3. Download models from R2
 chmod +x models/download_from_r2.sh && ./models/download_from_r2.sh
 
-# 4. Ingest 100k packets
-cd go/ingestion && go mod download && go run main.go && cd ../..
+# 4. Ingest 10k packets (cloud instance)
+cd go/ingestion && go run main.go
 
-# 5. Run matrix (60 combos × 3 iterations = 180 runs)
-python3 run_matrix.py --repetitions 3
+# 5. Upload to R2 (Mac)
+python scripts/upload_to_r2.py
+
+# 6. Bootstrap and run matrix (cloud instance)
+python run_matrix.py
 ```
 
-## Cloud GPU (Vast.ai / Spheron)
+## Benchmark Configuration
 
-Single command for any NVIDIA GPU instance (RTX 5090, A100, H100, etc.):
+### Run Matrix (48 Runs)
+
+- 4 APIs × 3 chaos methods × 4 reconcilers × 1 iteration = 48 total runs
+- 48 unique combinations
+
+### Per-Run Data (10,000 Packets)
+
+| Metric | Value |
+|--------|-------|
+| Total packets | 10,000 (2,500 per API) |
+| Clean (fast-path bypass) | 9,000 (90%) |
+| Drifted (GPU reconciliation) | 1,000 (10%) |
+| GPU batches per reconciler | 16 (batch_size=64) |
+
+## Dual-Stage Gatekeeper Architecture
+
+### Stage 1: Fast-Path Bypass (CPU)
+- Every packet in the stream executes a deterministic structural check
+- Matching packet keys against the target expected schema template
+- If the packet is 100% clean: instantly append to in-memory execution log and short-circuit to next packet
+- **No GPU reconciler calls for clean packets**
+
+### Stage 2: GPU Routing (B300)
+- Only packets that fail the schema verification check (anomalies/drift) are routed to GPU
+- Batch size: 64 (dynamically adjusted to VRAM)
+- Deferred bulk I/O: all results accumulated in RAM and serialized in single write after matrix run
+
+### Per-Run Processing
+```
+For each of 48 runs:
+  for each packet in 10,000:
+    if packet is clean (schema check passes):
+      → append to in-memory log → continue (bypass GPU)
+    else:
+      → route to GPU batch queue (batch_size=64)
+  after all packets:
+    → GPU processes 16 batches × 4 reconcilers
+    → bulk write all results to disk in one I/O block
+```
+
+### Estimated Runtime (B300, 1 GPU)
+
+| Metric | Value |
+|--------|-------|
+| Per run | ~5 sec |
+| 48 runs | ~4-5 min |
+| Well under 1-hour budget | ✓ |
+
+## Chaos Methods
+
+### 1. Qwen (Semantic Drift — LLM-generated)
+- contextual_rename, synonym_substitution, abbreviation_expand, abbreviation_contract, unit_semantic_shift, domain_terminology
+
+### 2. JSON Manipulation (Structure/Value)
+- field_split, field_join, variable_drop, field_merge_value, array_to_scalar, scalar_to_array, array_expansion, duplicate_field_inject, null_injection, default_value_inject, outlier_injection
+
+### 3. Schema Alteration (Type/Structure/Temporal)
+- translation, type_change, precision_loss, unit_conversion, nesting_flatten, nesting_deepen, timestamp_format_change, timezone_change, date_format_change, encoding_change, key_case_change, array_index_rename
+
+## Reconcilers
+
+| Reconciler | Type | Speed |
+|------------|------|-------|
+| Levenshtein | Edit distance | Fast (CPU) |
+| Regex | Pattern matching | Fast (CPU) |
+| BERT (MiniLM-v2) | Embedding similarity | Medium (GPU) |
+| Gemma E4B-it | 4B LLM | Slow (GPU) |
+
+## Cloud GPU (Vast.ai / Spheron)
 
 ```bash
 git clone https://github.com/tarek-clarke/resilient-rap-framework.git && \
   cd resilient-rap-framework && git checkout domain_testing && cd deploy && \
-  command -v docker-compose >/dev/null 2>&1 || (apt-get update && apt-get install -y docker-compose-v2) && \
-  CUDA_VERSION=13.3.0 docker compose -f docker-compose.cloud.yml build rap-cuda && \
-  docker compose -f docker-compose.cloud.yml run --rm rap-cuda bash -c "\
-    cd /app/models && \
-    curl -L -O https://pub-66196916eecb44259146d96cf3604b80.r2.dev/models/gemma4-e4b-it.gguf && \
-    curl -L -O https://pub-66196916eecb44259146d96cf3604b80.r2.dev/models/gemma4-31b-gguf.gguf" && \
-  docker compose -f docker-compose.cloud.yml run --rm rap-cuda bash -c "cd /app/go/ingestion && go run main.go" && \
+  docker compose -f docker-compose.cloud.yml build rap-cuda && \
+  docker compose -f docker-compose.cloud.yml run --rm ingestion && \
   docker compose -f docker-compose.cloud.yml up rap-cuda
-```
-
-This builds the image, downloads models, ingests 100k packets, and runs the 60-combination matrix. Results saved to Docker volume. Copy locally with:
-
-```bash
-docker cp rap-cuda-cloud:/app/data/reports ./data/reports
-```
-
-**CUDA version tips**:
-- RTX 5090 / B300 → `CUDA_VERSION=13.3.0`
-- A100 / H100 / GH200 → `CUDA_VERSION=12.8.0`
-- RTX 3090 / older drivers → `CUDA_VERSION=12.4.0`
-
-## Platform-Specific Instructions
-
-### NVIDIA CUDA (H100, A100, RTX 5090, RTX 6000, GH200, B300)
-
-#### Docker
-
-```bash
-docker build -f deploy/docker/Dockerfile.cuda -t rap-cuda .
-docker run --gpus all -v $(pwd)/data:/app/data rap-cuda
-```
-
-#### Slurm (TalTech A100)
-
-```bash
-sbatch deploy/slurm/taltech_a100.slurm
-```
-
-### AMD ROCm (7900XT, MI250X)
-
-#### Docker
-
-```bash
-docker build -f deploy/docker/Dockerfile.rocm -t rap-rocm .
-docker run --device=/dev/kfd --device=/dev/dri -v $(pwd)/data:/app/data rap-rocm
-```
-
-#### Slurm (LUMI MI250X)
-
-```bash
-sbatch deploy/slurm/lumi_mi250x.slurm
-```
-
-### Apple Silicon (M4)
-
-```bash
-chmod +x deploy/macos/setup_m4.sh
-./deploy/macos/setup_m4.sh
-source venv/bin/activate
-python3 run_matrix.py
-```
-
-### CPU Only (12600K, fallback)
-
-```bash
-docker build -f deploy/docker/Dockerfile.cpu -t rap-cpu .
-docker run -v $(pwd)/data:/app/data rap-cpu
 ```
 
 ## Output
 
 Results saved to `data/reports/<hardware_type>/`:
 
-- `matrix_results_<timestamp>.csv` - Raw metrics (accuracy, latency, throughput)
+- `matrix_results_<timestamp>.csv` - Aggregated metrics (accuracy, latency, throughput, drift events)
+- `matrix_iterations_<timestamp>.csv` - Per-run raw data
+- `drift_events_<timestamp>.csv` - Per-field drift log (source_field, drifted_field, sub_type, status)
 - `ieee_table_<timestamp>.tex` - LaTeX table for IEEE TDKE paper
 - `full_results_<timestamp>.json` - Complete run data
+- `manifest_<timestamp>.json` - Hardware provenance
 
-### Metrics
+### Output Schema
 
-- **Accuracy**: Field mapping success rate (0.0 - 1.0)
-- **Latency**: Per-reconciliation time (ms)
-- **Throughput**: Packets processed per second (pps)
-- **Total Time**: End-to-end matrix execution time (ms)
-- **Batch Size**: GPU batch size for model inference (auto-scaled by VRAM)
+| Field | Description |
+|-------|-------------|
+| run_id | 0-47 |
+| iteration | 1 |
+| api | spacex / openf1 / iexcloud / openmeteo |
+| chaos_method | qwen / json_manip / schema_alter |
+| chaos_sub_type | e.g., field_split, translation, contextual_rename |
+| reconciler | levenshtein / regex / bert / gemma_e4b |
+| reconciliation_status | SUCCESS / FALSE_POSITIVE / FAILURE |
+| packets_total | 10,000 |
+| packets_clean | 9,000 |
+| packets_drifted | 1,000 |
+| fast_path_latency_ms | CPU time for clean packet bypass |
+| gpu_latency_ms | B300 processing time |
+| drift_events | array of {source_field, drifted_field, sub_type, status} |
+| reconciliation_time_ms | wall-clock time |
+| accuracy | % correctly reconciled |
 
-## Methodology
+### Hosseini Resilience Index
 
-### Execution Phases
+Calculated post-hoc from raw data. Reference: Hosseini, S., Barker, K., & Ramirez-Marquez, J.E. (2016). A review of definitions and measures of system resilience. Reliability Engineering & System Safety, 145, 47-61.
 
-The matrix executes in **4 sequential phases**, each phase running concurrently within itself:
+## R2 Configuration
 
-| Phase | Reconcilers | Combos | Runtime | Notes |
-|-------|-------------|--------|---------|-------|
-| 1. Fast | Levenshtein, Regex | 24 | ~6s each | CPU-bound, warmup |
-| 2. BERT | BERT (MiniLM-v2) | 12 | ~30-60s each | GPU batch encoding |
-| 3. Gemma E4B | Gemma4-E4B-it | 12 | ~1-10 min each | LLM-based, GPU |
-| 4. Gemma 31B | Gemma4-31b-gguf | 12 | ~2-20 min each | Large LLM, GPU |
-
-**BERT and Gemma never run simultaneously.** Each GPU model type gets exclusive hardware access during its phase with `concurrent_runs` parallel instances.
-
-### Full Combination Matrix (60 Runs)
-
-```
-Phase 1: Fast CPU (24 runs)
-├── Levenshtein × 12
-│   ├── openf1 × (gemma, json_manip, schema_alter)
-│   ├── finnhub × (gemma, json_manip, schema_alter)
-│   ├── spacex × (gemma, json_manip, schema_alter)
-│   └── openmeteo × (gemma, json_manip, schema_alter)
-└── Regex × 12 (same structure)
-
-Phase 2: BERT (12 runs)
-└── BERT × 12
-    ├── openf1 × (gemma, json_manip, schema_alter)
-    ├── finnhub × (gemma, json_manip, schema_alter)
-    ├── spacex × (gemma, json_manip, schema_alter)
-    └── openmeteo × (gemma, json_manip, schema_alter)
-
-Phase 3: Gemma E4B (12 runs)
-└── Gemma4-E4B-it × 12 (same structure)
-
-Phase 4: Gemma 31B (12 runs)
-└── Gemma4-31b-gguf × 12 (same structure)
-```
-
-### Run Criteria
-
-Each combination processes one API source through one chaos method and one reconciler:
-
-| Criterion | Values | Count |
-|-----------|--------|-------|
-| API Source | OpenF1, Finnhub, SpaceX, OpenMeteo | 4 |
-| Chaos Method | Gemma4-e4b-it (LLM drift), JSON manipulation (noise/shuffle/wrap), Schema alteration (coerce/rename/flatten) | 3 |
-| Reconciler | Levenshtein (edit distance), Regex (pattern match), BERT (embedding sim), Gemma4-E4B-it (LLM), Gemma4-31b-gguf (LLM) | 5 |
-| **Total** | | **60** |
-
-### Hardware Volume
-
-- **100,000 packets** total ingested (25,000 per API)
-- **5,000 chaos injections** (5% of packets randomly selected)
-- **1,250 drifted packets per combination**
-- **100Hz ingestion rate** per source (adaptive throttling)
-
-### Chaos Methods
-
-1. **Gemma4-e4b-it** — LLM-generated semantic drift (field renames, value transformations)
-2. **JSON Manipulation** — Noise injection, key shuffling, nested wrapping
-3. **Schema Alteration** — Type coercion, field renaming, nested flattening
-
-#### Drift Types
-
-- **Field Split**: `temperature` → `temperature_part1`, `temperature_part2`
-- **Field Join**: `speed` + `direction` → `speed_direction`
-- **Translation**: `temperature` → `temp_c`
-- **Variable Drop**: Random field deletion
-
-### Reconciliation Methods
-
-1. **Levenshtein** — Edit distance fuzzy matching (threshold ≤ 3). Fast, deterministic.
-2. **Regex** — Pattern-based semantic matching using predefined field patterns. Fast, deterministic.
-3. **BERT (MiniLM-v2)** — Sentence embedding cosine similarity (threshold > 0.7). GPU-accelerated batch encoding.
-4. **Gemma4-E4B-it** — 4B parameter LLM for schema field mapping. GPU-accelerated via llama.cpp.
-5. **Gemma4-31b-gguf** — 31B parameter quantized LLM for schema field mapping. GPU-accelerated via llama.cpp.
-
-### Hardware Scaling
-
-- GPU compute scaled to VRAM via `VRAMProber` at startup
-- BERT and Gemma models use exclusive GPU time in separate phases
-- Concurrent runs within each phase = `free_vram_gb / 8`
-
-## Dependencies
-
-### Python
-
-- `torch>=2.1.0` - PyTorch for ML models
-- `transformers>=4.36.0` - Hugging Face transformers
-- `sentence-transformers>=2.2.2` - BERT embeddings
-- `python-Levenshtein>=0.23.0` - Edit distance
-- `pynvml>=11.5.0` - NVIDIA GPU monitoring
-- `psutil>=5.9.0` - System resource monitoring
-- `llama-cpp-python>=0.2.0` - GGUF model inference
-
-### Go
-
-- `gorilla/websocket` - WebSocket client (optional)
-
-## Troubleshooting
-
-### Models Not Found
-
-Ensure `models/download_from_r2.sh` has correct R2 bucket URL and models are downloaded to `models/` directory.
-
-### CUDA Out of Memory
-
-Reduce `concurrent_runs` in `configs/hardware_profiles.json` or let VRAM prober auto-scale.
-
-### ROCm Device Not Detected
-
-Verify `rocm-smi` is installed and GPU is visible: `rocm-smi --showproductname`
-
-### Apple Silicon Low Throughput
-
-M4 uses CPU fallback for some models. Expect 2-3x slower than CUDA.
-
-### Go Ingestion Rate Limited
-
-APIs may throttle at 100Hz. Framework auto-throttles on 429 errors.
-
-## Architecture
-
-```
-resilient-data/
-├── go/ingestion/          # Go async streaming clients
-├── src/
-│   ├── chaos/             # Chaos injection engines
-│   ├── reconciliation/    # 5 reconciliation methods
-│   ├── hardware/          # Detection & VRAM probing
-│   ├── orchestration/     # Matrix executor
-│   └── telemetry/         # IEEE-formatted logging
-├── models/                # GGUF model storage
-├── deploy/                # Docker, Slurm, native scripts
-├── configs/               # API endpoints, hardware profiles
-└── data/                  # Ingestion, chaos logs, results
-```
+- Endpoint: `https://39c759d76d40fc4f357df7cac7ab2861.r2.cloudflarestorage.com`
+- Bucket: `rap-framework`
+- Credentials: `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (env vars, git-ignored)
 
 ## Batch Size Scaling
-
-The framework automatically scales batch size based on available VRAM:
 
 | VRAM | Batch Size | Target Hardware |
 |------|------------|-----------------|
@@ -298,10 +184,27 @@ The framework automatically scales batch size based on available VRAM:
 | 80-199 GB | 32 | A100, H100, GH200, MI250X |
 | ≥ 200 GB | 64 | B300 |
 
-**Benefits**:
-- Larger batches = faster GPU inference (especially BERT, Gemma)
-- Auto-calculated by `VRAMProber` on startup
-- Logged in all output files (CSV, LaTeX, JSON)
+## Architecture
+
+```
+resilient-data/
+├── go/ingestion/          # Go async streaming clients
+├── src/
+│   ├── chaos/             # Chaos injection engines (qwen, json_manip, schema_alter)
+│   │   ├── injector.py    # Main injector with sub_type tracking
+│   │   ├── qwen_chaos.py  # Qwen2.5-7B semantic drift
+│   │   ├── json_chaos.py  # JSON structure/value manipulation
+│   │   └── schema_chaos.py # Schema type/structure/temporal alteration
+│   ├── reconciliation/    # 4 reconciliation methods
+│   ├── hardware/          # Detection & VRAM probing
+│   ├── orchestration/     # Matrix executor (Dual-Stage Gatekeeper)
+│   └── telemetry/        # IEEE-formatted logging
+├── scripts/               # upload_to_r2.py, mock_stream.py
+├── models/                # GGUF model storage
+├── deploy/                # Docker, Slurm, native scripts
+├── configs/               # API endpoints, hardware profiles
+└── data/                  # Ingestion, chaos logs, results
+```
 
 ## Citation
 

@@ -1,6 +1,6 @@
 import json
 import random
-from typing import Dict, List
+from typing import Dict, List, Tuple, Optional
 from datetime import datetime
 from pathlib import Path
 from .qwen_chaos import QwenChaos
@@ -10,7 +10,7 @@ from .schema_chaos import SchemaChaos
 ROOT = Path(__file__).resolve().parent.parent.parent
 
 class ChaosInjector:
-    def __init__(self, chaos_rate: float = 0.05):
+    def __init__(self, chaos_rate: float = 0.10):
         self.chaos_rate = chaos_rate
         self.chaos_log = []
         self.chaos_methods = {
@@ -21,28 +21,29 @@ class ChaosInjector:
         self.qwen_chaos = QwenChaos(str(ROOT / "models" / "Qwen2.5-7B-Instruct-Q4_K_M.gguf"))
         self.json_chaos = JSONChaos()
         self.schema_chaos = SchemaChaos()
+        self._sub_type_store: Dict[Tuple[int, int], str] = {}
 
-    def inject(self, packets: List[Dict], force_method: str = None) -> List[Dict]:
+    def inject(self, packets: List[Dict], force_method: str = None, seed: int = 0) -> List[Dict]:
         injected = []
         methods_list = ["qwen", "json_manip", "schema_alter"]
+        random.seed(seed)
 
         for i, packet in enumerate(packets):
             if random.random() < self.chaos_rate:
                 method = force_method if force_method else random.choice(methods_list)
-                drifted, drift_event = self._apply_drift(packet, method)
+                drifted, drift_event, sub_type = self._apply_drift(packet, method, seed, i)
                 self.chaos_log.append(drift_event)
+                self._sub_type_store[(i, seed)] = sub_type
                 injected.append(drifted)
             else:
                 injected.append(packet)
 
-        log_path = ROOT / "data" / "chaos_log" / "chaos_events.json"
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(log_path, "w") as f:
-            json.dump(self.chaos_log, f, indent=2)
-
         return injected
 
-    def _apply_drift(self, packet: Dict, method: str) -> tuple:
+    def get_sub_type(self, packet_idx: int, seed: int) -> str:
+        return self._sub_type_store.get((packet_idx, seed), "unknown")
+
+    def _apply_drift(self, packet: Dict, method: str, seed: int, packet_idx: int) -> tuple:
         method_fn = self.chaos_methods.get(method, self._apply_json_drift)
         event = {
             "timestamp": datetime.utcnow().isoformat(),
@@ -52,9 +53,9 @@ class ChaosInjector:
             "source": packet.get("source", "unknown"),
             "drift_description": None,
         }
-        return method_fn(packet, event)
+        return method_fn(packet, event, seed, packet_idx)
 
-    def _apply_qwen_drift(self, packet: Dict, event: Dict) -> tuple:
+    def _apply_qwen_drift(self, packet: Dict, event: Dict, seed: int, packet_idx: int) -> tuple:
         drifted = packet.copy()
         result = self.qwen_chaos.generate_drift(packet)
         if result and result.get("data"):
@@ -62,31 +63,35 @@ class ChaosInjector:
             event["drift_type"] = "qwen_semantic"
             event["drift_description"] = "Qwen2.5-7B semantic field rename"
             event["chaos_model"] = "qwen2.5-7b"
+            sub_type = result.get("sub_type", "contextual_rename")
         else:
-            drifted, ev = self._fallback_traditional(packet)
+            drifted, ev = self._fallback_traditional(packet, seed, packet_idx)
             event["drift_type"] = ev["drift_type"]
             event["drift_description"] = "Fallback to traditional drift"
             event["chaos_model"] = "fallback"
+            sub_type = ev["drift_type"]
         event["drifted_packet"] = drifted
-        return drifted, event
+        return drifted, event, sub_type
 
-    def _apply_json_drift(self, packet: Dict, event: Dict) -> tuple:
+    def _apply_json_drift(self, packet: Dict, event: Dict, seed: int, packet_idx: int) -> tuple:
         drifted = packet.copy()
-        drifted["data"] = self.json_chaos.inject(drifted.get("data", {}))
+        sub_type, modified_data = self.json_chaos.inject_with_subtype(drifted.get("data", {}))
+        drifted["data"] = modified_data
         event["drift_type"] = "json_manipulation"
-        event["drift_description"] = "JSON structure manipulation"
+        event["drift_description"] = f"JSON structure manipulation: {sub_type}"
         event["drifted_packet"] = drifted
-        return drifted, event
+        return drifted, event, sub_type
 
-    def _apply_schema_drift(self, packet: Dict, event: Dict) -> tuple:
+    def _apply_schema_drift(self, packet: Dict, event: Dict, seed: int, packet_idx: int) -> tuple:
         drifted = packet.copy()
-        drifted["data"] = self.schema_chaos.alter(drifted.get("data", {}))
+        sub_type, modified_data = self.schema_chaos.alter_with_subtype(drifted.get("data", {}))
+        drifted["data"] = modified_data
         event["drift_type"] = "schema_alteration"
-        event["drift_description"] = "Schema structural alteration"
+        event["drift_description"] = f"Schema structural alteration: {sub_type}"
         event["drifted_packet"] = drifted
-        return drifted, event
+        return drifted, event, sub_type
 
-    def _fallback_traditional(self, packet: Dict) -> tuple:
+    def _fallback_traditional(self, packet: Dict, seed: int, packet_idx: int) -> tuple:
         drift_types = ["field_split", "field_join", "translation", "variable_drop"]
         drift_type = random.choice(drift_types)
         event = {
@@ -108,7 +113,7 @@ class ChaosInjector:
             data = self._variable_drop(data)
         drifted["data"] = data
         event["drifted_packet"] = drifted
-        return drifted, event
+        return drifted, event, drift_type
 
     def _field_split(self, data: Dict) -> Dict:
         if not data: return data
@@ -135,5 +140,23 @@ class ChaosInjector:
 
     def _variable_drop(self, data: Dict) -> Dict:
         if not data: return data
-        data.pop(random.choice(list(data.keys())))
+        data.pop(random.choice(list(data.keys())), None)
         return data
+
+    def get_ground_truth_map(self, original: Dict, drifted: Dict) -> Dict[str, str]:
+        orig_keys = set(original.get("data", {}).keys())
+        drift_keys = set(drifted.get("data", {}).keys())
+        added = drift_keys - orig_keys
+        removed = orig_keys - drift_keys
+        unchanged = orig_keys & drift_keys
+        mapping = {}
+        for key in added:
+            mapping[key] = f"added:{key}"
+        for key in removed:
+            mapping[f"removed:{key}"] = key
+        for key in unchanged:
+            if original.get("data", {}).get(key) != drifted.get("data", {}).get(key):
+                mapping[key] = f"modified:{key}"
+            else:
+                mapping[key] = key
+        return mapping

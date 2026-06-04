@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	TargetPackets = 25000
+	TargetPackets = 10000
 	TargetHz      = 100
 	OutputDir     = "../../data/ingested"
 )

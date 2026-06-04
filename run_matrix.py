@@ -13,7 +13,7 @@ from src.orchestration.matrix_runner import MatrixRunner
 
 def main():
     parser = argparse.ArgumentParser(description="Resilient RAP Framework")
-    parser.add_argument("--repetitions", type=int, default=3, help="Iterations per combination (default: 3)")
+    parser.add_argument("--repetitions", type=int, default=1, help="Iterations per combination (default: 1)")
     args = parser.parse_args()
 
     run_start = time_mod.time()
@@ -55,8 +55,8 @@ def main():
         repetitions=args.repetitions
     )
 
-    total_runs = len(runner.apis) * len(runner.chaos_methods) * 5 * args.repetitions
-    print(f"Running {total_runs} matrix runs ({4} APIs x {3} chaos x 5 reconcilers x {args.repetitions} iterations)...\n")
+    total_runs = len(runner.apis) * len(runner.chaos_methods) * 4 * args.repetitions
+    print(f"Running {total_runs} matrix runs ({len(runner.apis)} APIs x {len(runner.chaos_methods)} chaos x 4 reconcilers x {args.repetitions} iterations)...\n")
 
     results = runner.run(packets)
 

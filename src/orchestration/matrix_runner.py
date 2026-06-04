@@ -5,6 +5,7 @@ import hashlib
 import numpy as np
 from typing import Dict, List, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
 from ..chaos.injector import ChaosInjector
 from ..reconciliation.engine import ReconciliationEngine
 from ..telemetry.logger import TelemetryLogger
@@ -18,30 +19,50 @@ class MatrixRunner:
         self.concurrent_runs = concurrent_runs
         self.batch_size = batch_size
         self.repetitions = repetitions
-        self.chaos_injector = ChaosInjector(chaos_rate=0.05)
+        self.chaos_injector = ChaosInjector(chaos_rate=0.10)
         self.reconciliation_engine = ReconciliationEngine(hw_type, batch_size)
         self.telemetry = TelemetryLogger(hw_type, hw_model)
         self._drift_cache: Dict[str, List[Dict]] = {}
+        self._sub_type_cache: Dict[str, Dict[int, str]] = {}
+        self._results_lock = Lock()
 
-        self.apis = ["openf1", "finnhub", "spacex", "openmeteo"]
+        self.apis = ["openf1", "iexcloud", "spacex", "openmeteo"]
         self.chaos_methods = ["qwen", "json_manip", "schema_alter"]
         self.phases = [
             ("fast", ["levenshtein", "regex"]),
             ("bert", ["bert"]),
             ("gemma_e4b", ["gemma_e4b"]),
-            ("gemma_31b", ["gemma_31b"])
         ]
 
     def _cache_key(self, api_packets: List[Dict], chaos_method: str, seed: int) -> str:
         h = hashlib.md5(str(len(api_packets)).encode()).hexdigest()
         return f"{api_packets[0]['source']}_{chaos_method}_{seed}_{h}"
 
-    def _get_drifted(self, api_packets: List[Dict], chaos_method: str, seed: int) -> List[Dict]:
+    def _get_drifted(self, api_packets: List[Dict], chaos_method: str, seed: int) -> Tuple[List[Dict], Dict[int, str]]:
         key = self._cache_key(api_packets, chaos_method, seed)
         if key not in self._drift_cache:
             random.seed(seed)
-            self._drift_cache[key] = self.chaos_injector.inject(api_packets, force_method=chaos_method)
-        return self._drift_cache[key]
+            drifted = self.chaos_injector.inject(api_packets, force_method=chaos_method, seed=seed)
+            sub_type_map = {}
+            for i in range(len(api_packets)):
+                sub_type_map[i] = self.chaos_injector.get_sub_type(i, seed)
+            self._drift_cache[key] = drifted
+            self._sub_type_cache[key] = sub_type_map
+        return self._drift_cache[key], self._sub_type_cache[key]
+
+    def _get_ground_truth_status(self, src_field: str, dst_field: str, original_data: Dict, drifted_data: Dict) -> str:
+        orig_keys = set(original_data.keys())
+        drift_keys = set(drifted_data.keys())
+        if dst_field not in drift_keys:
+            return "FAILURE"
+        if src_field in orig_keys and src_field not in drift_keys and dst_field in drift_keys:
+            return "SUCCESS"
+        if src_field in orig_keys and src_field in drift_keys:
+            if orig_keys == drift_keys:
+                return "SUCCESS"
+            else:
+                return "FALSE_POSITIVE"
+        return "FAILURE"
 
     def run(self, packets: List[Dict]) -> Dict:
         results = {
@@ -65,15 +86,14 @@ class MatrixRunner:
                 for api in self.apis:
                     api_packets = [p for p in packets if p.get("source") == api]
                     for chaos_method in self.chaos_methods:
-                        seeds = [random.randint(0, 2**31) for _ in range(self.repetitions)]
+                        seed = random.randint(0, 2**31)
                         for reconciler in reconcilers:
-                            for rep in range(self.repetitions):
-                                future = executor.submit(
-                                    self._run_combination,
-                                    api_packets, api, chaos_method, reconciler,
-                                    phase_name, rep + 1, seeds[rep]
-                                )
-                                futures.append(future)
+                            future = executor.submit(
+                                self._run_combination,
+                                api_packets, api, chaos_method, reconciler,
+                                phase_name, 1, seed
+                            )
+                            futures.append(future)
 
                 iteration_data = {}
                 for future in as_completed(futures):
@@ -98,44 +118,69 @@ class MatrixRunner:
             print(f"  Completed in {phase_time:.0f} ms")
 
         self._drift_cache.clear()
+        self._sub_type_cache.clear()
         self.telemetry.log_results(results)
         return results
 
     def _run_combination(self, packets: List[Dict], api: str, chaos_method: str,
                          reconciler: str, phase: str, iteration: int, seed: int) -> Dict:
-        start_time = time.perf_counter()
-        drifted = self._get_drifted(packets, chaos_method, seed)
+        total_start = time.perf_counter()
 
+        drifted, sub_type_map = self._get_drifted(packets, chaos_method, seed)
+
+        fast_path_start = time.perf_counter()
+        clean_indices = []
+        drifted_indices = []
+        original_data_list = []
+
+        for idx, (orig, drift) in enumerate(zip(packets, drifted)):
+            if orig == drift:
+                clean_indices.append(idx)
+            else:
+                drifted_indices.append(idx)
+                original_data_list.append((idx, orig.get("data", {}), drift.get("data", {})))
+
+        fast_path_ms = (time.perf_counter() - fast_path_start) * 1000
+
+        gpu_start = time.perf_counter()
         drift_events = []
         accuracies = []
         latencies = []
-        all_mapped = []
-        all_unmapped = []
 
-        for idx, (orig, drift) in enumerate(zip(packets, drifted)):
-            if orig != drift:
-                rec_result = self.reconciliation_engine.reconcile(orig, drift, reconciler)
+        for batch_start in range(0, len(drifted_indices), self.batch_size):
+            batch_indices = drifted_indices[batch_start:batch_start + self.batch_size]
+            for i, idx in enumerate(batch_indices):
+                orig_data = original_data_list[i][1]
+                drift_data = original_data_list[i][2]
+                sub_type = sub_type_map.get(idx, "unknown")
+
+                rec_result = self.reconciliation_engine.reconcile(
+                    {"data": orig_data},
+                    {"data": drift_data},
+                    reconciler
+                )
                 accuracies.append(rec_result["accuracy"])
                 latencies.append(rec_result["latency_ms"])
-                all_mapped.append((idx, rec_result.get("mapped_fields", [])))
-                all_unmapped.append((idx, rec_result.get("unmapped_fields", [])))
 
-        for idx, mapped in all_mapped:
-            for src, dst in mapped:
-                drift_events.append({
-                    "phase": phase, "api": api, "chaos_method": chaos_method,
-                    "reconciler": reconciler, "iteration": iteration,
-                    "packet_idx": idx, "source_field": src, "drifted_field": dst,
-                })
-        for idx, unmapped in all_unmapped:
-            for src in unmapped:
-                drift_events.append({
-                    "phase": phase, "api": api, "chaos_method": chaos_method,
-                    "reconciler": reconciler, "iteration": iteration,
-                    "packet_idx": idx, "source_field": src, "drifted_field": None,
-                })
+                for src, dst in rec_result.get("mapped_fields", []):
+                    status = self._get_ground_truth_status(src, dst, orig_data, drift_data)
+                    drift_events.append({
+                        "phase": phase, "api": api, "chaos_method": chaos_method,
+                        "reconciler": reconciler, "iteration": iteration,
+                        "packet_idx": idx, "source_field": src, "drifted_field": dst,
+                        "chaos_sub_type": sub_type, "reconciliation_status": status,
+                    })
 
-        total_time = (time.perf_counter() - start_time) * 1000
+                for src in rec_result.get("unmapped_fields", []):
+                    drift_events.append({
+                        "phase": phase, "api": api, "chaos_method": chaos_method,
+                        "reconciler": reconciler, "iteration": iteration,
+                        "packet_idx": idx, "source_field": src, "drifted_field": None,
+                        "chaos_sub_type": sub_type, "reconciliation_status": "FAILURE",
+                    })
+
+        gpu_ms = (time.perf_counter() - gpu_start) * 1000
+        total_time = (time.perf_counter() - total_start) * 1000
         throughput = len(packets) / (total_time / 1000) if total_time > 0 else 0
         acc = sum(accuracies) / len(accuracies) if accuracies else 0.0
         hosseini = self._hosseini_resilience(acc, 1.0, total_time / 1000)
@@ -150,6 +195,10 @@ class MatrixRunner:
             "total_time_ms": total_time,
             "throughput_pps": throughput,
             "packets_processed": len(packets),
+            "packets_clean": len(clean_indices),
+            "packets_drifted": len(drifted_indices),
+            "fast_path_latency_ms": fast_path_ms,
+            "gpu_latency_ms": gpu_ms,
             "batch_size": self.batch_size,
             "hosseini_resilience": hosseini,
             "drift_event_count": len(drift_events),
@@ -163,13 +212,17 @@ class MatrixRunner:
         thrs = [i["throughput_pps"] for i in iters]
         times = [i["total_time_ms"] for i in iters]
         events = [i["drift_event_count"] for i in iters]
+        fp_lats = [i["fast_path_latency_ms"] for i in iters]
+        gpu_lats = [i["gpu_latency_ms"] for i in iters]
+        clean = [i["packets_clean"] for i in iters]
+        drifted = [i["packets_drifted"] for i in iters]
 
         def stats(vals):
             return {
-                "mean": float(np.mean(vals)),
+                "mean": float(np.mean(vals)) if vals else 0.0,
                 "std": float(np.std(vals, ddof=1)) if len(vals) > 1 else 0.0,
-                "min": float(np.min(vals)),
-                "max": float(np.max(vals))
+                "min": float(np.min(vals)) if vals else 0.0,
+                "max": float(np.max(vals)) if vals else 0.0
             }
 
         return {
@@ -183,6 +236,10 @@ class MatrixRunner:
             "throughput_pps": stats(thrs),
             "total_time_ms": stats(times),
             "drift_events": stats(events),
+            "fast_path_latency_ms": stats(fp_lats),
+            "gpu_latency_ms": stats(gpu_lats),
+            "packets_clean": stats(clean),
+            "packets_drifted": stats(drifted),
             "batch_size": iters[0]["batch_size"]
         }
 

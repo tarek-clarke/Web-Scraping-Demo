@@ -32,7 +32,8 @@ class TelemetryLogger:
         with open(filepath, 'w', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=[
                 "phase", "api", "chaos_method", "reconciler", "iteration",
-                "packet_idx", "source_field", "drifted_field"
+                "packet_idx", "source_field", "drifted_field",
+                "chaos_sub_type", "reconciliation_status"
             ])
             writer.writeheader()
             for e in events:
@@ -44,7 +45,9 @@ class TelemetryLogger:
                     "iteration": e["iteration"],
                     "packet_idx": e["packet_idx"],
                     "source_field": e["source_field"],
-                    "drifted_field": e["drifted_field"] if e.get("drifted_field") else ""
+                    "drifted_field": e.get("drifted_field", "") if e.get("drifted_field") else "",
+                    "chaos_sub_type": e.get("chaos_sub_type", ""),
+                    "reconciliation_status": e.get("reconciliation_status", "")
                 })
 
     def _write_manifest(self, results: Dict, timestamp: str):
@@ -64,7 +67,7 @@ class TelemetryLogger:
             "python_version": hw.get("python_version", "unknown"),
             "concurrent_runs": hw.get("concurrent_runs", 1),
             "batch_size": hw.get("batch_size", 1),
-            "repetitions": results.get("repetitions", 3),
+            "repetitions": results.get("repetitions", 1),
             "total_duration_s": round(meta.get("total_duration_s", 0), 2),
             "total_packets": meta.get("total_packets", 0),
             "total_iterations": len(results.get("iterations", [])),
@@ -88,6 +91,9 @@ class TelemetryLogger:
                 "throughput_mean_pps", "throughput_std_pps",
                 "throughput_min_pps", "throughput_max_pps",
                 "total_time_mean_ms", "total_time_std_ms",
+                "fast_path_latency_mean_ms", "fast_path_latency_std_ms",
+                "gpu_latency_mean_ms", "gpu_latency_std_ms",
+                "packets_clean_mean", "packets_drifted_mean",
                 "batch_size"
             ])
             writer.writeheader()
@@ -114,6 +120,12 @@ class TelemetryLogger:
                     "throughput_max_pps": row["throughput_pps"]["max"],
                     "total_time_mean_ms": row["total_time_ms"]["mean"],
                     "total_time_std_ms": row["total_time_ms"]["std"],
+                    "fast_path_latency_mean_ms": row["fast_path_latency_ms"]["mean"],
+                    "fast_path_latency_std_ms": row["fast_path_latency_ms"]["std"],
+                    "gpu_latency_mean_ms": row["gpu_latency_ms"]["mean"],
+                    "gpu_latency_std_ms": row["gpu_latency_ms"]["std"],
+                    "packets_clean_mean": row["packets_clean"]["mean"],
+                    "packets_drifted_mean": row["packets_drifted"]["mean"],
                     "batch_size": row["batch_size"]
                 })
 
@@ -125,18 +137,41 @@ class TelemetryLogger:
                 "accuracy", "hosseini_resilience",
                 "avg_latency_ms", "min_latency_ms", "max_latency_ms",
                 "throughput_pps", "total_time_ms",
-                "packets_processed", "batch_size"
+                "packets_processed", "packets_clean", "packets_drifted",
+                "fast_path_latency_ms", "gpu_latency_ms",
+                "batch_size", "drift_event_count"
             ])
             writer.writeheader()
             for it in results["iterations"]:
-                writer.writerow(it)
+                writer.writerow({
+                    "phase": it["phase"],
+                    "api": it["api"],
+                    "chaos_method": it["chaos_method"],
+                    "reconciler": it["reconciler"],
+                    "iteration": it["iteration"],
+                    "seed": it["seed"],
+                    "accuracy": it["accuracy"],
+                    "hosseini_resilience": it["hosseini_resilience"],
+                    "avg_latency_ms": it["avg_latency_ms"],
+                    "min_latency_ms": it["min_latency_ms"],
+                    "max_latency_ms": it["max_latency_ms"],
+                    "throughput_pps": it["throughput_pps"],
+                    "total_time_ms": it["total_time_ms"],
+                    "packets_processed": it["packets_processed"],
+                    "packets_clean": it["packets_clean"],
+                    "packets_drifted": it["packets_drifted"],
+                    "fast_path_latency_ms": it["fast_path_latency_ms"],
+                    "gpu_latency_ms": it["gpu_latency_ms"],
+                    "batch_size": it["batch_size"],
+                    "drift_event_count": it["drift_event_count"]
+                })
 
     def _write_latex(self, results: Dict, timestamp: str):
         filepath = f"{self.output_dir}/ieee_table_{timestamp}.tex"
         with open(filepath, 'w') as f:
             meta = results.get("run_metadata", {})
             hw = meta.get("hardware", {})
-            reps = results.get("repetitions", 3)
+            reps = results.get("repetitions", 1)
             f.write(f"% Hosseini et al. (2016) Resilience Index — {reps} iterations per combination\n")
             f.write(f"% Hardware: {hw.get('model', 'unknown')} | VRAM: {hw.get('vram_gb', 0)} GB | Driver: {hw.get('driver', 'unknown')}\n")
             f.write(f"% CPU: {hw.get('cpu', 'unknown')} | Motherboard: {hw.get('motherboard', 'unknown')}\n")
