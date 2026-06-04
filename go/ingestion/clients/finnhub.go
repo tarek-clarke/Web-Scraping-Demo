@@ -20,7 +20,7 @@ func StreamFinnhub(ctx context.Context, ch chan<- Packet, counter *int64) {
 	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
-	ticker := time.NewTicker(10 * time.Millisecond)
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	url := FinnhubURL + apiKey
@@ -70,7 +70,7 @@ func StreamFinnhubWithLimit(ctx context.Context, ch chan<- Packet, counter *int6
 	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
-	ticker := time.NewTicker(10 * time.Millisecond)
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	url := FinnhubURL + apiKey
