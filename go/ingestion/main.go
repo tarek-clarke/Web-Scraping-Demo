@@ -38,7 +38,7 @@ func main() {
 
 	go func() {
 		defer wg.Done()
-		clients.StreamIEXCloud(ctx, packetChan, &totalPackets)
+		clients.StreamFinnhub(ctx, packetChan, &totalPackets)
 	}()
 
 	go func() {
