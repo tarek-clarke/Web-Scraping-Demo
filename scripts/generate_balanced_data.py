@@ -8,20 +8,24 @@ from datetime import datetime
 OUTPUT_FILE = "data/ingested/telemetry_latest.json"
 PACKETS_PER_API = 2500
 
-def generate_openf1():
+def generate_fastf1():
     return {
-        "source": "openf1",
+        "source": "fastf1",
         "timestamp": datetime.utcnow().isoformat(),
         "data": {
-            "driver_number": random.randint(1, 99),
+            "driver": random.choice(["Verstappen", "Hamilton", "Leclerc", "Norris", "Piastri", "Sainz", "Alonso", "Russell"]),
+            "team": random.choice(["Red Bull", "Ferrari", "Mercedes", "McLaren", "Aston Martin"]),
             "position": random.randint(1, 20),
-            "lap_time_ms": random.randint(80000, 120000),
-            "pit_stop_count": random.randint(0, 3),
+            "lap_time_ms": random.randint(75000, 95000),
+            "lap_number": random.randint(1, 70),
+            "pit_stop_count": random.randint(0, 2),
             "tire_compound": random.choice(["soft", "medium", "hard"]),
-            "speed_kmh": random.randint(250, 320),
-            "throttle": random.randint(80, 100),
+            "speed_kmh": random.randint(250, 340),
+            "throttle": random.randint(50, 100),
             "brake": random.randint(0, 100),
-            "drs": random.choice([0, 1]),
+            "drs": random.choice([0, 1, 2]),
+            "ers_deployment": round(random.uniform(0, 50), 1),
+            "fuel_remaining_kg": round(random.uniform(0, 50), 2),
         }
     }
 
@@ -82,7 +86,7 @@ def main():
     packets = []
 
     for _ in range(PACKETS_PER_API):
-        packets.append(generate_openf1())
+        packets.append(generate_fastf1())
     for _ in range(PACKETS_PER_API):
         packets.append(generate_finnhub())
     for _ in range(PACKETS_PER_API):
