@@ -14,7 +14,7 @@ const OpenF1URL = "https://api.openf1.org/v1/car_data"
 
 func StreamOpenF1(ctx context.Context, ch chan<- Packet, counter *int64) {
 	client := &http.Client{Timeout: 10 * time.Second}
-	ticker := time.NewTicker(10 * time.Millisecond)
+	ticker := time.NewTicker(60 * time.Second / 30) // 30 per minute
 	defer ticker.Stop()
 
 	for {
@@ -51,7 +51,7 @@ func StreamOpenF1(ctx context.Context, ch chan<- Packet, counter *int64) {
 
 func StreamOpenF1WithLimit(ctx context.Context, ch chan<- Packet, counter *int64, limit int64, onDone func()) {
 	client := &http.Client{Timeout: 10 * time.Second}
-	ticker := time.NewTicker(10 * time.Millisecond)
+	ticker := time.NewTicker(60 * time.Second / 30) // 30 per minute
 	defer ticker.Stop()
 
 	for {

@@ -31,16 +31,16 @@ func main() {
 
 	var (
 		totalPackets     int64
-		ergastf1Count     int64
+		openf1Count     int64
 		finnhubCount     int64
 		spacexCount      int64
 		openweatherCount int64
 	)
 
 	isAPIDone := map[string]bool{
-		"ergastf1":     false,
+		"openf1":      false,
 		"finnhub":      false,
-		"spacex":       false,
+		"spacex":      false,
 		"openweather":  false,
 	}
 
@@ -67,8 +67,8 @@ func main() {
 
 	go func() {
 		defer wg.Done()
-		if !shouldSkip("ergastf1") {
-			clients.StreamErgastF1WithLimit(ctx, packetChan, &ergastf1Count, TargetPerAPI, func() { markDone("ergastf1") })
+		if !shouldSkip("openf1") {
+			clients.StreamOpenF1WithLimit(ctx, packetChan, &openf1Count, TargetPerAPI, func() { markDone("openf1") })
 		}
 	}()
 
@@ -114,8 +114,8 @@ func main() {
 	defer logTicker.Stop()
 
 	printCounts := func() {
-		log.Printf("Progress: total=%d ergastf1=%d finnhub=%d spacex=%d openweather=%d",
-			len(packets), atomic.LoadInt64(&ergastf1Count), atomic.LoadInt64(&finnhubCount),
+		log.Printf("Progress: total=%d openf1=%d finnhub=%d spacex=%d openweather=%d",
+			len(packets), atomic.LoadInt64(&openf1Count), atomic.LoadInt64(&finnhubCount),
 			atomic.LoadInt64(&spacexCount), atomic.LoadInt64(&openweatherCount))
 	}
 

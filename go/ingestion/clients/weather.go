@@ -24,7 +24,7 @@ func StreamOpenWeather(ctx context.Context, ch chan<- Packet, counter *int64) {
 	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(60 * time.Second / 59) // 59 per minute = ~1.017 sec/call
 	defer ticker.Stop()
 
 	url := WeatherURL + WeatherAPIKey
@@ -76,7 +76,7 @@ func StreamOpenWeatherWithLimit(ctx context.Context, ch chan<- Packet, counter *
 	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(60 * time.Second / 59) // 59 per minute = ~1.017 sec/call
 	defer ticker.Stop()
 
 	url := WeatherURL + WeatherAPIKey
