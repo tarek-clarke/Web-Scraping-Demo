@@ -14,9 +14,11 @@ import (
 )
 
 const (
-	TargetPackets = 10000
-	TargetHz      = 100
-	OutputDir     = "../../data/ingested"
+	TargetPackets     = 10000
+	TargetPerAPI      = 2500
+	TargetHz          = 100
+	OutputDir         = "../../data/ingested"
+	ProgressInterval  = 10 * time.Second
 )
 
 func main() {
@@ -25,30 +27,70 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
 
-	var totalPackets int64
 	packetChan := make(chan clients.Packet, 10000)
 
-	var wg sync.WaitGroup
+	var (
+		totalPackets   int64
+		openf1Count    int64
+		finnhubCount   int64
+		spacexCount    int64
+		openmeteoCount int64
+	)
+
+	isAPIDone := map[string]bool{
+		"openf1":   false,
+		"finnhub":  false,
+		"spacex":   false,
+		"openmeteo": false,
+	}
+
+	var doneMu sync.Mutex
+
+	isDone := func(api string) bool {
+		doneMu.Lock()
+		defer doneMu.Unlock()
+		return isAPIDone[api]
+	}
+
+	markDone := func(api string) {
+		doneMu.Lock()
+		defer doneMu.Unlock()
+		isAPIDone[api] = true
+	}
+
+	shouldSkip := func(api string) bool {
+		return isDone(api)
+	}
+
+	wg := &sync.WaitGroup{}
 	wg.Add(4)
 
 	go func() {
 		defer wg.Done()
-		clients.StreamOpenF1(ctx, packetChan, &totalPackets)
+		if !shouldSkip("openf1") {
+			clients.StreamOpenF1WithLimit(ctx, packetChan, &openf1Count, TargetPerAPI, func() { markDone("openf1") })
+		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		clients.StreamFinnhub(ctx, packetChan, &totalPackets)
+		if !shouldSkip("finnhub") {
+			clients.StreamFinnhubWithLimit(ctx, packetChan, &finnhubCount, TargetPerAPI, func() { markDone("finnhub") })
+		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		clients.StreamSpaceX(ctx, packetChan, &totalPackets)
+		if !shouldSkip("spacex") {
+			clients.StreamSpaceXWithLimit(ctx, packetChan, &spacexCount, TargetPerAPI, func() { markDone("spacex") })
+		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		clients.StreamOpenMeteo(ctx, packetChan, &totalPackets)
+		if !shouldSkip("openmeteo") {
+			clients.StreamOpenMeteoWithLimit(ctx, packetChan, &openmeteoCount, TargetPerAPI, func() { markDone("openmeteo") })
+		}
 	}()
 
 	go func() {
@@ -68,8 +110,25 @@ func main() {
 	os.Symlink(absPath, latestPath)
 
 	var packets []clients.Packet
-	logTicker := time.NewTicker(10 * time.Second)
+	logTicker := time.NewTicker(ProgressInterval)
 	defer logTicker.Stop()
+
+	printCounts := func() {
+		log.Printf("Progress: total=%d openf1=%d finnhub=%d spacex=%d openmeteo=%d",
+			len(packets), atomic.LoadInt64(&openf1Count), atomic.LoadInt64(&finnhubCount),
+			atomic.LoadInt64(&spacexCount), atomic.LoadInt64(&openmeteoCount))
+	}
+
+	allAPIDone := func() bool {
+		doneMu.Lock()
+		defer doneMu.Unlock()
+		for _, v := range isAPIDone {
+			if !v {
+				return false
+			}
+		}
+		return true
+	}
 
 	for {
 		select {
@@ -78,19 +137,22 @@ func main() {
 				goto done
 			}
 			packets = append(packets, packet)
-			if atomic.LoadInt64(&totalPackets) >= TargetPackets {
+			atomic.AddInt64(&totalPackets, 1)
+
+			if atomic.LoadInt64(&totalPackets) >= TargetPackets || allAPIDone() {
 				cancel()
 				goto done
 			}
 		case <-logTicker.C:
-			log.Printf("Progress: %d packets collected", len(packets))
+			printCounts()
 		case <-ctx.Done():
-			log.Printf("Timeout reached: %d packets collected", len(packets))
+			log.Printf("Timeout or complete: %d packets collected", len(packets))
 			goto done
 		}
 	}
 done:
 
+	printCounts()
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(packets); err != nil {

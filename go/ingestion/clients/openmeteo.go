@@ -48,3 +48,44 @@ func StreamOpenMeteo(ctx context.Context, ch chan<- Packet, counter *int64) {
 		}
 	}
 }
+
+func StreamOpenMeteoWithLimit(ctx context.Context, ch chan<- Packet, counter *int64, limit int64, onDone func()) {
+	client := &http.Client{Timeout: 10 * time.Second}
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if atomic.LoadInt64(counter) >= limit {
+				onDone()
+				return
+			}
+			resp, err := client.Get(OpenMeteoURL)
+			if err != nil {
+				log.Printf("OpenMeteo error: %v", err)
+				continue
+			}
+
+			body, err := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			if err != nil {
+				continue
+			}
+
+			var data map[string]interface{}
+			if err := json.Unmarshal(body, &data); err != nil {
+				continue
+			}
+
+			ch <- Packet{
+				Source:    "openmeteo",
+				Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
+				Data:      data,
+			}
+			atomic.AddInt64(counter, 1)
+		}
+	}
+}
