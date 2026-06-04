@@ -26,7 +26,7 @@ class MatrixRunner:
         self._sub_type_cache: Dict[str, Dict[int, str]] = {}
         self._results_lock = Lock()
 
-        self.apis = ["openf1", "finnhub", "spacex", "openmeteo"]
+        self.apis = ["openf1", "finnhub", "spacex", "openweather"]
         self.chaos_methods = ["qwen", "json_manip", "schema_alter"]
         self.phases = [
             ("fast", ["levenshtein", "regex"]),

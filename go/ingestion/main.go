@@ -30,18 +30,18 @@ func main() {
 	packetChan := make(chan clients.Packet, 10000)
 
 	var (
-		totalPackets   int64
-		openf1Count    int64
-		finnhubCount   int64
-		spacexCount    int64
-		openmeteoCount int64
+		totalPackets     int64
+		openf1Count      int64
+		finnhubCount     int64
+		spacexCount      int64
+		openweatherCount int64
 	)
 
 	isAPIDone := map[string]bool{
-		"openf1":   false,
-		"finnhub":  false,
-		"spacex":   false,
-		"openmeteo": false,
+		"openf1":      false,
+		"finnhub":      false,
+		"spacex":       false,
+		"openweather":  false,
 	}
 
 	var doneMu sync.Mutex
@@ -88,8 +88,8 @@ func main() {
 
 	go func() {
 		defer wg.Done()
-		if !shouldSkip("openmeteo") {
-			clients.StreamOpenMeteoWithLimit(ctx, packetChan, &openmeteoCount, TargetPerAPI, func() { markDone("openmeteo") })
+		if !shouldSkip("openweather") {
+			clients.StreamOpenWeatherWithLimit(ctx, packetChan, &openweatherCount, TargetPerAPI, func() { markDone("openweather") })
 		}
 	}()
 
@@ -114,9 +114,9 @@ func main() {
 	defer logTicker.Stop()
 
 	printCounts := func() {
-		log.Printf("Progress: total=%d openf1=%d finnhub=%d spacex=%d openmeteo=%d",
+		log.Printf("Progress: total=%d openf1=%d finnhub=%d spacex=%d openweather=%d",
 			len(packets), atomic.LoadInt64(&openf1Count), atomic.LoadInt64(&finnhubCount),
-			atomic.LoadInt64(&spacexCount), atomic.LoadInt64(&openmeteoCount))
+			atomic.LoadInt64(&spacexCount), atomic.LoadInt64(&openweatherCount))
 	}
 
 	allAPIDone := func() bool {

@@ -10,20 +10,24 @@ import (
 	"time"
 )
 
-const FinnhubURL = "https://finnhub.io/api/v1/quote?symbol=AAPL&token="
+const WeatherURL = "https://api.openweathermap.org/data/2.5/weather?q=Tallinn,EE&appid="
 
-func StreamFinnhub(ctx context.Context, ch chan<- Packet, counter *int64) {
-	apiKey := getEnvOrPrompt("FINNHUB_API_KEY", "Enter your Finnhub API key: ")
-	if apiKey == "" {
-		log.Println("Finnhub: no API key provided, skipping")
-		return
+var WeatherAPIKey = ""
+
+func StreamOpenWeather(ctx context.Context, ch chan<- Packet, counter *int64) {
+	if WeatherAPIKey == "" {
+		WeatherAPIKey = getEnvOrPrompt("OPENWEATHER_API_KEY", "Enter your OpenWeatherMap API key: ")
+		if WeatherAPIKey == "" {
+			log.Println("OpenWeather: no API key, skipping")
+			return
+		}
 	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	ticker := time.NewTicker(10 * time.Millisecond)
 	defer ticker.Stop()
 
-	url := FinnhubURL + apiKey
+	url := WeatherURL + WeatherAPIKey
 
 	for {
 		select {
@@ -32,7 +36,7 @@ func StreamFinnhub(ctx context.Context, ch chan<- Packet, counter *int64) {
 		case <-ticker.C:
 			resp, err := client.Get(url)
 			if err != nil {
-				log.Printf("Finnhub error: %v", err)
+				log.Printf("OpenWeather error: %v", err)
 				continue
 			}
 
@@ -47,12 +51,12 @@ func StreamFinnhub(ctx context.Context, ch chan<- Packet, counter *int64) {
 				continue
 			}
 
-			if data["c"] == nil {
+			if data["cod"] != nil && data["cod"] != "200" {
 				continue
 			}
 
 			ch <- Packet{
-				Source:    "finnhub",
+				Source:    "openweather",
 				Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
 				Data:      data,
 			}
@@ -61,19 +65,21 @@ func StreamFinnhub(ctx context.Context, ch chan<- Packet, counter *int64) {
 	}
 }
 
-func StreamFinnhubWithLimit(ctx context.Context, ch chan<- Packet, counter *int64, limit int64, onDone func()) {
-	apiKey := getEnvOrPrompt("FINNHUB_API_KEY", "Enter your Finnhub API key: ")
-	if apiKey == "" {
-		log.Println("Finnhub: no API key provided, skipping")
-		onDone()
-		return
+func StreamOpenWeatherWithLimit(ctx context.Context, ch chan<- Packet, counter *int64, limit int64, onDone func()) {
+	if WeatherAPIKey == "" {
+		WeatherAPIKey = getEnvOrPrompt("OPENWEATHER_API_KEY", "Enter your OpenWeatherMap API key: ")
+		if WeatherAPIKey == "" {
+			log.Println("OpenWeather: no API key, skipping")
+			onDone()
+			return
+		}
 	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	ticker := time.NewTicker(10 * time.Millisecond)
 	defer ticker.Stop()
 
-	url := FinnhubURL + apiKey
+	url := WeatherURL + WeatherAPIKey
 
 	for {
 		select {
@@ -86,7 +92,7 @@ func StreamFinnhubWithLimit(ctx context.Context, ch chan<- Packet, counter *int6
 			}
 			resp, err := client.Get(url)
 			if err != nil {
-				log.Printf("Finnhub error: %v", err)
+				log.Printf("OpenWeather error: %v", err)
 				continue
 			}
 
@@ -101,12 +107,12 @@ func StreamFinnhubWithLimit(ctx context.Context, ch chan<- Packet, counter *int6
 				continue
 			}
 
-			if data["c"] == nil {
+			if data["cod"] != nil && data["cod"] != "200" {
 				continue
 			}
 
 			ch <- Packet{
-				Source:    "finnhub",
+				Source:    "openweather",
 				Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
 				Data:      data,
 			}
