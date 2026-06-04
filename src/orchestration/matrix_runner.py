@@ -28,10 +28,10 @@ class MatrixRunner:
 
         self.apis = ["openf1", "finnhub", "spacex", "openweather"]
         self.chaos_methods = ["qwen", "json_manip", "schema_alter"]
+        self.reconcilers = ["levenshtein", "regex", "bert"]
         self.phases = [
             ("fast", ["levenshtein", "regex"]),
             ("bert", ["bert"]),
-            ("gemma_e4b", ["gemma_e4b"]),
         ]
 
     def _cache_key(self, api_packets: List[Dict], chaos_method: str, seed: int) -> str:
@@ -85,6 +85,9 @@ class MatrixRunner:
 
                 for api in self.apis:
                     api_packets = [p for p in packets if p.get("source") == api]
+                    if not api_packets:
+                        print(f"  Skipping {api}: no packets found")
+                        continue
                     for chaos_method in self.chaos_methods:
                         seed = random.randint(0, 2**31)
                         for reconciler in reconcilers:

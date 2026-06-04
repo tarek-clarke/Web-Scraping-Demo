@@ -55,8 +55,8 @@ def main():
         repetitions=args.repetitions
     )
 
-    total_runs = len(runner.apis) * len(runner.chaos_methods) * 4 * args.repetitions
-    print(f"Running {total_runs} matrix runs ({len(runner.apis)} APIs x {len(runner.chaos_methods)} chaos x 4 reconcilers x {args.repetitions} iterations)...\n")
+    total_runs = len(runner.apis) * len(runner.chaos_methods) * len(runner.reconcilers) * args.repetitions
+    print(f"Running {total_runs} matrix runs ({len(runner.apis)} APIs x {len(runner.chaos_methods)} chaos x {len(runner.reconcilers)} reconcilers x {args.repetitions} iterations)...\n")
 
     results = runner.run(packets)
 

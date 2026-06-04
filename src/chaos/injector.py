@@ -65,7 +65,7 @@ class ChaosInjector:
             event["chaos_model"] = "qwen2.5-7b"
             sub_type = result.get("sub_type", "contextual_rename")
         else:
-            drifted, ev = self._fallback_traditional(packet, seed, packet_idx)
+            drifted, ev, sub_type = self._fallback_traditional(packet, seed, packet_idx)
             event["drift_type"] = ev["drift_type"]
             event["drift_description"] = "Fallback to traditional drift"
             event["chaos_model"] = "fallback"

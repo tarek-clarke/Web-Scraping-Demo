@@ -194,7 +194,7 @@ class TelemetryLogger:
                 hs = row["hosseini_resilience"]["std"]
                 tm = row["throughput_pps"]["mean"]
                 ts = row["throughput_pps"]["std"]
-                f.write(f"{phase} & {api} & {rec} & ${am:.3f}\\pm{as_:.3f}$ & ${hm:.3f}\\pm{hs_:.3f}$ & ${tm:.0f}\\pm{ts:.0f}$ & {row['batch_size']} \\\\\n")
+                f.write(f"{phase} & {api} & {rec} & ${am:.3f}\\pm{as_:.3f}$ & ${hm:.3f}\\pm{hs:.3f}$ & ${tm:.0f}\\pm{ts:.0f}$ & {row['batch_size']} \\\\\n")
 
             f.write("\\hline\n")
             f.write("\\end{tabular}\n")
