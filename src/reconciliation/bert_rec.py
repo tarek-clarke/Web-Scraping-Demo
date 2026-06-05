@@ -1,5 +1,6 @@
 import os
 import time
+import threading
 from typing import Dict, List, Tuple
 from pathlib import Path
 import numpy as np
@@ -11,6 +12,7 @@ class BERTReconciler:
         self.device = "cuda" if hardware_profile in ["cuda", "rocm"] else "cpu"
         self.batch_size = batch_size
         self.model = None
+        self._lock = threading.Lock()
         self._load_model()
 
     def _load_model(self):
@@ -50,7 +52,8 @@ class BERTReconciler:
                 "batch_size": self.batch_size
             } for i in range(len(pairs))]
 
-        all_emb = self.model.encode(unique_keys, batch_size=max(self.batch_size, len(unique_keys)))
+        with self._lock:
+            all_emb = self.model.encode(unique_keys, batch_size=max(self.batch_size, len(unique_keys)))
         key_to_emb = {k: all_emb[i] for i, k in enumerate(unique_keys)}
 
         total_time = (time.perf_counter() - start) * 1000
