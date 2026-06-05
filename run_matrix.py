@@ -18,6 +18,7 @@ def main():
     parser.add_argument("--chaos-rate", type=float, default=0.05, help="Chaos injection rate 0-1 (default: 0.05)")
     parser.add_argument("--only-api", type=str, default=None, help="Run only this API source")
     parser.add_argument("--skip-reconciler", action="append", default=[], help="Skip a reconciler (repeatable)")
+    parser.add_argument("--skip-chaos", action="append", default=[], help="Skip a chaos method (repeatable)")
     args = parser.parse_args()
 
     run_start = time_mod.time()
@@ -74,6 +75,7 @@ def main():
         chaos_rate=args.chaos_rate,
         only_api=args.only_api,
         skip_reconcilers=args.skip_reconciler,
+        skip_chaos_methods=args.skip_chaos,
     )
 
     total_runs = len(runner.apis) * len(runner.chaos_methods) * len(runner.reconcilers) * args.repetitions

@@ -13,7 +13,7 @@ from ..telemetry.logger import TelemetryLogger
 class MatrixRunner:
     def __init__(self, hardware_profile: Dict, concurrent_runs: int = 1, batch_size: int = 4,
                  repetitions: int = 3, chaos_rate: float = 0.05, only_api: str = None,
-                 skip_reconcilers: List[str] = None):
+                 skip_reconcilers: List[str] = None, skip_chaos_methods: List[str] = None):
         hw_type = hardware_profile.get("type", "cpu")
         hw_model = hardware_profile.get("model")
         self.hardware_type = hw_type
@@ -33,6 +33,9 @@ class MatrixRunner:
             self.apis = [only_api]
 
         self.chaos_methods = ["qwen", "json_manip", "schema_alter"]
+
+        if skip_chaos_methods:
+            self.chaos_methods = [m for m in self.chaos_methods if m not in set(skip_chaos_methods)]
 
         skip = set(skip_reconcilers or [])
         all_reconcilers = ["levenshtein", "regex", "bert", "gemma_e4b"]

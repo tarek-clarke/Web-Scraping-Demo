@@ -29,8 +29,8 @@ class QwenChaos:
             from llama_cpp import Llama
             self.model = Llama(
                 model_path=self.model_path,
-                n_ctx=4096,
-                n_gpu_layers=-1,
+                n_ctx=2048,
+                n_gpu_layers=0,
                 verbose=False
             )
             print("Qwen2.5-7B chaos generator loaded")
