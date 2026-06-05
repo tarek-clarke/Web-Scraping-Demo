@@ -37,7 +37,7 @@ class GemmaE4BReconciler:
                 return
             from llama_cpp import Llama
             n_gpu_layers = -1 if hardware_profile in ["cuda", "rocm"] else 0
-            self.model = Llama(model_path=self.model_path, n_ctx=2048, n_gpu_layers=n_gpu_layers, verbose=False)
+            self.model = Llama(model_path=self.model_path, n_ctx=8192, n_gpu_layers=n_gpu_layers, verbose=False)
         except Exception as e:
             print(f"Gemma E4B not available: {e}")
 
@@ -80,36 +80,36 @@ class GemmaE4BReconciler:
             } for i in range(len(pairs))]
 
         start = time.perf_counter()
-        batch_size = max(1, self.batch_size)
         results = []
 
-        for batch_start in range(0, len(pairs), batch_size):
-            batch = pairs[batch_start:batch_start + batch_size]
-            lines = []
-            for idx, (orig, drift) in enumerate(batch):
-                lines.append(f"Pair {idx}: {json.dumps(orig)} -> {json.dumps(drift)}")
-            prompt = "\n".join(lines) + f"\nReturn JSON array of {len(batch)} mapping objects. Only output the array."
+        for orig, drift in pairs:
+            prompt = f"""<start_of_turn>user
+Map fields from original to drifted JSON. Return ONLY a JSON object mapping original field names to drifted field names.
+Original: {json.dumps(orig)}
+Drifted: {json.dumps(drift)}
+<end_of_turn>
+<start_of_turn>model
+{{"""
 
             try:
                 with self._lock:
-                    output = self.model(prompt, max_tokens=512, temperature=0.1)
-                text = output["choices"][0]["text"].strip()
-                mappings = self._parse_batch_result(text, len(batch))
+                    output = self.model(prompt, max_tokens=256, temperature=0.1, stop=["<end_of_turn>"])
+                text = "{" + output["choices"][0]["text"].strip()
+                brace = re.search(r'\{.*\}', text, re.DOTALL)
+                parsed = json.loads(brace.group()) if brace else {}
             except:
-                mappings = [{} for _ in batch]
+                parsed = {}
 
-            for i, (orig, drift) in enumerate(batch):
-                mapping = mappings[i] if i < len(mappings) else {}
-                mapped = [(k, v) for k, v in mapping.items()]
-                unmapped = [k for k in orig.keys() if k not in mapping]
-                accuracy = len(mapped) / len(orig.keys()) if orig.keys() else 0.0
-                results.append({
-                    "accuracy": accuracy,
-                    "latency_ms": 0.0,
-                    "mapped_fields": mapped,
-                    "unmapped_fields": unmapped,
-                    "batch_size": self.batch_size
-                })
+            mapped = [(k, v) for k, v in parsed.items()]
+            unmapped = [k for k in orig.keys() if k not in parsed]
+            accuracy = len(mapped) / len(orig.keys()) if orig.keys() else 0.0
+            results.append({
+                "accuracy": accuracy,
+                "latency_ms": 0.0,
+                "mapped_fields": mapped,
+                "unmapped_fields": unmapped,
+                "batch_size": self.batch_size
+            })
 
         total_time = (time.perf_counter() - start) * 1000
         per_packet = total_time / len(pairs) if pairs else 0
