@@ -147,6 +147,8 @@ class MatrixRunner:
 
     def _run_combination(self, packets: List[Dict], api: str, chaos_method: str,
                          reconciler: str, phase: str, iteration: int, seed: int) -> Dict:
+        import copy
+        packets = copy.deepcopy(packets)
         total_start = time.perf_counter()
 
         drifted, sub_type_map = self._get_drifted(packets, chaos_method, seed)
