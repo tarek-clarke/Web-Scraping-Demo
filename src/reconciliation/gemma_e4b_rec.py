@@ -54,13 +54,15 @@ class GemmaE4BReconciler:
         results = []
 
         for orig, drift in pairs:
-            messages = [{
-                "role": "user",
-                "content": f"Map fields from original JSON to drifted JSON.\nOriginal: {json.dumps(orig)}\nDrifted: {json.dumps(drift)}\nReturn JSON: {{\"original_field\": \"drifted_field\"}}"
-            }]
+            prompt = f"""Map fields from original JSON to drifted JSON.
+Original: {json.dumps(orig)}
+Drifted: {json.dumps(drift)}
+JSON mapping:{{"""
             try:
-                output = self.model.create_chat_completion(messages, max_tokens=256, temperature=0.1)
-                text = output["choices"][0]["message"]["content"]
+                output = self.model(prompt, max_tokens=256, temperature=0.1)
+                text = output["choices"][0]["text"].strip()
+                if "{" not in text:
+                    text = "{" + text
                 parsed = self._parse_json(text)
             except:
                 parsed = {}
