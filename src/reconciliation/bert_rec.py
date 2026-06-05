@@ -40,10 +40,10 @@ class BERTReconciler:
 
         all_keys = set()
         for orig, drift in pairs:
-            all_keys.update(orig.keys())
-            all_keys.update(drift.keys())
+            all_keys.update(str(k) for k in orig.keys())
+            all_keys.update(str(k) for k in drift.keys())
         unique_keys = list(all_keys)
-
+        
         if not unique_keys:
             elapsed = (time.perf_counter() - start) * 1000 / len(pairs) if pairs else 0
             return [{
@@ -51,18 +51,18 @@ class BERTReconciler:
                 "mapped_fields": [], "unmapped_fields": list(pairs[i][0].keys()),
                 "batch_size": self.batch_size
             } for i in range(len(pairs))]
-
+        
         with self._lock:
             all_emb = self.model.encode(unique_keys, batch_size=max(self.batch_size, len(unique_keys)))
         key_to_emb = {k: all_emb[i] for i, k in enumerate(unique_keys)}
-
+        
         total_time = (time.perf_counter() - start) * 1000
         per_packet_latency = total_time / len(pairs) if pairs else 0
-
+        
         results = []
         for orig, drift in pairs:
-            orig_keys = list(orig.keys())
-            drift_keys = list(drift.keys())
+            orig_keys = [str(k) for k in orig.keys()]
+            drift_keys = [str(k) for k in drift.keys()]
 
             if not orig_keys or not drift_keys:
                 results.append({
