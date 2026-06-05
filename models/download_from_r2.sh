@@ -14,9 +14,6 @@ echo "Downloading Gemma4 E4B (reconciler)..."
 mkdir -p $MODEL_DIR/gemma-4-e4b-it
 curl -L -o $MODEL_DIR/gemma-4-e4b-it/Q4_K_M.gguf "$R2_BUCKET/gemma-4-e4b-it/Q4_K_M.gguf"
 
-echo "Downloading Gemma4 31B (reconciler)..."
-curl -L -o $MODEL_DIR/gemma-4-31B-it-Q4_K_M.gguf "$R2_BUCKET/gemma-4-31B-it-Q4_K_M.gguf"
-
 echo "Downloading BERT (all-MiniLM-L6-v2)..."
 mkdir -p $MODEL_DIR/bert-minilm-v2
 curl -L -o $MODEL_DIR/bert-minilm-v2/config.json "$R2_BUCKET/bert-minilm-v2/config.json"
