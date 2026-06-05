@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import threading
 from typing import Dict
 from pathlib import Path
 
@@ -11,6 +12,7 @@ class GemmaE4BReconciler:
         model_dir = str(ROOT / "models" / "gemma-4-e4b-it")
         self.batch_size = batch_size
         self.model = None
+        self._lock = threading.Lock()
 
         candidates = [
             os.path.join(model_dir, "Q4_K_M.gguf"),
@@ -56,7 +58,8 @@ Drifted: {json.dumps(drifted)}
 Return JSON mapping: {{"original_field": "drifted_field"}}"""
 
         try:
-            output = self.model(prompt, max_tokens=512, temperature=0.1)
+            with self._lock:
+                output = self.model(prompt, max_tokens=512, temperature=0.1)
             result_text = output["choices"][0]["text"].strip()
             mapping = json.loads(result_text)
 
