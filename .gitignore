@@ -8,9 +8,6 @@ venv/
 .aider*
 data/ingested/telemetry_17*.json
 data/chaos_log/*.json
-data/reports/*/*.csv
-data/reports/*/*.tex
-data/reports/*/*.json
 models/*.gguf
 *.egg-info/
 dist/
