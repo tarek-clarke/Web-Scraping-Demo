@@ -203,6 +203,30 @@ class MatrixRunner:
                         "packet_idx": idx, "source_field": src, "drifted_field": None,
                         "chaos_sub_type": sub_type, "reconciliation_status": "FAILURE",
                     })
+        elif reconciler == "gemma_e4b" and original_data_list:
+            pairs = [(orig, drift) for _, orig, drift in original_data_list]
+            rec_results = self.reconciliation_engine.reconcile_gemma_batch(pairs)
+            for (idx, orig_data, drift_data), rec_result in zip(original_data_list, rec_results):
+                sub_type = sub_type_map.get(idx, "unknown")
+                accuracies.append(rec_result["accuracy"])
+                latencies.append(rec_result["latency_ms"])
+
+                for src, dst in rec_result.get("mapped_fields", []):
+                    status = self._get_ground_truth_status(src, dst, orig_data, drift_data)
+                    drift_events.append({
+                        "phase": phase, "api": api, "chaos_method": chaos_method,
+                        "reconciler": reconciler, "iteration": iteration,
+                        "packet_idx": idx, "source_field": src, "drifted_field": dst,
+                        "chaos_sub_type": sub_type, "reconciliation_status": status,
+                    })
+
+                for src in rec_result.get("unmapped_fields", []):
+                    drift_events.append({
+                        "phase": phase, "api": api, "chaos_method": chaos_method,
+                        "reconciler": reconciler, "iteration": iteration,
+                        "packet_idx": idx, "source_field": src, "drifted_field": None,
+                        "chaos_sub_type": sub_type, "reconciliation_status": "FAILURE",
+                    })
         else:
             for batch_start in range(0, len(drifted_indices), self.batch_size):
                 batch_indices = drifted_indices[batch_start:batch_start + self.batch_size]

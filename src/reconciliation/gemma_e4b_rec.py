@@ -1,8 +1,9 @@
 import json
 import os
 import time
+import re
 import threading
-from typing import Dict
+from typing import Dict, List, Tuple
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -40,43 +41,81 @@ class GemmaE4BReconciler:
         except Exception as e:
             print(f"Gemma E4B not available: {e}")
 
-    def reconcile(self, original: Dict, drifted: Dict) -> Dict:
+    def _parse_mapping(self, text: str) -> Dict[str, str]:
+        try:
+            return json.loads(text)
+        except:
+            brace = re.search(r'\{.*\}', text, re.DOTALL)
+            if brace:
+                try:
+                    return json.loads(brace.group())
+                except:
+                    pass
+        return {}
+
+    def _parse_batch_result(self, text: str, batch_size: int) -> List[Dict[str, str]]:
+        try:
+            parsed = json.loads(text)
+            if isinstance(parsed, list) and len(parsed) == batch_size:
+                return parsed
+        except:
+            pass
+        matches = re.findall(r'\{[^}]*\}', text)
+        if len(matches) == batch_size:
+            result = []
+            for m in matches:
+                try:
+                    result.append(json.loads(m))
+                except:
+                    result.append({})
+            return result
+        return [{} for _ in range(batch_size)]
+
+    def reconcile_batch(self, pairs: List[Tuple[Dict, Dict]]) -> List[Dict]:
         if not self.model:
-            return {
-                "accuracy": 0.0,
-                "latency_ms": 0.0,
-                "mapped_fields": [],
-                "unmapped_fields": list(original.keys()),
+            return [{
+                "accuracy": 0.0, "latency_ms": 0.0,
+                "mapped_fields": [], "unmapped_fields": list(pairs[i][0].keys()),
                 "batch_size": self.batch_size
-            }
+            } for i in range(len(pairs))]
 
         start = time.perf_counter()
+        batch_size = max(1, self.batch_size)
+        results = []
 
-        prompt = f"""Map drifted JSON fields to original fields.
-Original: {json.dumps(original)}
-Drifted: {json.dumps(drifted)}
-Return JSON mapping: {{"original_field": "drifted_field"}}"""
+        for batch_start in range(0, len(pairs), batch_size):
+            batch = pairs[batch_start:batch_start + batch_size]
+            lines = []
+            for idx, (orig, drift) in enumerate(batch):
+                lines.append(f"Pair {idx}: {json.dumps(orig)} -> {json.dumps(drift)}")
+            prompt = "\n".join(lines) + f"\nReturn JSON array of {len(batch)} mapping objects. Only output the array."
 
-        try:
-            with self._lock:
-                output = self.model(prompt, max_tokens=512, temperature=0.1)
-            result_text = output["choices"][0]["text"].strip()
-            mapping = json.loads(result_text)
+            try:
+                with self._lock:
+                    output = self.model(prompt, max_tokens=512, temperature=0.1)
+                text = output["choices"][0]["text"].strip()
+                mappings = self._parse_batch_result(text, len(batch))
+            except:
+                mappings = [{} for _ in batch]
 
-            mapped = list(mapping.items())
-            unmapped = [k for k in original.keys() if k not in mapping]
-            accuracy = len(mapped) / len(original.keys()) if original.keys() else 0.0
-        except:
-            mapped = []
-            unmapped = list(original.keys())
-            accuracy = 0.0
+            for i, (orig, drift) in enumerate(batch):
+                mapping = mappings[i] if i < len(mappings) else {}
+                mapped = [(k, v) for k, v in mapping.items()]
+                unmapped = [k for k in orig.keys() if k not in mapping]
+                accuracy = len(mapped) / len(orig.keys()) if orig.keys() else 0.0
+                results.append({
+                    "accuracy": accuracy,
+                    "latency_ms": 0.0,
+                    "mapped_fields": mapped,
+                    "unmapped_fields": unmapped,
+                    "batch_size": self.batch_size
+                })
 
-        latency = (time.perf_counter() - start) * 1000
+        total_time = (time.perf_counter() - start) * 1000
+        per_packet = total_time / len(pairs) if pairs else 0
+        for r in results:
+            r["latency_ms"] = per_packet
+        return results
 
-        return {
-            "accuracy": accuracy,
-            "latency_ms": latency,
-            "mapped_fields": mapped,
-            "unmapped_fields": unmapped,
-            "batch_size": self.batch_size
-        }
+    def reconcile(self, original: Dict, drifted: Dict) -> Dict:
+        return self.reconcile_batch([(original, drifted)])[0]

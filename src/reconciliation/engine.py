@@ -43,3 +43,12 @@ class ReconciliationEngine:
             self.reconcile({"data": orig}, {"data": drift}, "bert")
             for orig, drift in pairs
         ]
+
+    def reconcile_gemma_batch(self, pairs: List[Tuple[Dict, Dict]]) -> List[Dict]:
+        gemma = self.reconcilers.get("gemma_e4b")
+        if gemma and hasattr(gemma, "reconcile_batch"):
+            return gemma.reconcile_batch(pairs)
+        return [
+            self.reconcile({"data": orig}, {"data": drift}, "gemma_e4b")
+            for orig, drift in pairs
+        ]
