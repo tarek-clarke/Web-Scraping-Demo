@@ -58,9 +58,9 @@ def generate_spacex():
         }
     }
 
-def generate_openmeteo():
+def generate_openweather():
     return {
-        "source": "openmeteo",
+        "source": "openweather",
         "timestamp": datetime.utcnow().isoformat(),
         "data": {
             "temperature_c": round(random.uniform(-10, 40), 1),
@@ -87,7 +87,7 @@ def main():
     for _ in range(PACKETS_PER_API):
         packets.append(generate_spacex())
     for _ in range(PACKETS_PER_API):
-        packets.append(generate_openmeteo())
+        packets.append(generate_openweather())
 
     random.shuffle(packets)
 
