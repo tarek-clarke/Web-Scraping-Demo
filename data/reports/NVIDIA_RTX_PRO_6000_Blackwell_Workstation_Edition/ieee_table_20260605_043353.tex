@@ -1,0 +1,62 @@
+% Hosseini et al. (2016) Resilience Index — 1 iterations per combination
+% Hardware: unknown | VRAM: 0 GB | Driver: unknown
+% CPU: unknown | Motherboard: unknown
+% Batch: 1 | Concurrent: 1 | Iterations: 1
+
+\begin{table}[htbp]
+\caption{Aggregated Resilience Metrics ($n=1$ iterations) --- cuda}
+\begin{tabular}{l l l r r r r}
+\hline
+Phase & API & Reconciler & Accuracy & Hosseini Index & Throughput (pps) & Batch \\
+\hline
+fast & openf1 & regex & $0.832\pm0.000$ & $0.832\pm0.000$ & $21534\pm0$ & 32 \\
+fast & openf1 & levenshtein & $0.000\pm0.000$ & $0.000\pm0.000$ & $9071\pm0$ & 32 \\
+fast & openf1 & levenshtein & $0.000\pm0.000$ & $0.000\pm0.000$ & $15438\pm0$ & 32 \\
+fast & openf1 & levenshtein & $0.953\pm0.000$ & $0.953\pm0.000$ & $11427\pm0$ & 32 \\
+fast & openf1 & regex & $0.747\pm0.000$ & $0.747\pm0.000$ & $6247\pm0$ & 32 \\
+fast & finnhub & levenshtein & $0.947\pm0.000$ & $0.947\pm0.000$ & $3165\pm0$ & 32 \\
+fast & finnhub & regex & $0.824\pm0.000$ & $0.824\pm0.000$ & $1100\pm0$ & 32 \\
+fast & finnhub & regex & $0.832\pm0.000$ & $0.832\pm0.000$ & $1408\pm0$ & 32 \\
+fast & openf1 & regex & $0.827\pm0.000$ & $0.827\pm0.000$ & $918\pm0$ & 32 \\
+fast & spacex & regex & $0.829\pm0.000$ & $0.829\pm0.000$ & $12488\pm0$ & 32 \\
+fast & spacex & levenshtein & $0.000\pm0.000$ & $0.000\pm0.000$ & $1185\pm0$ & 32 \\
+fast & spacex & levenshtein & $0.964\pm0.000$ & $0.964\pm0.000$ & $6734\pm0$ & 32 \\
+fast & finnhub & levenshtein & $0.000\pm0.000$ & $0.000\pm0.000$ & $917\pm0$ & 32 \\
+fast & openweather & levenshtein & $0.969\pm0.000$ & $0.969\pm0.000$ & $5793\pm0$ & 32 \\
+fast & finnhub & levenshtein & $0.000\pm0.000$ & $0.000\pm0.000$ & $749\pm0$ & 32 \\
+fast & spacex & regex & $0.829\pm0.000$ & $0.829\pm0.000$ & $6755\pm0$ & 32 \\
+fast & openweather & regex & $0.850\pm0.000$ & $0.850\pm0.000$ & $8631\pm0$ & 32 \\
+fast & spacex & regex & $0.825\pm0.000$ & $0.825\pm0.000$ & $4595\pm0$ & 32 \\
+fast & spacex & levenshtein & $0.551\pm0.000$ & $0.551\pm0.000$ & $4858\pm0$ & 32 \\
+fast & openweather & levenshtein & $0.000\pm0.000$ & $0.000\pm0.000$ & $11386\pm0$ & 32 \\
+fast & openweather & levenshtein & $0.000\pm0.000$ & $0.000\pm0.000$ & $4238\pm0$ & 32 \\
+fast & finnhub & regex & $0.822\pm0.000$ & $0.822\pm0.000$ & $14357\pm0$ & 32 \\
+fast & openweather & regex & $0.846\pm0.000$ & $0.846\pm0.000$ & $4343\pm0$ & 32 \\
+fast & openweather & regex & $0.843\pm0.000$ & $0.843\pm0.000$ & $5703\pm0$ & 32 \\
+bert & openf1 & bert & $0.000\pm0.000$ & $0.000\pm0.000$ & $23761\pm0$ & 32 \\
+bert & finnhub & bert & $0.000\pm0.000$ & $0.000\pm0.000$ & $15065\pm0$ & 32 \\
+bert & spacex & bert & $0.000\pm0.000$ & $0.000\pm0.000$ & $6670\pm0$ & 32 \\
+bert & openweather & bert & $0.000\pm0.000$ & $0.000\pm0.000$ & $10698\pm0$ & 32 \\
+bert & openf1 & bert & $0.967\pm0.000$ & $0.967\pm0.000$ & $570\pm0$ & 32 \\
+bert & openf1 & bert & $1.000\pm0.000$ & $1.000\pm0.000$ & $586\pm0$ & 32 \\
+bert & finnhub & bert & $1.000\pm0.000$ & $1.000\pm0.000$ & $601\pm0$ & 32 \\
+bert & finnhub & bert & $0.961\pm0.000$ & $0.961\pm0.000$ & $577\pm0$ & 32 \\
+bert & spacex & bert & $0.984\pm0.000$ & $0.984\pm0.000$ & $585\pm0$ & 32 \\
+bert & spacex & bert & $1.000\pm0.000$ & $1.000\pm0.000$ & $678\pm0$ & 32 \\
+bert & openweather & bert & $0.985\pm0.000$ & $0.985\pm0.000$ & $615\pm0$ & 32 \\
+bert & openweather & bert & $1.000\pm0.000$ & $1.000\pm0.000$ & $750\pm0$ & 32 \\
+gemma & openweather & gemma\_e4b & $0.000\pm0.000$ & $0.000\pm0.000$ & $11504\pm0$ & 32 \\
+gemma & openf1 & gemma\_e4b & $0.000\pm0.000$ & $0.000\pm0.000$ & $2316\pm0$ & 32 \\
+gemma & finnhub & gemma\_e4b & $0.000\pm0.000$ & $0.000\pm0.000$ & $16764\pm0$ & 32 \\
+gemma & openf1 & gemma\_e4b & $0.000\pm0.000$ & $0.000\pm0.000$ & $7875\pm0$ & 32 \\
+gemma & openf1 & gemma\_e4b & $0.000\pm0.000$ & $0.000\pm0.000$ & $6418\pm0$ & 32 \\
+gemma & spacex & gemma\_e4b & $0.000\pm0.000$ & $0.000\pm0.000$ & $2796\pm0$ & 32 \\
+gemma & finnhub & gemma\_e4b & $0.000\pm0.000$ & $0.000\pm0.000$ & $1723\pm0$ & 32 \\
+gemma & spacex & gemma\_e4b & $0.000\pm0.000$ & $0.000\pm0.000$ & $8112\pm0$ & 32 \\
+gemma & finnhub & gemma\_e4b & $0.000\pm0.000$ & $0.000\pm0.000$ & $2\pm0$ & 32 \\
+gemma & spacex & gemma\_e4b & $0.000\pm0.000$ & $0.000\pm0.000$ & $2\pm0$ & 32 \\
+gemma & openweather & gemma\_e4b & $0.000\pm0.000$ & $0.000\pm0.000$ & $2\pm0$ & 32 \\
+gemma & openweather & gemma\_e4b & $0.000\pm0.000$ & $0.000\pm0.000$ & $2\pm0$ & 32 \\
+\hline
+\end{tabular}
+\end{table}
