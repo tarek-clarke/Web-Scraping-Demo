@@ -40,12 +40,13 @@ class MatrixRunner:
             self.chaos_methods = [m for m in self.chaos_methods if m not in set(skip_chaos_methods)]
 
         skip = set(skip_reconcilers or [])
-        all_reconcilers = ["levenshtein", "regex", "bert"]
+        all_reconcilers = ["levenshtein", "regex", "bert", "gemma_e4b"]
         self.reconcilers = [r for r in all_reconcilers if r not in skip]
 
         all_phases = [
             ("fast", ["levenshtein", "regex"]),
             ("bert", ["bert"]),
+            ("gemma", ["gemma_e4b"]),
         ]
         self.phases = [
             (name, [r for r in recs if r not in skip])
@@ -106,9 +107,36 @@ class MatrixRunner:
                 if any(p.get("source") == api for p in packets)
             ) * len(self.chaos_methods) * len(reconcilers)
 
-            with ThreadPoolExecutor(max_workers=self.concurrent_runs) as executor:
-                futures = []
+            use_threads = phase_name != "gemma"
+            iteration_data = {}
 
+            if use_threads:
+                with ThreadPoolExecutor(max_workers=self.concurrent_runs) as executor:
+                    futures = []
+                    for api in self.apis:
+                        api_packets = [p for p in packets if p.get("source") == api]
+                        if not api_packets:
+                            print(f"  Skipping {api}: no packets found")
+                            continue
+                        for chaos_method in self.chaos_methods:
+                            seed = random.randint(0, 2**31)
+                            for reconciler in reconcilers:
+                                future = executor.submit(
+                                    self._run_combination,
+                                    api_packets, api, chaos_method, reconciler,
+                                    phase_name, 1, seed
+                                )
+                                futures.append(future)
+
+                    for future in as_completed(futures):
+                        it = future.result()
+                        results["iterations"].append(it)
+                        results["drift_events"].extend(it.pop("_drift_events", []))
+                        key = (it["phase"], it["api"], it["chaos_method"], it["reconciler"])
+                        if key not in iteration_data:
+                            iteration_data[key] = []
+                        iteration_data[key].append(it)
+            else:
                 for api in self.apis:
                     api_packets = [p for p in packets if p.get("source") == api]
                     if not api_packets:
@@ -117,22 +145,16 @@ class MatrixRunner:
                     for chaos_method in self.chaos_methods:
                         seed = random.randint(0, 2**31)
                         for reconciler in reconcilers:
-                            future = executor.submit(
-                                self._run_combination,
+                            it = self._run_combination(
                                 api_packets, api, chaos_method, reconciler,
                                 phase_name, 1, seed
                             )
-                            futures.append(future)
-
-                iteration_data = {}
-                for future in as_completed(futures):
-                    it = future.result()
-                    results["iterations"].append(it)
-                    results["drift_events"].extend(it.pop("_drift_events", []))
-                    key = (it["phase"], it["api"], it["chaos_method"], it["reconciler"])
-                    if key not in iteration_data:
-                        iteration_data[key] = []
-                    iteration_data[key].append(it)
+                            results["iterations"].append(it)
+                            results["drift_events"].extend(it.pop("_drift_events", []))
+                            key = (it["phase"], it["api"], it["chaos_method"], it["reconciler"])
+                            if key not in iteration_data:
+                                iteration_data[key] = []
+                            iteration_data[key].append(it)
 
             for key, iters in iteration_data.items():
                 agg = self._aggregate(iters)
