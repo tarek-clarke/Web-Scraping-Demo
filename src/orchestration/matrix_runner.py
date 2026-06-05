@@ -27,6 +27,8 @@ class MatrixRunner:
         self._drift_cache: Dict[str, List[Dict]] = {}
         self._sub_type_cache: Dict[str, Dict[int, str]] = {}
         self._results_lock = Lock()
+        self._progress_count = 0
+        self._progress_total = 0
 
         self.apis = ["openf1", "finnhub", "spacex", "openweather"]
         if only_api:
@@ -99,6 +101,11 @@ class MatrixRunner:
         for phase_name, reconcilers in self.phases:
             print(f"\n=== Phase: {phase_name} ({reconcilers}) ===")
             phase_start = time.perf_counter()
+            self._progress_count = 0
+            self._progress_total = sum(
+                1 for api in self.apis
+                if any(p.get("source") == api for p in packets)
+            ) * len(self.chaos_methods) * len(reconcilers)
 
             with ThreadPoolExecutor(max_workers=self.concurrent_runs) as executor:
                 futures = []
@@ -255,6 +262,12 @@ class MatrixRunner:
             "drift_event_count": len(drift_events),
             "_drift_events": drift_events
         }
+
+        with self._results_lock:
+            self._progress_count += 1
+            print(f"    [{self._progress_count}/{self._progress_total}] {api}/{chaos_method}/{reconciler} done ({total_time:.0f}ms, acc={acc:.2f})")
+
+        return {
 
     def _aggregate(self, iters: List[Dict]) -> Dict:
         accs = [i["accuracy"] for i in iters]
