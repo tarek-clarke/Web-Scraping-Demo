@@ -243,7 +243,7 @@ class MatrixRunner:
         acc = sum(accuracies) / len(accuracies) if accuracies else 0.0
         hosseini = self._hosseini_resilience(acc, 1.0, total_time / 1000)
 
-        return {
+        result = {
             "phase": phase, "api": api, "chaos_method": chaos_method,
             "reconciler": reconciler, "iteration": iteration, "seed": seed,
             "accuracy": acc,
@@ -267,7 +267,7 @@ class MatrixRunner:
             self._progress_count += 1
             print(f"    [{self._progress_count}/{self._progress_total}] {api}/{chaos_method}/{reconciler} done ({total_time:.0f}ms, acc={acc:.2f})")
 
-        return {
+        return result
 
     def _aggregate(self, iters: List[Dict]) -> Dict:
         accs = [i["accuracy"] for i in iters]
