@@ -1,6 +1,6 @@
 import json
 import random
-from typing import Dict
+from typing import Dict, Optional
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
