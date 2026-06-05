@@ -3,6 +3,7 @@ from typing import Dict, List, Tuple
 from .levenshtein_rec import LevenshteinReconciler
 from .regex_rec import RegexReconciler
 from .bert_rec import BERTReconciler
+from .gemma_e4b_rec import GemmaE4BReconciler
 
 class ReconciliationEngine:
     def __init__(self, hardware_profile: str = "cpu", batch_size: int = 4):
@@ -11,19 +12,20 @@ class ReconciliationEngine:
             "levenshtein": LevenshteinReconciler(),
             "regex": RegexReconciler(),
             "bert": BERTReconciler(hardware_profile, batch_size),
+            "gemma_e4b": GemmaE4BReconciler(hardware_profile, batch_size),
         }
 
     def reconcile(self, original: Dict, drifted: Dict, method: str) -> Dict:
         if method not in self.reconcilers:
             raise ValueError(f"Unknown method: {method}")
-        
+
         reconciler = self.reconcilers[method]
-        
+
         original_data = original.get("data", {})
         drifted_data = drifted.get("data", {})
-        
+
         result = reconciler.reconcile(original_data, drifted_data)
-        
+
         return {
             "method": method,
             "accuracy": result["accuracy"],
@@ -32,3 +34,12 @@ class ReconciliationEngine:
             "unmapped_fields": result["unmapped_fields"],
             "batch_size": self.batch_size
         }
+
+    def reconcile_bert_batch(self, pairs: List[Tuple[Dict, Dict]]) -> List[Dict]:
+        bert = self.reconcilers.get("bert")
+        if bert and hasattr(bert, "reconcile_batch"):
+            return bert.reconcile_batch(pairs)
+        return [
+            self.reconcile({"data": orig}, {"data": drift}, "bert")
+            for orig, drift in pairs
+        ]

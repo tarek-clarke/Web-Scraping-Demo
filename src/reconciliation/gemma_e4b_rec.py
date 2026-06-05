@@ -8,9 +8,22 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 
 class GemmaE4BReconciler:
     def __init__(self, hardware_profile: str = "cpu", batch_size: int = 4):
-        self.model_path = str(ROOT / "models" / "gemma-4-e4b-it" / "Q4_K_M.gguf")
+        model_dir = str(ROOT / "models" / "gemma-4-e4b-it")
         self.batch_size = batch_size
         self.model = None
+
+        candidates = [
+            os.path.join(model_dir, "Q4_K_M.gguf"),
+            os.path.join(model_dir, "gemma-4-E4B-it-Q4_K_M.gguf"),
+        ]
+        self.model_path = None
+        for path in candidates:
+            if os.path.exists(path):
+                self.model_path = path
+                break
+
+        if self.model_path is None:
+            self.model_path = candidates[0]
         self._load_model(hardware_profile)
 
     def _load_model(self, hardware_profile: str):

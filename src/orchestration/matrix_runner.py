@@ -11,7 +11,9 @@ from ..reconciliation.engine import ReconciliationEngine
 from ..telemetry.logger import TelemetryLogger
 
 class MatrixRunner:
-    def __init__(self, hardware_profile: Dict, concurrent_runs: int = 1, batch_size: int = 4, repetitions: int = 3):
+    def __init__(self, hardware_profile: Dict, concurrent_runs: int = 1, batch_size: int = 4,
+                 repetitions: int = 3, chaos_rate: float = 0.05, only_api: str = None,
+                 skip_reconcilers: List[str] = None):
         hw_type = hardware_profile.get("type", "cpu")
         hw_model = hardware_profile.get("model")
         self.hardware_type = hw_type
@@ -19,7 +21,7 @@ class MatrixRunner:
         self.concurrent_runs = concurrent_runs
         self.batch_size = batch_size
         self.repetitions = repetitions
-        self.chaos_injector = ChaosInjector(chaos_rate=0.10)
+        self.chaos_injector = ChaosInjector(chaos_rate=chaos_rate)
         self.reconciliation_engine = ReconciliationEngine(hw_type, batch_size)
         self.telemetry = TelemetryLogger(hw_type, hw_model)
         self._drift_cache: Dict[str, List[Dict]] = {}
@@ -27,12 +29,25 @@ class MatrixRunner:
         self._results_lock = Lock()
 
         self.apis = ["openf1", "finnhub", "spacex", "openweather"]
+        if only_api:
+            self.apis = [only_api]
+
         self.chaos_methods = ["qwen", "json_manip", "schema_alter"]
-        self.reconcilers = ["levenshtein", "regex", "bert"]
-        self.phases = [
+
+        skip = set(skip_reconcilers or [])
+        all_reconcilers = ["levenshtein", "regex", "bert", "gemma_e4b"]
+        self.reconcilers = [r for r in all_reconcilers if r not in skip]
+
+        all_phases = [
             ("fast", ["levenshtein", "regex"]),
             ("bert", ["bert"]),
+            ("gemma", ["gemma_e4b"]),
         ]
+        self.phases = [
+            (name, [r for r in recs if r not in skip])
+            for name, recs in all_phases
+        ]
+        self.phases = [(name, recs) for name, recs in self.phases if recs]
 
     def _cache_key(self, api_packets: List[Dict], chaos_method: str, seed: int) -> str:
         h = hashlib.md5(str(len(api_packets)).encode()).hexdigest()
@@ -150,18 +165,11 @@ class MatrixRunner:
         accuracies = []
         latencies = []
 
-        for batch_start in range(0, len(drifted_indices), self.batch_size):
-            batch_indices = drifted_indices[batch_start:batch_start + self.batch_size]
-            for i, idx in enumerate(batch_indices):
-                orig_data = original_data_list[i][1]
-                drift_data = original_data_list[i][2]
+        if reconciler == "bert" and original_data_list:
+            pairs = [(orig, drift) for _, orig, drift in original_data_list]
+            rec_results = self.reconciliation_engine.reconcile_bert_batch(pairs)
+            for (idx, orig_data, drift_data), rec_result in zip(original_data_list, rec_results):
                 sub_type = sub_type_map.get(idx, "unknown")
-
-                rec_result = self.reconciliation_engine.reconcile(
-                    {"data": orig_data},
-                    {"data": drift_data},
-                    reconciler
-                )
                 accuracies.append(rec_result["accuracy"])
                 latencies.append(rec_result["latency_ms"])
 
@@ -181,6 +189,39 @@ class MatrixRunner:
                         "packet_idx": idx, "source_field": src, "drifted_field": None,
                         "chaos_sub_type": sub_type, "reconciliation_status": "FAILURE",
                     })
+        else:
+            for batch_start in range(0, len(drifted_indices), self.batch_size):
+                batch_indices = drifted_indices[batch_start:batch_start + self.batch_size]
+                for bi, idx in enumerate(batch_indices):
+                    di = batch_start + bi
+                    orig_data = original_data_list[di][1]
+                    drift_data = original_data_list[di][2]
+                    sub_type = sub_type_map.get(idx, "unknown")
+
+                    rec_result = self.reconciliation_engine.reconcile(
+                        {"data": orig_data},
+                        {"data": drift_data},
+                        reconciler
+                    )
+                    accuracies.append(rec_result["accuracy"])
+                    latencies.append(rec_result["latency_ms"])
+
+                    for src, dst in rec_result.get("mapped_fields", []):
+                        status = self._get_ground_truth_status(src, dst, orig_data, drift_data)
+                        drift_events.append({
+                            "phase": phase, "api": api, "chaos_method": chaos_method,
+                            "reconciler": reconciler, "iteration": iteration,
+                            "packet_idx": idx, "source_field": src, "drifted_field": dst,
+                            "chaos_sub_type": sub_type, "reconciliation_status": status,
+                        })
+
+                    for src in rec_result.get("unmapped_fields", []):
+                        drift_events.append({
+                            "phase": phase, "api": api, "chaos_method": chaos_method,
+                            "reconciler": reconciler, "iteration": iteration,
+                            "packet_idx": idx, "source_field": src, "drifted_field": None,
+                            "chaos_sub_type": sub_type, "reconciliation_status": "FAILURE",
+                        })
 
         gpu_ms = (time.perf_counter() - gpu_start) * 1000
         total_time = (time.perf_counter() - total_start) * 1000

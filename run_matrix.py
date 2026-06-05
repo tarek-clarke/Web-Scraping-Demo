@@ -14,6 +14,10 @@ from src.orchestration.matrix_runner import MatrixRunner
 def main():
     parser = argparse.ArgumentParser(description="Resilient RAP Framework")
     parser.add_argument("--repetitions", type=int, default=1, help="Iterations per combination (default: 1)")
+    parser.add_argument("--max-packets-per-api", type=int, default=500, help="Max packets per API source (default: 500)")
+    parser.add_argument("--chaos-rate", type=float, default=0.05, help="Chaos injection rate 0-1 (default: 0.05)")
+    parser.add_argument("--only-api", type=str, default=None, help="Run only this API source")
+    parser.add_argument("--skip-reconciler", action="append", default=[], help="Skip a reconciler (repeatable)")
     args = parser.parse_args()
 
     run_start = time_mod.time()
@@ -46,13 +50,30 @@ def main():
     with open(packets_file, 'r') as f:
         packets = json.load(f)
 
-    print(f"Loaded {len(packets)} packets\n")
+    print(f"Loaded {len(packets)} total packets")
+
+    max_per_api = args.max_packets_per_api
+    if max_per_api > 0:
+        truncated, counts = [], {}
+        for p in packets:
+            src = p.get("source", "unknown")
+            if counts.get(src, 0) < max_per_api:
+                truncated.append(p)
+                counts[src] = counts.get(src, 0) + 1
+        packets = truncated
+        print(f"Truncated to {len(packets)} packets ({max_per_api} per API)")
+        for src in sorted(counts.keys()):
+            print(f"  {src}: {counts[src]} packets")
+    print()
 
     runner = MatrixRunner(
         hardware_profile=hardware,
         concurrent_runs=vram_info['concurrent_runs'],
         batch_size=vram_info['batch_size'],
-        repetitions=args.repetitions
+        repetitions=args.repetitions,
+        chaos_rate=args.chaos_rate,
+        only_api=args.only_api,
+        skip_reconcilers=args.skip_reconciler,
     )
 
     total_runs = len(runner.apis) * len(runner.chaos_methods) * len(runner.reconcilers) * args.repetitions
