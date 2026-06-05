@@ -66,7 +66,9 @@ class MatrixRunner:
                 sub_type_map[i] = self.chaos_injector.get_sub_type(i, seed)
             self._drift_cache[key] = drifted
             self._sub_type_cache[key] = sub_type_map
-        return self._drift_cache[key], self._sub_type_cache[key]
+        
+        import copy
+        return copy.deepcopy(self._drift_cache[key]), self._sub_type_cache[key]
 
     def _get_ground_truth_status(self, src_field: str, dst_field: str, original_data: Dict, drifted_data: Dict) -> str:
         orig_keys = set(original_data.keys())
