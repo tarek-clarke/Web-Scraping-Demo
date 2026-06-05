@@ -41,36 +41,6 @@ class GemmaE4BReconciler:
         except Exception as e:
             print(f"Gemma E4B not available: {e}")
 
-    def _parse_mapping(self, text: str) -> Dict[str, str]:
-        try:
-            return json.loads(text)
-        except:
-            brace = re.search(r'\{.*\}', text, re.DOTALL)
-            if brace:
-                try:
-                    return json.loads(brace.group())
-                except:
-                    pass
-        return {}
-
-    def _parse_batch_result(self, text: str, batch_size: int) -> List[Dict[str, str]]:
-        try:
-            parsed = json.loads(text)
-            if isinstance(parsed, list) and len(parsed) == batch_size:
-                return parsed
-        except:
-            pass
-        matches = re.findall(r'\{[^}]*\}', text)
-        if len(matches) == batch_size:
-            result = []
-            for m in matches:
-                try:
-                    result.append(json.loads(m))
-                except:
-                    result.append({})
-            return result
-        return [{} for _ in range(batch_size)]
-
     def reconcile_batch(self, pairs: List[Tuple[Dict, Dict]]) -> List[Dict]:
         if not self.model:
             return [{
@@ -83,18 +53,15 @@ class GemmaE4BReconciler:
         results = []
 
         for orig, drift in pairs:
-            prompt = f"""<start_of_turn>user
-Map fields from original to drifted JSON. Return ONLY a JSON object mapping original field names to drifted field names.
-Original: {json.dumps(orig)}
-Drifted: {json.dumps(drift)}
-<end_of_turn>
-<start_of_turn>model
-{{"""
+            prompt = f"""Map: {json.dumps(orig)} -> {json.dumps(drift)}
+JSON mapping:{{"""
 
             try:
                 with self._lock:
-                    output = self.model(prompt, max_tokens=256, temperature=0.1, stop=["<end_of_turn>"])
-                text = "{" + output["choices"][0]["text"].strip()
+                    output = self.model(prompt, max_tokens=128, temperature=0.1)
+                text = output["choices"][0]["text"].strip()
+                if "{" not in text:
+                    text = "{" + text
                 brace = re.search(r'\{.*\}', text, re.DOTALL)
                 parsed = json.loads(brace.group()) if brace else {}
             except:
