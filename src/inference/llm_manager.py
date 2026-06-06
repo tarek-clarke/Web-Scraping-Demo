@@ -35,9 +35,7 @@ def _resolve_dtype(requested: str, device: str):
 
 def _resolve_attn(requested: str, model_id: str, device: str) -> Optional[str]:
     if requested == "auto":
-        if device == "cuda":
-            return "flash_attention_2"
-        return "sdpa" if device == "mps" else None
+        return "eager"
     if requested.lower() == "none":
         return None
     return requested
