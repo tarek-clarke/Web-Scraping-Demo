@@ -91,12 +91,12 @@ class LLMManager:
             return True
         try:
             import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer
+            from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
             model_path = self.local_path or self.model_id
 
             load_kwargs: Dict[str, Any] = {
-                "torch_dtype": self.torch_dtype,
+                "dtype": self.torch_dtype,
                 "trust_remote_code": True,
             }
 
@@ -104,10 +104,17 @@ class LLMManager:
                 load_kwargs["attn_implementation"] = self.attn_impl
 
             if self.load_in_4bit:
-                load_kwargs["load_in_4bit"] = True
-                load_kwargs["bnb_4bit_compute_dtype"] = self.torch_dtype
+                load_kwargs["quantization_config"] = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_compute_dtype=torch.float16,
+                    bnb_4bit_use_double_quant=True,
+                )
+                load_kwargs["device_map"] = "auto"
             elif self.load_in_8bit:
-                load_kwargs["load_in_8bit"] = True
+                load_kwargs["quantization_config"] = BitsAndBytesConfig(
+                    load_in_8bit=True,
+                )
+                load_kwargs["device_map"] = "auto"
             else:
                 load_kwargs["device_map"] = self.device if self.device != "mps" else "mps"
 
