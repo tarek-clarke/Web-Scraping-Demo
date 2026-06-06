@@ -91,38 +91,51 @@ class LLMManager:
             return True
         try:
             import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+            from transformers import AutoModelForCausalLM, AutoTokenizer
 
             model_path = self.local_path or self.model_id
 
             load_kwargs: Dict[str, Any] = {
                 "dtype": self.torch_dtype,
                 "trust_remote_code": True,
+                "device_map": self.device if self.device != "mps" else "mps",
             }
 
             if self.attn_impl:
                 load_kwargs["attn_implementation"] = self.attn_impl
 
-            if self.load_in_4bit:
-                load_kwargs["quantization_config"] = BitsAndBytesConfig(
-                    load_in_4bit=True,
-                    bnb_4bit_compute_dtype=torch.float16,
-                    bnb_4bit_use_double_quant=True,
-                )
-                load_kwargs["device_map"] = "auto"
-            elif self.load_in_8bit:
-                load_kwargs["quantization_config"] = BitsAndBytesConfig(
-                    load_in_8bit=True,
-                )
-                load_kwargs["device_map"] = "auto"
-            else:
-                load_kwargs["device_map"] = self.device if self.device != "mps" else "mps"
+            quantized = False
+            if self.load_in_4bit or self.load_in_8bit:
+                try:
+                    from transformers import BitsAndBytesConfig
+                    if self.load_in_4bit:
+                        load_kwargs["quantization_config"] = BitsAndBytesConfig(
+                            load_in_4bit=True,
+                            bnb_4bit_compute_dtype=torch.float16,
+                            bnb_4bit_use_double_quant=True,
+                        )
+                    else:
+                        load_kwargs["quantization_config"] = BitsAndBytesConfig(load_in_8bit=True)
+                    load_kwargs["device_map"] = "auto"
+                    quantized = True
+                except Exception as e:
+                    print(f"[LLM] Quantization unavailable ({e}), loading full precision")
 
             if self.hf_token:
                 load_kwargs["token"] = self.hf_token
 
-            print(f"[LLM] Loading {model_path} on {self.device} (dtype={self.torch_dtype}, attn={self.attn_impl})")
-            self.model = AutoModelForCausalLM.from_pretrained(model_path, **load_kwargs)
+            mode = "4bit" if (self.load_in_4bit and quantized) else "8bit" if (self.load_in_8bit and quantized) else "full"
+            print(f"[LLM] Loading {model_path} on {self.device} ({mode}, dtype={self.torch_dtype})")
+            if quantized:
+                try:
+                    self.model = AutoModelForCausalLM.from_pretrained(model_path, **load_kwargs)
+                except Exception as e:
+                    print(f"[LLM] 4/8-bit failed ({e}), retrying full precision...")
+                    load_kwargs.pop("quantization_config", None)
+                    load_kwargs["device_map"] = self.device if self.device != "mps" else "mps"
+                    self.model = AutoModelForCausalLM.from_pretrained(model_path, **load_kwargs)
+            else:
+                self.model = AutoModelForCausalLM.from_pretrained(model_path, **load_kwargs)
 
             tok_kwargs = {"trust_remote_code": True}
             if self.hf_token:
