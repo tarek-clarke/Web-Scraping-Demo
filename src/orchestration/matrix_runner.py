@@ -226,7 +226,11 @@ class MatrixRunner:
                     })
         elif reconciler == "gemma_e4b" and original_data_list:
             pairs = [(orig, drift) for _, orig, drift in original_data_list]
-            rec_results = self.reconciliation_engine.reconcile_gemma_batch(pairs)
+            total_drift = len(pairs)
+            label = f"{api}/{chaos_method}/{reconciler}"
+            def _cb(i, total):
+                print(f"    {label} packet {i+1}/{total}", flush=True)
+            rec_results = self.reconciliation_engine.reconcile_gemma_batch(pairs, progress_cb=_cb)
             for (idx, orig_data, drift_data), rec_result in zip(original_data_list, rec_results):
                 sub_type = sub_type_map.get(idx, "unknown")
                 accuracies.append(rec_result["accuracy"])

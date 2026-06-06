@@ -53,7 +53,7 @@ class GemmaE4BReconciler:
         response = manager.generate_response(messages, max_new_tokens=256, temperature=0.1, top_p=0.8)
         return self._parse_json(response)
 
-    def reconcile_batch(self, pairs: List[Tuple[Dict, Dict]]) -> List[Dict]:
+    def reconcile_batch(self, pairs: List[Tuple[Dict, Dict]], progress_cb=None) -> List[Dict]:
         manager = self._get_manager()
         if not manager or not manager.is_loaded:
             return [{
@@ -64,8 +64,12 @@ class GemmaE4BReconciler:
 
         start = time.perf_counter()
         results = []
+        total = len(pairs)
 
-        for orig, drift in pairs:
+        for i, (orig, drift) in enumerate(pairs):
+            if progress_cb:
+                progress_cb(i, total)
+
             parsed = self._infer(orig, drift)
             mapped = [(k, v) for k, v in parsed.items()]
             unmapped = [k for k in orig.keys() if k not in parsed]
