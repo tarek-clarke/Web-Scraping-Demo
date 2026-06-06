@@ -28,7 +28,12 @@ class GemmaE4BReconciler:
         return self._llm
 
     def _parse_json(self, text: str) -> Dict[str, str]:
-        brace = re.search(r'\{.*\}', text, re.DOTALL)
+        # Strip Gemma 4 reasoning tags
+        text = re.sub(r'<\|think\|>.*?<\|/think\|>', '', text, flags=re.DOTALL)
+        text = re.sub(r'```(?:json)?\s*', '', text)
+        text = re.sub(r'```', '', text)
+        # Try to find JSON object
+        brace = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', text, re.DOTALL)
         if brace:
             try:
                 return json.loads(brace.group())
@@ -44,10 +49,10 @@ class GemmaE4BReconciler:
         messages = [{
             "role": "user",
             "content": (
-                f"Map each original field to its corresponding drifted field.\n"
+                f"Map original fields to drifted fields.\n"
                 f"Original: {json.dumps(original)}\n"
                 f"Drifted: {json.dumps(drifted)}\n"
-                f"Return ONLY a JSON object: {{\"original_field\": \"drifted_field\"}}"
+                f"Output ONLY: {{\"original\": \"drifted\"}}"
             )
         }]
         response = manager.generate_response(messages, max_new_tokens=256, temperature=0.1, top_p=0.8)

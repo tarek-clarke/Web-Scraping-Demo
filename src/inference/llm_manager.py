@@ -175,12 +175,13 @@ class LLMManager:
 
             gen_kwargs: Dict[str, Any] = {
                 "max_new_tokens": max_new_tokens or 256,
-                "temperature": temperature,
-                "top_p": top_p,
                 "do_sample": do_sample,
                 "pad_token_id": self.tokenizer.pad_token_id,
                 "eos_token_id": self.tokenizer.eos_token_id,
             }
+            if do_sample:
+                gen_kwargs["temperature"] = temperature
+                gen_kwargs["top_p"] = top_p
 
             with torch.no_grad():
                 outputs = self.model.generate(**inputs, **gen_kwargs)
