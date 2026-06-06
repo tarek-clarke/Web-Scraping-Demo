@@ -20,10 +20,13 @@ class BERTReconciler:
             from sentence_transformers import SentenceTransformer
             model_path = str(ROOT / "models" / "bert-minilm-v2")
             if not os.path.exists(model_path):
-                print(f"ERROR: BERT model not found at {model_path}")
-                print("Run: ./models/download_from_r2.sh")
-                return
-            self.model = SentenceTransformer(model_path, device=self.device)
+                print("BERT model not found locally; downloading from HuggingFace...")
+                m = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device=self.device)
+                os.makedirs(model_path, exist_ok=True)
+                m.save(model_path)
+                self.model = m
+            else:
+                self.model = SentenceTransformer(model_path, device=self.device)
             print(f"BERT loaded from: {model_path}")
         except Exception as e:
             print(f"BERT model not available: {e}")
