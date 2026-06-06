@@ -1,5 +1,4 @@
 import json
-import os
 import time
 import re
 from typing import Dict, List, Tuple
@@ -8,34 +7,28 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent.parent
 
 class GemmaE4BReconciler:
-    def __init__(self, hardware_profile: str = "cpu", batch_size: int = 4):
-        model_dir = str(ROOT / "models" / "gemma-4-e4b-it")
+    def __init__(self, hardware_profile: str = "cpu", batch_size: int = 4, llm_manager=None):
         self.batch_size = batch_size
-        self.model = None
         self.hardware_profile = hardware_profile
-        self.model_path = None
-        candidates = [
-            os.path.join(model_dir, "gemma-4-E4B-it-Q4_K_M.gguf"),
-            os.path.join(model_dir, "Q4_K_M.gguf"),
-        ]
-        for path in candidates:
-            if os.path.exists(path):
-                self.model_path = path
-                break
-        if self.model_path is None:
-            self.model_path = candidates[0]
-        self._load_model()
+        self._llm = llm_manager
+        self._own_manager = llm_manager is None
 
-    def _load_model(self):
-        try:
-            if not os.path.exists(self.model_path):
-                print(f"ERROR: Gemma E4B not found at {self.model_path}")
-                return
-            from llama_cpp import Llama
-            n_gpu = -1 if self.hardware_profile in ["cuda", "rocm"] else 0
-            self.model = Llama(model_path=self.model_path, n_ctx=2048, n_gpu_layers=n_gpu, verbose=False)
-        except Exception as e:
-            print(f"Gemma E4B not available: {e}")
+    def _get_manager(self):
+        if self._llm is None:
+            from ..inference.llm_manager import LLMManager
+            local_path = str(ROOT / "models" / "gemma-4-e4b-it")
+            if __import__("os").path.exists(local_path):
+                self._llm = LLMManager(
+                    model_id="google/gemma-4-E4B-it",
+                    local_model_path=local_path,
+                    device="cuda" if self.hardware_profile in ("cuda", "rocm") else "mps" if self.hardware_profile == "silicon" else "cpu",
+                )
+            else:
+                self._llm = LLMManager(
+                    model_id="google/gemma-4-E4B-it",
+                    device="cuda" if self.hardware_profile in ("cuda", "rocm") else "mps" if self.hardware_profile == "silicon" else "cpu",
+                )
+        return self._llm
 
     def _parse_json(self, text: str) -> Dict[str, str]:
         brace = re.search(r'\{.*\}', text, re.DOTALL)
@@ -46,31 +39,47 @@ class GemmaE4BReconciler:
                 pass
         return {}
 
+    def _infer(self, original: Dict, drifted: Dict) -> Dict[str, str]:
+        manager = self._get_manager()
+        if not manager or not manager.is_loaded:
+            return {}
+
+        messages = [{
+            "role": "user",
+            "content": (
+                f"Map each original field to its corresponding drifted field.\n"
+                f"Original: {json.dumps(original)}\n"
+                f"Drifted: {json.dumps(drifted)}\n"
+                f"Return ONLY a JSON object: {{\"original_field\": \"drifted_field\"}}"
+            )
+        }]
+        response = manager.generate_response(messages, max_new_tokens=256, temperature=0.1, top_p=0.8)
+        return self._parse_json(response)
+
     def reconcile_batch(self, pairs: List[Tuple[Dict, Dict]]) -> List[Dict]:
-        if not self.model:
-            return [{"accuracy": 0.0, "latency_ms": 0.0, "mapped_fields": [], "unmapped_fields": list(pairs[i][0].keys()), "batch_size": self.batch_size} for i in range(len(pairs))]
+        manager = self._get_manager()
+        if not manager or not manager.is_loaded:
+            return [{
+                "accuracy": 0.0, "latency_ms": 0.0,
+                "mapped_fields": [], "unmapped_fields": list(pairs[i][0].keys()),
+                "batch_size": self.batch_size
+            } for i in range(len(pairs))]
 
         start = time.perf_counter()
         results = []
 
         for orig, drift in pairs:
-            prompt = f"""Map fields from original JSON to drifted JSON.
-Original: {json.dumps(orig)}
-Drifted: {json.dumps(drift)}
-JSON mapping:{{"""
-            try:
-                output = self.model(prompt, max_tokens=256, temperature=0.1)
-                text = output["choices"][0]["text"].strip()
-                if "{" not in text:
-                    text = "{" + text
-                parsed = self._parse_json(text)
-            except:
-                parsed = {}
-
+            parsed = self._infer(orig, drift)
             mapped = [(k, v) for k, v in parsed.items()]
             unmapped = [k for k in orig.keys() if k not in parsed]
             accuracy = len(mapped) / len(orig.keys()) if orig.keys() else 0.0
-            results.append({"accuracy": accuracy, "latency_ms": 0.0, "mapped_fields": mapped, "unmapped_fields": unmapped, "batch_size": self.batch_size})
+            results.append({
+                "accuracy": accuracy,
+                "latency_ms": 0.0,
+                "mapped_fields": mapped,
+                "unmapped_fields": unmapped,
+                "batch_size": self.batch_size
+            })
 
         total_time = (time.perf_counter() - start) * 1000
         per_packet = total_time / len(pairs) if pairs else 0
@@ -80,3 +89,7 @@ JSON mapping:{{"""
 
     def reconcile(self, original: Dict, drifted: Dict) -> Dict:
         return self.reconcile_batch([(original, drifted)])[0]
+
+    def __del__(self):
+        if self._own_manager and self._llm:
+            self._llm.unload()
