@@ -16,18 +16,13 @@ class GemmaE4BReconciler:
     def _get_manager(self):
         if self._llm is None:
             from ..inference.llm_manager import LLMManager
-            local_path = str(ROOT / "models" / "gemma-4-e4b-it")
-            if __import__("os").path.exists(local_path):
-                self._llm = LLMManager(
-                    model_id="google/gemma-4-E4B-it",
-                    local_model_path=local_path,
-                    device="cuda" if self.hardware_profile in ("cuda", "rocm") else "mps" if self.hardware_profile == "silicon" else "cpu",
-                )
-            else:
-                self._llm = LLMManager(
-                    model_id="google/gemma-4-E4B-it",
-                    device="cuda" if self.hardware_profile in ("cuda", "rocm") else "mps" if self.hardware_profile == "silicon" else "cpu",
-                )
+            device = "cuda" if self.hardware_profile in ("cuda", "rocm") else "mps" if self.hardware_profile == "silicon" else "cpu"
+            self._llm = LLMManager(
+                model_id="google/gemma-4-E4B-it",
+                device=device,
+                load_in_4bit=__import__("os").environ.get("HF_LOAD_4BIT", "").lower() in ("1", "true", "yes"),
+                load_in_8bit=__import__("os").environ.get("HF_LOAD_8BIT", "").lower() in ("1", "true", "yes"),
+            )
         return self._llm
 
     def _parse_json(self, text: str) -> Dict[str, str]:
