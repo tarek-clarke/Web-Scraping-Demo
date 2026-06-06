@@ -16,12 +16,14 @@ class GemmaE4BReconciler:
     def _get_manager(self):
         if self._llm is None:
             from ..inference.llm_manager import LLMManager
+            import os as _os
+            model_id = _os.environ.get("HF_MODEL_ID", "google/gemma-4-E4B-it")
             device = "cuda" if self.hardware_profile in ("cuda", "rocm") else "mps" if self.hardware_profile == "silicon" else "cpu"
             self._llm = LLMManager(
-                model_id="google/gemma-4-E4B-it",
+                model_id=model_id,
                 device=device,
-                load_in_4bit=__import__("os").environ.get("HF_LOAD_4BIT", "").lower() in ("1", "true", "yes"),
-                load_in_8bit=__import__("os").environ.get("HF_LOAD_8BIT", "").lower() in ("1", "true", "yes"),
+                load_in_4bit=_os.environ.get("HF_LOAD_4BIT", "").lower() in ("1", "true", "yes"),
+                load_in_8bit=_os.environ.get("HF_LOAD_8BIT", "").lower() in ("1", "true", "yes"),
             )
         return self._llm
 
