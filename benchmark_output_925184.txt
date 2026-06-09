@@ -1,0 +1,388 @@
+🚀 Starting RAP Framework Benchmark on amp2
+[fast_ingest/setup.py] torch 2.10.0+cu128
+[fast_ingest/setup.py] Backend: CUDA  (12.8)  CUDA_HOME=/gpfs/mariana/software/Rocky-spack/spack-master/opt/spack/linux-rocky8-x86_64/gcc-10.3.0/cuda-12.2.2-5rechm7bq3c6uvrh6su3nrio3b4ajd7i
+running build_ext
+==========================================================
+🎯 SMART BENCHMARK LOOP
+Hardware: A100
+Target Runs: 3
+Existing Runs: 0
+==========================================================
+🚀 Need 3 more runs. Entering loop...
+
+🏁 ------------------ RUN 1 / 3 ------------------ 🏁
+🏎️ Initializing Resilient RAP Benchmark Suite...
+Requirement already satisfied: pip in ./.venv/lib/python3.12/site-packages (26.1.1)
+Detected NVIDIA GPU(s): NVIDIA A100-SXM4-80GB
+TORCH_CUDA_ARCH_LIST=8.0
+Using compiler: CC=/gpfs/mariana/software/Rocky-spack/spack-master/opt/spack/linux-rocky8-x86_64/gcc-10.3.0/gcc-12.4.0-ujfhlkw7c6yp6rtz4uaf43ujc5biv6eq/bin/gcc
+Using compiler: CXX=/gpfs/mariana/software/Rocky-spack/spack-master/opt/spack/linux-rocky8-x86_64/gcc-10.3.0/gcc-12.4.0-ujfhlkw7c6yp6rtz4uaf43ujc5biv6eq/bin/g++
+🔗 Installing/Verifying Dependencies...
+Requirement already satisfied: anyio==4.12.1 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 1)) (4.12.1)
+Requirement already satisfied: certifi==2026.1.4 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 2)) (2026.1.4)
+Requirement already satisfied: click==8.3.1 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 3)) (8.3.1)
+Requirement already satisfied: exceptiongroup==1.3.1 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 4)) (1.3.1)
+Requirement already satisfied: filelock==3.20.3 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 5)) (3.20.3)
+Requirement already satisfied: fsspec==2026.1.0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 6)) (2026.1.0)
+Requirement already satisfied: h11==0.16.0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 7)) (0.16.0)
+Requirement already satisfied: hf-xet==1.2.0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 8)) (1.2.0)
+Requirement already satisfied: httpcore==1.0.9 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 9)) (1.0.9)
+Requirement already satisfied: httpx==0.28.1 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 10)) (0.28.1)
+Requirement already satisfied: huggingface_hub==1.4.0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 11)) (1.4.0)
+Requirement already satisfied: idna==3.11 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 12)) (3.11)
+Requirement already satisfied: Jinja2==3.1.6 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 13)) (3.1.6)
+Requirement already satisfied: joblib==1.5.3 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 14)) (1.5.3)
+Requirement already satisfied: markdown-it-py==4.0.0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 15)) (4.0.0)
+Requirement already satisfied: MarkupSafe==3.0.3 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 16)) (3.0.3)
+Requirement already satisfied: mdurl==0.1.2 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 17)) (0.1.2)
+Requirement already satisfied: mpmath==1.3.0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 18)) (1.3.0)
+Requirement already satisfied: networkx==3.4.2 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 19)) (3.4.2)
+Requirement already satisfied: numpy==2.2.6 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 20)) (2.2.6)
+Requirement already satisfied: packaging==26.0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 21)) (26.0)
+Requirement already satisfied: polars==1.19.0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 22)) (1.19.0)
+Requirement already satisfied: Pygments==2.19.2 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 23)) (2.19.2)
+Requirement already satisfied: python-dateutil==2.9.0.post0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 24)) (2.9.0.post0)
+Requirement already satisfied: pytz==2025.2 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 25)) (2025.2)
+Requirement already satisfied: PyYAML==6.0.3 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 26)) (6.0.3)
+Requirement already satisfied: regex==2026.1.15 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 27)) (2026.1.15)
+Requirement already satisfied: reportlab==4.2.5 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 28)) (4.2.5)
+Requirement already satisfied: requests==2.31.0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 29)) (2.31.0)
+Requirement already satisfied: rich==14.3.2 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 30)) (14.3.2)
+Requirement already satisfied: safetensors==0.7.0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 31)) (0.7.0)
+Requirement already satisfied: scikit-learn==1.7.2 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 32)) (1.7.2)
+Requirement already satisfied: scipy==1.15.3 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 33)) (1.15.3)
+Requirement already satisfied: sentence-transformers==5.2.2 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 34)) (5.2.2)
+Requirement already satisfied: shellingham==1.5.4 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 35)) (1.5.4)
+Requirement already satisfied: six==1.17.0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 36)) (1.17.0)
+Requirement already satisfied: sympy==1.14.0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 37)) (1.14.0)
+Requirement already satisfied: threadpoolctl==3.6.0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 38)) (3.6.0)
+Requirement already satisfied: tokenizers==0.22.2 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 39)) (0.22.2)
+Requirement already satisfied: tqdm==4.67.3 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 40)) (4.67.3)
+Requirement already satisfied: transformers==5.0.0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 41)) (5.0.0)
+Requirement already satisfied: typer-slim==0.21.1 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 42)) (0.21.1)
+Requirement already satisfied: typing_extensions==4.15.0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 43)) (4.15.0)
+Requirement already satisfied: tzdata==2025.3 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 44)) (2025.3)
+Requirement already satisfied: pytest==8.0.0 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 45)) (8.0.0)
+Requirement already satisfied: pytest-cov==6.1.1 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 46)) (6.1.1)
+Requirement already satisfied: fastapi==0.115.12 in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 50)) (0.115.12)
+Requirement already satisfied: uvicorn==0.34.2 in ./.venv/lib/python3.12/site-packages (from uvicorn[standard]==0.34.2->-r requirements.txt (line 51)) (0.34.2)
+Requirement already satisfied: kafka-python-ng in ./.venv/lib/python3.12/site-packages (from -r requirements.txt (line 57)) (2.2.3)
+Requirement already satisfied: pillow>=9.0.0 in ./.venv/lib/python3.12/site-packages (from reportlab==4.2.5->-r requirements.txt (line 28)) (12.2.0)
+Requirement already satisfied: chardet in ./.venv/lib/python3.12/site-packages (from reportlab==4.2.5->-r requirements.txt (line 28)) (7.4.3)
+Requirement already satisfied: charset-normalizer<4,>=2 in ./.venv/lib/python3.12/site-packages (from requests==2.31.0->-r requirements.txt (line 29)) (3.4.7)
+Requirement already satisfied: urllib3<3,>=1.21.1 in ./.venv/lib/python3.12/site-packages (from requests==2.31.0->-r requirements.txt (line 29)) (2.7.0)
+Requirement already satisfied: torch>=1.11.0 in ./.venv/lib/python3.12/site-packages (from sentence-transformers==5.2.2->-r requirements.txt (line 34)) (2.10.0+cu128)
+Requirement already satisfied: iniconfig in ./.venv/lib/python3.12/site-packages (from pytest==8.0.0->-r requirements.txt (line 45)) (2.3.0)
+Requirement already satisfied: pluggy<2.0,>=1.3.0 in ./.venv/lib/python3.12/site-packages (from pytest==8.0.0->-r requirements.txt (line 45)) (1.6.0)
+Requirement already satisfied: coverage>=7.5 in ./.venv/lib/python3.12/site-packages (from coverage[toml]>=7.5->pytest-cov==6.1.1->-r requirements.txt (line 46)) (7.14.0)
+Requirement already satisfied: starlette<0.47.0,>=0.40.0 in ./.venv/lib/python3.12/site-packages (from fastapi==0.115.12->-r requirements.txt (line 50)) (0.46.2)
+Requirement already satisfied: pydantic!=1.8,!=1.8.1,!=2.0.0,!=2.0.1,!=2.1.0,<3.0.0,>=1.7.4 in ./.venv/lib/python3.12/site-packages (from fastapi==0.115.12->-r requirements.txt (line 50)) (2.13.4)
+Requirement already satisfied: httptools>=0.6.3 in ./.venv/lib/python3.12/site-packages (from uvicorn[standard]==0.34.2->-r requirements.txt (line 51)) (0.7.1)
+Requirement already satisfied: python-dotenv>=0.13 in ./.venv/lib/python3.12/site-packages (from uvicorn[standard]==0.34.2->-r requirements.txt (line 51)) (1.2.2)
+Requirement already satisfied: uvloop!=0.15.0,!=0.15.1,>=0.14.0 in ./.venv/lib/python3.12/site-packages (from uvicorn[standard]==0.34.2->-r requirements.txt (line 51)) (0.22.1)
+Requirement already satisfied: watchfiles>=0.13 in ./.venv/lib/python3.12/site-packages (from uvicorn[standard]==0.34.2->-r requirements.txt (line 51)) (1.1.1)
+Requirement already satisfied: websockets>=10.4 in ./.venv/lib/python3.12/site-packages (from uvicorn[standard]==0.34.2->-r requirements.txt (line 51)) (16.0)
+Requirement already satisfied: annotated-types>=0.6.0 in ./.venv/lib/python3.12/site-packages (from pydantic!=1.8,!=1.8.1,!=2.0.0,!=2.0.1,!=2.1.0,<3.0.0,>=1.7.4->fastapi==0.115.12->-r requirements.txt (line 50)) (0.7.0)
+Requirement already satisfied: pydantic-core==2.46.4 in ./.venv/lib/python3.12/site-packages (from pydantic!=1.8,!=1.8.1,!=2.0.0,!=2.0.1,!=2.1.0,<3.0.0,>=1.7.4->fastapi==0.115.12->-r requirements.txt (line 50)) (2.46.4)
+Requirement already satisfied: typing-inspection>=0.4.2 in ./.venv/lib/python3.12/site-packages (from pydantic!=1.8,!=1.8.1,!=2.0.0,!=2.0.1,!=2.1.0,<3.0.0,>=1.7.4->fastapi==0.115.12->-r requirements.txt (line 50)) (0.4.2)
+Requirement already satisfied: setuptools in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (81.0.0)
+Requirement already satisfied: cuda-bindings==12.9.4 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (12.9.4)
+Requirement already satisfied: nvidia-cuda-nvrtc-cu12==12.8.93 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (12.8.93)
+Requirement already satisfied: nvidia-cuda-runtime-cu12==12.8.90 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (12.8.90)
+Requirement already satisfied: nvidia-cuda-cupti-cu12==12.8.90 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (12.8.90)
+Requirement already satisfied: nvidia-cudnn-cu12==9.10.2.21 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (9.10.2.21)
+Requirement already satisfied: nvidia-cublas-cu12==12.8.4.1 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (12.8.4.1)
+Requirement already satisfied: nvidia-cufft-cu12==11.3.3.83 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (11.3.3.83)
+Requirement already satisfied: nvidia-curand-cu12==10.3.9.90 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (10.3.9.90)
+Requirement already satisfied: nvidia-cusolver-cu12==11.7.3.90 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (11.7.3.90)
+Requirement already satisfied: nvidia-cusparse-cu12==12.5.8.93 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (12.5.8.93)
+Requirement already satisfied: nvidia-cusparselt-cu12==0.7.1 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (0.7.1)
+Requirement already satisfied: nvidia-nccl-cu12==2.27.5 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (2.27.5)
+Requirement already satisfied: nvidia-nvshmem-cu12==3.4.5 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (3.4.5)
+Requirement already satisfied: nvidia-nvtx-cu12==12.8.90 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (12.8.90)
+Requirement already satisfied: nvidia-nvjitlink-cu12==12.8.93 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (12.8.93)
+Requirement already satisfied: nvidia-cufile-cu12==1.13.1.3 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (1.13.1.3)
+Requirement already satisfied: triton==3.6.0 in ./.venv/lib/python3.12/site-packages (from torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (3.6.0)
+Requirement already satisfied: cuda-pathfinder~=1.1 in ./.venv/lib/python3.12/site-packages (from cuda-bindings==12.9.4->torch>=1.11.0->sentence-transformers==5.2.2->-r requirements.txt (line 34)) (1.5.4)
+Looking in indexes: https://download.pytorch.org/whl/cu128
+Requirement already satisfied: torch in ./.venv/lib/python3.12/site-packages (2.10.0+cu128)
+Requirement already satisfied: torchvision in ./.venv/lib/python3.12/site-packages (0.25.0+cu128)
+Requirement already satisfied: torchaudio in ./.venv/lib/python3.12/site-packages (2.11.0+cu128)
+Requirement already satisfied: filelock in ./.venv/lib/python3.12/site-packages (from torch) (3.20.3)
+Requirement already satisfied: typing-extensions>=4.10.0 in ./.venv/lib/python3.12/site-packages (from torch) (4.15.0)
+Requirement already satisfied: setuptools in ./.venv/lib/python3.12/site-packages (from torch) (81.0.0)
+Requirement already satisfied: sympy>=1.13.3 in ./.venv/lib/python3.12/site-packages (from torch) (1.14.0)
+Requirement already satisfied: networkx>=2.5.1 in ./.venv/lib/python3.12/site-packages (from torch) (3.4.2)
+Requirement already satisfied: jinja2 in ./.venv/lib/python3.12/site-packages (from torch) (3.1.6)
+Requirement already satisfied: fsspec>=0.8.5 in ./.venv/lib/python3.12/site-packages (from torch) (2026.1.0)
+Requirement already satisfied: cuda-bindings==12.9.4 in ./.venv/lib/python3.12/site-packages (from torch) (12.9.4)
+Requirement already satisfied: nvidia-cuda-nvrtc-cu12==12.8.93 in ./.venv/lib/python3.12/site-packages (from torch) (12.8.93)
+Requirement already satisfied: nvidia-cuda-runtime-cu12==12.8.90 in ./.venv/lib/python3.12/site-packages (from torch) (12.8.90)
+Requirement already satisfied: nvidia-cuda-cupti-cu12==12.8.90 in ./.venv/lib/python3.12/site-packages (from torch) (12.8.90)
+Requirement already satisfied: nvidia-cudnn-cu12==9.10.2.21 in ./.venv/lib/python3.12/site-packages (from torch) (9.10.2.21)
+Requirement already satisfied: nvidia-cublas-cu12==12.8.4.1 in ./.venv/lib/python3.12/site-packages (from torch) (12.8.4.1)
+Requirement already satisfied: nvidia-cufft-cu12==11.3.3.83 in ./.venv/lib/python3.12/site-packages (from torch) (11.3.3.83)
+Requirement already satisfied: nvidia-curand-cu12==10.3.9.90 in ./.venv/lib/python3.12/site-packages (from torch) (10.3.9.90)
+Requirement already satisfied: nvidia-cusolver-cu12==11.7.3.90 in ./.venv/lib/python3.12/site-packages (from torch) (11.7.3.90)
+Requirement already satisfied: nvidia-cusparse-cu12==12.5.8.93 in ./.venv/lib/python3.12/site-packages (from torch) (12.5.8.93)
+Requirement already satisfied: nvidia-cusparselt-cu12==0.7.1 in ./.venv/lib/python3.12/site-packages (from torch) (0.7.1)
+Requirement already satisfied: nvidia-nccl-cu12==2.27.5 in ./.venv/lib/python3.12/site-packages (from torch) (2.27.5)
+Requirement already satisfied: nvidia-nvshmem-cu12==3.4.5 in ./.venv/lib/python3.12/site-packages (from torch) (3.4.5)
+Requirement already satisfied: nvidia-nvtx-cu12==12.8.90 in ./.venv/lib/python3.12/site-packages (from torch) (12.8.90)
+Requirement already satisfied: nvidia-nvjitlink-cu12==12.8.93 in ./.venv/lib/python3.12/site-packages (from torch) (12.8.93)
+Requirement already satisfied: nvidia-cufile-cu12==1.13.1.3 in ./.venv/lib/python3.12/site-packages (from torch) (1.13.1.3)
+Requirement already satisfied: triton==3.6.0 in ./.venv/lib/python3.12/site-packages (from torch) (3.6.0)
+Requirement already satisfied: cuda-pathfinder~=1.1 in ./.venv/lib/python3.12/site-packages (from cuda-bindings==12.9.4->torch) (1.5.4)
+Requirement already satisfied: numpy in ./.venv/lib/python3.12/site-packages (from torchvision) (2.2.6)
+Requirement already satisfied: pillow!=8.3.*,>=5.3.0 in ./.venv/lib/python3.12/site-packages (from torchvision) (12.2.0)
+Requirement already satisfied: mpmath<1.4,>=1.1.0 in ./.venv/lib/python3.12/site-packages (from sympy>=1.13.3->torch) (1.3.0)
+Requirement already satisfied: MarkupSafe>=2.0 in ./.venv/lib/python3.12/site-packages (from jinja2->torch) (3.0.3)
+🏭 Building C++ Ingest Extensions...
+[fast_ingest/setup.py] torch 2.10.0+cu128
+[fast_ingest/setup.py] Backend: CUDA  (12.8)  CUDA_HOME=/gpfs/mariana/software/Rocky-spack/spack-master/opt/spack/linux-rocky8-x86_64/gcc-10.3.0/cuda-12.2.2-5rechm7bq3c6uvrh6su3nrio3b4ajd7i
+running build_ext
+📍 Benchmarking on: A100
+🚦 Starting Full Suite (3 runs per test + telemetry + engine stress)...
+▶ Running Sprint
+SQLite pre-run cleanup complete → removed 0 file(s)
+Threshold profile: gpu_speed | semantic=0.40, sigma=3.50, breaker=8, 
+recovery=1.00s
+Chaos profile: balanced | modes=null_value, string_in_numeric, bit_flip_high, 
+bit_flip_low, schema_drift, duplicate_timestamp, sensor_dropout | 
+strategy=random | plan=default
+Loading BERT model on cuda:0 with FP16 precision…
+Schema embeddings shape: torch.Size([10, 384]) on cuda:0
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ TELEMETRY PLATFORM — GPU-ACCELERATED TRIPLE-HEADER STRESS TEST               ║
+║ Device: NVIDIA A100-SXM4-80GB  |  VRAM: 79.25 GB  |  HIP: None               ║
+║ Tuning: gpu_speed  |  semantic=0.40  |  sigma=3.50  |  breaker=8  |          ║
+║ recovery=1.00s                                                               ║
+║ Simulating 3 consecutive race weekends with GPU-parallel semantic            ║
+║ reconciliation & tensor anomaly detection                                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+🏁 Round 10 — Spielberg (Austria)
+
+🏁 Round 11 — Silverstone (United Kingdom)
+
+🏁 Round 12 — Budapest (Hungary)
+  Overall             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:10
+    Spielberg FP1     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+    Spielberg FP2     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+    Spielberg FP3     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+    Spielberg QUALI   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+    Spielberg RACE    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+    Silverstone FP1   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+    Silverstone FP2   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+    Silverstone FP3   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+    Silverstone QUALI ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+    Silverstone RACE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+    Budapest FP1      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+    Budapest FP2      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+    Budapest FP3      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+    Budapest QUALI    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+    Budapest RACE     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+
+Embedding Cache: 29,824 hits / 30,000 lookups (99.4% hit rate)
+
+
+                            Service Level Objectives                            
+                                                                                
+  SLO                    Description                    Bud…   Act…   Mar…   …  
+ ────────────────────────────────────────────────────────────────────────────── 
+  LATENCY_P95            p95 packet latency             100…   0.0…   +99…   …  
+                                                          ms                    
+  ACCEPTANCE_RATE        Acceptance rate (clean-data    0.05   0.9…   +0.…   …  
+                         throughput)                       %                    
+  DLQ_DEPTH              DLQ depth (unresolved          400…   121…   +38…   …  
+                         quarantine)                    pac…                    
+  AUDIT_INTEGRITY        Audit hash chain integrity      1.0   1.0…   +0.…   …  
+                                                        bool                    
+  DETECTION_RATE         Corruption detection rate      0.95   0.9…   +0.…   …  
+                                                           %                    
+  BREAKER_TRIPS_PER_S…   Circuit breaker trips per       6.0   0.0…   +6.…   …  
+                         session                        tri…                    
+                                                                                
+╭──────────────────────────────   SLO SUMMARY   ───────────────────────────────╮
+│ SLOs Passed:  6/6                                                            │
+│ ALL SLOs MET ✅                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+                       GPU Triple-Header Session Results                        
+╭──────┬──────┬──────┬──────┬──────┬──────┬───────┬──────┬──────┬───────┬──────╮
+│      │      │      │      │      │   CB │ CB    │      │  p95 │   GPU │  GPU │
+│ Ses… │ Sent │ Acc… │ Rej… │ Cha… │ Tri… │ State │  DLQ │ (ms) │ Embe… │ Anom │
+├──────┼──────┼──────┼──────┼──────┼──────┼───────┼──────┼──────┼───────┼──────┤
+│ spi… │ 2000 │ 1912 │   88 │  107 │    0 │ CLOS… │   88 │ 0.01 │  2000 │   89 │
+├──────┼──────┼──────┼──────┼──────┼──────┼───────┼──────┼──────┼───────┼──────┤
+│ spi… │ 2000 │ 1917 │   83 │   97 │    0 │ CLOS… │  171 │ 0.01 │  2000 │   84 │
+├──────┼──────┼──────┼──────┼──────┼──────┼───────┼──────┼──────┼───────┼──────┤
+│ spi… │ 2000 │ 1898 │  102 │  121 │    0 │ CLOS… │  273 │ 0.02 │  2000 │   98 │
+├──────┼──────┼──────┼──────┼──────┼──────┼───────┼──────┼──────┼───────┼──────┤
+│ spi… │ 2000 │ 1908 │   92 │  104 │    0 │ CLOS… │  365 │ 0.01 │  2000 │   83 │
+├──────┼──────┼──────┼──────┼──────┼──────┼───────┼──────┼──────┼───────┼──────┤
+│ spi… │ 2000 │ 1894 │  106 │  122 │    0 │ CLOS… │  471 │ 0.02 │  2000 │  100 │
+├──────┼──────┼──────┼──────┼──────┼──────┼───────┼──────┼──────┼───────┼──────┤
+│ sil… │ 2000 │ 1930 │   70 │   84 │    0 │ CLOS… │  541 │ 0.01 │  2000 │   70 │
+├──────┼──────┼──────┼──────┼──────┼──────┼───────┼──────┼──────┼───────┼──────┤
+│ sil… │ 2000 │ 1924 │   76 │   93 │    0 │ CLOS… │  617 │ 0.01 │  2000 │   68 │
+├──────┼──────┼──────┼──────┼──────┼──────┼───────┼──────┼──────┼───────┼──────┤
+│ sil… │ 2000 │ 1907 │   93 │  107 │    0 │ CLOS… │  710 │ 0.01 │  2000 │   93 │
+├──────┼──────┼──────┼──────┼──────┼──────┼───────┼──────┼──────┼───────┼──────┤
+│ sil… │ 2000 │ 1921 │   79 │  100 │    0 │ CLOS… │  789 │ 0.01 │  2000 │   86 │
+├──────┼──────┼──────┼──────┼──────┼──────┼───────┼──────┼──────┼───────┼──────┤
+│ sil… │ 2000 │ 1924 │   76 │   88 │    0 │ CLOS… │  865 │ 0.01 │  2000 │   84 │
+├──────┼──────┼──────┼──────┼──────┼──────┼───────┼──────┼──────┼───────┼──────┤
+│ bud… │ 2000 │ 1919 │   81 │   91 │    0 │ CLOS… │  946 │ 0.01 │  2000 │   86 │
+├──────┼──────┼──────┼──────┼──────┼──────┼───────┼──────┼──────┼───────┼──────┤
+│ bud… │ 2000 │ 1918 │   82 │   99 │    0 │ CLOS… │ 1028 │ 0.01 │  2000 │   74 │
+├──────┼──────┼──────┼──────┼──────┼──────┼───────┼──────┼──────┼───────┼──────┤
+│ bud… │ 2000 │ 1909 │   91 │  100 │    0 │ CLOS… │ 1119 │ 0.01 │  2000 │   79 │
+├──────┼──────┼──────┼──────┼──────┼──────┼───────┼──────┼──────┼───────┼──────┤
+│ bud… │ 2000 │ 1917 │   83 │   97 │    0 │ CLOS… │ 1202 │ 0.01 │  2000 │   93 │
+├──────┼──────┼──────┼──────┼──────┼──────┼───────┼──────┼──────┼───────┼──────┤
+│ bud… │ 2000 │ 1928 │   72 │   89 │    0 │ CLOS… │ 1274 │ 0.01 │  2000 │   90 │
+╰──────┴──────┴──────┴──────┴──────┴──────┴───────┴──────┴──────┴───────┴──────╯
+   Chaos Injection Breakdown   
+                               
+  Chaos Mode            Count  
+ ───────────────────────────── 
+  string_in_numeric       229  
+  bit_flip_low            225  
+  schema_drift            218  
+  sensor_dropout          213  
+  null_value              213  
+  duplicate_timestamp     207  
+  bit_flip_high           194  
+                               
+                     🖥️  GPU Workload Summary                      
+╔═════════════════════════════════════╤═══════════════════════════╗
+║ Metric                              │                     Value ║
+╟─────────────────────────────────────┼───────────────────────────╢
+║ Device                              │     NVIDIA A100-SXM4-80GB ║
+╟─────────────────────────────────────┼───────────────────────────╢
+║ VRAM                                │                  79.25 GB ║
+╟─────────────────────────────────────┼───────────────────────────╢
+║ HIP Version                         │                      None ║
+╟─────────────────────────────────────┼───────────────────────────╢
+║ Status                              │                    active ║
+╟─────────────────────────────────────┼───────────────────────────╢
+║                                     │                           ║
+╟─────────────────────────────────────┼───────────────────────────╢
+║ Total Embeddings Computed           │                    30,000 ║
+╟─────────────────────────────────────┼───────────────────────────╢
+║ Semantic Resolutions                │                    30,000 ║
+╟─────────────────────────────────────┼───────────────────────────╢
+║ Schema-Drift Recovered (GPU)        │                       218 ║
+╟─────────────────────────────────────┼───────────────────────────╢
+║ Tensor Anomalies Detected           │                     1,277 ║
+╟─────────────────────────────────────┼───────────────────────────╢
+║                                     │                           ║
+╟─────────────────────────────────────┼───────────────────────────╢
+║ Total Embedding Time                │                  197.3 ms ║
+╟─────────────────────────────────────┼───────────────────────────╢
+║ Mean Embedding Batch                │                   0.82 ms ║
+╟─────────────────────────────────────┼───────────────────────────╢
+║ Total Anomaly Detection Time        │                  167.0 ms ║
+╟─────────────────────────────────────┼───────────────────────────╢
+║ Mean Anomaly Batch                  │                   0.70 ms ║
+╟─────────────────────────────────────┼───────────────────────────╢
+║ Total Hash Verification Time        │                2,037.9 ms ║
+╚═════════════════════════════════════╧═══════════════════════════╝
+╭──────────────────────────   GPU FINAL ASSESSMENT   ──────────────────────────╮
+│ Resilience Score:         99.98%                                             │
+│ Clean-Data Throughput:    100.00%                                            │
+│ Corruption Detection:     84.99%                                             │
+│ Breaker Trips:            0                                                  │
+│ DLQ Quarantined:          1213                                               │
+│ DLQ Reprocessed:          61 recovered                                       │
+│ Drain Batches:            136 cycles                                         │
+│ Audit Log Entries:        2400                                               │
+│ Audit Chain Intact:       True                                               │
+│ p95 Latency:              0.01 ms                                            │
+│ GPU Embeddings:           30,000                                             │
+│ GPU Anomaly Detections:   1,277                                              │
+│                                                                              │
+│ VERDICT: RACE-READY ✅                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+                            Resilience Timing Report                            
+╔════════════════════════════════╤══════════════════════╤══════════════════════╗
+║ Metric                         │            Detection │               Repair ║
+╟────────────────────────────────┼──────────────────────┼──────────────────────╢
+║ Events                         │                 1499 │                  200 ║
+╟────────────────────────────────┼──────────────────────┼──────────────────────╢
+║ Success Rate                   │               99.93% │               30.50% ║
+╟────────────────────────────────┼──────────────────────┼──────────────────────╢
+║ Mean Latency                   │            0.0068 ms │            0.0173 ms ║
+╟────────────────────────────────┼──────────────────────┼──────────────────────╢
+║ Std Deviation                  │            0.0031 ms │            0.0094 ms ║
+╟────────────────────────────────┼──────────────────────┼──────────────────────╢
+║ Min                            │            0.0030 ms │            0.0102 ms ║
+╟────────────────────────────────┼──────────────────────┼──────────────────────╢
+║ p50 (Median)                   │            0.0062 ms │            0.0168 ms ║
+╟────────────────────────────────┼──────────────────────┼──────────────────────╢
+║ p95                            │            0.0106 ms │            0.0286 ms ║
+╟────────────────────────────────┼──────────────────────┼──────────────────────╢
+║ p99                            │            0.0145 ms │                    — ║
+╟────────────────────────────────┼──────────────────────┼──────────────────────╢
+║ Max                            │            0.0823 ms │            0.1219 ms ║
+╟────────────────────────────────┼──────────────────────┼──────────────────────╢
+║ 95% CI (Mean)                  │  [0.0066, 0.0070] ms │  [0.0160, 0.0186] ms ║
+╚════════════════════════════════╧══════════════════════╧══════════════════════╝
+╭──────────────────────   RESILIENCE TIMING ASSESSMENT   ──────────────────────╮
+│ Anomalies Injected:      1499                                                │
+│ Anomalies Caught:        1498                                                │
+│ Detection Rate:          99.93%                                              │
+│ Mean Detection Speed:    0.0068 ms                                           │
+│ p95 Detection Speed:     0.0106 ms                                           │
+│ 95% CI (Detection):      [0.0066, 0.0070] ms                                 │
+│ DLQ Repairs Attempted:   200                                                 │
+│ DLQ Repairs Recovered:   61                                                  │
+│ Repair Rate:             30.50%                                              │
+│ Mean Repair Speed:       0.0173 ms                                           │
+│ Confidence Level:        95%                                                 │
+│ Sample Size:             1699                                                │
+│                                                                              │
+│ TIMING VERDICT: SUB-MILLISECOND DETECTION ✅                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+GPU CSV exported → 
+data/solo/A100/Run5/Weekend/Standard/Frequency/100hz/telemetry_gpu_stress_test_r
+esults_sprint_A100_Run5_.csv
+GPU JSON exported → 
+data/solo/A100/Run5/Weekend/Standard/Frequency/100hz/telemetry_gpu_stress_test_r
+eport_sprint_A100_Run5_.json
+GPU metrics exported → 
+data/solo/A100/Run5/Weekend/Standard/Frequency/100hz/telemetry_gpu_metrics_sprin
+t_A100_Run5_.json
+GPU timing CSV exported → 
+data/solo/A100/Run5/Weekend/Standard/Frequency/100hz/gpu_resilience_timing_repor
+t_sprint_A100_Run5_.csv
+GPU timing JSON exported → 
+data/solo/A100/Run5/Weekend/Standard/Frequency/100hz/gpu_resilience_timing_repor
+t_sprint_A100_Run5_.json
+Run log exported → 
+data/solo/A100/Run5/Weekend/Standard/Frequency/100hz/run_log_sprint_A100_Run5_.t
+xt
+▶ Running Weekend
+SQLite pre-run cleanup complete → removed 0 file(s)
+Threshold profile: gpu_speed | semantic=0.40, sigma=3.50, breaker=8, 
+recovery=1.00s
+Chaos profile: balanced | modes=null_value, string_in_numeric, bit_flip_high, 
+bit_flip_low, schema_drift, duplicate_timestamp, sensor_dropout | 
+strategy=random | plan=default
+Loading BERT model on cuda:0 with FP16 precision…
+Schema embeddings shape: torch.Size([10, 384]) on cuda:0
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ TELEMETRY PLATFORM — GPU-ACCELERATED TRIPLE-HEADER STRESS TEST               ║
+║ Device: NVIDIA A100-SXM4-80GB  |  VRAM: 79.25 GB  |  HIP: None               ║
+║ Tuning: gpu_speed  |  semantic=0.40  |  sigma=3.50  |  breaker=8  |          ║
+║ recovery=1.00s                                                               ║
+║ Simulating 3 consecutive race weekends with GPU-parallel semantic            ║
+║ reconciliation & tensor anomaly detection                                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+🏁 Round 10 — Spielberg (Austria)

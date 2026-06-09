@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-03-31T00:50:09.238747+00:00",
+  "api_endpoint": "https://api.spacexdata.com/v4/launches/latest",
+  "domain": "aerospace",
+  "status": "success",
+  "transformations": [
+    {
+      "original": "alt_m",
+      "mapped": "altitude_meters",
+      "confidence": 0.97
+    },
+    {
+      "original": "vel_mps",
+      "mapped": "velocity_meters_per_second",
+      "confidence": 0.95
+    }
+  ],
+  "overall_confidence": 0.96,
+  "api_response_sample": "{\"fairings\":null,\"links\":{\"patch\":{\"small\":\"https://images2.imgbox.com/eb/d8/D1Yywp0w_o.png\",\"large\":\"https://images2.imgbox.com/33/2e/k6VE4iYl_o.png\"},\"reddit\":{\"campaign\":null,\"launch\":\"https://www.reddit.com/r/spacex/comments/xvm76j/rspacex_crew5_launchcoast_docking_discussion_and/\",\"media\":null,\"recovery\":null},\"flickr\":{\"small\":[],\"original\":[]},\"presskit\":null,\"webcast\":\"https://youtu.be/5EwW8ZkArL4\",\"youtube_id\":\"5EwW8ZkArL4\",\"article\":null,\"wikipedia\":\"https://en.wikipedia.org/wiki/SpaceX_Crew-5\"},\"static_fire_date_utc\":null,\"static_fire_date_unix\":null,\"net\":false,\"window\":null,\"rocket\":\"5e9d0d95eda69973a809d1ec\",\"success\":true,\"failures\":[],\"details\":null,\"crew\":[\"62dd7196202306255024d13c\",\"62dd71c9202306255024d13d\",\"62dd7210202306255024d13e\",\"62dd7253202306255024d13f\"],\"ships\":["
+}

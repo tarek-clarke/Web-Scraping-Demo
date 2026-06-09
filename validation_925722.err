@@ -1,0 +1,104 @@
+
+The following have been reloaded with a version change:
+  1) gcc/10.3.0-gcc-8.5.0-abqv => gcc/12.4.0-gcc-10.3.0-ujfh
+
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/setup.py", line 37, in <module>
+    import torch
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'
+Traceback (most recent call last):
+  File "/gpfs/mariana/home/tarekc/resilient-rap-framework/tools/telemetry_gpu_stress_test.py", line 66, in <module>
+    import torch  # noqa: E402
+ModuleNotFoundError: No module named 'torch'

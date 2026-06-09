@@ -1,0 +1,12 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.14, pytest-7.3.2, pluggy-1.5.0
+rootdir: /root/resilient-rap-framework
+configfile: pytest.ini
+plugins: rerunfailures-14.0, flakefinder-1.1.0, cpp-2.3.0, hypothesis-5.35.1, xdoctest-1.1.0, xdist-3.3.1, anyio-4.12.1
+collected 78 items / 1 skipped
+
+tests/test_telemetry_modules.py ......................................... [ 52%]
+..................                                                       [ 75%]
+tests/test_engine_temp_stress.py ...................                     [100%]
+
+================== 78 passed, 1 skipped in 107.77s (0:01:47) ===================

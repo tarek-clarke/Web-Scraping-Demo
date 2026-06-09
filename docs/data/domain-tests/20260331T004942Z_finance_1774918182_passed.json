@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-03-31T00:49:42.564585+00:00",
+  "api_endpoint": "https://finnhub.io/api/v1/quote?symbol=AAPL&token=demo",
+  "domain": "finance",
+  "status": "success",
+  "transformations": [
+    {
+      "original": "closing_price",
+      "mapped": "closing_price",
+      "confidence": 0.97
+    },
+    {
+      "original": "daily_vol",
+      "mapped": "daily_volume",
+      "confidence": 0.92
+    }
+  ],
+  "overall_confidence": 0.945,
+  "api_response_sample": "{\"error\":\"Invalid API key.\"}"
+}

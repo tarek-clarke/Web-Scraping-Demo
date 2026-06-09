@@ -1,0 +1,12 @@
+🚀 Starting RAP Framework Benchmark on amp2
+[fast_ingest/setup.py] torch 2.10.0+cu128
+[fast_ingest/setup.py] Backend: CUDA  (12.8)  CUDA_HOME=/gpfs/mariana/software/Rocky-spack/spack-master/opt/spack/linux-rocky8-x86_64/gcc-10.3.0/cuda-12.2.2-5rechm7bq3c6uvrh6su3nrio3b4ajd7i
+running build_ext
+==========================================================
+🎯 SMART BENCHMARK LOOP
+Hardware: A100
+Target Runs: 3
+Existing Runs: 3
+==========================================================
+✅ Target of 3 runs has already been met or exceeded. Exiting.
+✅ Benchmark completed.

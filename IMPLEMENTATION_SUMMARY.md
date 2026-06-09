@@ -38,6 +38,32 @@ platform = detect_platform()  # "local", "vast", "lumi", "spheron"
 backend = detect_backend()     # BackendConfig with optimal settings
 ```
 
+### ✅ Multi-Model Support
+
+The system uses two types of models:
+
+**Reconciliation Models (Gemma)**
+- `google/gemma-4-E4B-it` (4B params) - Edge/local deployment
+- `google/gemma-4-12B-it` (12B params) - Server/HPC deployment
+- Used for: Field mapping and semantic reconciliation
+- Backend: HuggingFace transformers with platform-optimized inference
+
+**Chaos Injection Model (Qwen)**
+- `Qwen/Qwen2.5-7B-Instruct` (7B params) - Semantic drift generation
+- Used for: AI-powered field renaming in chaos testing
+- Backend: HuggingFace transformers (same as Gemma)
+- Fallback: Deterministic rule-based renaming if model unavailable
+
+**Environment Variables:**
+```bash
+# Reconciliation model (Gemma)
+export HF_MODEL_ID="google/gemma-4-E4B-it"  # or gemma-4-12B-it
+
+# Chaos injection model (Qwen)
+export CHAOS_MODEL_ID="Qwen/Qwen2.5-7B-Instruct"
+export USE_LLM_CHAOS="true"  # false = deterministic fallback
+```
+
 ### ✅ Environment-Based Configuration
 ```bash
 # Model selection

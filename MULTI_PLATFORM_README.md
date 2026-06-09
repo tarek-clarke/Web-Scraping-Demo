@@ -38,6 +38,13 @@ print(response)
 | `HF_TOKEN` | - | Hugging Face API token (for gated models) |
 | `LLM_MAX_REASONING_TOKENS` | `2048` | Maximum tokens for generation |
 
+### Chaos Injection
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CHAOS_MODEL_ID` | `Qwen/Qwen2.5-7B-Instruct` | Model for semantic chaos injection |
+| `USE_LLM_CHAOS` | `true` | Enable LLM-based chaos (false = deterministic fallback) |
+
 ### Platform-Specific
 
 | Variable | Description |
@@ -78,37 +85,92 @@ python example_usage.py
 
 ### 3. LUMI HPC (AMD ROCm)
 
+**Requirements:**
+- Python 3.11.7 (provided by lumi-multitorch module)
+- lumi-multitorch/2.1.0-rocm5.6.1-python3.11.7 module
+- Project allocation on LUMI
+
+**Quick Setup:**
+
 ```bash
-# In your Slurm script or shell
+# Clone repository
+git clone https://github.com/your-username/resilient-rap-framework.git
+cd resilient-rap-framework
+
+# Run setup script (loads modules, creates venv, installs dependencies)
+source setup-lumi.sh
+
+# Set your Hugging Face token
+export HF_TOKEN="your_token_here"
+
+# Run the framework
+python3 run_matrix.py --max-packets-per-api 500 --chaos-rate 0.05 --repetitions 1
+```
+
+**Slurm Job Submission:**
+
+```bash
+# Submit a job using the provided Slurm script
+sbatch slurm-lumi.sh
+
+# Monitor job status
+squeue -u $USER
+
+# View job output
+cat rap-<job-id>.out
+```
+
+**Manual Setup (Alternative):**
+
+```bash
+# Load modules
+module load LUMI/23.09
+module load partition/G
+module load lumi-multitorch/2.1.0-rocm5.6.1-python3.11.7
+
+# Create and activate virtual environment
+python3 -m venv .venv-lumi
+source .venv-lumi/bin/activate
+
+# Install dependencies (uses requirements-lumi.txt)
+pip install -r requirements-lumi.txt
+
+# Set environment variables
 export IS_LUMI="1"
 export HF_TOKEN="your_token_here"
 export HF_MODEL_ID="google/gemma-4-12B-it"
+export CHAOS_MODEL_ID="Qwen/Qwen2.5-7B-Instruct"
+export USE_LLM_CHAOS="true"
 
-# Load ROCm module (if needed)
-module load rocm
-
-python example_usage.py
+# Run the framework
+python3 run_matrix.py --max-packets-per-api 500 --chaos-rate 0.05 --repetitions 1
 ```
 
 **Features:**
-- Automatic ROCm backend detection
-- bfloat16 precision
+- Automatic ROCm backend detection (AMD MI250X)
+- bfloat16 precision for optimal performance
 - SDPA attention (FlashAttention not available on ROCm)
 - No bitsandbytes (not supported on ROCm)
+- PyTorch provided by lumi-multitorch module (DO NOT install via pip)
 
-**Slurm Job Example:**
+**Important Notes:**
+- The `lumi-multitorch` module provides PyTorch with ROCm support
+- Do NOT install `torch` via pip - it will conflict with the module
+- Use `requirements-lumi.txt` instead of `requirements.txt`
+- ROCm does not support bitsandbytes or llama-cpp-python
+- Models will download on first run and cache in `~/.cache/huggingface/`
+
+**Troubleshooting:**
+
 ```bash
-#!/bin/bash
-#SBATCH --job-name=model-inference
-#SBATCH --nodes=1
-#SBATCH --gpus-per-node=1
-#SBATCH --time=01:00:00
+# Check ROCm availability
+rocm-smi --showproductname
 
-export IS_LUMI="1"
-export HF_TOKEN="your_token_here"
-export HF_MODEL_ID="google/gemma-4-12B-it"
+# Check PyTorch ROCm support
+python3 -c "import torch; print(f'ROCm: {torch.version.hip}')"
 
-python example_usage.py
+# Clear Hugging Face cache if needed
+rm -rf ~/.cache/huggingface/hub/models--*
 ```
 
 ### 4. Spheron (NVIDIA with HF Mirror)

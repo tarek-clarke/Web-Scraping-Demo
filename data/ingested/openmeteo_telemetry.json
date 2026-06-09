@@ -1,0 +1,2354 @@
+[
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:02.00002Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:04.22545Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:04.942623Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:05.910131Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:06.843225Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:07.011761Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:07.88653Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:19.965808Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:20.192672Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:21.072073Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:22.974218Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:24.933516Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:25.852527Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:27.034561Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:27.206697Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:27.957744Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:28.33198Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:29.044358Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:29.211305Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:29.422289Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:30.002081Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:30.894957Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:31.039893Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:31.270733Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:31.873594Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:33.865624Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:34.886404Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:35.840258Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:36.031671Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:37.895331Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:38.863139Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:39.919117Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:40.65008Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:40.909027Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:42.883324Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:43.014322Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:43.866972Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:44.866696Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:45.941275Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:46.882783Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:47.461046Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:47.908472Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:49.926645Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:50.962385Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:51.831849Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:52.860405Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:53.850862Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:54.959629Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:55.901729Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:56.820523Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:59.033344Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:01:59.863652Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:01.082554Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:01.941391Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:02.068953Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:02.761036Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:03.188359Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:03.97835Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:04.314445Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:06.923428Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:09.261585Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:09.90422Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:10.862893Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:11.939356Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:13.931461Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:14.864756Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:15.923911Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:17.106363Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:17.899116Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:19.918021Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:24.963388Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:27.082079Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:27.960921Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:28.990389Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:30.87695Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:32.986268Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:33.979089Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:34.876753Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:37.794425Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:37.950922Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:42.098563Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:44.111554Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:44.335712Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:45.937212Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:48.885704Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:49.158416Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:49.965627Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:50.954629Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:53.937355Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:54.932748Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:56.981953Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:02:57.993621Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:00.935868Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:02.881133Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:03.931485Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:04.998039Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:07.145271Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:08.918776Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:12.914351Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:13.872873Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:14.871283Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:17.129395Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:18.136428Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:18.931726Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:20.847223Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:23.867769Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:24.084324Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:24.950201Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:25.896901Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:26.194325Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:27.02843Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:30.012406Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:32.856245Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:33.957912Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:34.937059Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:35.382362Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:36.163835Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:36.899251Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:37.867766Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:38.927691Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:39.913066Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:42.739769Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:42.863979Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:43.897598Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:46.883668Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:47.917279Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:48.836299Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:52.888545Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:54.928633Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:56.889285Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:57.861426Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:03:59.976308Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:05.058325Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:05.939387Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:08.923834Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:10.108599Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:10.57288Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:11.063488Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:11.903895Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:12.960994Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:13.898588Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:14.893267Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:16.852131Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:17.928952Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:22.840632Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:23.862232Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:26.962481Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:27.918037Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:28.091582Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:28.939733Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:29.924122Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:30.271644Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:31.458902Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:31.883772Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:32.94507Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:33.985044Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:34.922323Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:36.891643Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:37.950523Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:40.953543Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:42.022373Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:42.85536Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:43.061359Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:47.912296Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:49.484648Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:49.932273Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:50.928805Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:54.94148Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:56.0289Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:56.896329Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:58.2102Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:04:59.950582Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:03.287061Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:07.885885Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:11.019157Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:14.926749Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:15.966362Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:17.94208Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:18.909234Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:19.925217Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:20.929658Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:23.087282Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:23.957418Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:24.157218Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:29.997137Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:33.091477Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:33.986548Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:34.912015Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:35.91644Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:37.036644Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:39.906395Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:41.044565Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:42.977482Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:43.977341Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:44.138781Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:44.889733Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:46.93024Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:47.205163Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:49.906443Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:50.919099Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:53.00684Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:55.957051Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:58.548448Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:05:59.93361Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:03.027343Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:03.930363Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:14.194576Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:15.911463Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:16.901855Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:17.943089Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:20.976791Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:23.286864Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:23.918508Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:24.301771Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:24.956408Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:25.972726Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:26.983929Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:27.841758Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:29.024002Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:32.930862Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:35.897475Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:36.961958Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:37.915868Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:39.91575Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:40.317968Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:41.173057Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:41.998571Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:42.868507Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:43.916673Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:45.084994Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:46.956883Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:47.956736Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:50.159406Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:53.969325Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:55.148938Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:56.011715Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:58.125258Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:06:59.901149Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:02.137478Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:04.547282Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:07.977491Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:08.97395Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:09.882196Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:13.969679Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:15.824119Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:16.542464Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:16.946909Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:21.875056Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:26.896658Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:27.106141Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:28.058066Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:29.905139Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:30.92877Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:32.191416Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:34.060621Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:39.063297Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:41.868263Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:42.903401Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:47.947699Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:48.888146Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:50.933603Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:53.227619Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:54.476823Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:07:54.93448Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:01.180037Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:02.019823Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:03.90591Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:11.141242Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:11.889091Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:13.153061Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:16.970764Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:20.122019Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:21.886211Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:29.884315Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:32.92477Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:34.933576Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:36.003279Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:37.056064Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:42.925036Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:44.012874Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:49.078378Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:08:56.072876Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:09:06.5439Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:09:07.048848Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:09:07.945518Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:09:10.159813Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:09:11.879701Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:09:13.605732Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:09:16.854229Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:09:17.136423Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:09:17.946287Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:09:19.972437Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:09:20.902755Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  },
+  {
+    "source": "openmeteo",
+    "timestamp": "2026-06-04T13:09:22.99272Z",
+    "data": {
+      "error": true,
+      "reason": "Too many concurrent requests"
+    }
+  }
+]
