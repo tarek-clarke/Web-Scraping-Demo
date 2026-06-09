@@ -44,6 +44,10 @@ pip install --upgrade pip
 echo "Installing requirements..."
 pip install -r requirements-lumi.txt
 
+# Upgrade transformers for Gemma 4 support
+echo "Ensuring transformers supports Gemma 4..."
+pip install 'transformers>=4.50.0' 2>&1 | tail -3
+
 echo ""
 echo "=== Setup Complete ==="
 echo ""

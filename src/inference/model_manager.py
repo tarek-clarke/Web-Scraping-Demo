@@ -107,6 +107,10 @@ class ModelManager:
     """
     Multi-platform model manager with automatic hardware detection.
     
+    Create separate instances for reconciliation vs chaos models:
+        recon_model = ModelManager(model_id="google/gemma-4-E4B-it")
+        chaos_model = ModelManager(model_id="Qwen/Qwen2.5-7B-Instruct")
+    
     Environment variables:
         HF_MODEL_ID: Model identifier (default: google/gemma-4-E4B-it)
         HF_TOKEN: Hugging Face API token
@@ -123,22 +127,11 @@ class ModelManager:
         - Local: Models auto-cached to ~/.cache/huggingface/
     """
     
-    _instance = None
-    _initialized = False
-    
-    def __new__(cls):
-        """Singleton pattern - only one instance per process."""
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-    
-    def __init__(self):
+    def __init__(self, model_id: Optional[str] = None, device_map: Optional[str] = None):
         """Initialize model manager with auto-detected backend."""
-        if self._initialized:
-            return
         
         # Environment configuration
-        self.model_id = os.environ.get("HF_MODEL_ID", "google/gemma-4-E4B-it")
+        self.model_id = model_id or os.environ.get("HF_MODEL_ID", "google/gemma-4-E4B-it")
         self.hf_token = os.environ.get("HF_TOKEN")
         self.hf_endpoint = os.environ.get("HF_ENDPOINT")
         self.hf_offline = os.environ.get("HF_HUB_OFFLINE", "").lower() in ("1", "true", "yes")
@@ -148,6 +141,13 @@ class ModelManager:
         # Hardware detection
         self.backend = detect_backend()
         
+        # Allow override of device_map (e.g., "cpu" for chaos models)
+        if device_map is not None:
+            self.backend.device_map = device_map
+            if device_map == "cpu":
+                import torch
+                self.backend.dtype = torch.float32
+        
         # Model state
         self.model = None
         self.tokenizer = None
@@ -156,9 +156,7 @@ class ModelManager:
         # Check if we're in a distributed context (Slurm/PyTorch DDP)
         self.is_distributed = torch.distributed.is_initialized() if hasattr(torch.distributed, 'is_initialized') else False
         self.is_rank_zero = not self.is_distributed or torch.distributed.get_rank() == 0
-        
-        self._initialized = True
-        
+
         if self.is_rank_zero:
             print(f"[INFO] ModelManager initialized")
             print(f"[INFO]   Platform: {self.backend.platform}")
