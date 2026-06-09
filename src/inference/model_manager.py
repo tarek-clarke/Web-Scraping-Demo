@@ -241,7 +241,7 @@ class ModelManager:
         
         # Build model kwargs based on backend
         model_kwargs: Dict[str, Any] = {
-            "torch_dtype": self.backend.dtype,
+            "dtype": self.backend.dtype,
             "device_map": self.backend.device_map,
             "attn_implementation": self.backend.attn_implementation,
         }
@@ -308,7 +308,7 @@ class ModelManager:
             
             # Build model kwargs based on backend
             model_kwargs: Dict[str, Any] = {
-                "torch_dtype": self.backend.dtype,
+                "dtype": self.backend.dtype,
                 "device_map": self.backend.device_map,
                 "attn_implementation": self.backend.attn_implementation,
             }

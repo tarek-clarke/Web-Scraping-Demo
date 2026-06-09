@@ -54,27 +54,68 @@ class VRAMProber:
             import subprocess
             result = subprocess.run(
                 ["rocm-smi", "--showmeminfo", "vram"],
-                capture_output=True, text=True
+                capture_output=True, text=True, timeout=10
             )
             lines = result.stdout.split('\n')
+            free_gb = 0
+            total_gb = 0
             for line in lines:
+                if "VRAM" in line and "Total" in line:
+                    parts = line.split()
+                    for i, p in enumerate(parts):
+                        if "MB" in p:
+                            total_gb = int(parts[i-1]) / 1024
+                if "VRAM" in line and "Free" in line:
+                    parts = line.split()
+                    for i, p in enumerate(parts):
+                        if "MB" in p:
+                            free_gb = int(parts[i-1]) / 1024
                 if "Used Memory" in line:
                     parts = line.split()
                     used_mb = int(parts[-2])
                     total_mb = int(parts[-1].rstrip(')'))
                     free_gb = (total_mb - used_mb) / 1024
                     total_gb = total_mb / 1024
-                    concurrent_runs = max(1, int(free_gb / 8))
-                    batch_size = self._calculate_batch_size(free_gb)
-                    return {
-                        "free_gb": free_gb,
-                        "total_gb": total_gb,
-                        "concurrent_runs": concurrent_runs,
-                        "batch_size": batch_size
-                    }
+            if free_gb > 0 and total_gb > 0:
+                concurrent_runs = max(1, int(free_gb / 8))
+                batch_size = self._calculate_batch_size(free_gb)
+                return {
+                    "free_gb": free_gb,
+                    "total_gb": total_gb,
+                    "concurrent_runs": concurrent_runs,
+                    "batch_size": batch_size
+                }
         except:
             pass
-        return {"free_gb": 0, "total_gb": 0, "concurrent_runs": 1, "batch_size": 1}
+
+        try:
+            import torch
+            if torch.cuda.is_available():
+                props = torch.cuda.get_device_properties(0)
+                total_gb = props.total_memory / (1024**3)
+                free_gb = total_gb * 0.85
+                concurrent_runs = max(1, int(free_gb / 8))
+                batch_size = self._calculate_batch_size(free_gb)
+                return {
+                    "free_gb": free_gb,
+                    "total_gb": total_gb,
+                    "concurrent_runs": concurrent_runs,
+                    "batch_size": batch_size
+                }
+        except:
+            pass
+
+        mem = psutil.virtual_memory()
+        free_gb = mem.available / (1024**3)
+        total_gb = mem.total / (1024**3)
+        concurrent_runs = max(1, int(free_gb / 2))
+        batch_size = self._calculate_batch_size(free_gb)
+        return {
+            "free_gb": free_gb,
+            "total_gb": total_gb,
+            "concurrent_runs": concurrent_runs,
+            "batch_size": batch_size
+        }
 
     def _probe_silicon(self) -> Dict:
         mem = psutil.virtual_memory()

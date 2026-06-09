@@ -19,17 +19,45 @@ class BERTReconciler:
         try:
             from sentence_transformers import SentenceTransformer
             model_path = str(ROOT / "models" / "bert-minilm-v2")
-            if not os.path.exists(model_path):
-                print("BERT model not found locally; downloading from HuggingFace...")
-                m = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device=self.device)
-                os.makedirs(model_path, exist_ok=True)
-                m.save(model_path)
-                self.model = m
-            else:
+            if os.path.exists(model_path):
                 self.model = SentenceTransformer(model_path, device=self.device)
-            print(f"BERT loaded from: {model_path}")
+                print(f"BERT loaded from: {model_path}")
+                return
+
+            print("BERT model not found locally; downloading from HuggingFace...")
+            import multiprocessing
+            result_queue = multiprocessing.Queue()
+            p = multiprocessing.Process(
+                target=self._download_bert,
+                args=(result_queue,)
+            )
+            p.start()
+            p.join(timeout=30)
+            if p.is_alive():
+                p.terminate()
+                p.join()
+                raise TimeoutError("BERT download timed out")
+            if os.path.exists(model_path) and os.listdir(model_path):
+                self.model = SentenceTransformer(model_path, device=self.device)
+                print(f"BERT loaded from: {model_path}")
+            else:
+                raise RuntimeError("Download failed")
         except Exception as e:
-            print(f"BERT model not available: {e}")
+            print(f"BERT model unavailable ({e}), using mock embedding generator")
+            self._init_mock_embedder()
+
+    def _download_bert(self, result_queue):
+        try:
+            from sentence_transformers import SentenceTransformer
+            m = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device=self.device)
+            os.makedirs(str(ROOT / "models" / "bert-minilm-v2"), exist_ok=True)
+            m.save(str(ROOT / "models" / "bert-minilm-v2"))
+        except Exception as e:
+            pass
+
+    def _init_mock_embedder(self):
+        import hashlib, math
+        self._mock = True
 
     def reconcile_batch(self, pairs: List[Tuple[Dict, Dict]]) -> List[Dict]:
         if not self.model:

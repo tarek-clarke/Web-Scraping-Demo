@@ -49,61 +49,83 @@ class QwenChaos:
             return self._llm_drift(packet)
         return self._fallback_drift(packet)
     
+    def _parse_json_response(self, response: str) -> Optional[Dict]:
+        """Parse JSON from LLM response with multiple strategies."""
+        import re
+        text = response.strip()
+
+        # Strategy 1: Direct JSON parse
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+
+        # Strategy 2: Extract from markdown code blocks
+        block = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', text)
+        if block:
+            try:
+                return json.loads(block.group(1))
+            except json.JSONDecodeError:
+                pass
+
+        # Strategy 3: Find JSON object with braces anywhere
+        brace = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', text, re.DOTALL)
+        if brace:
+            try:
+                return json.loads(brace.group())
+            except json.JSONDecodeError:
+                pass
+
+        # Strategy 4: Extract key-value pairs line by line
+        result = {}
+        lines = text.split('\n')
+        for line in lines:
+            line = line.strip().rstrip(',').strip('"')
+            if ':' in line and '"' not in line.split(':')[0]:
+                continue
+            try:
+                pair = re.match(r'\s*"([^"]+)"\s*:\s*"([^"]*)"', line)
+                if pair:
+                    result[pair.group(1)] = pair.group(2)
+                    continue
+                pair = re.match(r'\s*"([^"]+)"\s*:\s*([0-9\.]+)', line)
+                if pair:
+                    result[pair.group(1)] = float(pair.group(2)) if '.' in pair.group(2) else int(pair.group(2))
+            except:
+                pass
+
+        if result:
+            return result
+
+        return None
+
     def _llm_drift(self, packet: Dict) -> Optional[Dict]:
         """Use Qwen LLM to generate semantic drift."""
         try:
             data = packet.get("data", {})
             if not data:
                 return None
-            
-            # Create prompt for field renaming
-            prompt = f"""You are a data transformation agent. Your task is to rename fields in JSON data while preserving the values.
 
-Original JSON:
-{json.dumps(data, indent=2)}
+            prompt = f"""Transform this JSON: {json.dumps(data)}
+Rename 1-2 fields. Output ONLY the new JSON:"""
 
-Instructions:
-1. Rename 1-2 fields to semantically similar names
-2. Keep all values exactly the same
-3. Return ONLY the transformed JSON with renamed fields
-4. Do not add any explanation or commentary
-
-Transformed JSON:"""
-
-            # Generate response using ModelManager
             response = self.model_manager.generate_response(
                 prompt,
-                max_new_tokens=512,
-                temperature=0.3,  # Low temperature for more deterministic output
+                max_new_tokens=256,
+                temperature=0.1,
                 top_p=0.9,
                 do_sample=True
             )
-            
-            # Parse JSON from response
-            try:
-                # Try to extract JSON from response
-                drifted_data = json.loads(response)
-                
-                # Validate it's a dict
-                if isinstance(drifted_data, dict):
-                    return {"data": drifted_data, "sub_type": "qwen_semantic"}
-            except json.JSONDecodeError:
-                # Try to extract JSON from markdown code blocks
-                import re
-                json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', response, re.DOTALL)
-                if json_match:
-                    try:
-                        drifted_data = json.loads(json_match.group(1))
-                        if isinstance(drifted_data, dict):
-                            return {"data": drifted_data, "sub_type": "qwen_semantic"}
-                    except json.JSONDecodeError:
-                        pass
-                
-                print(f"[QwenChaos] Failed to parse LLM response as JSON, using fallback")
-                return self._fallback_drift(packet)
-                
+
+            drifted_data = self._parse_json_response(response)
+            if drifted_data and isinstance(drifted_data, dict):
+                return {"data": drifted_data, "sub_type": "qwen_semantic"}
+
+            print(f"[QwenChaos] Could not parse LLM response, using fallback")
+            return self._fallback_drift(packet)
+
         except Exception as e:
-            print(f"[QwenChaos] LLM drift generation failed: {e}")
+            print(f"[QwenChaos] LLM drift failed: {e}, using fallback")
             return self._fallback_drift(packet)
 
     def _fallback_drift(self, packet: Dict) -> Optional[Dict]:
