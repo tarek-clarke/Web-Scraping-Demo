@@ -145,13 +145,15 @@ class ModelManager:
         if device_map is not None:
             self.backend.device_map = device_map
             if device_map == "cpu":
-                import torch
                 self.backend.dtype = torch.float32
         
         # Model state
         self.model = None
         self.tokenizer = None
         self.is_loaded = False
+        import threading
+        self._load_lock = threading.Lock()
+        self._infer_lock = threading.Lock()
         
         # Check if we're in a distributed context (Slurm/PyTorch DDP)
         self.is_distributed = torch.distributed.is_initialized() if hasattr(torch.distributed, 'is_initialized') else False
@@ -176,6 +178,10 @@ class ModelManager:
                 print(f"[INFO]   Distributed: rank {torch.distributed.get_rank()}/{torch.distributed.get_world_size()}")
     
     def load(self, max_retries: int = 3, retry_delay: float = 5.0) -> bool:
+        with self._load_lock:
+            return self._load_unlocked(max_retries, retry_delay)
+
+    def _load_unlocked(self, max_retries: int = 3, retry_delay: float = 5.0) -> bool:
         """
         Load model and tokenizer with backend-specific configuration.
         
@@ -352,6 +358,18 @@ class ModelManager:
         do_sample: bool = True,
         stream: bool = False
     ) -> str:
+        with self._infer_lock:
+            return self._generate_response_unlocked(prompt, max_new_tokens, temperature, top_p, do_sample, stream)
+
+    def _generate_response_unlocked(
+        self,
+        prompt: str,
+        max_new_tokens: Optional[int] = None,
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+        do_sample: bool = True,
+        stream: bool = False
+    ) -> str:
         """
         Generate text response from prompt.
         
@@ -499,6 +517,9 @@ class ModelManager:
             self.tokenizer = None
         
         self.is_loaded = False
+        import threading
+        self._load_lock = threading.Lock()
+        self._infer_lock = threading.Lock()
         
         # Clear CUDA cache if applicable
         if self.backend.device == "cuda" and torch.cuda.is_available():

@@ -136,7 +136,7 @@ class HardwareDetector:
                 capture_output=True, text=True
             )
             output = result.stdout
-            if "MI250X" in output:
+            if "MI250X" in output or "MI200" in output:
                 return {"type": "rocm", "vram_gb": 128, "model": "MI250X"}
             elif "7900XT" in output or "RX 7900" in output:
                 return {"type": "rocm", "vram_gb": 20, "model": "7900XT"}

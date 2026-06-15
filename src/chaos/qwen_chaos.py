@@ -28,7 +28,7 @@ class QwenChaos:
             model_id = os.environ.get("CHAOS_MODEL_ID", "Qwen/Qwen2.5-7B-Instruct")
             
             # Initialize ModelManager for chaos on CPU (avoids GPU conflict with Gemma)
-            self.model_manager = ModelManager(model_id=model_id, device_map="cpu")
+            self.model_manager = ModelManager(model_id=model_id, device_map=os.environ.get("CHAOS_DEVICE", "cpu"))
             
             # Check if we should use LLM or fallback
             use_llm_env = os.environ.get("USE_LLM_CHAOS", "true").lower()

@@ -28,8 +28,12 @@ class ChaosInjector:
         methods_list = ["qwen", "json_manip", "schema_alter"]
         random.seed(seed)
 
+        # Ensure exact same number of drifted packets across all runs
+        num_to_drift = max(1, int(len(packets) * self.chaos_rate))
+        drift_indices = set(random.sample(range(len(packets)), num_to_drift))
+
         for i, packet in enumerate(packets):
-            if random.random() < self.chaos_rate:
+            if i in drift_indices:
                 method = force_method if force_method else random.choice(methods_list)
                 drifted, drift_event, sub_type = self._apply_drift(packet, method, seed, i)
                 self.chaos_log.append(drift_event)
@@ -44,16 +48,18 @@ class ChaosInjector:
         return self._sub_type_store.get((packet_idx, seed), "unknown")
 
     def _apply_drift(self, packet: Dict, method: str, seed: int, packet_idx: int) -> tuple:
+        import copy
+        orig_copy = copy.deepcopy(packet)
         method_fn = self.chaos_methods.get(method, self._apply_json_drift)
         event = {
             "timestamp": datetime.utcnow().isoformat(),
             "method": method,
             "drift_type": None,
-            "original_packet": packet.copy(),
+            "original_packet": copy.deepcopy(orig_copy),
             "source": packet.get("source", "unknown"),
             "drift_description": None,
         }
-        return method_fn(packet, event, seed, packet_idx)
+        return method_fn(orig_copy, event, seed, packet_idx)
 
     def _apply_qwen_drift(self, packet: Dict, event: Dict, seed: int, packet_idx: int) -> tuple:
         drifted = packet.copy()

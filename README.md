@@ -69,6 +69,63 @@ python run_matrix.py
 | Drifted (GPU reconciliation) | 1,000 (10%) |
 | GPU batches per reconciler | 16 (batch_size=64) |
 
+## AMD MI250X Benchmark Results
+
+The following are the true mapping results obtained on a LUMI compute node with 1 AMD MI250X GPU (isolated as `cuda:0` for Gemma and `cuda:1` for Qwen chaos). This run properly deep-copied packets to test all chaos methods (Qwen, JSON manipulation, and schema alteration) without in-place mutation interference.
+
+### True Mapping Throughput and Latency (Excluding Chaos Generation)
+
+| Phase | API | Chaos Method | Reconciler | Accuracy | GPU Latency (ms) | GPU Throughput (pps) |
+|:---|:---|:---|:---|---:|---:|---:|
+| fast | openf1 | schema_alter | levenshtein | 47.4% | 0.8 | 4839.2 |
+| fast | openf1 | json_manip | levenshtein | 94.6% | 92.6 | 161.9 |
+| fast | openf1 | json_manip | regex | 82.6% | 3.3 | 4487.7 |
+| fast | openf1 | schema_alter | regex | 81.1% | 0.9 | 4674.6 |
+| fast | finnhub | json_manip | levenshtein | 96.2% | 14.3 | 1259.2 |
+| fast | finnhub | json_manip | regex | 82.6% | 19.1 | 943.6 |
+| fast | finnhub | schema_alter | levenshtein | 88.9% | 12.5 | 797.6 |
+| fast | finnhub | schema_alter | regex | 83.2% | 2.0 | 4914.5 |
+| fast | openf1 | qwen | regex | 81.8% | 5.3 | 4743.4 |
+| fast | spacex | json_manip | levenshtein | 98.0% | 9.2 | 2496.0 |
+| fast | spacex | json_manip | regex | 82.9% | 6.9 | 3337.2 |
+| fast | spacex | schema_alter | levenshtein | 80.0% | 2.0 | 2444.8 |
+| fast | spacex | schema_alter | regex | 82.9% | 1.5 | 3257.5 |
+| fast | spacex | qwen | regex | 82.6% | 8.3 | 3001.1 |
+| fast | openf1 | qwen | levenshtein | 91.9% | 5.3 | 4695.2 |
+| fast | openweather | json_manip | levenshtein | 97.8% | 6.1 | 3296.5 |
+| fast | openweather | json_manip | regex | 84.8% | 5.1 | 3897.3 |
+| fast | openweather | schema_alter | levenshtein | 67.9% | 3.0 | 3284.4 |
+| fast | openweather | schema_alter | regex | 83.0% | 2.6 | 3820.4 |
+| fast | finnhub | qwen | levenshtein | 92.6% | 5.3 | 4716.9 |
+| fast | finnhub | qwen | regex | 75.1% | 5.0 | 4985.0 |
+| fast | spacex | qwen | levenshtein | 96.4% | 11.9 | 2095.9 |
+| fast | openweather | qwen | levenshtein | 97.5% | 8.2 | 3036.2 |
+| fast | openweather | qwen | regex | 85.0% | 6.4 | 3923.9 |
+| bert | openf1 | json_manip | bert | 96.8% | 1207.7 | 13.2 |
+| bert | openf1 | schema_alter | bert | 98.5% | 1229.9 | 5.7 |
+| bert | finnhub | json_manip | bert | 97.3% | 1254.8 | 15.9 |
+| bert | finnhub | schema_alter | bert | 95.9% | 1287.0 | 7.0 |
+| bert | spacex | json_manip | bert | 99.6% | 81.4 | 307.1 |
+| bert | spacex | schema_alter | bert | 98.0% | 68.9 | 101.6 |
+| bert | openweather | json_manip | bert | 98.2% | 44.3 | 429.3 |
+| bert | openweather | schema_alter | bert | 97.9% | 22.9 | 523.8 |
+| bert | openf1 | qwen | bert | 98.6% | 18.2 | 1373.1 |
+| bert | finnhub | qwen | bert | 82.2% | 18.4 | 1358.2 |
+| bert | spacex | qwen | bert | 98.2% | 17.9 | 1398.9 |
+| bert | openweather | qwen | bert | 99.1% | 12.5 | 1999.3 |
+| gemma | openf1 | qwen | gemma_e4b | 8.8% | 86855.1 | 0.3 |
+| gemma | openf1 | json_manip | gemma_e4b | 27.9% | 69405.5 | 0.2 |
+| gemma | openf1 | schema_alter | gemma_e4b | 49.1% | 91254.5 | 0.1 |
+| gemma | finnhub | qwen | gemma_e4b | 84.8% | 307641.7 | 0.1 |
+| gemma | finnhub | json_manip | gemma_e4b | 22.4% | 138618.6 | 0.1 |
+| gemma | finnhub | schema_alter | gemma_e4b | 39.2% | 85249.1 | 0.1 |
+| gemma | spacex | qwen | gemma_e4b | 5.9% | 111786.1 | 0.2 |
+| gemma | spacex | json_manip | gemma_e4b | 6.8% | 80755.4 | 0.3 |
+| gemma | spacex | schema_alter | gemma_e4b | 4.8% | 21637.7 | 0.1 |
+| gemma | openweather | qwen | gemma_e4b | 3.3% | 202262.1 | 0.1 |
+| gemma | openweather | json_manip | gemma_e4b | 8.8% | 87111.1 | 0.2 |
+| gemma | openweather | schema_alter | gemma_e4b | 3.1% | 76931.0 | 0.1 |
+
 ## Dual-Stage Gatekeeper Architecture
 
 ### Stage 1: Fast-Path Bypass (CPU)
@@ -106,13 +163,78 @@ For each of 48 runs:
 ## Chaos Methods
 
 ### 1. Qwen (Semantic Drift — LLM-generated)
-- contextual_rename, synonym_substitution, abbreviation_expand, abbreviation_contract, unit_semantic_shift, domain_terminology
+
+Uses Qwen2.5-7B-Instruct to rename fields to context-aware synonyms or domain-specific terminology.
+
+* **Original JSON**:
+  ```json
+  {
+    "team_color": "Red",
+    "n_gear": 4
+  }
+  ```
+* **Drifted JSON**:
+  ```json
+  {
+    "team_color_code": "Red",
+    "gear": 4
+  }
+  ```
 
 ### 2. JSON Manipulation (Structure/Value)
-- field_split, field_join, variable_drop, field_merge_value, array_to_scalar, scalar_to_array, array_expansion, duplicate_field_inject, null_injection, default_value_inject, outlier_injection
+
+Performs structural changes on the JSON hierarchy (splitting, joining, array conversion).
+
+* **Original JSON**:
+  ```json
+  {
+    "rpm": 12000,
+    "team": "Ferrari"
+  }
+  ```
+* **Drifted JSON (`scalar_to_array`)**:
+  ```json
+  {
+    "rpm": 12000,
+    "team": ["Ferrari"]
+  }
+  ```
+* **Drifted JSON (`field_split`)**:
+  ```json
+  {
+    "rpm_part1": 12000,
+    "rpm_part2": 12000,
+    "team": "Ferrari"
+  }
+  ```
 
 ### 3. Schema Alteration (Type/Structure/Temporal)
-- translation, type_change, precision_loss, unit_conversion, nesting_flatten, nesting_deepen, timestamp_format_change, timezone_change, date_format_change, encoding_change, key_case_change, array_index_rename
+
+Modifies schema types, key capitalization, or structural nesting levels.
+
+* **Original JSON**:
+  ```json
+  {
+    "drs": 1,
+    "speed_kmh": 310
+  }
+  ```
+* **Drifted JSON (`key_case_change`)**:
+  ```json
+  {
+    "DRS": 1,
+    "SPEED_KMH": 310
+  }
+  ```
+* **Drifted JSON (`nesting_deepen`)**:
+  ```json
+  {
+    "nested": {
+      "drs": 1,
+      "speed_kmh": 310
+    }
+  }
+  ```
 
 ## Reconcilers
 

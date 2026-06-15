@@ -13,3 +13,6 @@ models/*
 *.egg-info/
 dist/
 build/
+.initialized
+*.so
+logs/

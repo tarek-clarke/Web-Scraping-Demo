@@ -73,6 +73,8 @@ class MatrixRunner:
         return copy.deepcopy(self._drift_cache[key]), self._sub_type_cache[key]
 
     def _get_ground_truth_status(self, src_field: str, dst_field: str, original_data: Dict, drifted_data: Dict) -> str:
+        if not isinstance(dst_field, str):
+            return "FAILURE"
         orig_keys = set(original_data.keys())
         drift_keys = set(drifted_data.keys())
         if dst_field not in drift_keys:
