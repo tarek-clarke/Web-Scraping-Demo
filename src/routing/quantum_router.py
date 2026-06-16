@@ -198,15 +198,21 @@ class QuantumRouter:
             )
         }
 
+        trainable_params = [
+            p for p in circuit.parameters if not p.name.startswith("x")
+        ]
+        
         if self.trained_params is not None:
-            trainable_params = [
-                p for p in circuit.parameters if not p.name.startswith("x")
-            ]
-            for p, v in zip(
-                sorted(trainable_params, key=lambda p: p.name),
-                self.trained_params,
-            ):
-                param_dict[p] = v
+            weights = self.trained_params
+        else:
+            # Fall back to zero weights if model has not been trained yet
+            weights = np.zeros(len(trainable_params))
+
+        for p, v in zip(
+            sorted(trainable_params, key=lambda p: p.name),
+            weights,
+        ):
+            param_dict[p] = v
 
         return circuit.assign_parameters(param_dict)
 
