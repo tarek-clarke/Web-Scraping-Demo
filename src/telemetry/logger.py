@@ -201,7 +201,16 @@ class TelemetryLogger:
             f.write("\\end{tabular}\n")
             f.write("\\end{table}\n")
 
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        import numpy as np
+        if isinstance(obj, (np.integer, np.floating)):
+            return obj.item()
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
+
     def _write_json(self, results: Dict, timestamp: str):
         filepath = f"{self.output_dir}/full_results_{timestamp}.json"
         with open(filepath, 'w') as f:
-            json.dump(results, f, indent=2)
+            json.dump(results, f, indent=2, cls=NpEncoder)
