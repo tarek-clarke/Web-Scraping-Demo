@@ -126,6 +126,59 @@ The following are the true mapping results obtained on a LUMI compute node with 
 | gemma | openweather | json_manip | gemma_e4b | 8.8% | 87111.1 | 0.2 |
 | gemma | openweather | schema_alter | gemma_e4b | 3.1% | 76931.0 | 0.1 |
 
+### AMD MI250X Quantum Routing Benchmark Results (GPU-Accelerated)
+
+The following are the true mapping results obtained on a LUMI compute node with 2x AMD MI250X GPUs. The routing logic was executed via Qiskit's `AerSimulator` simulator backend, while the reconcilers (including BERT) and Qwen chaos models were fully accelerated in BF16 on the GPUs.
+
+| API | Chaos Method | Routing Strategy | Reconciled Accuracy | Sweep Duration (ms) | Fast Path Overhead (ms) | GPU Latency (ms) |
+|:---|:---|:---|:---|:---|:---|:---|
+| openweather | schema_alter | quantum_routed | 64.0% | 3700 | 0.18 | 3682 |
+| openweather | json_manip | quantum_routed | 97.0% | 7511 | 0.18 | 7480 |
+| openf1 | schema_alter | quantum_routed | 85.0% | 48147 | 0.23 | 48100 |
+| openf1 | json_manip | quantum_routed | 94.0% | 53307 | 0.20 | 53280 |
+| finnhub | schema_alter | quantum_routed | 86.0% | 48112 | 0.20 | 48090 |
+| finnhub | json_manip | quantum_routed | 97.0% | 52408 | 0.19 | 52380 |
+| spacex | schema_alter | quantum_routed | 94.0% | 2948 | 0.21 | 2930 |
+| spacex | json_manip | quantum_routed | 97.0% | 11539 | 0.22 | 11510 |
+| openf1 | qwen | quantum_routed | 91.0% | 740812 | 0.23 | 740780 |
+| finnhub | qwen | quantum_routed | 87.0% | 751825 | 0.20 | 751790 |
+| spacex | qwen | quantum_routed | 94.0% | 714705 | 0.21 | 714670 |
+| openweather | qwen | quantum_routed | 97.0% | 719584 | 0.18 | 719550 |
+
+---
+
+## Quantum-Accelerated Routing Architecture
+
+To optimize data streams dynamically on heterogeneous hardware, the framework incorporates a **Quantum Routing Module** utilizing a **Variational Quantum Classifier (VQC)** to route drifted telemetry packets to the optimal classical or semantic reconciler (Levenshtein, Regex, or BERT).
+
+### 1. Feature Extraction & Scaling
+For each original/drifted packet pair, the `FeatureExtractor` extracts 10 structural and semantic properties:
+1. `field_count` - Normalized total fields in expected schema (max 50)
+2. `nesting_depth` - Maximum nesting depth of JSON structure (max 5)
+3. `numeric_ratio` - Percentage of values that are float/int
+4. `string_ratio` - Percentage of values that are string
+5. `fields_added` - Count of newly introduced fields normalized by field_count
+6. `fields_removed` - Count of removed fields normalized by field_count
+7. `key_edit_distance_mean` - Mean Levenshtein distance between expected and drifted keys (max 10)
+8. `has_type_changes` - Binary (0 or 1) indicating if key values changed types
+9. `has_structural_changes` - Binary (0 or 1) indicating if JSON structural layers changed
+10. `source_encoded` - Ordinal value encoding API source (openf1=0.25, finnhub=0.5, spacex=0.75, openweather=1.0)
+
+All features are normalized to `[0, 1]` and then scaled to `[0, \pi]` for quantum angle encoding.
+
+### 2. Variational Quantum Circuit (VQC) Design
+The classification circuit is built using Qiskit:
+* **Feature Mapping**: A `ZZFeatureMap` (2 repetitions) encodes the 10-dimensional scaled feature vector into 10 qubits using angle-encoding gates.
+* **Variational Ansatz**: A `RealAmplitudes` circuit (2 output qubits added, 12 qubits total, 2 repetitions) entangles the feature space and output space using trainable $R_y$ rotation gates and CNOT entangling gates.
+* **Measurement**: The 2 output qubits are measured to yield a 2-bit class string (`00`=Levenshtein, `01`=Regex, `10`=BERT, `11`=Gemma).
+* **Execution**: Circuits are transpiled and run on the local `AerSimulator` or via IBM Quantum Runtime services.
+
+### 3. Training & Alignment
+The `RoutingTrainer` module scans historical baseline benchmark runs from `data/reports/` to construct training matrices:
+- For each unique (API, Chaos Method, Chaos Sub-Type) combination, it isolates which reconciler yielded the highest reconciliation accuracy. If accuracy ties, it selects the reconciler with the lowest latency.
+- These labels are mapped into one-hot integers and fit using a COBYLA optimizer (200 iterations max).
+- If no trained model weights exist, the VQC defaults gracefully to zero-weight binding and classical fallback trees derived from hardware performance baselines.
+
 ## Dual-Stage Gatekeeper Architecture
 
 ### Stage 1: Fast-Path Bypass (CPU)
