@@ -13,7 +13,8 @@ from ..telemetry.logger import TelemetryLogger
 class MatrixRunner:
     def __init__(self, hardware_profile: Dict, concurrent_runs: int = 1, batch_size: int = 4,
                  repetitions: int = 3, chaos_rate: float = 0.05, only_api: str = None,
-                 skip_reconcilers: List[str] = None, skip_chaos_methods: List[str] = None):
+                 skip_reconcilers: List[str] = None, skip_chaos_methods: List[str] = None,
+                 run_phases: List[str] = None):
         hw_type = hardware_profile.get("type", "cpu")
         hw_model = hardware_profile.get("model")
         self.hardware_type = hw_type
@@ -47,12 +48,28 @@ class MatrixRunner:
             ("fast", ["levenshtein", "regex"]),
             ("bert", ["bert"]),
             ("gemma", ["gemma_e4b"]),
+            ("quantum", ["quantum_routed"]),
         ]
         self.phases = [
-            (name, [r for r in recs if r not in skip])
+            (name, [r for r in recs if (r == "quantum_routed" or r not in skip)])
             for name, recs in all_phases
         ]
+        if run_phases:
+            self.phases = [(name, recs) for name, recs in self.phases if name in run_phases]
         self.phases = [(name, recs) for name, recs in self.phases if recs]
+        
+        # Initialize quantum components if quantum phase is selected
+        self.quantum_router = None
+        self.feature_extractor = None
+        if any(name == "quantum" for name, _ in self.phases):
+            try:
+                from ..routing import QuantumRouter, FeatureExtractor
+                import os
+                config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "configs", "trained_router_params.json")
+                self.quantum_router = QuantumRouter(model_params_path=config_path if os.path.exists(config_path) else None)
+                self.feature_extractor = FeatureExtractor()
+            except ImportError:
+                print("[WARNING] Quantum routing modules not available. Have you installed requirements-quantum.txt?")
 
     def _cache_key(self, api_packets: List[Dict], chaos_method: str, seed: int) -> str:
         h = hashlib.md5(str(len(api_packets)).encode()).hexdigest()
@@ -254,6 +271,47 @@ class MatrixRunner:
                         "packet_idx": idx, "source_field": src, "drifted_field": None,
                         "chaos_sub_type": sub_type, "reconciliation_status": "FAILURE",
                     })
+        elif reconciler == "quantum_routed" and original_data_list:
+            if not self.quantum_router:
+                print("Skipping quantum_routed because quantum_router is not initialized")
+            else:
+                for batch_start in range(0, len(drifted_indices), self.batch_size):
+                    batch_indices = drifted_indices[batch_start:batch_start + self.batch_size]
+                    for bi, idx in enumerate(batch_indices):
+                        di = batch_start + bi
+                        orig_data = original_data_list[di][1]
+                        drift_data = original_data_list[di][2]
+                        sub_type = sub_type_map.get(idx, "unknown")
+
+                        rec_result = self.reconciliation_engine.route_and_reconcile(
+                            {"data": orig_data, "source": api},
+                            {"data": drift_data, "source": api},
+                            self.quantum_router,
+                            self.feature_extractor
+                        )
+                        accuracies.append(rec_result["accuracy"])
+                        latencies.append(rec_result["latency_ms"])
+                        
+                        actual_reconciler = rec_result["routing_decision"]
+
+                        for src, dst in rec_result.get("mapped_fields", []):
+                            status = self._get_ground_truth_status(src, dst, orig_data, drift_data)
+                            drift_events.append({
+                                "phase": phase, "api": api, "chaos_method": chaos_method,
+                                "reconciler": actual_reconciler, "iteration": iteration,
+                                "packet_idx": idx, "source_field": src, "drifted_field": dst,
+                                "chaos_sub_type": sub_type, "reconciliation_status": status,
+                                "quantum_routed": True,
+                            })
+
+                        for src in rec_result.get("unmapped_fields", []):
+                            drift_events.append({
+                                "phase": phase, "api": api, "chaos_method": chaos_method,
+                                "reconciler": actual_reconciler, "iteration": iteration,
+                                "packet_idx": idx, "source_field": src, "drifted_field": None,
+                                "chaos_sub_type": sub_type, "reconciliation_status": "FAILURE",
+                                "quantum_routed": True,
+                            })
         else:
             for batch_start in range(0, len(drifted_indices), self.batch_size):
                 batch_indices = drifted_indices[batch_start:batch_start + self.batch_size]

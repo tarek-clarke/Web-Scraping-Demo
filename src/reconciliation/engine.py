@@ -52,3 +52,27 @@ class ReconciliationEngine:
             self.reconcile({"data": orig}, {"data": drift}, "gemma_e4b")
             for orig, drift in pairs
         ]
+
+    def route_and_reconcile(self, original: Dict, drifted: Dict, router: object, feature_extractor: object) -> Dict:
+        import time
+        start_time = time.perf_counter()
+        
+        # Extract features
+        original_data = original.get("data", {})
+        drifted_data = drifted.get("data", {})
+        source = original.get("source", "unknown")
+        
+        features = feature_extractor.extract(original_data, drifted_data, source)
+        
+        # Quantum route
+        reconciler_name, confidence = router.route_packet(features)
+        routing_latency_ms = (time.perf_counter() - start_time) * 1000
+        
+        # Reconcile using selected reconciler
+        rec_result = self.reconcile(original, drifted, reconciler_name)
+        
+        # Merge routing metrics
+        rec_result["routing_decision"] = reconciler_name
+        rec_result["routing_confidence"] = confidence
+        rec_result["routing_latency_ms"] = routing_latency_ms
+        return rec_result

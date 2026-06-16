@@ -33,7 +33,7 @@ class TelemetryLogger:
             writer = csv.DictWriter(f, fieldnames=[
                 "phase", "api", "chaos_method", "reconciler", "iteration",
                 "packet_idx", "source_field", "drifted_field",
-                "chaos_sub_type", "reconciliation_status"
+                "chaos_sub_type", "reconciliation_status", "quantum_routed"
             ])
             writer.writeheader()
             for e in events:
@@ -47,7 +47,8 @@ class TelemetryLogger:
                     "source_field": e["source_field"],
                     "drifted_field": e.get("drifted_field", "") if e.get("drifted_field") else "",
                     "chaos_sub_type": e.get("chaos_sub_type", ""),
-                    "reconciliation_status": e.get("reconciliation_status", "")
+                    "reconciliation_status": e.get("reconciliation_status", ""),
+                    "quantum_routed": e.get("quantum_routed", False)
                 })
 
     def _write_manifest(self, results: Dict, timestamp: str):

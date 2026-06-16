@@ -19,6 +19,7 @@ def main():
     parser.add_argument("--only-api", type=str, default=None, help="Run only this API source")
     parser.add_argument("--skip-reconciler", action="append", default=[], help="Skip a reconciler (repeatable)")
     parser.add_argument("--skip-chaos", action="append", default=[], help="Skip a chaos method (repeatable)")
+    parser.add_argument("--phases", type=str, default=None, help="Comma-separated list of phases to run (e.g., 'quantum' or 'fast,bert')")
     args = parser.parse_args()
 
     run_start = time_mod.time()
@@ -67,6 +68,10 @@ def main():
             print(f"  {src}: {counts[src]} packets")
     print()
 
+    # Ensure outputs go to a distinct 'quantum' folder if running quantum phases
+    if args.phases and "quantum" in args.phases:
+        hardware["model"] = "quantum_MI250X" if "MI250X" in hardware.get("model", "") else "quantum_run"
+
     runner = MatrixRunner(
         hardware_profile=hardware,
         concurrent_runs=vram_info['concurrent_runs'],
@@ -76,6 +81,7 @@ def main():
         only_api=args.only_api,
         skip_reconcilers=args.skip_reconciler,
         skip_chaos_methods=args.skip_chaos,
+        run_phases=args.phases.split(",") if args.phases else None,
     )
 
     total_runs = len(runner.apis) * len(runner.chaos_methods) * len(runner.reconcilers) * args.repetitions
