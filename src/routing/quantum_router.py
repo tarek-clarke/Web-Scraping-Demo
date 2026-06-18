@@ -391,10 +391,9 @@ class QuantumRouter:
                 "Install with: pip install -r requirements-quantum.txt"
             ) from exc
 
-        feature_map = ZZFeatureMap(feature_dimension=self.feature_count, reps=2)
-        
         # Train on 12 qubits to match the evaluation circuit shape
         total_qubits = self.feature_count + self.num_output_qubits
+        feature_map = ZZFeatureMap(feature_dimension=total_qubits, reps=2)
         ansatz = RealAmplitudes(num_qubits=total_qubits, reps=2)
         optimizer = COBYLA(maxiter=maxiter)
 
@@ -413,13 +412,16 @@ class QuantumRouter:
         for i, label in enumerate(y_train):
             y_onehot[i, int(label)] = 1
 
-        result = vqc.fit(X_train, y_onehot)
+        # Pad feature space with zeros to match VQC's 12-qubit feature map requirement
+        X_train_padded = np.pad(X_train, ((0, 0), (0, self.num_output_qubits)), mode='constant')
+
+        result = vqc.fit(X_train_padded, y_onehot)
 
         # Store trained parameters
         self.trained_params = vqc.weights
 
         # Evaluate training accuracy
-        y_pred: np.ndarray = vqc.predict(X_train)
+        y_pred: np.ndarray = vqc.predict(X_train_padded)
         train_accuracy: float = float(
             np.mean(np.argmax(y_pred, axis=1) == y_train)
         )
