@@ -128,22 +128,22 @@ The following are the true mapping results obtained on a LUMI compute node with 
 
 ### AMD MI250X Quantum Routing Benchmark Results (GPU-Accelerated)
 
-The following are the true mapping results obtained on a LUMI compute node with 2x AMD MI250X GPUs. The routing logic was executed via Qiskit's `AerSimulator` simulator backend, while the reconcilers (including BERT) and Qwen chaos models were fully accelerated in BF16 on the GPUs.
+The following are the true mapping results obtained on a LUMI compute node with 2x AMD MI250X GPUs using a dedicated, pre-trained Quantum Router model per API. The routing logic was executed via Qiskit's `AerSimulator` simulator backend, while the reconcilers (including BERT) and Qwen chaos models were fully accelerated in BF16 on the GPUs.
 
 | API | Chaos Method | Routing Strategy | Reconciled Accuracy | Sweep Duration (ms) | Fast Path Overhead (ms) | GPU Latency (ms) |
 |:---|:---|:---|:---|:---|:---|:---|
-| openweather | schema_alter | quantum_routed | 64.0% | 3700 | 0.18 | 3682 |
-| openweather | json_manip | quantum_routed | 97.0% | 7511 | 0.18 | 7480 |
-| openf1 | schema_alter | quantum_routed | 85.0% | 48147 | 0.23 | 48100 |
-| openf1 | json_manip | quantum_routed | 94.0% | 53307 | 0.20 | 53280 |
-| finnhub | schema_alter | quantum_routed | 86.0% | 48112 | 0.20 | 48090 |
-| finnhub | json_manip | quantum_routed | 97.0% | 52408 | 0.19 | 52380 |
-| spacex | schema_alter | quantum_routed | 94.0% | 2948 | 0.21 | 2930 |
-| spacex | json_manip | quantum_routed | 97.0% | 11539 | 0.22 | 11510 |
-| openf1 | qwen | quantum_routed | 91.0% | 740812 | 0.23 | 740780 |
-| finnhub | qwen | quantum_routed | 87.0% | 751825 | 0.20 | 751790 |
-| spacex | qwen | quantum_routed | 94.0% | 714705 | 0.21 | 714670 |
-| openweather | qwen | quantum_routed | 97.0% | 719584 | 0.18 | 719550 |
+| openweather | schema_alter | quantum_routed | 84.0% | 2906 | 0.34 | 2895 |
+| openweather | json_manip | quantum_routed | 84.5% | 5285 | 0.19 | 5275 |
+| openf1 | schema_alter | quantum_routed | 93.4% | 40220 | 0.19 | 40203 |
+| openf1 | json_manip | quantum_routed | 98.1% | 47262 | 0.18 | 47248 |
+| finnhub | schema_alter | quantum_routed | 87.7% | 38097 | 0.20 | 38088 |
+| finnhub | json_manip | quantum_routed | 83.9% | 35942 | 0.19 | 35927 |
+| spacex | schema_alter | quantum_routed | 97.3% | 4781 | 0.22 | 4767 |
+| spacex | json_manip | quantum_routed | 98.8% | 10942 | 0.23 | 10928 |
+| openf1 | qwen | quantum_routed | 98.6% | 735227 | 0.17 | 4691 |
+| finnhub | qwen | quantum_routed | 76.0% | 745684 | 0.19 | 3856 |
+| spacex | qwen | quantum_routed | 98.3% | 721242 | 0.67 | 4445 |
+| openweather | qwen | quantum_routed | 85.0% | 722326 | 0.22 | 3350 |
 
 ---
 
