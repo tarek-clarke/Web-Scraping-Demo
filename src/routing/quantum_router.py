@@ -54,6 +54,9 @@ class QuantumRouter:
         3: "gemma_e4b",  # Disabled by default
     }
 
+    _shared_backend: Optional[object] = None
+    _backend_lock: Optional[object] = None
+
     # ------------------------------------------------------------------
     # Construction
     # ------------------------------------------------------------------
@@ -78,6 +81,10 @@ class QuantumRouter:
         self._backend: Optional[object] = None
         self._circuit: Optional[object] = None
 
+        import threading
+        if QuantumRouter._backend_lock is None:
+            QuantumRouter._backend_lock = threading.Lock()
+
         if model_params_path and os.path.exists(model_params_path):
             self._load_params(model_params_path)
 
@@ -92,33 +99,49 @@ class QuantumRouter:
         not recognised, and prints a warning to *stdout* when Qiskit is
         missing entirely.
         """
-        try:
-            if self.backend_name == "aer_simulator":
-                from qiskit_aer import AerSimulator  # type: ignore[import-untyped]
+        import threading
+        if QuantumRouter._backend_lock is None:
+            QuantumRouter._backend_lock = threading.Lock()
 
-                self._backend = AerSimulator()
-            elif self.backend_name == "ibm_quantum":
-                from qiskit_ibm_runtime import QiskitRuntimeService  # type: ignore[import-untyped]
+        with QuantumRouter._backend_lock:
+            if QuantumRouter._shared_backend is not None:
+                self._backend = QuantumRouter._shared_backend
+                return
 
-                token = os.getenv("QISKIT_IBM_TOKEN") or os.getenv("IBM_QUANTUM_TOKEN")
-                service = QiskitRuntimeService(token=token)
-                self._backend = service.least_busy(
-                    min_num_qubits=self.feature_count + self.num_output_qubits
-                )
-            else:
-                from qiskit_aer import AerSimulator  # type: ignore[import-untyped]
+            try:
+                if self.backend_name == "aer_simulator":
+                    from qiskit_aer import AerSimulator  # type: ignore[import-untyped]
 
-                self._backend = AerSimulator()
+                    self._backend = AerSimulator()
+                elif self.backend_name == "ibm_quantum":
+                    from qiskit_ibm_runtime import QiskitRuntimeService  # type: ignore[import-untyped]
+
+                    token = os.getenv("QISKIT_IBM_TOKEN") or os.getenv("IBM_QUANTUM_TOKEN")
+                    channel = os.getenv("QISKIT_IBM_CHANNEL") or "ibm_quantum"
+                    instance = os.getenv("QISKIT_IBM_INSTANCE")
+
+                    service = QiskitRuntimeService(token=token, channel=channel, instance=instance)
+                    self._backend = service.least_busy(
+                        simulator=False,
+                        operational=True,
+                        min_num_qubits=self.feature_count + self.num_output_qubits
+                    )
+                else:
+                    from qiskit_aer import AerSimulator  # type: ignore[import-untyped]
+
+                    self._backend = AerSimulator()
+                    print(
+                        f"[QuantumRouter] Backend '{self.backend_name}' not recognised, "
+                        "falling back to AerSimulator"
+                    )
+                
+                QuantumRouter._shared_backend = self._backend
+            except ImportError:
                 print(
-                    f"[QuantumRouter] Backend '{self.backend_name}' not recognised, "
-                    "falling back to AerSimulator"
+                    "[QuantumRouter] Qiskit not installed. "
+                    "Install with: pip install -r requirements-quantum.txt"
                 )
-        except ImportError:
-            print(
-                "[QuantumRouter] Qiskit not installed. "
-                "Install with: pip install -r requirements-quantum.txt"
-            )
-            self._backend = None
+                self._backend = None
 
     # ------------------------------------------------------------------
     # Circuit construction
