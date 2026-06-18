@@ -20,6 +20,7 @@ def main():
     parser.add_argument("--skip-reconciler", action="append", default=[], help="Skip a reconciler (repeatable)")
     parser.add_argument("--skip-chaos", action="append", default=[], help="Skip a chaos method (repeatable)")
     parser.add_argument("--phases", type=str, default=None, help="Comma-separated list of phases to run (e.g., 'quantum' or 'fast,bert')")
+    parser.add_argument("--backend", type=str, default="aer_simulator", help="Quantum backend name (default: aer_simulator)")
     args = parser.parse_args()
 
     run_start = time_mod.time()
@@ -82,6 +83,7 @@ def main():
         skip_reconcilers=args.skip_reconciler,
         skip_chaos_methods=args.skip_chaos,
         run_phases=args.phases.split(",") if args.phases else None,
+        quantum_backend=args.backend,
     )
 
     total_runs = len(runner.apis) * len(runner.chaos_methods) * len(runner.reconcilers) * args.repetitions

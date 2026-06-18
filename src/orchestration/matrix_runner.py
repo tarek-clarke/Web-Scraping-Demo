@@ -14,7 +14,7 @@ class MatrixRunner:
     def __init__(self, hardware_profile: Dict, concurrent_runs: int = 1, batch_size: int = 4,
                  repetitions: int = 3, chaos_rate: float = 0.05, only_api: str = None,
                  skip_reconcilers: List[str] = None, skip_chaos_methods: List[str] = None,
-                 run_phases: List[str] = None):
+                 run_phases: List[str] = None, quantum_backend: str = "aer_simulator"):
         hw_type = hardware_profile.get("type", "cpu")
         hw_model = hardware_profile.get("model")
         self.hardware_type = hw_type
@@ -30,6 +30,7 @@ class MatrixRunner:
         self._results_lock = Lock()
         self._progress_count = 0
         self._progress_total = 0
+        self.quantum_backend = quantum_backend
 
         self.apis = ["openf1", "finnhub", "spacex", "openweather"]
         if only_api:
@@ -86,7 +87,10 @@ class MatrixRunner:
                         "configs",
                         "trained_router_params.json"
                     )
-                router = QuantumRouter(model_params_path=config_path if os.path.exists(config_path) else None)
+                router = QuantumRouter(
+                    backend=self.quantum_backend,
+                    model_params_path=config_path if os.path.exists(config_path) else None
+                )
                 self.quantum_routers[api] = router
             except ImportError:
                 self.quantum_routers[api] = None
