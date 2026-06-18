@@ -59,17 +59,38 @@ class MatrixRunner:
         self.phases = [(name, recs) for name, recs in self.phases if recs]
         
         # Initialize quantum components if quantum phase is selected
-        self.quantum_router = None
+        self.quantum_routers = {}
         self.feature_extractor = None
         if any(name == "quantum" for name, _ in self.phases):
             try:
-                from ..routing import QuantumRouter, FeatureExtractor
-                import os
-                config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "configs", "trained_router_params.json")
-                self.quantum_router = QuantumRouter(model_params_path=config_path if os.path.exists(config_path) else None)
+                from ..routing import FeatureExtractor
                 self.feature_extractor = FeatureExtractor()
             except ImportError:
                 print("[WARNING] Quantum routing modules not available. Have you installed requirements-quantum.txt?")
+
+    def _get_quantum_router(self, api: str):
+        """Lazily initialize and cache the quantum router for a specific API."""
+        if api not in self.quantum_routers:
+            try:
+                from ..routing import QuantumRouter
+                import os
+                config_path = os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                    "configs",
+                    f"trained_router_{api}.json"
+                )
+                # Fall back to global parameters if API-specific parameters are missing
+                if not os.path.exists(config_path):
+                    config_path = os.path.join(
+                        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                        "configs",
+                        "trained_router_params.json"
+                    )
+                router = QuantumRouter(model_params_path=config_path if os.path.exists(config_path) else None)
+                self.quantum_routers[api] = router
+            except ImportError:
+                self.quantum_routers[api] = None
+        return self.quantum_routers[api]
 
     def _cache_key(self, api_packets: List[Dict], chaos_method: str, seed: int) -> str:
         h = hashlib.md5(str(len(api_packets)).encode()).hexdigest()
@@ -272,8 +293,9 @@ class MatrixRunner:
                         "chaos_sub_type": sub_type, "reconciliation_status": "FAILURE",
                     })
         elif reconciler == "quantum_routed" and original_data_list:
-            if not self.quantum_router:
-                print("Skipping quantum_routed because quantum_router is not initialized")
+            router = self._get_quantum_router(api)
+            if not router:
+                print(f"Skipping quantum_routed for {api} because quantum_router is not initialized")
             else:
                 for batch_start in range(0, len(drifted_indices), self.batch_size):
                     batch_indices = drifted_indices[batch_start:batch_start + self.batch_size]
@@ -286,7 +308,7 @@ class MatrixRunner:
                         rec_result = self.reconciliation_engine.route_and_reconcile(
                             {"data": orig_data, "source": api},
                             {"data": drift_data, "source": api},
-                            self.quantum_router,
+                            router,
                             self.feature_extractor
                         )
                         accuracies.append(rec_result["accuracy"])
