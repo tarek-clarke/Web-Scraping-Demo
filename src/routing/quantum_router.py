@@ -100,7 +100,8 @@ class QuantumRouter:
             elif self.backend_name == "ibm_quantum":
                 from qiskit_ibm_runtime import QiskitRuntimeService  # type: ignore[import-untyped]
 
-                service = QiskitRuntimeService()
+                token = os.getenv("QISKIT_IBM_TOKEN") or os.getenv("IBM_QUANTUM_TOKEN")
+                service = QiskitRuntimeService(token=token)
                 self._backend = service.least_busy(
                     min_num_qubits=self.feature_count + self.num_output_qubits
                 )
