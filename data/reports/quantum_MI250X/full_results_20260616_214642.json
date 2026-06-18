@@ -1,0 +1,23 @@
+{
+  "timestamp": 1781645639.4627836,
+  "batch_size": 16,
+  "concurrent_runs": 6,
+  "repetitions": 1,
+  "phases": [
+    {
+      "name": "quantum",
+      "reconcilers": [
+        "quantum_routed"
+      ],
+      "time_ms": 763375.058169011
+    }
+  ],
+  "iterations": [
+    {
+      "phase": "quantum",
+      "api": "openf1",
+      "chaos_method": "schema_alter",
+      "reconciler": "quantum_routed",
+      "iteration": 1,
+      "seed": 901536100,
+      "accuracy": 
