@@ -214,7 +214,15 @@ class QuantumRouter:
         ):
             param_dict[p] = v
 
-        return circuit.assign_parameters(param_dict)
+        bound_circuit = circuit.assign_parameters(param_dict)
+        if bound_circuit.parameters:
+            print(f"[DEBUG] Unbound parameters remaining: {[p.name for p in bound_circuit.parameters]}")
+            print(f"[DEBUG] features size: {len(features)}, expected: {self.feature_count}")
+            print(f"[DEBUG] feature_params count: {len(feature_params)}, trainable_params count: {len(trainable_params)}")
+            print(f"[DEBUG] weights size: {len(weights)}")
+            print(f"[DEBUG] param_dict size: {len(param_dict)}, unique keys: {len(set(param_dict.keys()))}")
+
+        return bound_circuit
 
     # ------------------------------------------------------------------
     # Routing (single packet)
