@@ -71,7 +71,15 @@ def main():
 
     # Ensure outputs go to a distinct 'quantum' folder if running quantum phases
     if args.phases and "quantum" in args.phases:
-        hardware["model"] = "quantum_MI250X" if "MI250X" in hardware.get("model", "") else "quantum_run"
+        backend_suffix = ""
+        if args.backend:
+            if "ibm" in args.backend or args.backend == "ibm_quantum":
+                backend_suffix = "_ibm_qpu"
+            elif "aer" in args.backend:
+                backend_suffix = "_aer_sim"
+            else:
+                backend_suffix = f"_{args.backend}"
+        hardware["model"] = f"quantum_MI250X{backend_suffix}" if "MI250X" in hardware.get("model", "") else f"quantum_run{backend_suffix}"
 
     runner = MatrixRunner(
         hardware_profile=hardware,
