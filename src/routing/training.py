@@ -297,8 +297,8 @@ if __name__ == "__main__":
     X_list = []
     y_list = []
 
-    # Let's generate 40 sample patterns per reconciler class for robust VQC fitting
-    for _ in range(40):
+    # Let's generate 4 sample patterns per reconciler class for fast VQC fitting
+    for _ in range(4):
         # Class 0: Levenshtein
         # features: low key edit dist (<0.2), no type changes (0), no structural changes (0), low removed/added
         X_list.append([0.3, 0.2, 0.5, 0.5, 0.05, 0.05, np.random.uniform(0, 0.15) * math.pi, 0.0, 0.0, api_val * math.pi])
@@ -320,11 +320,11 @@ if __name__ == "__main__":
     print(f"[Training] Dataset prepared: X_train shape={X_train.shape}, y_train shape={y_train.shape}")
     print(f"[Training] Initializing Quantum VQC Router...")
     
-    router = QuantumRouter(backend="aer_simulator", mode="vqc", shots=512)
+    router = QuantumRouter(backend="aer_simulator", mode="vqc", shots=256)
     
-    print(f"[Training] Running classical VQC simulation fitting (maxiter={args.maxiter})...")
+    print(f"[Training] Running classical VQC simulation fitting (maxiter=10)...")
     try:
-        metrics = router.train(X_train, y_train, maxiter=args.maxiter)
+        metrics = router.train(X_train, y_train, maxiter=10)
         print(f"[Training] Fit completed. Accuracy: {metrics['train_accuracy']:.2%}")
         
         # Save weights
