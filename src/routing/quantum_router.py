@@ -286,8 +286,28 @@ class QuantumRouter:
             return self._classical_fallback(features)
 
         transpiled = transpile(bound_circuit, self._backend)
-        job = self._backend.run(transpiled, shots=self.shots)
-        counts: Dict[str, int] = job.result().get_counts()
+
+        # Use SamplerV2 primitives for IBM Runtime backends (backend.run()
+        # has been removed); fall back to legacy .run() for AerSimulator.
+        counts: Dict[str, int] = {}
+        try:
+            from qiskit_ibm_runtime import IBMBackend  # type: ignore[import-untyped]
+            is_ibm = isinstance(self._backend, IBMBackend)
+        except ImportError:
+            is_ibm = False
+
+        if is_ibm:
+            from qiskit_ibm_runtime import SamplerV2 as Sampler  # type: ignore[import-untyped]
+            sampler = Sampler(self._backend)
+            sampler.options.default_shots = self.shots
+            job = sampler.run([transpiled])
+            result = job.result()
+            pub_result = result[0]
+            # Default classical register name is 'c' for QuantumCircuit(n, m)
+            counts = pub_result.data.c.get_counts()
+        else:
+            job = self._backend.run(transpiled, shots=self.shots)
+            counts = job.result().get_counts()
 
         # Decode measurement: most frequent bitstring -> class index
         best_bitstring: str = max(counts, key=counts.get)  # type: ignore[arg-type]
