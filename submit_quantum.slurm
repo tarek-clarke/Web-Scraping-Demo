@@ -40,10 +40,13 @@ export CHAOS_DEVICE=cuda:1
 # Check GPUs
 rocm-smi
 
-# Step 1: Train quantum router on existing MI250X benchmark data
+# Step 1: Train quantum router on existing MI250X benchmark data (per API)
 echo ""
 echo "=== Step 1: Training Quantum Router ==="
-python3 -m src.routing.training --data data/reports/MI250X/ --output configs/trained_router_params.json
+python3 -m src.routing.training --data data/reports/MI250X/ --output configs/trained_router_openf1.json --api openf1
+python3 -m src.routing.training --data data/reports/MI250X/ --output configs/trained_router_finnhub.json --api finnhub
+python3 -m src.routing.training --data data/reports/MI250X/ --output configs/trained_router_spacex.json --api spacex
+python3 -m src.routing.training --data data/reports/MI250X/ --output configs/trained_router_openweather.json --api openweather
 
 # Step 2: Run full benchmark matrix with quantum phase
 echo ""
