@@ -392,7 +392,10 @@ class QuantumRouter:
             ) from exc
 
         feature_map = ZZFeatureMap(feature_dimension=self.feature_count, reps=2)
-        ansatz = RealAmplitudes(num_qubits=self.feature_count, reps=2)
+        
+        # Train on 12 qubits to match the evaluation circuit shape
+        total_qubits = self.feature_count + self.num_output_qubits
+        ansatz = RealAmplitudes(num_qubits=total_qubits, reps=2)
         optimizer = COBYLA(maxiter=maxiter)
 
         backend = self._backend or AerSimulator()
@@ -401,7 +404,7 @@ class QuantumRouter:
             feature_map=feature_map,
             ansatz=ansatz,
             optimizer=optimizer,
-            num_qubits=self.feature_count,
+            num_qubits=total_qubits,
         )
 
         # One-hot encode labels
