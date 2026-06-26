@@ -247,6 +247,8 @@ def main():
             process_count = min(new_count, len(packets))
             new_packets = packets[-process_count:] if process_count < len(packets) else packets
 
+            # 1. Classical preprocessing / chaos injection
+            drifted_packets_info = []
             for idx, packet in enumerate(new_packets):
                 i = total_count - process_count + idx
                 stats["total_processed"] += 1
@@ -256,39 +258,61 @@ def main():
                     json_chaos, schema_chaos, rng_seed=i
                 )
 
-                if result is None:
-                    continue  # No drift, skip
+                if result is not None:
+                    original, drifted, sub_type = result
+                    drifted_packets_info.append({
+                        "original": original,
+                        "drifted": drifted,
+                        "sub_type": sub_type,
+                        "packet_idx": i,
+                        "packet": packet
+                    })
 
-                original, drifted, sub_type = result
-                drifted_count += 1
-                stats["total_drifted"] += 1
+            drifted_count = len(drifted_packets_info)
+            stats["total_drifted"] += drifted_count
 
-                # Reconcile
-                rec_start = time.perf_counter()
-                rec_result = engine.reconcile(original, drifted, args.reconciler)
-                rec_latency = (time.perf_counter() - rec_start) * 1000
+            # 2. Reconcile on GPU in batches
+            if drifted_count > 0:
+                batch_size = args.batch_size
+                for b_start in range(0, drifted_count, batch_size):
+                    b_info = drifted_packets_info[b_start:b_start + batch_size]
+                    pairs = [(x["original"]["data"], x["drifted"]["data"]) for x in b_info]
 
-                reconciled_count += 1
-                stats["total_reconciled"] += 1
-                stats["accuracy_sum"] += rec_result["accuracy"]
-                stats["latency_sum"] += rec_latency
+                    # Perform batched reconciliation
+                    rec_start = time.perf_counter()
+                    if args.reconciler == "bert":
+                        rec_results = engine.reconcile_bert_batch(pairs)
+                    elif args.reconciler == "gemma_e4b":
+                        rec_results = engine.reconcile_gemma_batch(pairs)
+                    else:
+                        rec_results = [engine.reconcile(x["original"], x["drifted"], args.reconciler) for x in b_info]
+                    
+                    batch_latency_ms = (time.perf_counter() - rec_start) * 1000
+                    per_packet_latency = batch_latency_ms / len(b_info)
 
-                driver_num = packet.get("data", {}).get("driver_number", "?")
+                    for idx_b, x in enumerate(b_info):
+                        rec_result = rec_results[idx_b]
+                        reconciled_count += 1
+                        stats["total_reconciled"] += 1
+                        stats["accuracy_sum"] += rec_result["accuracy"]
+                        stats["latency_sum"] += per_packet_latency
 
-                # Write to CSV
-                writer.writerow({
-                    "timestamp": datetime.utcnow().isoformat(),
-                    "packet_idx": i,
-                    "source": packet.get("source", "openf1"),
-                    "driver_number": driver_num,
-                    "chaos_method": args.chaos_method,
-                    "chaos_sub_type": sub_type,
-                    "reconciler": args.reconciler,
-                    "accuracy": round(rec_result["accuracy"], 4),
-                    "latency_ms": round(rec_latency, 3),
-                    "mapped_fields": rec_result["mapped_fields"],
-                    "unmapped_fields": rec_result["unmapped_fields"],
-                })
+                        driver_num = x["packet"].get("data", {}).get("driver_number", "?")
+
+                        # Write to CSV
+                        writer.writerow({
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "packet_idx": x["packet_idx"],
+                            "source": x["packet"].get("source", "openf1"),
+                            "driver_number": driver_num,
+                            "chaos_method": args.chaos_method,
+                            "chaos_sub_type": x["sub_type"],
+                            "reconciler": args.reconciler,
+                            "accuracy": round(rec_result["accuracy"], 4),
+                            "latency_ms": round(per_packet_latency, 3),
+                            "mapped_fields": rec_result["mapped_fields"],
+                            "unmapped_fields": rec_result["unmapped_fields"],
+                        })
                 csvfile.flush()
 
             batch_elapsed = (time.perf_counter() - batch_start) * 1000
