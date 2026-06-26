@@ -168,21 +168,42 @@ func main() {
 		return true
 	}
 
+	var isWriting int32
+
 	flushPackets := func() {
-		// Seek to start and truncate to overwrite
-		if _, err := file.Seek(0, 0); err != nil {
-			log.Printf("Error seeking file: %v", err)
+		if !atomic.CompareAndSwapInt32(&isWriting, 0, 1) {
+			log.Println("Previous flush still in progress, skipping this tick")
 			return
 		}
-		if err := file.Truncate(0); err != nil {
-			log.Printf("Error truncating file: %v", err)
-			return
-		}
-		encoder := json.NewEncoder(file)
-		encoder.SetIndent("", "  ")
-		if err := encoder.Encode(packets); err != nil {
-			log.Printf("Error encoding packets: %v", err)
-		}
+
+		// Create a copy of packets to encode asynchronously
+		packetsCopy := make([]clients.Packet, len(packets))
+		copy(packetsCopy, packets)
+
+		go func(pkts []clients.Packet) {
+			defer atomic.StoreInt32(&isWriting, 0)
+
+			tempFile := fmt.Sprintf("%s.tmp", file.Name())
+			f, err := os.Create(tempFile)
+			if err != nil {
+				log.Printf("Error creating temp file: %v", err)
+				return
+			}
+
+			encoder := json.NewEncoder(f)
+			encoder.SetIndent("", "  ")
+			if err := encoder.Encode(pkts); err != nil {
+				log.Printf("Error encoding packets: %v", err)
+				f.Close()
+				os.Remove(tempFile)
+				return
+			}
+			f.Close()
+
+			if err := os.Rename(tempFile, file.Name()); err != nil {
+				log.Printf("Error renaming temp file: %v", err)
+			}
+		}(packetsCopy)
 	}
 
 	for {

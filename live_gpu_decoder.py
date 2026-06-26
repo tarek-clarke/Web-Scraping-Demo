@@ -112,19 +112,21 @@ def detect_hardware():
 
 
 def load_packets(filepath, max_backlog=5000):
-    """Load packets from the telemetry JSON file. If backlog exceeds max_backlog, return only the last max_backlog packets."""
+    """Load packets from the telemetry JSON file. If backlog exceeds max_backlog, return only the last max_backlog packets.
+    Returns (packets_slice, total_count)."""
     if not os.path.exists(filepath):
-        return []
+        return [], 0
     try:
         with open(filepath, "r") as f:
             data = json.load(f)
         if isinstance(data, list):
+            total_count = len(data)
             if len(data) > max_backlog:
-                return data[-max_backlog:]
-            return data
-        return []
+                return data[-max_backlog:], total_count
+            return data, total_count
+        return [], 0
     except (json.JSONDecodeError, IOError):
-        return []
+        return [], 0
 
 
 def inject_chaos(packet, chaos_method, chaos_rate, json_chaos, schema_chaos, rng_seed):
@@ -220,18 +222,18 @@ def main():
     try:
         while True:
             # We fetch up to 100,000 packets to verify we don't drop updates, but keep memory sane.
-            packets = load_packets(TELEMETRY_FILE, max_backlog=100000)
+            packets, total_count = load_packets(TELEMETRY_FILE, max_backlog=100000)
             
             # If we've seen fewer packets than what is loaded, it means we have new packets.
             # When we first start, we only process the latest packets to skip the massive backlog.
             if total_packets_seen == -1:
-                total_packets_seen = len(packets)
+                total_packets_seen = total_count
                 # Skip historical backlog to catch up to live edge
                 print(f"[Init] Skipping historical backlog of {total_packets_seen:,} packets to keep it truly live.")
                 time.sleep(args.poll_interval)
                 continue
 
-            new_count = len(packets) - (total_packets_seen if len(packets) >= total_packets_seen else 0)
+            new_count = total_count - total_packets_seen
             
             if new_count <= 0:
                 time.sleep(args.poll_interval)
@@ -241,11 +243,12 @@ def main():
             drifted_count = 0
             reconciled_count = 0
 
-            # The new packets are the last new_count elements in the array
-            new_packets = packets[-new_count:] if new_count < len(packets) else packets
+            # Process at most the backlog size
+            process_count = min(new_count, len(packets))
+            new_packets = packets[-process_count:] if process_count < len(packets) else packets
 
             for idx, packet in enumerate(new_packets):
-                i = len(packets) - new_count + idx
+                i = total_count - process_count + idx
                 stats["total_processed"] += 1
 
                 result = inject_chaos(
@@ -289,7 +292,7 @@ def main():
                 csvfile.flush()
 
             batch_elapsed = (time.perf_counter() - batch_start) * 1000
-            total_packets_seen = len(packets)
+            total_packets_seen = total_count
 
             # Print batch summary
             avg_acc = (stats["accuracy_sum"] / stats["total_reconciled"] * 100) if stats["total_reconciled"] > 0 else 0
