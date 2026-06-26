@@ -18,6 +18,7 @@ import json
 import os
 import sys
 import time
+import requests
 from datetime import datetime
 from pathlib import Path
 
@@ -38,6 +39,59 @@ def setup_output_dir():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     return timestamp
+
+
+def detect_session():
+    """Auto-detect the current live F1 session from the OpenF1 API."""
+    session_info = {
+        "session_name": "Unknown",
+        "session_type": "Unknown",
+        "country_name": "Unknown",
+        "circuit_short_name": "Unknown",
+        "session_key": "unknown",
+        "year": datetime.utcnow().year,
+    }
+
+    try:
+        email = os.getenv("OPENF1_EMAIL", "")
+        password = os.getenv("OPENF1_PASSWORD", "")
+        headers = {}
+
+        if email and password:
+            token_resp = requests.post(
+                "https://api.openf1.org/token",
+                data={"username": email, "password": password},
+                timeout=10,
+            )
+            if token_resp.status_code == 200:
+                token = token_resp.json().get("access_token", "")
+                if token:
+                    headers["Authorization"] = f"Bearer {token}"
+
+        resp = requests.get(
+            "https://api.openf1.org/v1/sessions?session_key=latest",
+            headers=headers,
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            if isinstance(data, list) and len(data) > 0:
+                s = data[0]
+            elif isinstance(data, dict):
+                s = data
+            else:
+                return session_info
+
+            session_info["session_name"] = s.get("session_name", "Unknown")
+            session_info["session_type"] = s.get("session_type", "Unknown")
+            session_info["country_name"] = s.get("country_name", "Unknown")
+            session_info["circuit_short_name"] = s.get("circuit_short_name", "Unknown")
+            session_info["session_key"] = s.get("session_key", "unknown")
+            session_info["year"] = s.get("year", datetime.utcnow().year)
+    except Exception as e:
+        print(f"[Session] Could not auto-detect session: {e}")
+
+    return session_info
 
 
 def detect_hardware():
@@ -114,6 +168,15 @@ def main():
     hw_type = hardware["type"]
     timestamp = setup_output_dir()
 
+    # Auto-detect live session
+    print("[Init] Detecting live F1 session...")
+    session_info = detect_session()
+    session_label = f"{session_info['country_name']} — {session_info['session_name']}"
+    print(f"[Session] {session_label}")
+    print(f"[Session] Circuit: {session_info['circuit_short_name']}")
+    print(f"[Session] Key: {session_info['session_key']}")
+    print()
+
     # Initialize reconciliation engine
     print(f"[Init] Loading {args.reconciler} reconciler on {hw_type}...")
     engine = ReconciliationEngine(hw_type, args.batch_size)
@@ -149,7 +212,7 @@ def main():
     processed_idx = 0
 
     print("=" * 70)
-    print(f"  LIVE F1 TELEMETRY DECODER — Waiting for packets...")
+    print(f"  LIVE F1 TELEMETRY DECODER — {session_label}")
     print("=" * 70)
 
     try:
@@ -239,7 +302,13 @@ def main():
     # Write summary manifest
     manifest = {
         "run_id": timestamp,
-        "session": "OpenF1_Live_FP2_Austria",
+        "session": session_label,
+        "session_name": session_info["session_name"],
+        "session_type": session_info["session_type"],
+        "country": session_info["country_name"],
+        "circuit": session_info["circuit_short_name"],
+        "session_key": session_info["session_key"],
+        "year": session_info["year"],
         "hardware_model": hardware.get("model", "unknown"),
         "hardware_type": hw_type,
         "reconciler": args.reconciler,
