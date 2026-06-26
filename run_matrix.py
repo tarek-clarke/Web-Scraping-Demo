@@ -21,6 +21,7 @@ def main():
     parser.add_argument("--skip-chaos", action="append", default=[], help="Skip a chaos method (repeatable)")
     parser.add_argument("--phases", type=str, default=None, help="Comma-separated list of phases to run (e.g., 'quantum' or 'fast,bert')")
     parser.add_argument("--backend", type=str, default="aer_simulator", help="Quantum backend name (default: aer_simulator)")
+    parser.add_argument("--suffix", type=str, default=None, help="Custom suffix for the results output directory")
     args = parser.parse_args()
 
     run_start = time_mod.time()
@@ -69,9 +70,9 @@ def main():
             print(f"  {src}: {counts[src]} packets")
     print()
 
-    # Ensure outputs go to a distinct 'quantum' folder if running quantum phases
+    # Determine backend suffix for directory formatting
+    backend_suffix = ""
     if args.phases and "quantum" in args.phases:
-        backend_suffix = ""
         if args.backend:
             if "ibm" in args.backend or args.backend == "ibm_quantum":
                 backend_suffix = "_ibm_qpu"
@@ -80,6 +81,11 @@ def main():
             else:
                 backend_suffix = f"_{args.backend}"
         hardware["model"] = f"quantum_MI250X{backend_suffix}" if "MI250X" in hardware.get("model", "") else f"quantum_run{backend_suffix}"
+    else:
+        hardware["model"] = "MI250X" if "MI250X" in hardware.get("model", "") else "run"
+
+    if args.suffix:
+        hardware["model"] = f"{hardware['model']}{args.suffix}"
 
     runner = MatrixRunner(
         hardware_profile=hardware,
