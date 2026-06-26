@@ -6,7 +6,7 @@
 #SBATCH --gpus-per-node=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=7
-#SBATCH --time=01:15:00
+#SBATCH --time=02:00:00
 #SBATCH --output=live_decoder_%j.out
 #SBATCH --error=live_decoder_%j.err
 
