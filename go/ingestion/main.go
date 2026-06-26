@@ -62,6 +62,22 @@ func main() {
 		return isDone(api)
 	}
 
+	// Read environment variables to check what to skip
+	// If no keys are provided, we mark them done immediately to skip network waits
+	if os.Getenv("FINNHUB_API_KEY") == "" {
+		log.Println("Finnhub: no API key provided, marking done immediately")
+		markDone("finnhub")
+	}
+	if os.Getenv("OPENWEATHER_API_KEY") == "" {
+		log.Println("OpenWeather: no API key provided, marking done immediately")
+		markDone("openweather")
+	}
+	// SpaceX doesn't require a key, but we want to skip it if we only want OpenF1
+	if os.Getenv("SKIP_SPACEX") == "true" {
+		log.Println("SpaceX: SKIP_SPACEX set, marking done immediately")
+		markDone("spacex")
+	}
+
 	wg := &sync.WaitGroup{}
 	wg.Add(4)
 
@@ -69,6 +85,8 @@ func main() {
 		defer wg.Done()
 		if !shouldSkip("openf1") {
 			clients.StreamOpenF1WithLimit(ctx, packetChan, &openf1Count, TargetPerAPI, func() { markDone("openf1") })
+		} else {
+			markDone("openf1")
 		}
 	}()
 
@@ -76,6 +94,8 @@ func main() {
 		defer wg.Done()
 		if !shouldSkip("finnhub") {
 			clients.StreamFinnhubWithLimit(ctx, packetChan, &finnhubCount, TargetPerAPI, func() { markDone("finnhub") })
+		} else {
+			markDone("finnhub")
 		}
 	}()
 
@@ -83,6 +103,8 @@ func main() {
 		defer wg.Done()
 		if !shouldSkip("spacex") {
 			clients.StreamSpaceXWithLimit(ctx, packetChan, &spacexCount, TargetPerAPI, func() { markDone("spacex") })
+		} else {
+			markDone("spacex")
 		}
 	}()
 
@@ -90,6 +112,8 @@ func main() {
 		defer wg.Done()
 		if !shouldSkip("openweather") {
 			clients.StreamOpenWeatherWithLimit(ctx, packetChan, &openweatherCount, TargetPerAPI, func() { markDone("openweather") })
+		} else {
+			markDone("openweather")
 		}
 	}()
 

@@ -107,17 +107,29 @@ func StreamOpenF1(ctx context.Context, ch chan<- Packet, counter *int64) {
 				continue
 			}
 
-			var data map[string]interface{}
-			if err := json.Unmarshal(body, &data); err != nil {
+			var rawList []map[string]interface{}
+			if err := json.Unmarshal(body, &rawList); err != nil {
+				// Fallback in case it's a single object
+				var rawObj map[string]interface{}
+				if err := json.Unmarshal(body, &rawObj); err == nil {
+					ch <- Packet{
+						Source:    "openf1",
+						Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
+						Data:      rawObj,
+					}
+					atomic.AddInt64(counter, 1)
+				}
 				continue
 			}
 
-			ch <- Packet{
-				Source:    "openf1",
-				Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
-				Data:      data,
+			for _, data := range rawList {
+				ch <- Packet{
+					Source:    "openf1",
+					Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
+					Data:      data,
+				}
+				atomic.AddInt64(counter, 1)
 			}
-			atomic.AddInt64(counter, 1)
 		}
 	}
 }
@@ -162,17 +174,35 @@ func StreamOpenF1WithLimit(ctx context.Context, ch chan<- Packet, counter *int64
 				continue
 			}
 
-			var data map[string]interface{}
-			if err := json.Unmarshal(body, &data); err != nil {
+			var rawList []map[string]interface{}
+			if err := json.Unmarshal(body, &rawList); err != nil {
+				// Fallback in case it's a single object
+				var rawObj map[string]interface{}
+				if err := json.Unmarshal(body, &rawObj); err == nil {
+					if atomic.LoadInt64(counter) < limit {
+						ch <- Packet{
+							Source:    "openf1",
+							Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
+							Data:      rawObj,
+						}
+						atomic.AddInt64(counter, 1)
+					}
+				}
 				continue
 			}
 
-			ch <- Packet{
-				Source:    "openf1",
-				Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
-				Data:      data,
+			for _, data := range rawList {
+				if atomic.LoadInt64(counter) >= limit {
+					onDone()
+					return
+				}
+				ch <- Packet{
+					Source:    "openf1",
+					Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
+					Data:      data,
+				}
+				atomic.AddInt64(counter, 1)
 			}
-			atomic.AddInt64(counter, 1)
 		}
 	}
 }
