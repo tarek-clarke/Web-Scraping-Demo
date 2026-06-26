@@ -111,14 +111,16 @@ def detect_hardware():
     return hardware, vram_info
 
 
-def load_packets(filepath):
-    """Load all packets from the telemetry JSON file."""
+def load_packets(filepath, max_backlog=5000):
+    """Load packets from the telemetry JSON file. If backlog exceeds max_backlog, return only the last max_backlog packets."""
     if not os.path.exists(filepath):
         return []
     try:
         with open(filepath, "r") as f:
             data = json.load(f)
         if isinstance(data, list):
+            if len(data) > max_backlog:
+                return data[-max_backlog:]
             return data
         return []
     except (json.JSONDecodeError, IOError):
@@ -209,7 +211,7 @@ def main():
         "latency_sum": 0.0,
     }
 
-    processed_idx = 0
+    total_packets_seen = 0
 
     print("=" * 70)
     print(f"  LIVE F1 TELEMETRY DECODER — {session_label}")
@@ -217,9 +219,20 @@ def main():
 
     try:
         while True:
-            packets = load_packets(TELEMETRY_FILE)
-            new_count = len(packets) - processed_idx
+            # We fetch up to 100,000 packets to verify we don't drop updates, but keep memory sane.
+            packets = load_packets(TELEMETRY_FILE, max_backlog=100000)
+            
+            # If we've seen fewer packets than what is loaded, it means we have new packets.
+            # When we first start, we only process the latest packets to skip the massive backlog.
+            if total_packets_seen == 0:
+                total_packets_seen = len(packets)
+                # Skip historical backlog to catch up to live edge
+                print(f"[Init] Skipping historical backlog of {total_packets_seen:,} packets to keep it truly live.")
+                time.sleep(args.poll_interval)
+                continue
 
+            new_count = len(packets) - (total_packets_seen if len(packets) >= total_packets_seen else 0)
+            
             if new_count <= 0:
                 time.sleep(args.poll_interval)
                 continue
@@ -228,8 +241,11 @@ def main():
             drifted_count = 0
             reconciled_count = 0
 
-            for i in range(processed_idx, len(packets)):
-                packet = packets[i]
+            # The new packets are the last new_count elements in the array
+            new_packets = packets[-new_count:] if new_count < len(packets) else packets
+
+            for idx, packet in enumerate(new_packets):
+                i = len(packets) - new_count + idx
                 stats["total_processed"] += 1
 
                 result = inject_chaos(
@@ -273,7 +289,7 @@ def main():
                 csvfile.flush()
 
             batch_elapsed = (time.perf_counter() - batch_start) * 1000
-            processed_idx = len(packets)
+            total_packets_seen = len(packets)
 
             # Print batch summary
             avg_acc = (stats["accuracy_sum"] / stats["total_reconciled"] * 100) if stats["total_reconciled"] > 0 else 0
