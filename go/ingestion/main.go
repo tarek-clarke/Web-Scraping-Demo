@@ -168,6 +168,23 @@ func main() {
 		return true
 	}
 
+	flushPackets := func() {
+		// Seek to start and truncate to overwrite
+		if _, err := file.Seek(0, 0); err != nil {
+			log.Printf("Error seeking file: %v", err)
+			return
+		}
+		if err := file.Truncate(0); err != nil {
+			log.Printf("Error truncating file: %v", err)
+			return
+		}
+		encoder := json.NewEncoder(file)
+		encoder.SetIndent("", "  ")
+		if err := encoder.Encode(packets); err != nil {
+			log.Printf("Error encoding packets: %v", err)
+		}
+	}
+
 	for {
 		select {
 		case packet, ok := <-packetChan:
@@ -183,6 +200,7 @@ func main() {
 			}
 		case <-logTicker.C:
 			printCounts()
+			flushPackets()
 		case <-ctx.Done():
 			log.Printf("Injestor stopped: %d packets collected", len(packets))
 			goto done
@@ -191,11 +209,7 @@ func main() {
 done:
 
 	printCounts()
-	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(packets); err != nil {
-		log.Fatal(err)
-	}
+	flushPackets()
 
 	log.Printf("Ingestion complete: %d packets saved to %s", len(packets), file.Name())
 }
