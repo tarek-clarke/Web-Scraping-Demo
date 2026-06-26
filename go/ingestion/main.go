@@ -6,17 +6,16 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"resilient-rap/ingestion/clients"
+	"syscall"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
 const (
-	TargetPackets     = 10000
-	TargetPerAPI      = 2500
-	TargetHz          = 100
 	OutputDir         = "../../data/ingested"
 	ProgressInterval  = 10 * time.Second
 )
@@ -24,10 +23,20 @@ const (
 func main() {
 	os.MkdirAll(OutputDir, 0755)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	// Ingest until stopped or session ends (timeout at 3 hours just in case)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Hour)
 	defer cancel()
 
-	packetChan := make(chan clients.Packet, 10000)
+	// Channel to handle graceful interrupts (Ctrl+C)
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		log.Println("Interrupt received, stopping ingestion gracefully...")
+		cancel()
+	}()
+
+	packetChan := make(chan clients.Packet, 100000)
 
 	var (
 		totalPackets     int64
@@ -62,7 +71,6 @@ func main() {
 		return isDone(api)
 	}
 
-	// Read environment variables to check what to skip
 	// If no keys are provided, we mark them done immediately to skip network waits
 	if os.Getenv("FINNHUB_API_KEY") == "" {
 		log.Println("Finnhub: no API key provided, marking done immediately")
@@ -72,7 +80,6 @@ func main() {
 		log.Println("OpenWeather: no API key provided, marking done immediately")
 		markDone("openweather")
 	}
-	// SpaceX doesn't require a key, but we want to skip it if we only want OpenF1
 	if os.Getenv("SKIP_SPACEX") == "true" {
 		log.Println("SpaceX: SKIP_SPACEX set, marking done immediately")
 		markDone("spacex")
@@ -84,7 +91,9 @@ func main() {
 	go func() {
 		defer wg.Done()
 		if !shouldSkip("openf1") {
-			clients.StreamOpenF1WithLimit(ctx, packetChan, &openf1Count, TargetPerAPI, func() { markDone("openf1") })
+			// Stream infinitely (StreamOpenF1 has no limit)
+			clients.StreamOpenF1(ctx, packetChan, &openf1Count)
+			markDone("openf1")
 		} else {
 			markDone("openf1")
 		}
@@ -93,7 +102,8 @@ func main() {
 	go func() {
 		defer wg.Done()
 		if !shouldSkip("finnhub") {
-			clients.StreamFinnhubWithLimit(ctx, packetChan, &finnhubCount, TargetPerAPI, func() { markDone("finnhub") })
+			clients.StreamFinnhub(ctx, packetChan, &finnhubCount)
+			markDone("finnhub")
 		} else {
 			markDone("finnhub")
 		}
@@ -102,7 +112,8 @@ func main() {
 	go func() {
 		defer wg.Done()
 		if !shouldSkip("spacex") {
-			clients.StreamSpaceXWithLimit(ctx, packetChan, &spacexCount, TargetPerAPI, func() { markDone("spacex") })
+			clients.StreamSpaceX(ctx, packetChan, &spacexCount)
+			markDone("spacex")
 		} else {
 			markDone("spacex")
 		}
@@ -111,7 +122,8 @@ func main() {
 	go func() {
 		defer wg.Done()
 		if !shouldSkip("openweather") {
-			clients.StreamOpenWeatherWithLimit(ctx, packetChan, &openweatherCount, TargetPerAPI, func() { markDone("openweather") })
+			clients.StreamOpenWeather(ctx, packetChan, &openweatherCount)
+			markDone("openweather")
 		} else {
 			markDone("openweather")
 		}
@@ -122,7 +134,9 @@ func main() {
 		close(packetChan)
 	}()
 
-	file, err := os.Create(fmt.Sprintf("%s/telemetry_%d.json", OutputDir, time.Now().Unix()))
+	// Use human readable date format in the file name
+	timestamp := time.Now().Format("20060102_150405")
+	file, err := os.Create(fmt.Sprintf("%s/telemetry_%s.json", OutputDir, timestamp))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -163,14 +177,14 @@ func main() {
 			packets = append(packets, packet)
 			atomic.AddInt64(&totalPackets, 1)
 
-			if atomic.LoadInt64(&totalPackets) >= TargetPackets || allAPIDone() {
+			if allAPIDone() {
 				cancel()
 				goto done
 			}
 		case <-logTicker.C:
 			printCounts()
 		case <-ctx.Done():
-			log.Printf("Timeout or complete: %d packets collected", len(packets))
+			log.Printf("Injestor stopped: %d packets collected", len(packets))
 			goto done
 		}
 	}
@@ -183,5 +197,5 @@ done:
 		log.Fatal(err)
 	}
 
-	log.Printf("Ingestion complete: %d packets", len(packets))
+	log.Printf("Ingestion complete: %d packets saved to %s", len(packets), file.Name())
 }
