@@ -33,7 +33,7 @@ export CHAOS_DEVICE=cuda:0
 rocm-smi
 
 # Check if sentence-transformers is installed in the environment
-python3 -c "import sentence_transformers; print('sentence-transformers version:', sentence_transformers.__version__)"
+python3 -u -c "import sentence_transformers; print('sentence-transformers version:', sentence_transformers.__version__)"
 
 # Run live decoder polling telemetry_latest.json
-python3 live_gpu_decoder.py --reconciler bert --chaos-rate 0.10 --poll-interval 5.0
+python3 -u live_gpu_decoder.py --reconciler bert --chaos-rate 0.10 --poll-interval 5.0
