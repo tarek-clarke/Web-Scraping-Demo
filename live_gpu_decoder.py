@@ -211,7 +211,7 @@ def main():
         "latency_sum": 0.0,
     }
 
-    total_packets_seen = 0
+    total_packets_seen = -1
 
     print("=" * 70)
     print(f"  LIVE F1 TELEMETRY DECODER — {session_label}")
@@ -224,7 +224,7 @@ def main():
             
             # If we've seen fewer packets than what is loaded, it means we have new packets.
             # When we first start, we only process the latest packets to skip the massive backlog.
-            if total_packets_seen == 0:
+            if total_packets_seen == -1:
                 total_packets_seen = len(packets)
                 # Skip historical backlog to catch up to live edge
                 print(f"[Init] Skipping historical backlog of {total_packets_seen:,} packets to keep it truly live.")
