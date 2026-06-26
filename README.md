@@ -145,6 +145,40 @@ The following are the true mapping results obtained on a LUMI compute node with 
 | spacex | qwen | quantum_routed | 98.3% | 721242 | 0.67 | 4445 |
 | openweather | qwen | quantum_routed | 85.0% | 722326 | 0.22 | 3350 |
 
+## Live F1 Telemetry Decoder (LUMI Deployment)
+
+This pipeline runs a real-time, GPU-accelerated schema reconciliation loop on live F1 telemetry data from OpenF1 on LUMI. 
+
+Because LUMI compute nodes do not have external internet access, the pipeline uses a **dual-node architecture**:
+1. **Go Ingestor** (runs on a login/interactive node): Streams live telemetry from `api.openf1.org` and writes to the shared Lustre directory.
+2. **GPU Decoder** (runs on a compute node under SLURM): Polls the ingested telemetry, injects schema/JSON drift, and runs the BERT/reconciler model on the AMD MI250X GPU in batches.
+
+### Step-by-Step Instructions
+
+#### 1. Start the Ingestor (Terminal 1 - Login Node)
+Navigate to the Go ingestion directory and execute the ingestor. This will download and write packets to `data/ingested/telemetry_latest.json`.
+```bash
+cd go/ingestion
+go run .
+```
+*Note: This runs in the background asynchronously writing and flushing packets atomically to prevent blocking I/O starvation.*
+
+#### 2. Start the Decoder (Terminal 2 - Compute Node via SLURM)
+From the project root directory, submit the SLURM job to allocate a `dev-g` node with an AMD MI250X GPU:
+```bash
+sbatch submit_live_decoder.slurm
+```
+
+To watch the live decoding statistics (warmup, throughput, accuracy, and average latency per packet), run:
+```bash
+tail -f live_decoder_<JOB_ID>.out
+```
+
+#### 3. Stopping the Pipeline
+* **Ingestor**: Press `Ctrl+C` in your Go terminal to gracefully terminate and write the final file.
+* **Decoder**: Cancel the SLURM job using `scancel <JOB_ID>`.
+* **Reports**: Results, including a metrics CSV and a JSON provenance manifest, are automatically written to `data/reports/live_f1/`.
+
 ---
 
 ## Quantum-Accelerated Routing Architecture
