@@ -88,7 +88,7 @@ func StreamOpenF1(ctx context.Context, ch chan<- Packet, counter *int64) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			resp, err := doRequest(client, OpenF1URL+"?session_key=latest&driver_number=1", token)
+			resp, err := doRequest(client, OpenF1URL+"?session_key=latest", token)
 			if err != nil {
 				log.Printf("OpenF1 error: %v", err)
 				continue
@@ -143,7 +143,7 @@ func StreamOpenF1WithLimit(ctx context.Context, ch chan<- Packet, counter *int64
 				onDone()
 				return
 			}
-			resp, err := doRequest(client, OpenF1URL+"?session_key=latest&driver_number=1", token)
+			resp, err := doRequest(client, OpenF1URL+"?session_key=latest", token)
 			if err != nil {
 				log.Printf("OpenF1 error: %v", err)
 				continue
