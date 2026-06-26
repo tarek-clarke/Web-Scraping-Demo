@@ -72,7 +72,7 @@ func doRequest(client *http.Client, urlStr string, token string) (*http.Response
 }
 
 func StreamOpenF1(ctx context.Context, ch chan<- Packet, counter *int64) {
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: 30 * time.Second}
 	ticker := time.NewTicker(60 * time.Second / 30) // 30 per minute
 	defer ticker.Stop()
 
