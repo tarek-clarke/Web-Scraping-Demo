@@ -49,6 +49,9 @@ sleep $SLEEP_SECONDS
 echo "[$(date)] Time reached! Launching Go Ingestor in the background..."
 cd "$PROJECT_ROOT/go/ingestion" || exit 1
 
+# Add Go to PATH (local workspace installation)
+export PATH="/scratch/project_465002996/clarketa/go/bin:$PATH"
+
 # Launch ingestor detached so it doesn't close when the terminal closes
 nohup go run . > ingestion_live.log 2>&1 &
 INGEST_PID=$!
