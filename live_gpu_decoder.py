@@ -42,7 +42,11 @@ def setup_output_dir():
 
 
 def detect_session():
-    """Auto-detect the current live F1 session from the OpenF1 API."""
+    """Auto-detect the current live F1 session from the OpenF1 API.
+    
+    Note: On LUMI compute nodes (no internet), this will timeout in ~2s
+    and fall back to 'Unknown' session info. This is expected behavior.
+    """
     session_info = {
         "session_name": "Unknown",
         "session_type": "Unknown",
@@ -61,7 +65,7 @@ def detect_session():
             token_resp = requests.post(
                 "https://api.openf1.org/token",
                 data={"username": email, "password": password},
-                timeout=10,
+                timeout=2,
             )
             if token_resp.status_code == 200:
                 token = token_resp.json().get("access_token", "")
@@ -71,7 +75,7 @@ def detect_session():
         resp = requests.get(
             "https://api.openf1.org/v1/sessions?session_key=latest",
             headers=headers,
-            timeout=10,
+            timeout=2,
         )
         if resp.status_code == 200:
             data = resp.json()
@@ -90,6 +94,7 @@ def detect_session():
             session_info["year"] = s.get("year", datetime.utcnow().year)
     except Exception as e:
         print(f"[Session] Could not auto-detect session: {e}")
+        print(f"[Session] (This is expected on LUMI compute nodes with no internet access)")
 
     return session_info
 

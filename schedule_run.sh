@@ -12,6 +12,14 @@ fi
 TARGET_TIME="$1"
 PROJECT_ROOT="/scratch/project_465002996/clarketa/resilient-rap-quantum"
 
+# Validate that OpenF1 credentials are set
+if [ -z "$OPENF1_EMAIL" ] || [ -z "$OPENF1_PASSWORD" ]; then
+    echo "ERROR: OPENF1_EMAIL and OPENF1_PASSWORD must be exported before running this script."
+    echo "  export OPENF1_EMAIL=\"your@email.com\""
+    echo "  export OPENF1_PASSWORD=\"yourpassword\""
+    exit 1
+fi
+
 echo "=== Scheduling Live F1 Telemetry Pipeline ==="
 echo "Target Start Time: $TARGET_TIME"
 echo ""
@@ -51,6 +59,9 @@ cd "$PROJECT_ROOT/go/ingestion" || exit 1
 
 # Add Go to PATH (local workspace installation)
 export PATH="/scratch/project_465002996/clarketa/go/bin:$PATH"
+
+# Skip SpaceX client (polls 100 req/s, bloats telemetry file to 3GB+)
+export SKIP_SPACEX=true
 
 # Launch ingestor detached so it doesn't close when the terminal closes
 nohup go run . > ingestion_live.log 2>&1 &
