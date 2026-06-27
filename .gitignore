@@ -16,3 +16,4 @@ build/
 .initialized
 *.so
 logs/
+.venv-mac/
