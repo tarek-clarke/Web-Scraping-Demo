@@ -64,7 +64,7 @@ export PATH="/scratch/project_465002996/clarketa/go/bin:$PATH"
 export SKIP_SPACEX=true
 
 # Launch ingestor detached so it doesn't close when the terminal closes
-nohup go run . > ingestion_live.log 2>&1 &
+/usr/bin/nohup go run . > ingestion_live.log 2>&1 &
 INGEST_PID=$!
 
 echo "[$(date)] Go Ingestor started successfully in background with PID $INGEST_PID!"

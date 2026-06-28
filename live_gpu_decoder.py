@@ -3,9 +3,10 @@
 live_gpu_decoder.py — Real-time GPU-accelerated schema reconciliation
 on live OpenF1 telemetry data.
 
-Watches the telemetry_latest.json file as the Go ingestor writes to it,
-processes new packets through chaos injection and reconciliation, and
-outputs results to data/reports/live_f1/.
+Watches the telemetry_latest.json file as the Go ingestor writes to it
+(in JSON Lines format — one JSON object per line), processes new packets
+through chaos injection and reconciliation, and outputs results to
+data/reports/live_f1/.
 
 Usage:
     python3 live_gpu_decoder.py [--chaos-rate 0.10] [--reconciler bert] [--poll-interval 5]
@@ -16,6 +17,7 @@ import copy
 import csv
 import json
 import os
+import signal
 import sys
 import time
 import requests
@@ -33,6 +35,135 @@ from src.chaos.schema_chaos import SchemaChaos
 
 OUTPUT_DIR = "data/reports/live_f1"
 TELEMETRY_FILE = "data/ingested/telemetry_latest.json"
+
+
+# --- Graceful SIGTERM handling (SLURM sends SIGTERM at job time limit) ---
+_shutdown_requested = False
+
+def _handle_sigterm(signum, frame):
+    global _shutdown_requested
+    _shutdown_requested = True
+    print(f"\n[Signal] Received signal {signum}, shutting down gracefully...")
+
+signal.signal(signal.SIGTERM, _handle_sigterm)
+
+
+class TelemetryTailer:
+    """Efficiently tails a JSONL telemetry file, reading only new lines.
+    
+    Instead of re-reading the entire file on each poll (which becomes
+    impossible at 100M+ lines), this class tracks the byte offset and
+    only reads newly appended data. It also detects file recreation
+    (when the ingestor restarts and creates a new file via symlink update)
+    by monitoring the file's inode.
+    """
+
+    def __init__(self, filepath):
+        self.filepath = filepath
+        self._file = None
+        self._offset = 0
+        self._inode = None
+        self.total_count = 0
+
+    def skip_to_end(self):
+        """Skip to the end of the file, counting lines for reporting.
+        Called once at startup to skip the historical backlog."""
+        if not os.path.exists(self.filepath):
+            return 0
+        try:
+            count = 0
+            with open(self.filepath, "r") as f:
+                for line in f:
+                    if line.strip():
+                        count += 1
+            self.total_count = count
+            self._offset = os.path.getsize(self.filepath)
+            self._inode = os.stat(self.filepath).st_ino
+            return count
+        except Exception as e:
+            print(f"[Tailer] Error during skip_to_end: {e}")
+            return 0
+
+    def poll(self, max_new=100000):
+        """Read new packets appended since the last poll.
+        
+        Returns:
+            (new_packets, total_count) where new_packets is a list of
+            newly parsed packet dicts, and total_count is the cumulative
+            total of all packets seen.
+        """
+        if not os.path.exists(self.filepath):
+            return [], self.total_count
+
+        try:
+            stat = os.stat(self.filepath)
+            current_inode = stat.st_ino
+
+            # Detect file recreation (ingestor restarted, symlink updated)
+            if self._inode is not None and current_inode != self._inode:
+                print(f"[Tailer] Telemetry file recreated (new inode). Resetting.")
+                self._close()
+                self._offset = 0
+                self.total_count = 0
+
+            self._inode = current_inode
+
+            # Detect file truncation
+            if stat.st_size < self._offset:
+                print(f"[Tailer] File truncated ({stat.st_size} < {self._offset}). Resetting.")
+                self._close()
+                self._offset = 0
+                self.total_count = 0
+
+            # No new data
+            if stat.st_size == self._offset:
+                return [], self.total_count
+
+            # Open file if needed
+            if self._file is None or self._file.closed:
+                self._file = open(self.filepath, "r")
+
+            self._file.seek(self._offset)
+
+            new_packets = []
+            lines_read = 0
+
+            while lines_read < max_new:
+                pos_before = self._file.tell()
+                line = self._file.readline()
+
+                if not line:
+                    break  # EOF
+
+                if not line.endswith('\n'):
+                    # Incomplete line (writer mid-flush), seek back and retry next poll
+                    self._file.seek(pos_before)
+                    break
+
+                line = line.strip()
+                if line:
+                    try:
+                        packet = json.loads(line)
+                        new_packets.append(packet)
+                        self.total_count += 1
+                        lines_read += 1
+                    except json.JSONDecodeError:
+                        pass  # Skip malformed lines
+
+            self._offset = self._file.tell()
+            return new_packets, self.total_count
+
+        except Exception as e:
+            print(f"[Tailer] Error reading telemetry: {e}")
+            return [], self.total_count
+
+    def _close(self):
+        if self._file and not self._file.closed:
+            self._file.close()
+        self._file = None
+
+    def close(self):
+        self._close()
 
 
 def setup_output_dir():
@@ -114,27 +245,6 @@ def detect_hardware():
     print()
 
     return hardware, vram_info
-
-
-def load_packets(filepath, max_backlog=5000):
-    """Load packets from the telemetry JSONLines file.
-    If backlog exceeds max_backlog, return only the last max_backlog packets.
-    Returns (packets_slice, total_count)."""
-    if not os.path.exists(filepath):
-        return [], 0
-    try:
-        packets = []
-        with open(filepath, "r") as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    packets.append(json.loads(line))
-        total_count = len(packets)
-        if total_count > max_backlog:
-            return packets[-max_backlog:], total_count
-        return packets, total_count
-    except Exception:
-        return [], 0
 
 
 def inject_chaos(packet, chaos_method, chaos_rate, json_chaos, schema_chaos, rng_seed):
@@ -221,49 +331,32 @@ def main():
         "latency_sum": 0.0,
     }
 
-    total_packets_seen = -1
+    # Initialize file tailer (reads only new lines, O(1) memory per poll)
+    tailer = TelemetryTailer(TELEMETRY_FILE)
+    backlog_count = tailer.skip_to_end()
 
     print("=" * 70)
     print(f"  LIVE F1 TELEMETRY DECODER — {session_label}")
     print("=" * 70)
+    print(f"[Init] Skipping historical backlog of {backlog_count:,} packets to keep it truly live.")
 
     try:
-        while True:
-            # We fetch up to 100,000 packets to verify we don't drop updates, but keep memory sane.
-            packets, total_count = load_packets(TELEMETRY_FILE, max_backlog=100000)
-            
-            # If we've seen fewer packets than what is loaded, it means we have new packets.
-            # When we first start, we only process the latest packets to skip the massive backlog.
-            if total_packets_seen == -1:
-                total_packets_seen = total_count
-                # Skip historical backlog to catch up to live edge
-                print(f"[Init] Skipping historical backlog of {total_packets_seen:,} packets to keep it truly live.")
+        while not _shutdown_requested:
+            new_packets, total_count = tailer.poll()
+
+            if not new_packets:
                 time.sleep(args.poll_interval)
                 continue
 
-            # If the file is recreated or truncated (e.g. ingestor restarted), reset tracking
-            if total_count < total_packets_seen:
-                print(f"[Init] Telemetry file truncated or restarted. Resetting packets tracking (was {total_packets_seen:,}, now {total_count:,}).")
-                total_packets_seen = 0
-
-            new_count = total_count - total_packets_seen
-            
-            if new_count <= 0:
-                time.sleep(args.poll_interval)
-                continue
-
+            new_count = len(new_packets)
             batch_start = time.perf_counter()
             drifted_count = 0
             reconciled_count = 0
 
-            # Process at most the backlog size
-            process_count = min(new_count, len(packets))
-            new_packets = packets[-process_count:] if process_count < len(packets) else packets
-
             # 1. Classical preprocessing / chaos injection
             drifted_packets_info = []
             for idx, packet in enumerate(new_packets):
-                i = total_count - process_count + idx
+                i = total_count - new_count + idx
                 stats["total_processed"] += 1
 
                 result = inject_chaos(
@@ -329,7 +422,6 @@ def main():
                 csvfile.flush()
 
             batch_elapsed = (time.perf_counter() - batch_start) * 1000
-            total_packets_seen = total_count
 
             # Print batch summary
             avg_acc = (stats["accuracy_sum"] / stats["total_reconciled"] * 100) if stats["total_reconciled"] > 0 else 0
@@ -349,10 +441,13 @@ def main():
             time.sleep(args.poll_interval)
 
     except KeyboardInterrupt:
-        print("\n" + "=" * 70)
-        print("  LIVE SESSION ENDED — Writing summary...")
-        print("=" * 70)
+        pass
 
+    print("\n" + "=" * 70)
+    print("  LIVE SESSION ENDED — Writing summary...")
+    print("=" * 70)
+
+    tailer.close()
     csvfile.close()
 
     # Write summary manifest
