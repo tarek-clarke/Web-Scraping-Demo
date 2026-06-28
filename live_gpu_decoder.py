@@ -117,20 +117,23 @@ def detect_hardware():
 
 
 def load_packets(filepath, max_backlog=5000):
-    """Load packets from the telemetry JSON file. If backlog exceeds max_backlog, return only the last max_backlog packets.
+    """Load packets from the telemetry JSONLines file.
+    If backlog exceeds max_backlog, return only the last max_backlog packets.
     Returns (packets_slice, total_count)."""
     if not os.path.exists(filepath):
         return [], 0
     try:
+        packets = []
         with open(filepath, "r") as f:
-            data = json.load(f)
-        if isinstance(data, list):
-            total_count = len(data)
-            if len(data) > max_backlog:
-                return data[-max_backlog:], total_count
-            return data, total_count
-        return [], 0
-    except (json.JSONDecodeError, IOError):
+            for line in f:
+                line = line.strip()
+                if line:
+                    packets.append(json.loads(line))
+        total_count = len(packets)
+        if total_count > max_backlog:
+            return packets[-max_backlog:], total_count
+        return packets, total_count
+    except Exception:
         return [], 0
 
 
@@ -237,6 +240,11 @@ def main():
                 print(f"[Init] Skipping historical backlog of {total_packets_seen:,} packets to keep it truly live.")
                 time.sleep(args.poll_interval)
                 continue
+
+            # If the file is recreated or truncated (e.g. ingestor restarted), reset tracking
+            if total_count < total_packets_seen:
+                print(f"[Init] Telemetry file truncated or restarted. Resetting packets tracking (was {total_packets_seen:,}, now {total_count:,}).")
+                total_packets_seen = 0
 
             new_count = total_count - total_packets_seen
             

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -91,7 +92,6 @@ func main() {
 	go func() {
 		defer wg.Done()
 		if !shouldSkip("openf1") {
-			// Stream infinitely (StreamOpenF1 has no limit)
 			clients.StreamOpenF1(ctx, packetChan, &openf1Count)
 			markDone("openf1")
 		} else {
@@ -147,13 +147,11 @@ func main() {
 	os.Remove(latestPath)
 	os.Symlink(absPath, latestPath)
 
-	var packets []clients.Packet
-	logTicker := time.NewTicker(ProgressInterval)
-	defer logTicker.Stop()
+	writer := bufio.NewWriterSize(file, 64*1024) // 64KB write buffer
 
 	printCounts := func() {
 		log.Printf("Progress: total=%d openf1=%d finnhub=%d spacex=%d openweather=%d",
-			len(packets), atomic.LoadInt64(&openf1Count), atomic.LoadInt64(&finnhubCount),
+			atomic.LoadInt64(&totalPackets), atomic.LoadInt64(&openf1Count), atomic.LoadInt64(&finnhubCount),
 			atomic.LoadInt64(&spacexCount), atomic.LoadInt64(&openweatherCount))
 	}
 
@@ -168,43 +166,12 @@ func main() {
 		return true
 	}
 
-	var isWriting int32
+	logTicker := time.NewTicker(ProgressInterval)
+	defer logTicker.Stop()
 
-	flushPackets := func() {
-		if !atomic.CompareAndSwapInt32(&isWriting, 0, 1) {
-			log.Println("Previous flush still in progress, skipping this tick")
-			return
-		}
-
-		// Create a copy of packets to encode asynchronously
-		packetsCopy := make([]clients.Packet, len(packets))
-		copy(packetsCopy, packets)
-
-		go func(pkts []clients.Packet) {
-			defer atomic.StoreInt32(&isWriting, 0)
-
-			tempFile := fmt.Sprintf("%s.tmp", file.Name())
-			f, err := os.Create(tempFile)
-			if err != nil {
-				log.Printf("Error creating temp file: %v", err)
-				return
-			}
-
-			encoder := json.NewEncoder(f)
-			encoder.SetIndent("", "  ")
-			if err := encoder.Encode(pkts); err != nil {
-				log.Printf("Error encoding packets: %v", err)
-				f.Close()
-				os.Remove(tempFile)
-				return
-			}
-			f.Close()
-
-			if err := os.Rename(tempFile, file.Name()); err != nil {
-				log.Printf("Error renaming temp file: %v", err)
-			}
-		}(packetsCopy)
-	}
+	// Flush buffer periodically to disk (so decoder sees it)
+	flushTicker := time.NewTicker(1 * time.Second)
+	defer flushTicker.Stop()
 
 	for {
 		select {
@@ -212,25 +179,31 @@ func main() {
 			if !ok {
 				goto done
 			}
-			packets = append(packets, packet)
+			
+			// Marshal packet as a single JSON line
+			bytes, err := json.Marshal(packet)
+			if err == nil {
+				writer.Write(bytes)
+				writer.WriteByte('\n')
+			}
+			
 			atomic.AddInt64(&totalPackets, 1)
 
 			if allAPIDone() {
 				cancel()
 				goto done
 			}
+		case <-flushTicker.C:
+			writer.Flush()
 		case <-logTicker.C:
 			printCounts()
-			flushPackets()
 		case <-ctx.Done():
-			log.Printf("Injestor stopped: %d packets collected", len(packets))
+			log.Printf("Injestor stopped: %d packets collected", atomic.LoadInt64(&totalPackets))
 			goto done
 		}
 	}
 done:
-
 	printCounts()
-	flushPackets()
-
-	log.Printf("Ingestion complete: %d packets saved to %s", len(packets), file.Name())
+	writer.Flush()
+	log.Printf("Ingestion complete: %d packets saved to %s", atomic.LoadInt64(&totalPackets), file.Name())
 }
