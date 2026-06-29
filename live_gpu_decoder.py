@@ -17,10 +17,10 @@ import copy
 import csv
 import json
 import os
+import random
 import signal
 import sys
 import time
-import requests
 from datetime import datetime
 from pathlib import Path
 
@@ -37,7 +37,7 @@ OUTPUT_DIR = "data/reports/live_f1"
 TELEMETRY_FILE = "data/ingested/telemetry_latest.json"
 
 
-# --- Graceful SIGTERM handling (SLURM sends SIGTERM at job time limit) ---
+# --- Graceful SIGTERM handling (SLURM sends SIGTERM before time limit) ---
 _shutdown_requested = False
 
 def _handle_sigterm(signum, frame):
@@ -50,12 +50,15 @@ signal.signal(signal.SIGTERM, _handle_sigterm)
 
 class TelemetryTailer:
     """Efficiently tails a JSONL telemetry file, reading only new lines.
-    
+
     Instead of re-reading the entire file on each poll (which becomes
     impossible at 100M+ lines), this class tracks the byte offset and
     only reads newly appended data. It also detects file recreation
     (when the ingestor restarts and creates a new file via symlink update)
     by monitoring the file's inode.
+
+    Lustre-specific: forces metadata cache invalidation before each stat()
+    by performing a brief open/close on the path.
     """
 
     def __init__(self, filepath):
@@ -64,6 +67,7 @@ class TelemetryTailer:
         self._offset = 0
         self._inode = None
         self.total_count = 0
+        self._malformed_count = 0
 
     def skip_to_end(self):
         """Skip to the end of the file, counting lines for reporting.
@@ -84,9 +88,18 @@ class TelemetryTailer:
             print(f"[Tailer] Error during skip_to_end: {e}")
             return 0
 
+    def _bust_lustre_cache(self):
+        """Force Lustre metadata cache invalidation by reopening the path.
+        This ensures os.stat() returns fresh st_size, not a stale cached value."""
+        try:
+            fd = os.open(self.filepath, os.O_RDONLY)
+            os.close(fd)
+        except OSError:
+            pass
+
     def poll(self, max_new=100000):
         """Read new packets appended since the last poll.
-        
+
         Returns:
             (new_packets, total_count) where new_packets is a list of
             newly parsed packet dicts, and total_count is the cumulative
@@ -96,6 +109,9 @@ class TelemetryTailer:
             return [], self.total_count
 
         try:
+            # Force Lustre to refresh metadata cache
+            self._bust_lustre_cache()
+
             stat = os.stat(self.filepath)
             current_inode = stat.st_ino
 
@@ -148,7 +164,9 @@ class TelemetryTailer:
                         self.total_count += 1
                         lines_read += 1
                     except json.JSONDecodeError:
-                        pass  # Skip malformed lines
+                        self._malformed_count += 1
+                        if self._malformed_count % 100 == 1:
+                            print(f"[Tailer] Warning: {self._malformed_count} malformed lines skipped")
 
             self._offset = self._file.tell()
             return new_packets, self.total_count
@@ -174,7 +192,7 @@ def setup_output_dir():
 
 def detect_session():
     """Auto-detect the current live F1 session from the OpenF1 API.
-    
+
     Note: On LUMI compute nodes (no internet), this will timeout in ~2s
     and fall back to 'Unknown' session info. This is expected behavior.
     """
@@ -186,6 +204,12 @@ def detect_session():
         "session_key": "unknown",
         "year": datetime.utcnow().year,
     }
+
+    try:
+        import requests
+    except ImportError:
+        print("[Session] requests library not available, skipping auto-detect")
+        return session_info
 
     try:
         email = os.getenv("OPENF1_EMAIL", "")
@@ -248,11 +272,13 @@ def detect_hardware():
 
 
 def inject_chaos(packet, chaos_method, chaos_rate, json_chaos, schema_chaos, rng_seed):
-    """Inject chaos into a single packet and return (original, drifted, sub_type)."""
-    import random
-    random.seed(rng_seed)
+    """Inject chaos into a single packet and return (original, drifted, sub_type).
 
-    if random.random() > chaos_rate:
+    Uses an instance-based RNG to avoid corrupting the global random state.
+    """
+    rng = random.Random(rng_seed)
+
+    if rng.random() > chaos_rate:
         return None  # No drift for this packet
 
     original = copy.deepcopy(packet)
@@ -377,48 +403,54 @@ def main():
             drifted_count = len(drifted_packets_info)
             stats["total_drifted"] += drifted_count
 
-            # 2. Reconcile on GPU in batches
+            # 2. Reconcile on GPU in batches (with exception guard)
             if drifted_count > 0:
                 batch_size = args.batch_size
                 for b_start in range(0, drifted_count, batch_size):
                     b_info = drifted_packets_info[b_start:b_start + batch_size]
                     pairs = [(x["original"]["data"], x["drifted"]["data"]) for x in b_info]
 
-                    # Perform batched reconciliation
-                    rec_start = time.perf_counter()
-                    if args.reconciler == "bert":
-                        rec_results = engine.reconcile_bert_batch(pairs)
-                    elif args.reconciler == "gemma_e4b":
-                        rec_results = engine.reconcile_gemma_batch(pairs)
-                    else:
-                        rec_results = [engine.reconcile(x["original"], x["drifted"], args.reconciler) for x in b_info]
-                    
-                    batch_latency_ms = (time.perf_counter() - rec_start) * 1000
-                    per_packet_latency = batch_latency_ms / len(b_info)
+                    try:
+                        # Perform batched reconciliation
+                        rec_start = time.perf_counter()
+                        if args.reconciler == "bert":
+                            rec_results = engine.reconcile_bert_batch(pairs)
+                        elif args.reconciler == "gemma_e4b":
+                            rec_results = engine.reconcile_gemma_batch(pairs)
+                        else:
+                            rec_results = [engine.reconcile(x["original"], x["drifted"], args.reconciler) for x in b_info]
 
-                    for idx_b, x in enumerate(b_info):
-                        rec_result = rec_results[idx_b]
-                        reconciled_count += 1
-                        stats["total_reconciled"] += 1
-                        stats["accuracy_sum"] += rec_result["accuracy"]
-                        stats["latency_sum"] += per_packet_latency
+                        batch_latency_ms = (time.perf_counter() - rec_start) * 1000
+                        per_packet_latency = batch_latency_ms / len(b_info)
 
-                        driver_num = x["packet"].get("data", {}).get("driver_number", "?")
+                        for idx_b, x in enumerate(b_info):
+                            rec_result = rec_results[idx_b]
+                            reconciled_count += 1
+                            stats["total_reconciled"] += 1
+                            stats["accuracy_sum"] += rec_result["accuracy"]
+                            stats["latency_sum"] += per_packet_latency
 
-                        # Write to CSV
-                        writer.writerow({
-                            "timestamp": datetime.utcnow().isoformat(),
-                            "packet_idx": x["packet_idx"],
-                            "source": x["packet"].get("source", "openf1"),
-                            "driver_number": driver_num,
-                            "chaos_method": args.chaos_method,
-                            "chaos_sub_type": x["sub_type"],
-                            "reconciler": args.reconciler,
-                            "accuracy": round(rec_result["accuracy"], 4),
-                            "latency_ms": round(per_packet_latency, 3),
-                            "mapped_fields": rec_result["mapped_fields"],
-                            "unmapped_fields": rec_result["unmapped_fields"],
-                        })
+                            driver_num = x["packet"].get("data", {}).get("driver_number", "?")
+
+                            # Write to CSV
+                            writer.writerow({
+                                "timestamp": datetime.utcnow().isoformat(),
+                                "packet_idx": x["packet_idx"],
+                                "source": x["packet"].get("source", "openf1"),
+                                "driver_number": driver_num,
+                                "chaos_method": args.chaos_method,
+                                "chaos_sub_type": x["sub_type"],
+                                "reconciler": args.reconciler,
+                                "accuracy": round(rec_result["accuracy"], 4),
+                                "latency_ms": round(per_packet_latency, 3),
+                                "mapped_fields": rec_result["mapped_fields"],
+                                "unmapped_fields": rec_result["unmapped_fields"],
+                            })
+
+                    except Exception as e:
+                        print(f"[ERROR] Reconciliation failed on batch {b_start}-{b_start+len(b_info)}: {e}")
+                        continue
+
                 csvfile.flush()
 
             batch_elapsed = (time.perf_counter() - batch_start) * 1000
@@ -441,50 +473,66 @@ def main():
             time.sleep(args.poll_interval)
 
     except KeyboardInterrupt:
-        pass
+        print("\n[Signal] KeyboardInterrupt received.")
+    except Exception as e:
+        print(f"\n[FATAL] Decoder crashed: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        # Always cleanup, even on crash
+        print("\n" + "=" * 70)
+        print("  LIVE SESSION ENDED — Writing summary...")
+        print("=" * 70)
 
-    print("\n" + "=" * 70)
-    print("  LIVE SESSION ENDED — Writing summary...")
-    print("=" * 70)
+        tailer.close()
 
-    tailer.close()
-    csvfile.close()
+        # Flush and sync CSV to disk
+        try:
+            csvfile.flush()
+            os.fsync(csvfile.fileno())
+            csvfile.close()
+        except Exception:
+            pass
 
-    # Write summary manifest
-    manifest = {
-        "run_id": timestamp,
-        "session": session_label,
-        "session_name": session_info["session_name"],
-        "session_type": session_info["session_type"],
-        "country": session_info["country_name"],
-        "circuit": session_info["circuit_short_name"],
-        "session_key": session_info["session_key"],
-        "year": session_info["year"],
-        "hardware_model": hardware.get("model", "unknown"),
-        "hardware_type": hw_type,
-        "reconciler": args.reconciler,
-        "chaos_method": args.chaos_method,
-        "chaos_rate": args.chaos_rate,
-        "total_packets_processed": stats["total_processed"],
-        "total_drifted": stats["total_drifted"],
-        "total_reconciled": stats["total_reconciled"],
-        "avg_accuracy": round(stats["accuracy_sum"] / max(stats["total_reconciled"], 1), 4),
-        "avg_latency_ms": round(stats["latency_sum"] / max(stats["total_reconciled"], 1), 3),
-    }
+        # Write summary manifest
+        manifest = {
+            "run_id": timestamp,
+            "session": session_label,
+            "session_name": session_info["session_name"],
+            "session_type": session_info["session_type"],
+            "country": session_info["country_name"],
+            "circuit": session_info["circuit_short_name"],
+            "session_key": session_info["session_key"],
+            "year": session_info["year"],
+            "hardware_model": hardware.get("model", "unknown"),
+            "hardware_type": hw_type,
+            "reconciler": args.reconciler,
+            "chaos_method": args.chaos_method,
+            "chaos_rate": args.chaos_rate,
+            "total_packets_processed": stats["total_processed"],
+            "total_drifted": stats["total_drifted"],
+            "total_reconciled": stats["total_reconciled"],
+            "avg_accuracy": round(stats["accuracy_sum"] / max(stats["total_reconciled"], 1), 4),
+            "avg_latency_ms": round(stats["latency_sum"] / max(stats["total_reconciled"], 1), 3),
+        }
 
-    manifest_path = f"{OUTPUT_DIR}/manifest_{timestamp}.json"
-    with open(manifest_path, "w") as f:
-        json.dump(manifest, f, indent=2)
+        manifest_path = f"{OUTPUT_DIR}/manifest_{timestamp}.json"
+        try:
+            with open(manifest_path, "w") as f:
+                json.dump(manifest, f, indent=2)
+            os.fsync(f.fileno())
+        except Exception:
+            pass
 
-    print(f"\n  Results saved to: {csv_path}")
-    print(f"  Manifest saved to: {manifest_path}")
-    print(f"\n  Total Packets: {stats['total_processed']:,}")
-    print(f"  Total Drifted: {stats['total_drifted']:,}")
-    print(f"  Total Reconciled: {stats['total_reconciled']:,}")
-    if stats["total_reconciled"] > 0:
-        print(f"  Avg Accuracy: {stats['accuracy_sum'] / stats['total_reconciled'] * 100:.2f}%")
-        print(f"  Avg Latency: {stats['latency_sum'] / stats['total_reconciled']:.3f}ms")
-    print()
+        print(f"\n  Results saved to: {csv_path}")
+        print(f"  Manifest saved to: {manifest_path}")
+        print(f"\n  Total Packets: {stats['total_processed']:,}")
+        print(f"  Total Drifted: {stats['total_drifted']:,}")
+        print(f"  Total Reconciled: {stats['total_reconciled']:,}")
+        if stats["total_reconciled"] > 0:
+            print(f"  Avg Accuracy: {stats['accuracy_sum'] / stats['total_reconciled'] * 100:.2f}%")
+            print(f"  Avg Latency: {stats['latency_sum'] / stats['total_reconciled']:.3f}ms")
+        print()
 
 
 if __name__ == "__main__":

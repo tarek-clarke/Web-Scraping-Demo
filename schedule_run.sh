@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# schedule_run.sh — Schedule F1 Live Ingestor and GPU Decoder for FP3.
-# Usage: ./schedule_run.sh 15:00
+# schedule_run.sh — Schedule F1 Live Ingestor and GPU Decoder.
+# Usage: nohup ./schedule_run.sh 15:00 > schedule_run.log 2>&1 &
+
+set -e
 
 if [ -z "$1" ]; then
     echo "Error: Please specify a target start time in HH:MM format."
@@ -11,6 +13,11 @@ fi
 
 TARGET_TIME="$1"
 PROJECT_ROOT="/scratch/project_465002996/clarketa/resilient-rap-quantum"
+
+# Prevent duplicate runs
+LOCKFILE="/tmp/f1_schedule_run.lock"
+exec 200>"$LOCKFILE"
+flock -n 200 || { echo "ERROR: Another schedule_run.sh is already running (lockfile: $LOCKFILE)."; exit 1; }
 
 # Validate that OpenF1 credentials are set
 if [ -z "$OPENF1_EMAIL" ] || [ -z "$OPENF1_PASSWORD" ]; then
@@ -24,9 +31,11 @@ echo "=== Scheduling Live F1 Telemetry Pipeline ==="
 echo "Target Start Time: $TARGET_TIME"
 echo ""
 
+# Ensure we're in the project root for sbatch CWD inheritance
+cd "$PROJECT_ROOT" || exit 1
+
 # 1. Schedule the GPU Decoder job on SLURM
 echo "[SLURM] Scheduling GPU Decoder to enter queue at $TARGET_TIME..."
-# sbatch --begin accept HH:MM or HH:MM:SS format
 SBATCH_OUT=$(sbatch --begin="$TARGET_TIME" "$PROJECT_ROOT/submit_live_decoder.slurm")
 if [ $? -ne 0 ]; then
     echo "Error: Failed to schedule SLURM job."
@@ -36,13 +45,12 @@ echo "Success: $SBATCH_OUT"
 echo ""
 
 # 2. Wait and start the Go Ingestor on the login node
-# Works with GNU date (standard on LUMI/Linux)
 TARGET_EPOCH=$(date -d "$TARGET_TIME" +%s)
 CURRENT_EPOCH=$(date +%s)
 SLEEP_SECONDS=$(( TARGET_EPOCH - CURRENT_EPOCH ))
 
-if [ $SLEEP_SECONDS -le 0 ]; then
-    # If the time is for the next day, add 24 hours (86400 seconds)
+if [ $SLEEP_SECONDS -lt 0 ]; then
+    # If the time is for the next day, add 24 hours
     TARGET_EPOCH=$(( TARGET_EPOCH + 86400 ))
     SLEEP_SECONDS=$(( TARGET_EPOCH - CURRENT_EPOCH ))
 fi
@@ -54,7 +62,7 @@ echo "--------------------------------------------------"
 
 sleep $SLEEP_SECONDS
 
-echo "[$(date)] Time reached! Launching Go Ingestor in the background..."
+echo "[$(date)] Time reached! Building and launching Go Ingestor..."
 cd "$PROJECT_ROOT/go/ingestion" || exit 1
 
 # Add Go to PATH (local workspace installation)
@@ -63,9 +71,17 @@ export PATH="/scratch/project_465002996/clarketa/go/bin:$PATH"
 # Skip SpaceX client (polls 100 req/s, bloats telemetry file to 3GB+)
 export SKIP_SPACEX=true
 
-# Launch ingestor detached so it doesn't close when the terminal closes
-/usr/bin/nohup go run . > ingestion_live.log 2>&1 &
+# Pre-compile ingestor binary (avoids 5-15s compilation delay at race start)
+echo "[$(date)] Compiling Go ingestor..."
+go build -o ./ingestor . 2>&1 || { echo "ERROR: Go build failed"; exit 1; }
+echo "[$(date)] Build successful."
+
+# Launch pre-compiled ingestor binary
+/usr/bin/nohup ./ingestor > ingestion_live.log 2>&1 &
 INGEST_PID=$!
+
+# Write PID file so SLURM epilog can kill it when decoder finishes
+echo "$INGEST_PID" > /tmp/f1_ingestor.pid
 
 echo "[$(date)] Go Ingestor started successfully in background with PID $INGEST_PID!"
 echo "Ingestor logging to $PROJECT_ROOT/go/ingestion/ingestion_live.log"
