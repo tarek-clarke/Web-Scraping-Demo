@@ -14,10 +14,7 @@ fi
 TARGET_TIME="$1"
 PROJECT_ROOT="/scratch/project_465002996/clarketa/resilient-rap-quantum"
 
-# Prevent duplicate runs
-LOCKFILE="/tmp/f1_schedule_run.lock"
-exec 200>"$LOCKFILE"
-flock -n 200 || { echo "ERROR: Another schedule_run.sh is already running (lockfile: $LOCKFILE)."; exit 1; }
+
 
 # Validate that OpenF1 credentials are set
 if [ -z "$OPENF1_EMAIL" ] || [ -z "$OPENF1_PASSWORD" ]; then
@@ -62,6 +59,11 @@ echo "--------------------------------------------------"
 
 sleep $SLEEP_SECONDS
 
+# Prevent duplicate concurrent ingestors
+LOCKFILE="$PROJECT_ROOT/f1_ingestor.lock"
+exec 200>"$LOCKFILE"
+flock -n 200 || { echo "[$(date)] ERROR: Another ingestor is currently running. Exiting."; exit 1; }
+
 echo "[$(date)] Time reached! Building and launching Go Ingestor..."
 cd "$PROJECT_ROOT/go/ingestion" || exit 1
 
@@ -81,7 +83,7 @@ echo "[$(date)] Build successful."
 INGEST_PID=$!
 
 # Write PID file so SLURM epilog can kill it when decoder finishes
-echo "$INGEST_PID" > /tmp/f1_ingestor.pid
+echo "$INGEST_PID" > "$PROJECT_ROOT/f1_ingestor.pid"
 
 echo "[$(date)] Go Ingestor started successfully in background with PID $INGEST_PID!"
 echo "Ingestor logging to $PROJECT_ROOT/go/ingestion/ingestion_live.log"

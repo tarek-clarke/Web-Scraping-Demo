@@ -42,8 +42,8 @@ python3 -u -c "import sentence_transformers; print('sentence-transformers versio
 # Kill the Go ingestor when this decoder job finishes
 cleanup() {
     echo "[$(date)] Decoder finished. Killing ingestor..."
-    kill $(cat /tmp/f1_ingestor.pid 2>/dev/null) 2>/dev/null
-    rm -f /tmp/f1_ingestor.pid
+    kill $(cat "$PROJECT_ROOT/f1_ingestor.pid" 2>/dev/null) 2>/dev/null
+    rm -f "$PROJECT_ROOT/f1_ingestor.pid"
 }
 trap cleanup EXIT
 
