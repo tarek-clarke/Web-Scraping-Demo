@@ -31,6 +31,7 @@ from src.hardware.vram_prober import VRAMProber
 from src.reconciliation.engine import ReconciliationEngine
 from src.chaos.json_chaos import JSONChaos
 from src.chaos.schema_chaos import SchemaChaos
+from src.hardware.power_profiler import GPUPowerProfiler
 
 
 OUTPUT_DIR = "data/reports/live_f1"
@@ -366,6 +367,10 @@ def main():
     print("=" * 70)
     print(f"[Init] Skipping historical backlog of {backlog_count:,} packets to keep it truly live.")
 
+    # Start the scientific GPU energy and power profiler
+    profiler = GPUPowerProfiler(interval_sec=0.05)
+    profiler.start()
+
     try:
         while not _shutdown_requested:
             new_packets, total_count = tailer.poll()
@@ -484,6 +489,13 @@ def main():
         print("  LIVE SESSION ENDED — Writing summary...")
         print("=" * 70)
 
+        # Stop power profiler and extract energy metrics
+        energy_metrics = {"total_joules": 0.0, "avg_watts": 0.0, "samples_count": 0}
+        try:
+            energy_metrics = profiler.stop()
+        except Exception:
+            pass
+
         tailer.close()
 
         # Flush and sync CSV to disk
@@ -514,6 +526,9 @@ def main():
             "total_reconciled": stats["total_reconciled"],
             "avg_accuracy": round(stats["accuracy_sum"] / max(stats["total_reconciled"], 1), 4),
             "avg_latency_ms": round(stats["latency_sum"] / max(stats["total_reconciled"], 1), 3),
+            "gpu_total_energy_joules": energy_metrics.get("total_joules", 0.0),
+            "gpu_avg_power_watts": energy_metrics.get("avg_watts", 0.0),
+            "gpu_energy_samples": energy_metrics.get("samples_count", 0),
         }
 
         manifest_path = f"{OUTPUT_DIR}/manifest_{timestamp}.json"
@@ -532,6 +547,9 @@ def main():
         if stats["total_reconciled"] > 0:
             print(f"  Avg Accuracy: {stats['accuracy_sum'] / stats['total_reconciled'] * 100:.2f}%")
             print(f"  Avg Latency: {stats['latency_sum'] / stats['total_reconciled']:.3f}ms")
+        if energy_metrics.get("total_joules", 0.0) > 0:
+            print(f"  Total GPU Energy Consumed: {energy_metrics['total_joules']:,} Joules")
+            print(f"  Average GPU Power Draw: {energy_metrics['avg_watts']:.2f} Watts")
         print()
 
 
