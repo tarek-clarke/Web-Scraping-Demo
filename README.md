@@ -213,6 +213,55 @@ The `RoutingTrainer` module scans historical baseline benchmark runs from `data/
 - These labels are mapped into one-hot integers and fit using a COBYLA optimizer (200 iterations max).
 - If no trained model weights exist, the VQC defaults gracefully to zero-weight binding and classical fallback trees derived from hardware performance baselines.
 
+## Running Quantum Benchmarks on LUMI
+
+Follow these instructions to run the quantum simulation sweeps, router ablation comparisons, and training grid search benchmarks using the AMD MI250X GPU environment on LUMI.
+
+### 1. Clone and Setup Environment
+Load the required LUMI modules and activate your virtual environment:
+```bash
+# Clone the repository (quantum branch)
+cd /scratch/project_465002996/clarketa
+git clone -b quantum https://github.com/tarek-clarke/resilient-rap-framework.git resilient-rap-quantum
+cd resilient-rap-quantum
+
+# Load environment modules
+module load LUMI/25.09
+module load partition/G
+module load rocm/6.3.4
+module load cray-python/3.10.10
+
+# Activate Python virtual environment
+source .venv-lumi/bin/activate
+```
+
+### 2. Run Qiskit GPU Simulator Scaling Sweep
+Run the benchmark script that measures simulation time scaling as a function of qubits and circuit depth on the AMD MI250X GPU via `AerSimulator`:
+```bash
+python3 run_scaling_sweep.py
+```
+*Outputs JSON metrics to `data/reports/quantum_gpu_scaling_sweep.json`.*
+
+### 3. Run Router Ablation Study
+Compare brute-force BERT (GPU only) vs. the hybrid quantum-routed (VQC + CPU fallbacks) pipeline performance:
+```bash
+# Run brute-force BERT baseline
+python3 run_matrix.py --max-packets-per-api 500 --chaos-rate 0.05 --phases bert --suffix _bert_only
+
+# Run quantum-routed pipeline (using Aer GPU simulator)
+python3 run_matrix.py --max-packets-per-api 500 --chaos-rate 0.05 --phases quantum --backend aer_simulator --suffix _quantum_routed
+```
+
+### 4. Run VQC Training Grid Search
+Evaluate routing model parameter fitting convergence across various optimizers (COBYLA, SPSA) and feature maps:
+```bash
+python3 run_training_sweep.py
+```
+*Outputs grid search metrics to `data/reports/router_training_grid_search.json`.*
+
+*(Note: Gemma-7B/4B local semantic reconciliation benchmarking has been omitted from the grid configurations as it is extremely compute-heavy).*
+
+
 ## Dual-Stage Gatekeeper Architecture
 
 ### Stage 1: Fast-Path Bypass (CPU)
