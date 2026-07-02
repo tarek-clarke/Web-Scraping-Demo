@@ -33,6 +33,17 @@ from src.chaos.json_chaos import JSONChaos
 from src.chaos.schema_chaos import SchemaChaos
 from src.hardware.power_profiler import GPUPowerProfiler
 
+# Lazy imports for quantum routing
+FeatureExtractor = None
+QuantumRouter = None
+
+def _init_quantum_imports():
+    global FeatureExtractor, QuantumRouter
+    try:
+        from src.routing.feature_extractor import FeatureExtractor
+        from src.routing.quantum_router import QuantumRouter
+    except ImportError:
+        print("[Init] Quantum routing libraries not available. Shadow routing disabled.")
 
 OUTPUT_DIR = "data/reports/live_f1"
 TELEMETRY_FILE = "data/ingested/telemetry_latest.json"
@@ -311,11 +322,28 @@ def main():
                         help="Seconds between file polls (default: 5)")
     parser.add_argument("--batch-size", type=int, default=16,
                         help="Batch size for reconciliation (default: 16)")
+    parser.add_argument("--shadow-routing", action="store_true",
+                        help="Enable VQC shadow routing and log features for QPU execution")
     args = parser.parse_args()
 
     hardware, vram_info = detect_hardware()
     hw_type = hardware["type"]
     timestamp = setup_output_dir()
+
+    # Initialize Shadow Routing components if enabled
+    extractor = None
+    router = None
+    shadow_log_data = []
+    if args.shadow_routing:
+        _init_quantum_imports()
+        if FeatureExtractor and QuantumRouter:
+            print("[Init] Initializing VQC Shadow Router (AerSimulator)...")
+            extractor = FeatureExtractor()
+            router = QuantumRouter(backend="aer_simulator")
+            print("[Init] VQC Shadow Router initialized successfully.")
+        else:
+            print("[WARNING] Could not load quantum libraries. Shadow routing disabled.")
+            args.shadow_routing = False
 
     # Auto-detect live session
     print("[Init] Detecting live F1 session...")
@@ -404,6 +432,22 @@ def main():
                         "packet_idx": i,
                         "packet": packet
                     })
+
+                    # If shadow routing is active, extract features and get classification decision
+                    if args.shadow_routing:
+                        try:
+                            feat = extractor.extract(original["data"], drifted["data"], packet.get("source", "openf1"))
+                            reconciler_name, confidence = router.route_packet(feat)
+                            shadow_log_data.append({
+                                "packet_idx": i,
+                                "source": packet.get("source", "openf1"),
+                                "features": feat.tolist(),
+                                "emulator_decision": reconciler_name,
+                                "emulator_confidence": float(confidence),
+                                "actual_reconciler_used": args.reconciler
+                            })
+                        except Exception as e:
+                            print(f"[ERROR] Shadow routing failed on packet {i}: {e}")
 
             drifted_count = len(drifted_packets_info)
             stats["total_drifted"] += drifted_count
@@ -538,6 +582,15 @@ def main():
             os.fsync(f.fileno())
         except Exception:
             pass
+
+        if args.shadow_routing and shadow_log_data:
+            shadow_path = f"{OUTPUT_DIR}/shadow_log_{timestamp}.json"
+            try:
+                with open(shadow_path, "w") as f:
+                    json.dump(shadow_log_data, f, indent=2)
+                print(f"  Shadow routing log saved to: {shadow_path}")
+            except Exception as e:
+                print(f"[ERROR] Failed to save shadow routing log: {e}")
 
         print(f"\n  Results saved to: {csv_path}")
         print(f"  Manifest saved to: {manifest_path}")
