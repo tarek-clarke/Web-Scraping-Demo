@@ -48,4 +48,4 @@ cleanup() {
 trap cleanup EXIT
 
 # Run live decoder polling telemetry_latest.json
-python3 -u live_gpu_decoder.py --reconciler bert --chaos-rate 0.01 --poll-interval 1.0
+python3 -u live_gpu_decoder.py --reconciler bert --chaos-rate 0.01 --poll-interval 1.0 --shadow-routing
