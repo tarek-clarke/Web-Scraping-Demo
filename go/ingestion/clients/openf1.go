@@ -73,7 +73,7 @@ func doRequest(client *http.Client, urlStr string, token string) (*http.Response
 
 func StreamOpenF1(ctx context.Context, ch chan<- Packet, counter *int64) {
 	client := &http.Client{Timeout: 30 * time.Second}
-	ticker := time.NewTicker(2 * time.Second) // Poll every 2 seconds
+	ticker := time.NewTicker(1 * time.Second) // Poll every 1 second (60 times per minute)
 	defer ticker.Stop()
 
 	token := getAuthToken()
@@ -168,7 +168,7 @@ func StreamOpenF1(ctx context.Context, ch chan<- Packet, counter *int64) {
 
 func StreamOpenF1WithLimit(ctx context.Context, ch chan<- Packet, counter *int64, limit int64, onDone func()) {
 	client := &http.Client{Timeout: 10 * time.Second}
-	ticker := time.NewTicker(2 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	token := getAuthToken()

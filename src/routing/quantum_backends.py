@@ -89,29 +89,58 @@ class IBMQuantumBackend(QuantumBackend):
 
 
 class LumiQBackend(QuantumBackend):
-    """LUMI-Q backend placeholder for VTT Q50 (53 qubits) via FiQCI."""
+    """LUMI-Q hardware backend (VTT 24-qubit or VTT Q50) via FiQCI."""
 
     def __init__(self, endpoint: Optional[str] = None) -> None:
-        self.endpoint = endpoint
+        import os
+        # Fall back to env var HELMI_CORTEX_URL if no endpoint is passed explicitly
+        self.endpoint = endpoint or os.getenv("HELMI_CORTEX_URL")
         self._backend = None
 
+    def _init(self) -> None:
+        if not self.endpoint:
+            raise ValueError(
+                "LUMI-Q Cortex URL is not configured. Please export HELMI_CORTEX_URL or pass --endpoint."
+            )
+        try:
+            # Support both package layouts of qiskit-iqm
+            try:
+                from iqm.qiskit_iqm import IQMProvider
+            except ImportError:
+                from qiskit_iqm import IQMProvider
+
+            provider = IQMProvider(self.endpoint)
+            self._backend = provider.get_backend()
+        except ImportError:
+            raise ImportError(
+                "qiskit-iqm is not installed. Please run: pip install qiskit-iqm"
+            )
+
     def execute_circuit(self, circuit, shots: int = 1024) -> Dict:
-        if self.endpoint is None:
-            # Fall back to Aer simulator when LUMI-Q access not configured
-            print("[LumiQBackend] No endpoint configured, falling back to AerSimulator")
-            fallback = QiskitAerBackend()
-            return fallback.execute_circuit(circuit, shots)
-        # Future: implement IQM/FiQCI client connection
-        raise NotImplementedError(
-            "LUMI-Q backend requires FiQCI access. Set endpoint in config."
-        )
+        if self._backend is None:
+            try:
+                self._init()
+            except Exception as e:
+                print(f"[LumiQBackend] Failed to connect to physical QPU ({e}). Falling back to AerSimulator.")
+                from qiskit_aer import AerSimulator
+                sim = AerSimulator()
+                from qiskit import transpile
+                transpiled = transpile(circuit, sim)
+                job = sim.run(transpiled, shots=shots)
+                return job.result().get_counts()
+
+        from qiskit import transpile
+        transpiled = transpile(circuit, self._backend)
+        job = self._backend.run(transpiled, shots=shots)
+        return job.result().get_counts()
 
     def get_backend_info(self) -> Dict:
+        name = self._backend.name if self._backend else "lumi_q"
         return {
             "type": "quantum_hpc",
-            "name": "lumi_q",
+            "name": name,
             "provider": "FiQCI/VTT",
-            "qubits": 53,
+            "qubits": 24,
             "endpoint": self.endpoint,
         }
 
