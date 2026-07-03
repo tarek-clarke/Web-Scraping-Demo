@@ -46,18 +46,18 @@ echo "Target Rate: 60 packets/minute (1.0s interval)"
 echo "Estimated Duration: ~34 minutes"
 
 # Reset active telemetry file
-rm -f data/ingested/telemetry_latest.json
-touch data/ingested/telemetry_latest.json
+rm -f data/ingested/telemetry_replay_60ppm.json
+touch data/ingested/telemetry_replay_60ppm.json
 
 # 1. Start the Live GPU Decoder in the background
 echo "[Decoder] Starting live GPU decoder in background..."
-python3 -u live_gpu_decoder.py --reconciler bert --chaos-rate 0.01 --poll-interval 1.0 --shadow-routing > simulation_decoder.log 2>&1 &
+python3 -u live_gpu_decoder.py --reconciler bert --chaos-rate 0.01 --poll-interval 1.0 --shadow-routing --telemetry-file data/ingested/telemetry_replay_60ppm.json > simulation_decoder_replay.log 2>&1 &
 DECODER_PID=$!
 
 # Wait for decoder to be fully initialized and tailing
 echo "[Decoder] Waiting for reconciler model to load onto GPU..."
 for i in {1..300}; do
-    if grep -q "backlog" simulation_decoder.log 2>/dev/null; then
+    if grep -q "backlog" simulation_decoder_replay.log 2>/dev/null; then
         echo "[Decoder] Reconciler is ready and tailing."
         break
     fi
@@ -71,7 +71,7 @@ sleep 2
 echo "[Ingestor] Starting live stream simulation at 60 PPM..."
 PACKET_COUNT=0
 cat "$MOCK_SOURCE" | while read -r line; do
-    echo "$line" >> data/ingested/telemetry_latest.json
+    echo "$line" >> data/ingested/telemetry_replay_60ppm.json
     PACKET_COUNT=$((PACKET_COUNT + 1))
     
     # Print progress every 60 packets (approx. every minute)
@@ -93,6 +93,6 @@ kill -15 "$DECODER_PID"
 wait "$DECODER_PID"
 
 echo "=== Replay 60 PPM Complete ==="
-echo "Decoder logs saved to: $PROJECT_ROOT/simulation_decoder.log"
+echo "Decoder logs saved to: $PROJECT_ROOT/simulation_decoder_replay.log"
 echo "Check data/reports/live_f1/ for final results and full shadow logs."
 echo "End time: $(date)"

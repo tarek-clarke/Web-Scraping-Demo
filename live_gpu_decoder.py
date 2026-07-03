@@ -324,6 +324,8 @@ def main():
                         help="Batch size for reconciliation (default: 16)")
     parser.add_argument("--shadow-routing", action="store_true",
                         help="Enable VQC shadow routing and log features for QPU execution")
+    parser.add_argument("--telemetry-file", type=str, default="data/ingested/telemetry_latest.json",
+                        help="Path to telemetry JSON file to tail (default: data/ingested/telemetry_latest.json)")
     args = parser.parse_args()
 
     hardware, vram_info = detect_hardware()
@@ -359,7 +361,7 @@ def main():
     engine = ReconciliationEngine(hw_type, args.batch_size)
     print(f"[Init] Reconciler ready.")
     print(f"[Init] Chaos method: {args.chaos_method} @ {args.chaos_rate:.0%} rate")
-    print(f"[Init] Polling {TELEMETRY_FILE} every {args.poll_interval}s")
+    print(f"[Init] Polling {args.telemetry_file} every {args.poll_interval}s")
     print(f"[Init] Results → {OUTPUT_DIR}/")
     print()
 
@@ -387,7 +389,7 @@ def main():
     }
 
     # Initialize file tailer (reads only new lines, O(1) memory per poll)
-    tailer = TelemetryTailer(TELEMETRY_FILE)
+    tailer = TelemetryTailer(args.telemetry_file)
     backlog_count = tailer.skip_to_end()
 
     print("=" * 70)

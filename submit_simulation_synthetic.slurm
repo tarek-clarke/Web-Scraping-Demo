@@ -33,12 +33,12 @@ export HF_HOME=/scratch/project_465002996/clarketa/hf_cache
 export CHAOS_DEVICE=cuda:0
 
 # Reset active telemetry file
-rm -f data/ingested/telemetry_latest.json
-touch data/ingested/telemetry_latest.json
+rm -f data/ingested/telemetry_synthetic.json
+touch data/ingested/telemetry_synthetic.json
 
 # 1. Start the Live GPU Decoder in the background
 echo "[Decoder] Starting live GPU decoder in background..."
-python3 -u live_gpu_decoder.py --reconciler bert --chaos-rate 0.01 --poll-interval 1.0 --shadow-routing > simulation_decoder.log 2>&1 &
+python3 -u live_gpu_decoder.py --reconciler bert --chaos-rate 0.01 --poll-interval 1.0 --shadow-routing --telemetry-file data/ingested/telemetry_synthetic.json > simulation_decoder.log 2>&1 &
 DECODER_PID=$!
 
 # Wait for decoder to be fully initialized and tailing
@@ -57,7 +57,7 @@ sleep 2
 # 2. Simulate the live stream using the synthetic generator
 # Stream for 180 seconds (3 minutes) at 74 packets/sec (approx. 13,320 packets)
 echo "[Ingestor] Starting synthetic generator..."
-python3 scripts/generate_synthetic_race.py "data/ingested/telemetry_latest.json" 180
+python3 scripts/generate_synthetic_race.py "data/ingested/telemetry_synthetic.json" 180
 
 echo "[Ingestor] Finished streaming synthetic packets."
 
