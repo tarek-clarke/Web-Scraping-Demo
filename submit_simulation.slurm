@@ -27,6 +27,11 @@ module load cray-python/3.10.10
 # Activate venv
 source "$PROJECT_ROOT/.venv-lumi/bin/activate"
 
+# Environment variables
+export IS_LUMI=1
+export HF_HOME=/scratch/project_465002996/clarketa/hf_cache
+export CHAOS_DEVICE=cuda:0
+
 # Find the most recent historical telemetry file to use as stream source
 MOCK_SOURCE=$(ls -t data/ingested/telemetry_*.json 2>/dev/null | grep -v "latest" | head -n 1)
 
