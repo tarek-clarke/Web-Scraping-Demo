@@ -55,7 +55,7 @@ class QiskitAerBackend(QuantumBackend):
 
 
 class IBMQuantumBackend(QuantumBackend):
-    """IBM Quantum hardware backend."""
+    """IBM Quantum/Cloud hardware backend."""
 
     def __init__(self, instance: str = "ibm-q/open/main", min_qubits: int = 12) -> None:
         self.instance = instance
@@ -65,11 +65,39 @@ class IBMQuantumBackend(QuantumBackend):
     def _init(self) -> None:
         try:
             from qiskit_ibm_runtime import QiskitRuntimeService
-            try:
-                # Specify default platform channel to satisfy Qiskit 1.0 Runtime requirements
-                service = QiskitRuntimeService(channel="ibm_quantum_platform", instance=self.instance)
-            except Exception:
-                service = QiskitRuntimeService(instance=self.instance)
+            service = None
+
+            # 1. Try loading as ibm_cloud first if the instance is a CRN
+            if self.instance and self.instance.startswith("crn:"):
+                try:
+                    service = QiskitRuntimeService(channel="ibm_cloud", instance=self.instance)
+                except Exception as e:
+                    print(f"[IBMQuantumBackend] Failed to load via ibm_cloud with instance CRN: {e}")
+
+            # 2. Try loading default saved accounts (from environment/file)
+            if service is None:
+                try:
+                    service = QiskitRuntimeService()
+                except Exception:
+                    pass
+
+            # 3. Try loading ibm_cloud channel generally
+            if service is None:
+                try:
+                    service = QiskitRuntimeService(channel="ibm_cloud")
+                except Exception:
+                    pass
+
+            # 4. Try loading ibm_quantum_platform channel generally
+            if service is None:
+                try:
+                    service = QiskitRuntimeService(channel="ibm_quantum_platform", instance=self.instance)
+                except Exception:
+                    pass
+
+            if service is None:
+                raise ValueError("Could not initialize QiskitRuntimeService on any channel. Please check your credentials.")
+
             self._backend = service.least_busy(min_num_qubits=self.min_qubits)
         except ImportError:
             raise ImportError("qiskit-ibm-runtime not installed.")
