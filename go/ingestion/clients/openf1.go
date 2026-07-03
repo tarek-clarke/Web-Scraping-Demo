@@ -73,7 +73,7 @@ func doRequest(client *http.Client, urlStr string, token string) (*http.Response
 
 func StreamOpenF1(ctx context.Context, ch chan<- Packet, counter *int64) {
 	client := &http.Client{Timeout: 30 * time.Second}
-	ticker := time.NewTicker(60 * time.Second / 30) // 30 per minute
+	ticker := time.NewTicker(2 * time.Second) // Poll every 2 seconds
 	defer ticker.Stop()
 
 	token := getAuthToken()
@@ -83,12 +83,20 @@ func StreamOpenF1(ctx context.Context, ch chan<- Packet, counter *int64) {
 		log.Println("[OpenF1] No credentials found. Running in unauthenticated mode.")
 	}
 
+	// Initialize lastTime to 10 seconds ago to grab the initial window
+	lastTime := time.Now().UTC().Add(-10 * time.Second).Format("2006-01-02T15:04:05")
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			resp, err := doRequest(client, OpenF1URL+"?session_key=latest", token)
+			urlStr := OpenF1URL + "?session_key=latest"
+			if lastTime != "" {
+				urlStr += "&date>" + url.QueryEscape(lastTime)
+			}
+
+			resp, err := doRequest(client, urlStr, token)
 			if err != nil {
 				log.Printf("OpenF1 error: %v", err)
 				continue
@@ -100,7 +108,6 @@ func StreamOpenF1(ctx context.Context, ch chan<- Packet, counter *int64) {
 				continue
 			}
 
-			// If token expired or we get unauthorized, try to re-auth once
 			if resp.StatusCode == http.StatusUnauthorized {
 				log.Println("[OpenF1] Token expired or unauthorized. Attempting to refresh...")
 				token = getAuthToken()
@@ -109,7 +116,6 @@ func StreamOpenF1(ctx context.Context, ch chan<- Packet, counter *int64) {
 
 			var rawList []map[string]interface{}
 			if err := json.Unmarshal(body, &rawList); err != nil {
-				// Fallback in case it's a single object
 				var rawObj map[string]interface{}
 				if err := json.Unmarshal(body, &rawObj); err == nil {
 					ch <- Packet{
@@ -118,6 +124,19 @@ func StreamOpenF1(ctx context.Context, ch chan<- Packet, counter *int64) {
 						Data:      rawObj,
 					}
 					atomic.AddInt64(counter, 1)
+
+					if dateVal, ok := rawObj["date"].(string); ok {
+						dateStr := dateVal
+						if idx := strings.Index(dateStr, "+"); idx != -1 {
+							dateStr = dateStr[:idx]
+						}
+						if idx := strings.Index(dateStr, "Z"); idx != -1 {
+							dateStr = dateStr[:idx]
+						}
+						if dateStr > lastTime {
+							lastTime = dateStr
+						}
+					}
 				}
 				continue
 			}
@@ -129,6 +148,19 @@ func StreamOpenF1(ctx context.Context, ch chan<- Packet, counter *int64) {
 					Data:      data,
 				}
 				atomic.AddInt64(counter, 1)
+
+				if dateVal, ok := data["date"].(string); ok {
+					dateStr := dateVal
+					if idx := strings.Index(dateStr, "+"); idx != -1 {
+						dateStr = dateStr[:idx]
+					}
+					if idx := strings.Index(dateStr, "Z"); idx != -1 {
+						dateStr = dateStr[:idx]
+					}
+					if dateStr > lastTime {
+						lastTime = dateStr
+					}
+				}
 			}
 		}
 	}
@@ -136,7 +168,7 @@ func StreamOpenF1(ctx context.Context, ch chan<- Packet, counter *int64) {
 
 func StreamOpenF1WithLimit(ctx context.Context, ch chan<- Packet, counter *int64, limit int64, onDone func()) {
 	client := &http.Client{Timeout: 10 * time.Second}
-	ticker := time.NewTicker(60 * time.Second / 30) // 30 per minute
+	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
 	token := getAuthToken()
@@ -145,6 +177,8 @@ func StreamOpenF1WithLimit(ctx context.Context, ch chan<- Packet, counter *int64
 	} else {
 		log.Println("[OpenF1] No credentials found. Running in unauthenticated mode.")
 	}
+
+	lastTime := time.Now().UTC().Add(-10 * time.Second).Format("2006-01-02T15:04:05")
 
 	for {
 		select {
@@ -155,7 +189,13 @@ func StreamOpenF1WithLimit(ctx context.Context, ch chan<- Packet, counter *int64
 				onDone()
 				return
 			}
-			resp, err := doRequest(client, OpenF1URL+"?session_key=latest", token)
+
+			urlStr := OpenF1URL + "?session_key=latest"
+			if lastTime != "" {
+				urlStr += "&date>" + url.QueryEscape(lastTime)
+			}
+
+			resp, err := doRequest(client, urlStr, token)
 			if err != nil {
 				log.Printf("OpenF1 error: %v", err)
 				continue
@@ -167,7 +207,6 @@ func StreamOpenF1WithLimit(ctx context.Context, ch chan<- Packet, counter *int64
 				continue
 			}
 
-			// If token expired or we get unauthorized, try to re-auth once
 			if resp.StatusCode == http.StatusUnauthorized {
 				log.Println("[OpenF1] Token expired or unauthorized. Attempting to refresh...")
 				token = getAuthToken()
@@ -176,7 +215,6 @@ func StreamOpenF1WithLimit(ctx context.Context, ch chan<- Packet, counter *int64
 
 			var rawList []map[string]interface{}
 			if err := json.Unmarshal(body, &rawList); err != nil {
-				// Fallback in case it's a single object
 				var rawObj map[string]interface{}
 				if err := json.Unmarshal(body, &rawObj); err == nil {
 					if atomic.LoadInt64(counter) < limit {
@@ -186,6 +224,19 @@ func StreamOpenF1WithLimit(ctx context.Context, ch chan<- Packet, counter *int64
 							Data:      rawObj,
 						}
 						atomic.AddInt64(counter, 1)
+
+						if dateVal, ok := rawObj["date"].(string); ok {
+							dateStr := dateVal
+							if idx := strings.Index(dateStr, "+"); idx != -1 {
+								dateStr = dateStr[:idx]
+							}
+							if idx := strings.Index(dateStr, "Z"); idx != -1 {
+								dateStr = dateStr[:idx]
+							}
+							if dateStr > lastTime {
+								lastTime = dateStr
+							}
+						}
 					}
 				}
 				continue
@@ -202,6 +253,19 @@ func StreamOpenF1WithLimit(ctx context.Context, ch chan<- Packet, counter *int64
 					Data:      data,
 				}
 				atomic.AddInt64(counter, 1)
+
+				if dateVal, ok := data["date"].(string); ok {
+					dateStr := dateVal
+					if idx := strings.Index(dateStr, "+"); idx != -1 {
+						dateStr = dateStr[:idx]
+					}
+					if idx := strings.Index(dateStr, "Z"); idx != -1 {
+						dateStr = dateStr[:idx]
+					}
+					if dateStr > lastTime {
+						lastTime = dateStr
+					}
+				}
 			}
 		}
 	}
