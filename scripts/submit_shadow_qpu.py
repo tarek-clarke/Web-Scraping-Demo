@@ -53,6 +53,13 @@ def main():
 
     if token:
         os.environ["QISKIT_IBM_TOKEN"] = token
+        # Auto-detect IBM Cloud channel for 44-character API keys and set default CRN instance
+        if len(token) == 44 or token.startswith("ApiKey-"):
+            os.environ["QISKIT_IBM_CHANNEL"] = "ibm_cloud"
+            if "QISKIT_IBM_INSTANCE" not in os.environ:
+                os.environ["QISKIT_IBM_INSTANCE"] = "crn:v1:bluemix:public:quantum-computing:us-east:a/139dcf0745314450af23aa33e3f8029a:d626fe8a-08ca-47ab-9412-7a93f954e2b0::"
+        else:
+            os.environ["QISKIT_IBM_CHANNEL"] = "ibm_quantum_platform"
 
     # Initialize quantum router with QPU backend
     print(f"[Init] Initializing router backend '{args.backend}'...")
@@ -65,11 +72,19 @@ def main():
         # Ensure cleanup on failure
         if "QISKIT_IBM_TOKEN" in os.environ:
             del os.environ["QISKIT_IBM_TOKEN"]
+        if "QISKIT_IBM_CHANNEL" in os.environ:
+            del os.environ["QISKIT_IBM_CHANNEL"]
+        if "QISKIT_IBM_INSTANCE" in os.environ:
+            del os.environ["QISKIT_IBM_INSTANCE"]
         sys.exit(1)
 
     # Securely wipe the token from process environment and memory immediately
     if "QISKIT_IBM_TOKEN" in os.environ:
         del os.environ["QISKIT_IBM_TOKEN"]
+    if "QISKIT_IBM_CHANNEL" in os.environ:
+        del os.environ["QISKIT_IBM_CHANNEL"]
+    if "QISKIT_IBM_INSTANCE" in os.environ:
+        del os.environ["QISKIT_IBM_INSTANCE"]
     if "IBM_QUANTUM_TOKEN" in os.environ:
         del os.environ["IBM_QUANTUM_TOKEN"]
     token = None
