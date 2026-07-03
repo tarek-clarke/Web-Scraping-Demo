@@ -45,13 +45,35 @@ def main():
     total_packets = len(log_data)
     print(f"Loaded {total_packets} shadow logged packet features.")
 
+    # Handle secure token input
+    token = os.getenv("QISKIT_IBM_TOKEN") or os.getenv("IBM_QUANTUM_TOKEN")
+    if not token and args.backend == "ibm_quantum" and sys.stdin.isatty():
+        import getpass
+        token = getpass.getpass("Enter IBM Quantum API Key: ").strip()
+
+    if token:
+        os.environ["QISKIT_IBM_TOKEN"] = token
+
     # Initialize quantum router with QPU backend
     print(f"[Init] Initializing router backend '{args.backend}'...")
     try:
         router = QuantumRouter(backend=args.backend, shots=args.shots)
+        # Force backend initialization to establish the Qiskit Runtime session
+        router._init_backend()
     except Exception as e:
         print(f"ERROR: Failed to initialize QPU backend: {e}")
+        # Ensure cleanup on failure
+        if "QISKIT_IBM_TOKEN" in os.environ:
+            del os.environ["QISKIT_IBM_TOKEN"]
         sys.exit(1)
+
+    # Securely wipe the token from process environment and memory immediately
+    if "QISKIT_IBM_TOKEN" in os.environ:
+        del os.environ["QISKIT_IBM_TOKEN"]
+    if "IBM_QUANTUM_TOKEN" in os.environ:
+        del os.environ["IBM_QUANTUM_TOKEN"]
+    token = None
+    print("[QPU] Securely wiped API key from process environment memory.")
 
     print("[QPU] Compiling and transpiling circuits for execution...")
     
