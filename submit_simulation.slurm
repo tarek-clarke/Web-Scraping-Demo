@@ -46,8 +46,18 @@ echo "[Decoder] Starting live GPU decoder in background..."
 python3 -u live_gpu_decoder.py --reconciler bert --chaos-rate 0.10 --poll-interval 1.0 --shadow-routing > simulation_decoder.log 2>&1 &
 DECODER_PID=$!
 
-# Wait for decoder to initialize and tail the empty file
-sleep 5
+# Wait for decoder to be fully initialized and ready (polling log file)
+echo "[Decoder] Waiting for reconciler model to load onto GPU..."
+for i in {1..60}; do
+    if grep -q "Reconciler ready" simulation_decoder.log 2>/dev/null; then
+        echo "[Decoder] Reconciler is ready."
+        break
+    fi
+    sleep 1
+done
+
+# Wait an additional 2 seconds to ensure the symlink target is stable
+sleep 2
 
 # 2. Simulate the live stream by writing lines with a delay
 echo "[Ingestor] Simulating live stream by feeding packets..."
