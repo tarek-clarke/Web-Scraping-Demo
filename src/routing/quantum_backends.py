@@ -65,7 +65,11 @@ class IBMQuantumBackend(QuantumBackend):
     def _init(self) -> None:
         try:
             from qiskit_ibm_runtime import QiskitRuntimeService
-            service = QiskitRuntimeService(instance=self.instance)
+            try:
+                # Specify default platform channel to satisfy Qiskit 1.0 Runtime requirements
+                service = QiskitRuntimeService(channel="ibm_quantum_platform", instance=self.instance)
+            except Exception:
+                service = QiskitRuntimeService(instance=self.instance)
             self._backend = service.least_busy(min_num_qubits=self.min_qubits)
         except ImportError:
             raise ImportError("qiskit-ibm-runtime not installed.")
