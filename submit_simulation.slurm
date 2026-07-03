@@ -54,8 +54,8 @@ DECODER_PID=$!
 # Wait for decoder to be fully initialized and ready (polling log file)
 echo "[Decoder] Waiting for reconciler model to load onto GPU..."
 for i in {1..300}; do
-    if grep -q "Reconciler ready" simulation_decoder.log 2>/dev/null; then
-        echo "[Decoder] Reconciler is ready."
+    if grep -q "backlog" simulation_decoder.log 2>/dev/null; then
+        echo "[Decoder] Reconciler is ready and tailing."
         break
     fi
     sleep 1
