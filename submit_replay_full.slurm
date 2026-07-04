@@ -32,8 +32,8 @@ export IS_LUMI=1
 export HF_HOME=/scratch/project_465002996/clarketa/hf_cache
 export CHAOS_DEVICE=cuda:0
 
-# Target the full telemetry file from last week's race
-MOCK_SOURCE="data/ingested/telemetry_20260628_175112.json"
+# Target the specified telemetry file or default to last week's race
+MOCK_SOURCE="${1:-data/ingested/telemetry_20260628_175112.json}"
 
 if [ ! -f "$MOCK_SOURCE" ]; then
     echo "ERROR: Last week's telemetry file $MOCK_SOURCE not found."
