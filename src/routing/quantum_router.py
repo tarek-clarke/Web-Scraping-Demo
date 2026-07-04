@@ -528,8 +528,15 @@ class QuantumRouter:
 
         # Evaluate training accuracy
         y_pred: np.ndarray = vqc.predict(X_train_padded)
+        if y_pred.ndim == 2 and y_pred.shape[1] == 1:
+            y_pred_labels = y_pred.flatten()
+        elif y_pred.ndim == 2 and y_pred.shape[1] > 1:
+            y_pred_labels = np.argmax(y_pred, axis=1)
+        else:
+            y_pred_labels = y_pred
+
         train_accuracy: float = float(
-            np.mean(np.argmax(y_pred, axis=1) == y_train)
+            np.mean(y_pred_labels == y_train)
         )
 
         return {
