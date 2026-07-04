@@ -12,6 +12,15 @@ Usage:
     python3 live_gpu_decoder.py [--chaos-rate 0.10] [--reconciler bert] [--poll-interval 5]
 """
 
+# --- Mock amdsmi to work around PyTorch/ROCm packaging bug ---
+import sys
+from types import ModuleType
+if 'amdsmi' not in sys.modules:
+    dummy = ModuleType('amdsmi')
+    dummy.AmdSmiException = Exception
+    dummy.amdsmi_init = lambda: None
+    sys.modules['amdsmi'] = dummy
+
 import argparse
 import copy
 import csv

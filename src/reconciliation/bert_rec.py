@@ -1,3 +1,12 @@
+# --- Mock amdsmi to work around PyTorch/ROCm packaging bug ---
+import sys
+from types import ModuleType
+if 'amdsmi' not in sys.modules:
+    dummy = ModuleType('amdsmi')
+    dummy.AmdSmiException = Exception
+    dummy.amdsmi_init = lambda: None
+    sys.modules['amdsmi'] = dummy
+
 import os
 import time
 import threading
