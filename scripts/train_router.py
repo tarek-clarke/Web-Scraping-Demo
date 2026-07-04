@@ -93,8 +93,8 @@ def main():
     apis = ["openf1", "finnhub", "spacex", "openweather"]
     chaos_methods = ["json_manip", "schema_alter"]
     
-    # Generate 15 samples per (api, chaos_method) combination to build a solid training set (120 total samples)
-    samples_per_group = 15
+    # Generate 5 samples per (api, chaos_method) combination to build a solid training set (40 total samples)
+    samples_per_group = 5
     seq = 0
     
     for api in apis:
@@ -131,12 +131,12 @@ def main():
     print(f"[Trainer] Generated X_train shape: {X_train.shape}, y_train shape: {y_train.shape}")
     
     # 3. Train the VQC model
-    print("\n[Trainer] Initializing QuantumRouter and training VQC (COBYLA, maxiter=150)...")
+    print("\n[Trainer] Initializing QuantumRouter and training VQC (COBYLA, maxiter=40)...")
     # Use aer_simulator for local noiseless training
     router = QuantumRouter(backend="aer_simulator", enable_gemma=False)
     
     try:
-        metrics = router.train(X_train, y_train, maxiter=150)
+        metrics = router.train(X_train, y_train, maxiter=40)
         print("\n=== Training Complete ===")
         print(f"Training Accuracy: {metrics['train_accuracy']*100:.2f}%")
         print(f"Total Samples:     {metrics['n_samples']}")
