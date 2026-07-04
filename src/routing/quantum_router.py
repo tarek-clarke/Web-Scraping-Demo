@@ -328,7 +328,7 @@ class QuantumRouter:
     def route_batch(
         self, feature_batch: np.ndarray
     ) -> List[Tuple[str, float]]:
-        """Route a batch of packets.
+        """Route a batch of packets using a single backend execution job.
 
         Parameters
         ----------
@@ -341,9 +341,71 @@ class QuantumRouter:
         list[tuple[str, float]]
             One ``(reconciler_name, confidence)`` pair per packet.
         """
-        results: List[Tuple[str, float]] = []
+        if self._backend is None:
+            self._init_backend()
+
+        if self._backend is None:
+            return [self._classical_fallback(features) for features in feature_batch]
+
+        try:
+            from qiskit import transpile  # type: ignore[import-untyped]
+        except ImportError:
+            return [self._classical_fallback(features) for features in feature_batch]
+
+        # 1. Build and bind circuits for the entire batch
+        circuits = []
         for features in feature_batch:
-            results.append(self.route_packet(features))
+            qc = self._build_vqc_circuit(features)
+            bound_qc = self._bind_features(qc, features)
+            circuits.append(bound_qc)
+
+        # 2. Transpile all circuits in a single batch (highly efficient)
+        transpiled_circuits = transpile(circuits, self._backend)
+
+        # 3. Determine if it is an IBM backend
+        try:
+            from qiskit_ibm_runtime import IBMBackend  # type: ignore[import-untyped]
+            is_ibm = isinstance(self._backend, IBMBackend)
+        except ImportError:
+            is_ibm = False
+
+        # 4. Execute all circuits in a single batch job
+        results_counts: List[Dict[str, int]] = []
+        if is_ibm:
+            from qiskit_ibm_runtime import SamplerV2 as Sampler  # type: ignore[import-untyped]
+            sampler = Sampler(self._backend)
+            sampler.options.default_shots = self.shots
+            
+            # Submit single job containing all transpiled circuits
+            job = sampler.run(transpiled_circuits)
+            print(f"[QPU] Submitted single QPU batch job with ID: {job.job_id()}")
+            result = job.result()
+            
+            for idx in range(len(feature_batch)):
+                pub_result = result[idx]
+                reg_name = list(pub_result.data.keys())[0]
+                counts = getattr(pub_result.data, reg_name).get_counts()
+                results_counts.append(counts)
+        else:
+            # Local simulator fallback
+            job = self._backend.run(transpiled_circuits, shots=self.shots)
+            result = job.result()
+            counts_list = result.get_counts()
+            if not isinstance(counts_list, list):
+                counts_list = [counts_list]
+            results_counts = counts_list
+
+        # 5. Decode results
+        results: List[Tuple[str, float]] = []
+        for counts in results_counts:
+            best_bitstring = max(counts, key=counts.get)  # type: ignore[arg-type]
+            class_idx = int(best_bitstring, 2)
+            confidence = counts[best_bitstring] / self.shots
+            if class_idx >= self.num_classes:
+                class_idx = 2  # Default to BERT
+            reconciler = self.RECONCILER_CLASSES[class_idx]
+            results.append((reconciler, confidence))
+
         return results
 
     # ------------------------------------------------------------------
