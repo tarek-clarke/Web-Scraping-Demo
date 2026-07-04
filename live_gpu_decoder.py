@@ -579,11 +579,11 @@ def main():
             "total_packets_processed": stats["total_processed"],
             "total_drifted": stats["total_drifted"],
             "total_reconciled": stats["total_reconciled"],
-            "avg_accuracy": round(stats["accuracy_sum"] / max(stats["total_reconciled"], 1), 4),
-            "avg_latency_ms": round(stats["latency_sum"] / max(stats["total_reconciled"], 1), 3),
-            "gpu_total_energy_joules": energy_metrics.get("total_joules", 0.0),
-            "gpu_avg_power_watts": energy_metrics.get("avg_watts", 0.0),
-            "gpu_energy_samples": energy_metrics.get("samples_count", 0),
+            "avg_accuracy": float(round(stats["accuracy_sum"] / max(stats["total_reconciled"], 1), 4)),
+            "avg_latency_ms": float(round(stats["latency_sum"] / max(stats["total_reconciled"], 1), 3)),
+            "gpu_total_energy_joules": float(energy_metrics.get("total_joules", 0.0)),
+            "gpu_avg_power_watts": float(energy_metrics.get("avg_watts", 0.0)),
+            "gpu_energy_samples": int(energy_metrics.get("samples_count", 0)),
         }
 
         manifest_path = f"{OUTPUT_DIR}/manifest_{timestamp}.json"
@@ -591,8 +591,8 @@ def main():
             with open(manifest_path, "w") as f:
                 json.dump(manifest, f, indent=2)
             os.fsync(f.fileno())
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[ERROR] Failed to save manifest: {e}")
 
         if args.shadow_routing and shadow_log_data:
             shadow_path = f"{OUTPUT_DIR}/shadow_log_{timestamp}.json"
