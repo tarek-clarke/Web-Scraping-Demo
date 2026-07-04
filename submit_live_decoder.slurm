@@ -47,5 +47,15 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Run live decoder polling telemetry_latest.json
-python3 -u live_gpu_decoder.py --reconciler bert --chaos-rate 0.01 --poll-interval 1.0 --shadow-routing
+# Forward Slurm SIGTERM to the background Python process
+forward_sigterm() {
+    echo "[$(date)] Slurm SIGTERM received. Forwarding to Decoder (PID: $DECODER_PID)..."
+    kill -15 "$DECODER_PID" 2>/dev/null
+}
+trap forward_sigterm SIGTERM
+
+# Run live decoder polling telemetry_latest.json in background and wait
+python3 -u live_gpu_decoder.py --reconciler bert --chaos-rate 0.01 --poll-interval 1.0 --shadow-routing &
+DECODER_PID=$!
+
+wait "$DECODER_PID"
