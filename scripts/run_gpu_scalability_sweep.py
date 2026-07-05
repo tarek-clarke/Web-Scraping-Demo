@@ -18,6 +18,7 @@ if 'amdsmi' not in sys.modules:
     sys.modules['amdsmi'] = dummy
 import time
 import json
+from src.hardware.power_profiler import GPUPowerProfiler
 import gc
 
 def main():
@@ -51,7 +52,6 @@ def main():
     }
 
     results = []
-
     # Iterate over GPU counts from 1 to 8
     for gpu_count in range(1, 9):
         print(f"--- Benchmarking with {gpu_count} GPU(s) ---")
@@ -63,6 +63,10 @@ def main():
         # Force PyTorch and ROCm to only see the specified device subset
         import torch
         torch.cuda.empty_cache()
+        
+        # Start profiler for this run
+        profiler = GPUPowerProfiler(interval_sec=0.05)
+        profiler.start()
         
         load_start = time.perf_counter()
         
@@ -110,12 +114,22 @@ def main():
         except Exception:
             pass
 
+        # Stop profiler
+        profiler_metrics = {"total_joules": 0.0, "avg_watts": 0.0, "avg_temp_celsius": 0.0, "peak_temp_celsius": 0.0}
+        try:
+            profiler_metrics = profiler.stop()
+        except Exception:
+            pass
+
         results.append({
             "gpu_count": gpu_count,
             "load_time_sec": load_time,
             "latency_mean_ms": avg_latency_ms,
             "latency_std_ms": std_latency_ms,
-            "vram_total_mb": vram_allocated_mb
+            "vram_total_mb": vram_allocated_mb,
+            "energy_joules": profiler_metrics.get("total_joules", 0.0),
+            "avg_temp_celsius": profiler_metrics.get("avg_temp_celsius", 0.0),
+            "peak_temp_celsius": profiler_metrics.get("peak_temp_celsius", 0.0)
         })
 
         # Unload and clean VRAM
@@ -136,10 +150,11 @@ def main():
     summary_path = os.path.join(reports_dir, "gpu_scalability_results.csv")
     
     with open(summary_path, "w") as f:
-        f.write("gpu_count,load_time_sec,latency_mean_ms,latency_std_ms,vram_total_mb,speedup\n")
+        f.write("gpu_count,load_time_sec,latency_mean_ms,latency_std_ms,vram_total_mb,energy_joules,avg_temp_celsius,peak_temp_celsius,speedup\n")
         for res in results:
             f.write(f"{res['gpu_count']},{res['load_time_sec']:.3f},{res['latency_mean_ms']:.2f},"
-                    f"{res['latency_std_ms']:.2f},{res['vram_total_mb']:.1f},{res['speedup']:.2f}\n")
+                    f"{res['latency_std_ms']:.2f},{res['vram_total_mb']:.1f},{res['energy_joules']:.1f},"
+                    f"{res['avg_temp_celsius']:.2f},{res['peak_temp_celsius']:.2f},{res['speedup']:.2f}\n")
 
     print("=" * 60)
     print("  SCALABILITY SWEEP COMPLETE")
@@ -147,10 +162,11 @@ def main():
     print(f"Results saved to: {summary_path}\n")
 
     # Print summary table
-    print("| GPUs | Load Time (s) | Packet Latency (ms) | Speedup | Total VRAM (MB) |")
-    print("| :---: | :---: | :---: | :---: | :---: |")
+    print("| GPUs | Load Time (s) | Packet Latency (ms) | Speedup | Energy (J) | Avg Temp (°C) | Peak Temp (°C) | Total VRAM (MB) |")
+    print("| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
     for res in results:
-        print(f"| {res['gpu_count']} | {res['load_time_sec']:.2f}s | {res['latency_mean_ms']:.1f} ± {res['latency_std_ms']:.1f} | {res['speedup']:.2f}x | {res['vram_total_mb']:.1f} |")
+        print(f"| {res['gpu_count']} | {res['load_time_sec']:.2f}s | {res['latency_mean_ms']:.1f} ± {res['latency_std_ms']:.1f} | "
+              f"{res['speedup']:.2f}x | {res['energy_joules']:.1f} J | {res['avg_temp_celsius']:.1f}°C | {res['peak_temp_celsius']:.1f}°C | {res['vram_total_mb']:.1f} |")
     print("=" * 60)
 
 if __name__ == "__main__":
