@@ -34,7 +34,7 @@ export CHAOS_DEVICE=cuda:0
 
 # Run sweep on specified telemetry dataset (defaults to Qualifying)
 export PYTHONPATH=.
-python3 scripts/run_chaos_sweep.py "${1:-data/ingested/telemetry_20260704_170011.json}" "${2:-5}"
+python3 scripts/run_chaos_sweep.py "${1:-data/ingested/telemetry_20260704_170011.json}" "${2:-5}" "${3:-qwen_chaos}"
 
 echo "=== Sweep Completed ==="
 echo "End time: $(date)"

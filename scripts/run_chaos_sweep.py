@@ -43,11 +43,16 @@ def main():
         except ValueError:
             print(f"Warning: Invalid num_runs arg, defaulting to 5")
 
+    chaos_method = "qwen_chaos"
+    if len(sys.argv) >= 4:
+        chaos_method = sys.argv[3]
+
     total_lines = count_lines(telemetry_file)
     print(f"=== Starting Multi-Run Chaos Rate Sweep ===")
     print(f"Input Telemetry File: {telemetry_file}")
     print(f"Total Packets per Run: {total_lines:,}")
-    print(f"Runs per Chaos Rate: {num_runs}\n")
+    print(f"Runs per Chaos Rate: {num_runs}")
+    print(f"Chaos Method: {chaos_method}\n")
 
     chaos_rates = [0.005, 0.01, 0.05, 0.10, 0.15, 0.50, 1.00]
     aggregated_results = []
@@ -83,6 +88,7 @@ def main():
                 "python3", "-u", "live_gpu_decoder.py",
                 "--reconciler", "bert",
                 "--chaos-rate", str(rate),
+                "--chaos-method", chaos_method,
                 "--poll-interval", "0.05",
                 "--telemetry-file", latest_file
             ]
