@@ -72,7 +72,7 @@ def main():
         # 3. Wait for the reconciler model to load onto the GPU
         print("Waiting for decoder to initialize and load BERT model...")
         initialized = False
-        for _ in range(90):  # Up to 90 seconds
+        for _ in range(300):  # Up to 300 seconds
             time.sleep(1)
             if os.path.exists(log_filepath):
                 with open(log_filepath, "r") as f:
