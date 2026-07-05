@@ -325,7 +325,7 @@ def main():
     parser.add_argument("--chaos-rate", type=float, default=0.10,
                         help="Chaos injection rate 0-1 (default: 0.10)")
     parser.add_argument("--reconciler", type=str, default="bert",
-                        choices=["levenshtein", "regex", "bert"],
+                        choices=["levenshtein", "regex", "bert", "quantum"],
                         help="Reconciler to use (default: bert)")
     parser.add_argument("--chaos-method", type=str, default="json_manip",
                         choices=["json_manip", "schema_alter", "qwen_chaos"],
@@ -352,19 +352,19 @@ def main():
     # Initialize detailed drift instance log file (JSONL format)
     drift_details_path = f"{OUTPUT_DIR}/drift_details_{timestamp}.jsonl"
     drift_details_file = open(drift_details_path, "w")
-    if args.shadow_routing:
+    if args.reconciler == "quantum" or args.shadow_routing:
         _init_quantum_imports()
         if FeatureExtractor and QuantumRouter:
-            print("[Init] Initializing VQC Shadow Router (AerSimulator)...")
+            print("[Init] Initializing VQC Router (AerSimulator)...")
             extractor = FeatureExtractor()
             router = QuantumRouter(
                 backend="aer_simulator",
                 model_params_path="configs/quantum_router_params.json"
             )
-            print("[Init] VQC Shadow Router initialized successfully.")
+            print("[Init] VQC Router initialized successfully.")
         else:
-            print("[WARNING] Could not load quantum libraries. Shadow routing disabled.")
-            args.shadow_routing = False
+            print("[WARNING] Could not load quantum libraries. Quantum routing disabled.")
+            args.reconciler = "bert"
 
     # Auto-detect live session
     print("[Init] Detecting live F1 session...")
@@ -425,6 +425,13 @@ def main():
         "total_reconciled": 0,
         "accuracy_sum": 0.0,
         "latency_sum": 0.0,
+        "reconciler_counts": {
+            "levenshtein": 0,
+            "regex": 0,
+            "bert": 0,
+            "gemma_e4b": 0,
+            "nemotron": 0
+        }
     }
 
     # Initialize file tailer (reads only new lines, O(1) memory per poll)
@@ -501,54 +508,125 @@ def main():
             drifted_count = len(drifted_packets_info)
             stats["total_drifted"] += drifted_count
 
-            # 2. Reconcile on GPU in batches (with exception guard)
+            # 2. Reconcile on GPU (with exception guard)
             if drifted_count > 0:
-                batch_size = args.batch_size
-                for b_start in range(0, drifted_count, batch_size):
-                    b_info = drifted_packets_info[b_start:b_start + batch_size]
-                    pairs = [(x["original"]["data"], x["drifted"]["data"]) for x in b_info]
+                # Group packets by their target reconciler
+                packets_by_rec = {
+                    "levenshtein": [],
+                    "regex": [],
+                    "bert": [],
+                    "gemma_e4b": [],
+                    "nemotron": []
+                }
+                
+                for idx_p, x in enumerate(drifted_packets_info):
+                    if args.reconciler == "quantum":
+                        try:
+                            feat = extractor.extract(x["original"]["data"], x["drifted"]["data"], x["packet"].get("source", "openf1"))
+                            rec_name, confidence = router.route_packet(feat)
+                            if args.shadow_routing:
+                                shadow_log_data.append({
+                                    "packet_idx": x["packet_idx"],
+                                    "source": x["packet"].get("source", "openf1"),
+                                    "features": feat.tolist(),
+                                    "emulator_decision": rec_name,
+                                    "emulator_confidence": float(confidence),
+                                    "actual_reconciler_used": rec_name
+                                })
+                        except Exception as e:
+                            print(f"[ERROR] Quantum routing failed on packet {x['packet_idx']}: {e}")
+                            rec_name = "bert"
+                    else:
+                        rec_name = args.reconciler
+                        
+                    if rec_name not in packets_by_rec:
+                        rec_name = "bert"
+                    packets_by_rec[rec_name].append(x)
 
-                    try:
-                        # Perform batched reconciliation
-                        rec_start = time.perf_counter()
-                        if args.reconciler == "bert":
-                            rec_results = engine.reconcile_bert_batch(pairs)
-                        elif args.reconciler == "gemma_e4b":
-                            rec_results = engine.reconcile_gemma_batch(pairs)
-                        else:
-                            rec_results = [engine.reconcile(x["original"], x["drifted"], args.reconciler) for x in b_info]
-
-                        batch_latency_ms = (time.perf_counter() - rec_start) * 1000
-                        per_packet_latency = batch_latency_ms / len(b_info)
-
-                        for idx_b, x in enumerate(b_info):
-                            rec_result = rec_results[idx_b]
-                            reconciled_count += 1
-                            stats["total_reconciled"] += 1
-                            stats["accuracy_sum"] += rec_result["accuracy"]
-                            stats["latency_sum"] += per_packet_latency
-
-                            driver_num = x["packet"].get("data", {}).get("driver_number", "?")
-
-                            # Write to CSV
-                            writer.writerow({
-                                "timestamp": datetime.utcnow().isoformat(),
-                                "packet_idx": x["packet_idx"],
-                                "source": x["packet"].get("source", "openf1"),
-                                "driver_number": driver_num,
-                                "chaos_method": args.chaos_method,
-                                "chaos_sub_type": x["sub_type"],
-                                "reconciler": args.reconciler,
-                                "accuracy": round(rec_result["accuracy"], 4),
-                                "latency_ms": round(per_packet_latency, 3),
-                                "mapped_fields": rec_result["mapped_fields"],
-                                "unmapped_fields": rec_result["unmapped_fields"],
-                            })
-
-                    except Exception as e:
-                        print(f"[ERROR] Reconciliation failed on batch {b_start}-{b_start+len(b_info)}: {e}")
+                # Process each reconciler group
+                for rec_type, group in packets_by_rec.items():
+                    group_count = len(group)
+                    if group_count == 0:
                         continue
-
+                        
+                    batch_size = args.batch_size
+                    for b_start in range(0, group_count, batch_size):
+                        b_info = group[b_start:b_start + batch_size]
+                        pairs = [(x["original"]["data"], x["drifted"]["data"]) for x in b_info]
+                        
+                        try:
+                            rec_start = time.perf_counter()
+                            
+                            # Invoke active reconciler
+                            if rec_type == "levenshtein":
+                                rec_results = [engine.reconcile(x["original"], x["drifted"], "levenshtein") for x in b_info]
+                            elif rec_type == "regex":
+                                rec_results = [engine.reconcile(x["original"], x["drifted"], "regex") for x in b_info]
+                            elif rec_type == "bert":
+                                rec_results = engine.reconcile_bert_batch(pairs)
+                            elif rec_type == "gemma_e4b":
+                                rec_results = engine.reconcile_gemma_batch(pairs)
+                            elif rec_type == "nemotron":
+                                rec_results = engine.reconcile_nemotron_batch(pairs)
+                            else:
+                                rec_results = [engine.reconcile(x["original"], x["drifted"], rec_type) for x in b_info]
+                                
+                            batch_latency_ms = (time.perf_counter() - rec_start) * 1000
+                            per_packet_latency = batch_latency_ms / len(b_info)
+                            
+                            for idx_b, x in enumerate(b_info):
+                                rec_result = rec_results[idx_b]
+                                reconciled_count += 1
+                                stats["total_reconciled"] += 1
+                                stats["accuracy_sum"] += rec_result["accuracy"]
+                                stats["latency_sum"] += per_packet_latency
+                                stats["reconciler_counts"][rec_type] += 1
+                                
+                                # --- Head-to-Head Parallel Evaluation for Generative Tiers ---
+                                if rec_type in ["gemma_e4b", "nemotron"]:
+                                    h2h_path = f"{OUTPUT_DIR}/gemma_vs_nemotron_comparison.csv"
+                                    if not os.path.exists(h2h_path):
+                                        try:
+                                            with open(h2h_path, "w") as h2h_f:
+                                                h2h_f.write("packet_idx,routed_to,gemma_acc,gemma_lat_ms,nemotron_acc,nemotron_lat_ms\n")
+                                        except Exception:
+                                            pass
+                                            
+                                    try:
+                                        t_gem = time.perf_counter()
+                                        res_gem = engine.reconcile_gemma_batch([pairs[idx_b]])[0]
+                                        lat_gem = (time.perf_counter() - t_gem) * 1000
+                                        
+                                        t_nem = time.perf_counter()
+                                        res_nem = engine.reconcile_nemotron_batch([pairs[idx_b]])[0]
+                                        lat_nem = (time.perf_counter() - t_nem) * 1000
+                                        
+                                        with open(h2h_path, "a") as h2h_f:
+                                            h2h_f.write(f"{x['packet_idx']},{rec_type},"
+                                                        f"{res_gem['accuracy']},{lat_gem:.3f},"
+                                                        f"{res_nem['accuracy']},{lat_nem:.3f}\n")
+                                    except Exception as h2h_err:
+                                        print(f"[ERROR] Head-to-head comparison failed on packet {x['packet_idx']}: {h2h_err}")
+                                
+                                driver_num = x["packet"].get("data", {}).get("driver_number", "?")
+                                
+                                # Write to CSV
+                                writer.writerow({
+                                    "timestamp": datetime.utcnow().isoformat(),
+                                    "packet_idx": x["packet_idx"],
+                                    "source": x["packet"].get("source", "openf1"),
+                                    "driver_number": driver_num,
+                                    "chaos_method": args.chaos_method,
+                                    "chaos_sub_type": x["sub_type"],
+                                    "reconciler": rec_type,
+                                    "accuracy": round(rec_result["accuracy"], 4),
+                                    "latency_ms": round(per_packet_latency, 3),
+                                    "mapped_fields": rec_result["mapped_fields"],
+                                    "unmapped_fields": rec_result["unmapped_fields"],
+                                })
+                        except Exception as e:
+                            print(f"[ERROR] Reconciliation failed on batch for {rec_type} at {b_start}: {e}")
+                            continue
                 csvfile.flush()
 
             batch_elapsed = (time.perf_counter() - batch_start) * 1000
@@ -624,6 +702,7 @@ def main():
             "gpu_energy_samples": int(energy_metrics.get("samples_count", 0)),
             "gpu_avg_temp_celsius": float(energy_metrics.get("avg_temp_celsius", 0.0)),
             "gpu_peak_temp_celsius": float(energy_metrics.get("peak_temp_celsius", 0.0)),
+            "reconciler_counts": stats["reconciler_counts"],
         }
 
         manifest_path = f"{OUTPUT_DIR}/manifest_{timestamp}.json"
