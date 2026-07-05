@@ -6,7 +6,7 @@ import threading
 import subprocess
 
 class GPUPowerProfiler:
-    """Scientific GPU Power and Energy consumption profiler.
+    """Scientific GPU Power, Energy, and Temperature consumption profiler.
     
     Supports AMD ROCm (LUMI) via /sys/class/drm/ sysfs paths and
     NVIDIA CUDA via PyNVML/nvidia-smi.
@@ -15,10 +15,14 @@ class GPUPowerProfiler:
     def __init__(self, interval_sec=0.05):
         self.interval_sec = interval_sec
         self.power_samples = []
+        self.temp_samples = []
         self.time_samples = []
         self.running = False
         self._thread = None
         self.sysfs_path = self._detect_rocm_sysfs()
+        self.temp_sysfs_path = self.sysfs_path.replace("power1_average", "temp1_input") if self.sysfs_path else None
+        if self.temp_sysfs_path and not os.path.exists(self.temp_sysfs_path):
+            self.temp_sysfs_path = None
         
     def _detect_rocm_sysfs(self):
         # Search for AMD GPU hwmon power directories (microwatts)
@@ -62,18 +66,55 @@ class GPUPowerProfiler:
             
         return 0.0
 
+    def _get_gpu_temperature_celsius(self):
+        # 1. Try AMD ROCm sysfs (millidegrees Celsius -> Celsius)
+        if self.temp_sysfs_path:
+            try:
+                with open(self.temp_sysfs_path, "r") as f:
+                    val = f.read().strip()
+                    return float(val) / 1000.0
+            except Exception:
+                pass
+                
+        # 2. Try nvidia-smi fallback
+        try:
+            out = subprocess.check_output(
+                ["nvidia-smi", "--query-gpu=temperature.gpu", "--format=csv,noheader,nounits"],
+                stderr=subprocess.DEVNULL
+            )
+            return float(out.decode().strip())
+        except Exception:
+            pass
+            
+        # 3. Try rocm-smi fallback
+        try:
+            out = subprocess.check_output(["rocm-smi", "-t"], stderr=subprocess.DEVNULL)
+            for line in out.decode().split("\n"):
+                if "Temp" in line or "Edge" in line:
+                    parts = line.split(":")
+                    if len(parts) > 1:
+                        val_str = parts[1].replace("C", "").strip()
+                        return float(val_str.split()[0])
+        except Exception:
+            pass
+            
+        return 0.0
+
     def _loop(self):
         start_time = time.perf_counter()
         while self.running:
             power = self._get_gpu_power_watts()
+            temp = self._get_gpu_temperature_celsius()
             t = time.perf_counter() - start_time
             self.power_samples.append(power)
+            self.temp_samples.append(temp)
             self.time_samples.append(t)
             time.sleep(self.interval_sec)
 
     def start(self):
         """Start the background power profiling thread."""
         self.power_samples = []
+        self.temp_samples = []
         self.time_samples = []
         self.running = True
         self._thread = threading.Thread(target=self._loop, daemon=True)
@@ -88,9 +129,12 @@ class GPUPowerProfiler:
         return self.compute_metrics()
 
     def compute_metrics(self):
-        """Computes cumulative Energy (Joules) using numerical integration."""
+        """Computes cumulative Energy (Joules) using numerical integration and gathers temp metrics."""
         if not self.power_samples or len(self.power_samples) < 2:
-            return {"total_joules": 0.0, "avg_watts": 0.0, "duration_sec": 0.0}
+            return {
+                "total_joules": 0.0, "avg_watts": 0.0, "duration_sec": 0.0,
+                "avg_temp_celsius": 0.0, "peak_temp_celsius": 0.0, "samples_count": 0
+            }
             
         duration = self.time_samples[-1] - self.time_samples[0]
         
@@ -103,9 +147,16 @@ class GPUPowerProfiler:
             
         avg_watts = joules / duration if duration > 0 else 0.0
         
+        # Filter out 0.0 temp measurements if any
+        valid_temps = [t for t in self.temp_samples if t > 0.0]
+        avg_temp = sum(valid_temps) / len(valid_temps) if valid_temps else 0.0
+        peak_temp = max(valid_temps) if valid_temps else 0.0
+        
         return {
             "total_joules": round(joules, 2),
             "avg_watts": round(avg_watts, 2),
             "duration_sec": round(duration, 2),
-            "samples_count": len(self.power_samples)
+            "samples_count": len(self.power_samples),
+            "avg_temp_celsius": round(avg_temp, 2),
+            "peak_temp_celsius": round(peak_temp, 2)
         }

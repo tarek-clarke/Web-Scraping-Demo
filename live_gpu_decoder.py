@@ -603,6 +603,8 @@ def main():
             "gpu_total_energy_joules": float(energy_metrics.get("total_joules", 0.0)),
             "gpu_avg_power_watts": float(energy_metrics.get("avg_watts", 0.0)),
             "gpu_energy_samples": int(energy_metrics.get("samples_count", 0)),
+            "gpu_avg_temp_celsius": float(energy_metrics.get("avg_temp_celsius", 0.0)),
+            "gpu_peak_temp_celsius": float(energy_metrics.get("peak_temp_celsius", 0.0)),
         }
 
         manifest_path = f"{OUTPUT_DIR}/manifest_{timestamp}.json"
