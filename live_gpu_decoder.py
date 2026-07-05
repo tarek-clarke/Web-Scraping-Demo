@@ -606,7 +606,8 @@ def main():
         try:
             with open(manifest_path, "w") as f:
                 json.dump(manifest, f, indent=2)
-            os.fsync(f.fileno())
+                f.flush()
+                os.fsync(f.fileno())
         except Exception as e:
             print(f"[ERROR] Failed to save manifest: {e}")
 
