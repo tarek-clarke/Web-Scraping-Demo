@@ -30,6 +30,7 @@ source "$PROJECT_ROOT/.venv-lumi/bin/activate"
 # Environment variables
 export IS_LUMI=1
 export HF_HOME=/scratch/project_465002996/clarketa/hf_cache
+export HF_MODEL_ID="Qwen/Qwen2.5-7B-Instruct"
 
 # Run GPU scalability sweep script
 export PYTHONPATH=.
