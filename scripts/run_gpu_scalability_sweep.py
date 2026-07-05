@@ -8,6 +8,14 @@ Measures model load times, inference latencies, memory footprint, and speedup ma
 
 import os
 import sys
+
+# --- Mock amdsmi to work around PyTorch/ROCm packaging bug ---
+from types import ModuleType
+if 'amdsmi' not in sys.modules:
+    dummy = ModuleType('amdsmi')
+    dummy.AmdSmiException = Exception
+    dummy.amdsmi_init = lambda: None
+    sys.modules['amdsmi'] = dummy
 import time
 import json
 import gc
