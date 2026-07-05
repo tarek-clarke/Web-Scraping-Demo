@@ -350,7 +350,10 @@ def main():
         if FeatureExtractor and QuantumRouter:
             print("[Init] Initializing VQC Shadow Router (AerSimulator)...")
             extractor = FeatureExtractor()
-            router = QuantumRouter(backend="aer_simulator")
+            router = QuantumRouter(
+                backend="aer_simulator",
+                model_params_path="configs/quantum_router_params.json"
+            )
             print("[Init] VQC Shadow Router initialized successfully.")
         else:
             print("[WARNING] Could not load quantum libraries. Shadow routing disabled.")

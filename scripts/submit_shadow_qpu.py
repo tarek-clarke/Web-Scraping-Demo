@@ -26,6 +26,8 @@ def main():
                         help="Quantum hardware/simulator backend to target")
     parser.add_argument("--shots", type=int, default=1024,
                         help="Number of shots per circuit execution (default: 1024)")
+    parser.add_argument("--model-params", type=str, default="configs/quantum_router_params.json",
+                        help="Path to VQC model parameters JSON file (default: configs/quantum_router_params.json)")
     args = parser.parse_args()
 
     if not os.path.exists(args.log):
@@ -64,7 +66,7 @@ def main():
     # Initialize quantum router with QPU backend
     print(f"[Init] Initializing router backend '{args.backend}'...")
     try:
-        router = QuantumRouter(backend=args.backend, shots=args.shots)
+        router = QuantumRouter(backend=args.backend, shots=args.shots, model_params_path=args.model_params)
         # Force backend initialization to establish the Qiskit Runtime session
         router._init_backend()
     except Exception as e:
