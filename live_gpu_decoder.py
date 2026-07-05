@@ -348,7 +348,10 @@ def main():
     extractor = None
     router = None
     shadow_log_data = []
-    drift_details_log = []
+    
+    # Initialize detailed drift instance log file (JSONL format)
+    drift_details_path = f"{OUTPUT_DIR}/drift_details_{timestamp}.jsonl"
+    drift_details_file = open(drift_details_path, "w")
     if args.shadow_routing:
         _init_quantum_imports()
         if FeatureExtractor and QuantumRouter:
@@ -451,14 +454,14 @@ def main():
                         "packet_idx": i,
                         "packet": packet
                     })
-                    drift_details_log.append({
+                    drift_details_file.write(json.dumps({
                         "packet_idx": i,
                         "timestamp": datetime.utcnow().isoformat(),
                         "chaos_method": args.chaos_method,
                         "chaos_sub_type": sub_type,
                         "original_data": original.get("data", {}),
                         "drifted_data": drifted.get("data", {}),
-                    })
+                    }) + "\n")
 
                     # If shadow routing is active, extract features and get classification decision
                     if args.shadow_routing:
@@ -620,14 +623,13 @@ def main():
             except Exception as e:
                 print(f"[ERROR] Failed to save shadow routing log: {e}")
 
-        if drift_details_log:
-            drift_details_path = f"{OUTPUT_DIR}/drift_details_{timestamp}.json"
-            try:
-                with open(drift_details_path, "w") as f:
-                    json.dump(drift_details_log, f, indent=2)
-                print(f"  Detailed drift instances log saved to: {drift_details_path}")
-            except Exception as e:
-                print(f"[ERROR] Failed to save drift details log: {e}")
+        try:
+            drift_details_file.flush()
+            os.fsync(drift_details_file.fileno())
+            drift_details_file.close()
+            print(f"  Detailed drift instances log saved to: {drift_details_path}")
+        except Exception as e:
+            print(f"[ERROR] Failed to close drift details log: {e}")
 
         print(f"\n  Results saved to: {csv_path}")
         print(f"  Manifest saved to: {manifest_path}")
