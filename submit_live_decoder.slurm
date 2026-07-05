@@ -55,7 +55,7 @@ forward_sigterm() {
 trap forward_sigterm SIGTERM
 
 # Run live decoder polling telemetry_latest.json in background and wait
-python3 -u live_gpu_decoder.py --reconciler bert --chaos-rate 0.01 --poll-interval 1.0 --shadow-routing &
+python3 -u live_gpu_decoder.py --reconciler quantum --chaos-rate 0.10 --poll-interval 1.0 --shadow-routing &
 DECODER_PID=$!
 
 wait "$DECODER_PID"
