@@ -96,7 +96,7 @@ class LLMManager:
             load_kwargs: Dict[str, Any] = {
                 "dtype": self.torch_dtype,
                 "trust_remote_code": True,
-                "device_map": self.device if self.device != "mps" else "mps",
+                "device_map": "auto" if self.device == "cuda" else "mps" if self.device == "mps" else "cpu",
             }
 
             if self.attn_impl:
