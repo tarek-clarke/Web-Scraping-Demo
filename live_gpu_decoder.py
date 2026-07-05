@@ -348,6 +348,7 @@ def main():
     extractor = None
     router = None
     shadow_log_data = []
+    drift_details_log = []
     if args.shadow_routing:
         _init_quantum_imports()
         if FeatureExtractor and QuantumRouter:
@@ -449,6 +450,14 @@ def main():
                         "sub_type": sub_type,
                         "packet_idx": i,
                         "packet": packet
+                    })
+                    drift_details_log.append({
+                        "packet_idx": i,
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "chaos_method": args.chaos_method,
+                        "chaos_sub_type": sub_type,
+                        "original_data": original.get("data", {}),
+                        "drifted_data": drifted.get("data", {}),
                     })
 
                     # If shadow routing is active, extract features and get classification decision
@@ -609,6 +618,15 @@ def main():
                 print(f"  Shadow routing log saved to: {shadow_path}")
             except Exception as e:
                 print(f"[ERROR] Failed to save shadow routing log: {e}")
+
+        if drift_details_log:
+            drift_details_path = f"{OUTPUT_DIR}/drift_details_{timestamp}.json"
+            try:
+                with open(drift_details_path, "w") as f:
+                    json.dump(drift_details_log, f, indent=2)
+                print(f"  Detailed drift instances log saved to: {drift_details_path}")
+            except Exception as e:
+                print(f"[ERROR] Failed to save drift details log: {e}")
 
         print(f"\n  Results saved to: {csv_path}")
         print(f"  Manifest saved to: {manifest_path}")

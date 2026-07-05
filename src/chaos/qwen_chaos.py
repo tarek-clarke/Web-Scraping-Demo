@@ -1,14 +1,19 @@
 import random
 from typing import Dict, Tuple
+from .json_chaos import JSONChaos
+from .schema_chaos import SchemaChaos
 
 class QwenChaos:
     """
-    Simulates schema drifts typical of Qwen LLM reformatting.
-    Combines semantic translation, nested structure changes, casing shifts,
-    and type conversions to represent agent-driven schema modifications.
+    Combined super-chaos injector that implements all 27 possible drift subtypes 
+    spanning Qwen semantic/structural changes, traditional JSON manipulations, 
+    and schema alterations. Makes drift generation as messy as possible.
     """
 
     def __init__(self):
+        self.json_chaos = JSONChaos()
+        self.schema_chaos = SchemaChaos()
+        
         # Qwen-style key translations
         self.synonyms = {
             "driver_number": "driver_id",
@@ -28,20 +33,35 @@ class QwenChaos:
         return result
 
     def inject_with_subtype(self, data: Dict) -> Tuple[str, Dict]:
-        sub_types = ["semantic_shift", "nesting_alteration", "type_mutation", "casing_scramble", "field_split", "field_join"]
+        # Complete pool of all 27 subtypes across Qwen, JSON, and Schema chaos
+        sub_types = [
+            # Qwen custom
+            "qwen_semantic_shift", "qwen_nesting_alteration", "qwen_type_mutation", "qwen_casing_scramble",
+            # JSONChaos
+            "field_split", "field_join", "variable_drop", "field_merge_value",
+            "array_to_scalar", "scalar_to_array", "array_expansion",
+            "duplicate_field_inject", "null_injection", "default_value_inject",
+            "outlier_injection",
+            # SchemaChaos
+            "translation", "type_change", "precision_loss", "unit_conversion",
+            "nesting_flatten", "nesting_deepen", "timestamp_format_change",
+            "timezone_change", "date_format_change", "encoding_change",
+            "key_case_change", "array_index_rename"
+        ]
+        
         sub_type = random.choice(sub_types)
         
-        method_map = {
-            "semantic_shift": self._semantic_shift,
-            "nesting_alteration": self._nesting_alteration,
-            "type_mutation": self._type_mutation,
-            "casing_scramble": self._casing_scramble,
-            "field_split": self._field_split,
-            "field_join": self._field_join,
-        }
-        
-        method = method_map.get(sub_type, self._semantic_shift)
-        return f"qwen_{sub_type}", method(data)
+        # Dispatch to the appropriate helper
+        if sub_type.startswith("qwen_"):
+            method_name = f"_{sub_type[5:]}"
+            method = getattr(self, method_name, self._semantic_shift)
+            return sub_type, method(data)
+        elif sub_type in self.json_chaos.inject_with_subtype.__code__.co_consts or hasattr(self.json_chaos, f"_{sub_type}"):
+            method = getattr(self.json_chaos, f"_{sub_type}", self.json_chaos._variable_drop)
+            return f"json_{sub_type}", method(data)
+        else:
+            method = getattr(self.schema_chaos, f"_{sub_type}", self.schema_chaos._translation)
+            return f"schema_{sub_type}", method(data)
 
     def _semantic_shift(self, data: Dict) -> Dict:
         """Translates keys to realistic synonyms used by Qwen."""
@@ -59,7 +79,6 @@ class QwenChaos:
             return data
         
         keys = list(data.keys())
-        # Pick 2 random keys and wrap them in a nested object
         if len(keys) >= 3:
             nested_keys = random.sample(keys, 2)
             nested_obj = {}
@@ -78,10 +97,8 @@ class QwenChaos:
         new_data = {}
         for k, v in data.items():
             if isinstance(v, (int, float)) and random.random() < 0.5:
-                # Stringify numerical values
                 new_data[k] = str(v)
             elif isinstance(v, str) and v.replace(".", "", 1).isdigit() and random.random() < 0.5:
-                # Parse strings to float
                 new_data[k] = float(v)
             else:
                 new_data[k] = v
@@ -91,33 +108,10 @@ class QwenChaos:
         """Alters casing standard from snake_case to camelCase or UPPERCASE."""
         new_data = {}
         for k, v in data.items():
-            # Convert snake_case to camelCase
             words = k.split("_")
             camel_key = words[0] + "".join(w.capitalize() for w in words[1:])
-            # Randomly upper case the key
             if random.random() < 0.3:
                 new_data[k.upper()] = v
             else:
                 new_data[camel_key] = v
-        return new_data
-
-    def _field_split(self, data: Dict) -> Dict:
-        """Splits a single telemetry field into composite partition parts."""
-        if not data: return data
-        new_data = data.copy()
-        key = random.choice(list(new_data.keys()))
-        val = new_data.pop(key)
-        new_data[f"{key}_part1"] = val
-        new_data[f"{key}_part2"] = val
-        return new_data
-
-    def _field_join(self, data: Dict) -> Dict:
-        """Joins two related telemetry fields into a unified composite key."""
-        new_data = data.copy()
-        keys = list(new_data.keys())
-        if len(keys) < 2: return new_data
-        k1, k2 = random.sample(keys, 2)
-        joined = f"{k1}_{k2}"
-        new_data[joined] = new_data.pop(k1)
-        new_data.pop(k2, None)
         return new_data
