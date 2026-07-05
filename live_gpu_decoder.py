@@ -476,6 +476,8 @@ def main():
             # 1. Classical preprocessing / chaos injection
             drifted_packets_info = []
             for idx, packet in enumerate(new_packets):
+                if args.max_packets is not None and stats["total_processed"] >= args.max_packets:
+                    break
                 i = total_count - new_count + idx
                 stats["total_processed"] += 1
 
