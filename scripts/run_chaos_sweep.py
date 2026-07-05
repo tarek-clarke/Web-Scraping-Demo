@@ -63,8 +63,7 @@ def main():
             "python3", "-u", "live_gpu_decoder.py",
             "--reconciler", "bert",
             "--chaos-rate", str(rate),
-            "--poll-interval", "0.2",
-            "--shadow-routing",
+            "--poll-interval", "0.05",
             "--telemetry-file", latest_file
         ]
         
@@ -100,8 +99,8 @@ def main():
         completed = False
         start_time = time.time()
         
-        for _ in range(150):  # Up to 5 minutes
-            time.sleep(2)
+        for _ in range(600):  # Up to 10 minutes
+            time.sleep(1)
             if os.path.exists(log_filepath):
                 with open(log_filepath, "r") as f:
                     lines = f.readlines()
