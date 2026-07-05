@@ -95,6 +95,10 @@ def main():
             )
         }]
 
+        print("  Warming up (2 runs to avoid cold start)...")
+        for _ in range(2):
+            _ = manager.generate_response(messages, max_new_tokens=128)
+
         print("  Evaluating inference latency (5 repeats)...")
         for i in range(5):
             t_start = time.perf_counter()

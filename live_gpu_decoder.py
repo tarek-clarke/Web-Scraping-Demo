@@ -379,6 +379,25 @@ def main():
     print(f"[Init] Loading {args.reconciler} reconciler on {hw_type}...")
     engine = ReconciliationEngine(hw_type, args.batch_size)
     print(f"[Init] Reconciler ready.")
+    
+    # Warm up reconciler with junk packets to avoid cold start latency
+    print(f"[Init] Warming up GPU/ROCm kernels for '{args.reconciler}' with junk packets...")
+    warmup_pairs = [
+        ({"speed": 100.0, "rpm": 8000.0}, {"velocity": 100.0, "rotations": 8000.0})
+        for _ in range(args.batch_size * 2)
+    ]
+    try:
+        for _ in range(3):
+            if args.reconciler == "bert":
+                _ = engine.reconcile_bert_batch(warmup_pairs)
+            elif args.reconciler == "gemma":
+                _ = engine.reconcile_gemma_batch(warmup_pairs)
+            elif args.reconciler == "nemotron":
+                _ = engine.reconcile_nemotron_batch(warmup_pairs)
+        print("[Init] GPU warm-up complete.")
+    except Exception as e:
+        print(f"[Init] Warm-up failed (non-fatal): {e}")
+
     print(f"[Init] Chaos method: {args.chaos_method} @ {args.chaos_rate:.0%} rate")
     print(f"[Init] Polling {args.telemetry_file} every {args.poll_interval}s")
     print(f"[Init] Results → {OUTPUT_DIR}/")
