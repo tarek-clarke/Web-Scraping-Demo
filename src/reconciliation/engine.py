@@ -4,6 +4,7 @@ from .levenshtein_rec import LevenshteinReconciler
 from .regex_rec import RegexReconciler
 from .bert_rec import BERTReconciler
 from .gemma_e4b_rec import GemmaE4BReconciler
+from .nemotron_rec import NemotronReconciler
 
 class ReconciliationEngine:
     def __init__(self, hardware_profile: str = "cpu", batch_size: int = 4):
@@ -13,6 +14,7 @@ class ReconciliationEngine:
             "regex": RegexReconciler(),
             "bert": BERTReconciler(hardware_profile, batch_size),
             "gemma_e4b": GemmaE4BReconciler(hardware_profile, batch_size),
+            "nemotron": NemotronReconciler(hardware_profile, batch_size),
         }
 
     def reconcile(self, original: Dict, drifted: Dict, method: str) -> Dict:
@@ -50,6 +52,15 @@ class ReconciliationEngine:
             return gemma.reconcile_batch(pairs, progress_cb=progress_cb)
         return [
             self.reconcile({"data": orig}, {"data": drift}, "gemma_e4b")
+            for orig, drift in pairs
+        ]
+
+    def reconcile_nemotron_batch(self, pairs: List[Tuple[Dict, Dict]], progress_cb=None) -> List[Dict]:
+        nemotron = self.reconcilers.get("nemotron")
+        if nemotron and hasattr(nemotron, "reconcile_batch"):
+            return nemotron.reconcile_batch(pairs, progress_cb=progress_cb)
+        return [
+            self.reconcile({"data": orig}, {"data": drift}, "nemotron")
             for orig, drift in pairs
         ]
 

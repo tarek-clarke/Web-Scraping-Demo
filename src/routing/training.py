@@ -28,6 +28,7 @@ class RoutingTrainer:
         "regex": 1,
         "bert": 2,
         "gemma_e4b": 3,
+        "nemotron": 4,
     }
 
     def __init__(self, reports_dir: str = "data/reports/MI250X") -> None:

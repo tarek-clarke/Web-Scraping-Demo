@@ -51,7 +51,8 @@ class QuantumRouter:
         0: "levenshtein",
         1: "regex",
         2: "bert",
-        3: "gemma_e4b",  # Disabled by default
+        3: "gemma_e4b",
+        4: "nemotron",
     }
 
     _shared_backend: Optional[object] = None
@@ -66,6 +67,7 @@ class QuantumRouter:
         backend: str = "aer_simulator",
         mode: str = "vqc",
         enable_gemma: bool = False,
+        enable_nemotron: bool = False,
         shots: int = 1024,
         feature_count: int = 10,
         model_params_path: Optional[str] = None,
@@ -73,10 +75,17 @@ class QuantumRouter:
         self.backend_name: str = backend
         self.mode: str = mode
         self.enable_gemma: bool = enable_gemma
+        self.enable_nemotron: bool = enable_nemotron
         self.shots: int = shots
         self.feature_count: int = feature_count
-        self.num_classes: int = 4 if enable_gemma else 3
-        self.num_output_qubits: int = 2  # 2 qubits encode up to 4 classes
+        
+        self.num_classes: int = 3
+        if enable_gemma:
+            self.num_classes = 4
+        if enable_nemotron:
+            self.num_classes = 5
+            
+        self.num_output_qubits: int = 3 if self.num_classes > 4 else 2
         self.trained_params: Optional[np.ndarray] = None
         self._backend: Optional[object] = None
         self._circuit: Optional[object] = None
