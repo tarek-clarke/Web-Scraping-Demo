@@ -28,7 +28,7 @@ class QwenChaos:
         return result
 
     def inject_with_subtype(self, data: Dict) -> Tuple[str, Dict]:
-        sub_types = ["semantic_shift", "nesting_alteration", "type_mutation", "casing_scramble"]
+        sub_types = ["semantic_shift", "nesting_alteration", "type_mutation", "casing_scramble", "field_split", "field_join"]
         sub_type = random.choice(sub_types)
         
         method_map = {
@@ -36,6 +36,8 @@ class QwenChaos:
             "nesting_alteration": self._nesting_alteration,
             "type_mutation": self._type_mutation,
             "casing_scramble": self._casing_scramble,
+            "field_split": self._field_split,
+            "field_join": self._field_join,
         }
         
         method = method_map.get(sub_type, self._semantic_shift)
@@ -97,4 +99,25 @@ class QwenChaos:
                 new_data[k.upper()] = v
             else:
                 new_data[camel_key] = v
+        return new_data
+
+    def _field_split(self, data: Dict) -> Dict:
+        """Splits a single telemetry field into composite partition parts."""
+        if not data: return data
+        new_data = data.copy()
+        key = random.choice(list(new_data.keys()))
+        val = new_data.pop(key)
+        new_data[f"{key}_part1"] = val
+        new_data[f"{key}_part2"] = val
+        return new_data
+
+    def _field_join(self, data: Dict) -> Dict:
+        """Joins two related telemetry fields into a unified composite key."""
+        new_data = data.copy()
+        keys = list(new_data.keys())
+        if len(keys) < 2: return new_data
+        k1, k2 = random.sample(keys, 2)
+        joined = f"{k1}_{k2}"
+        new_data[joined] = new_data.pop(k1)
+        new_data.pop(k2, None)
         return new_data
