@@ -338,6 +338,10 @@ def main():
                         help="Enable VQC shadow routing and log features for QPU execution")
     parser.add_argument("--telemetry-file", type=str, default="data/ingested/telemetry_latest.json",
                         help="Path to telemetry JSON file to tail (default: data/ingested/telemetry_latest.json)")
+    parser.add_argument("--no-skip", action="store_true",
+                        help="Do not skip historical backlog (read from the beginning of the file)")
+    parser.add_argument("--max-packets", type=int, default=None,
+                        help="Exit after processing this many packets (default: None)")
     args = parser.parse_args()
 
     hardware, vram_info = detect_hardware()
@@ -436,12 +440,17 @@ def main():
 
     # Initialize file tailer (reads only new lines, O(1) memory per poll)
     tailer = TelemetryTailer(args.telemetry_file)
-    backlog_count = tailer.skip_to_end()
+    backlog_count = 0
+    if not args.no_skip:
+        backlog_count = tailer.skip_to_end()
 
     print("=" * 70)
     print(f"  LIVE F1 TELEMETRY DECODER — {session_label}")
     print("=" * 70)
-    print(f"[Init] Skipping historical backlog of {backlog_count:,} packets to keep it truly live.")
+    if not args.no_skip:
+        print(f"[Init] Skipping historical backlog of {backlog_count:,} packets to keep it truly live.")
+    else:
+        print("[Init] Processing telemetry file from the beginning (backlog enabled).")
 
     # Start the scientific GPU energy and power profiler
     profiler = GPUPowerProfiler(interval_sec=0.05)
@@ -449,6 +458,10 @@ def main():
 
     try:
         while not _shutdown_requested:
+            if args.max_packets is not None and stats["total_processed"] >= args.max_packets:
+                print(f"[Decoder] Reached max packets limit ({args.max_packets}). Exiting loop.")
+                break
+                
             new_packets, total_count = tailer.poll()
 
             if not new_packets:
