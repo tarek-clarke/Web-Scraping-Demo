@@ -40,6 +40,7 @@ from src.hardware.vram_prober import VRAMProber
 from src.reconciliation.engine import ReconciliationEngine
 from src.chaos.json_chaos import JSONChaos
 from src.chaos.schema_chaos import SchemaChaos
+from src.chaos.qwen_chaos import QwenChaos
 from src.hardware.power_profiler import GPUPowerProfiler
 
 # Lazy imports for quantum routing
@@ -292,7 +293,7 @@ def detect_hardware():
     return hardware, vram_info
 
 
-def inject_chaos(packet, chaos_method, chaos_rate, json_chaos, schema_chaos, rng_seed):
+def inject_chaos(packet, chaos_method, chaos_rate, json_chaos, schema_chaos, qwen_chaos, rng_seed):
     """Inject chaos into a single packet and return (original, drifted, sub_type).
 
     Uses an instance-based RNG to avoid corrupting the global random state.
@@ -310,6 +311,8 @@ def inject_chaos(packet, chaos_method, chaos_rate, json_chaos, schema_chaos, rng
         sub_type, modified = json_chaos.inject_with_subtype(data)
     elif chaos_method == "schema_alter":
         sub_type, modified = schema_chaos.alter_with_subtype(data)
+    elif chaos_method == "qwen_chaos":
+        sub_type, modified = qwen_chaos.inject_with_subtype(data)
     else:
         sub_type, modified = json_chaos.inject_with_subtype(data)
 
@@ -325,7 +328,7 @@ def main():
                         choices=["levenshtein", "regex", "bert"],
                         help="Reconciler to use (default: bert)")
     parser.add_argument("--chaos-method", type=str, default="json_manip",
-                        choices=["json_manip", "schema_alter"],
+                        choices=["json_manip", "schema_alter", "qwen_chaos"],
                         help="Chaos injection method (default: json_manip)")
     parser.add_argument("--poll-interval", type=float, default=5.0,
                         help="Seconds between file polls (default: 5)")
@@ -379,6 +382,7 @@ def main():
 
     json_chaos = JSONChaos()
     schema_chaos = SchemaChaos()
+    qwen_chaos = QwenChaos()
 
     # CSV output for live results
     csv_path = f"{OUTPUT_DIR}/live_results_{timestamp}.csv"
@@ -434,7 +438,7 @@ def main():
 
                 result = inject_chaos(
                     packet, args.chaos_method, args.chaos_rate,
-                    json_chaos, schema_chaos, rng_seed=i
+                    json_chaos, schema_chaos, qwen_chaos, rng_seed=i
                 )
 
                 if result is not None:
