@@ -248,7 +248,7 @@ def event_generator():
         # Simulated AMD Instinct MI300X diagnostics
         temp = 42.5 + random.uniform(0.1, 0.9)
         power = 90.0 + random.uniform(0.5, 2.5) if drifted_payload else 82.0 + random.uniform(0.1, 1.0)
-        vram = 14529.6 if routed_to in ["gemma_e4b", "nemotron"] else 128.0
+        vram = 14529.6 if routed_to in ["gemma_e4b", "nemotron"] else 2180.4 + random.uniform(5.0, 15.0)
 
         sse_data = {
             "packet_idx": packet_idx,
