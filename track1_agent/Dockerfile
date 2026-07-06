@@ -35,5 +35,5 @@ COPY track1_agent/ /app/
 # Expose API port
 EXPOSE 8080
 
-# Default: run self-test to verify the container works
-CMD ["python3", "agent.py", "--test"]
+# Run the agent pipeline
+CMD ["python3", "agent.py"]
