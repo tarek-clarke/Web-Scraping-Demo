@@ -1,0 +1,32 @@
+% ======================================================================
+% REVISED SECTION 2: MATHEMATICAL FORMULATIONS (COPY-PASTEABLE)
+% Fixes LaTeX equation environment alignments, labels, and blank numbering.
+% ======================================================================
+
+\section{Mathematical Formulations for Resource Profiling}
+\label{sec:math_formulations}
+
+To establish a rigorous resource evaluation framework for self-healing analytical pipelines, we define the quantitative models governing energy, power, and resilience below.
+
+The cumulative GPU energy consumption $E_{\text{total}}$ is obtained by numerically integrating the time-varying active power draw $P(t)$ over the total execution duration:
+\begin{equation}
+E_{\text{total}} = \int_{t_0}^{t_N} P(t) \, dt \approx \sum_{i=0}^{N-1} \frac{P(t_i) + P(t_{i+1})}{2} \Delta t_i
+\end{equation}
+where $P(t_i)$ represents the active GPU power draw sampled at discrete time steps $t_i$, and $\Delta t_i = t_{i+1} - t_i$ is the sampling interval (nominally set to $\qty{0.05}{\second}$).
+
+To normalize energy costs across varying stream lengths and compare experiments fairly, the normalized energy consumption per $1,000$ anomaly events, denoted as $E_{\text{norm}}$, is computed as:
+\begin{equation}
+E_{\text{norm}} = \left( \frac{E_{\text{total}}}{N_{\text{drift}}} \right) \times 1000
+\end{equation}
+where $N_{\text{drift}}$ is the total count of drifted packets that successfully triggered a schema reconciliation stage during the runtime window.
+
+The average active power draw $P_{\text{avg}}$ is calculated as the ratio of cumulative energy consumption to the total execution duration:
+\begin{equation}
+P_{\text{avg}} = \frac{E_{\text{total}}}{t_N - t_0}
+\end{equation}
+
+Finally, to quantify the robustness of the self-healing RAP pipeline under structural schema drift, we employ the Hosseini et al. (2016) Recovery Coverage metric (denoted as the Resilience Index $C_{\text{rec}}$). This represents the ratio of successfully resolved/reconciled anomalies to the total detected anomalies across $n$ execution windows:
+\begin{equation}
+C_{\text{rec}} = \frac{\sum_{i=1}^{n} R_i}{\sum_{i=1}^{n} D_i}
+\end{equation}
+where $D_i$ represents the number of detected anomalies (drifted parameters) in batch $i$, and $R_i$ is the number of successfully resolved and mapped anomalies in batch $i$.
