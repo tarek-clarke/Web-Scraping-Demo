@@ -598,7 +598,7 @@ def main():
                                 stats["reconciler_counts"][rec_type] += 1
                                 
                                 # --- Head-to-Head Parallel Evaluation for Generative Tiers ---
-                                if rec_type in ["gemma_e4b", "nemotron"] or True: # Force comparison for validation!
+                                if rec_type in ["gemma_e4b", "nemotron"]:
                                     h2h_path = f"{OUTPUT_DIR}/gemma_vs_nemotron_comparison.csv"
                                     if not os.path.exists(h2h_path):
                                         try:
