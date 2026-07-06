@@ -34,7 +34,7 @@ COPY apexflow_dashboard/app.py /app/app.py
 COPY apexflow_dashboard/static/ /app/static/
 
 # Expose port
-EXPOSE 5000
+EXPOSE 5001
 
 # Run Flask application
 CMD ["python3", "app.py"]

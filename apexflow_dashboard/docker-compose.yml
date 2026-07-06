@@ -7,7 +7,7 @@ services:
       dockerfile: apexflow_dashboard/Dockerfile
     container_name: apexflow-dashboard
     ports:
-      - "5000:5000"
+      - "5001:5001"
     devices:
       - "/dev/kfd:/dev/kfd"
       - "/dev/dri:/dev/dri"
