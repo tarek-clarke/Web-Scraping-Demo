@@ -83,3 +83,53 @@ Packet 9 & bert & 10.00\% & 687.45 & 10.00\% & 3,098.82 \\ \hline
 \end{tabular}
 \\ \small{\textit{Note: Nemotron results default to Qwen-2.5-7B-Instruct fallback to support offline sandboxed compute execution.}}
 \end{table}
+
+% ----------------------------------------------------------------------
+% Table 5: VQC Simulator Quantum Routed Resilience Metrics
+% ----------------------------------------------------------------------
+\begin{table}[htbp]
+\centering
+\caption{VQC Simulator Quantum Routed Resilience Metrics ($n=16$ batch size)}
+\label{tab:vqc_sim_resilience}
+\begin{tabular}{lllcrc}
+\hline
+\textbf{API} & \textbf{Reconciler} & \textbf{Accuracy} & \textbf{Hosseini Index} & \textbf{Throughput (pps)} & \textbf{Batch Size} \\ \hline
+finnhub & quantum\_routed & 0.839 $\pm$ 0.000 & 0.839 $\pm$ 0.000 & 14 $\pm$ 0 & 16 \\
+finnhub & quantum\_routed & 0.877 $\pm$ 0.000 & 0.877 $\pm$ 0.000 & 13 $\pm$ 0 & 16 \\
+openf1 & quantum\_routed & 0.934 $\pm$ 0.000 & 0.934 $\pm$ 0.000 & 12 $\pm$ 0 & 16 \\
+spacex & quantum\_routed & 0.973 $\pm$ 0.000 & 0.973 $\pm$ 0.000 & 105 $\pm$ 0 & 16 \\
+openf1 & quantum\_routed & 0.981 $\pm$ 0.000 & 0.981 $\pm$ 0.000 & 11 $\pm$ 0 & 16 \\
+spacex & quantum\_routed & 0.988 $\pm$ 0.000 & 0.988 $\pm$ 0.000 & 46 $\pm$ 0 & 16 \\
+openweather & quantum\_routed & 0.840 $\pm$ 0.000 & 0.840 $\pm$ 0.000 & 172 $\pm$ 0 & 16 \\
+openweather & quantum\_routed & 0.846 $\pm$ 0.000 & 0.846 $\pm$ 0.000 & 95 $\pm$ 0 & 16 \\
+openf1 & quantum\_routed & 0.986 $\pm$ 0.000 & 0.986 $\pm$ 0.000 & 1 $\pm$ 0 & 16 \\
+finnhub & quantum\_routed & 0.761 $\pm$ 0.000 & 0.761 $\pm$ 0.000 & 1 $\pm$ 0 & 16 \\
+spacex & quantum\_routed & 0.983 $\pm$ 0.000 & 0.983 $\pm$ 0.000 & 1 $\pm$ 0 & 16 \\
+openweather & quantum\_routed & 0.850 $\pm$ 0.000 & 0.850 $\pm$ 0.000 & 1 $\pm$ 0 & 16 \\ \hline
+\end{tabular}
+\end{table}
+
+% ----------------------------------------------------------------------
+% Table 6: Physical QPU Hardware Quantum Routed Resilience Metrics
+% ----------------------------------------------------------------------
+\begin{table}[htbp]
+\centering
+\caption{Physical IBM QPU Hardware Quantum Routed Resilience Metrics ($n=16$ batch size)}
+\label{tab:qpu_hw_resilience}
+\begin{tabular}{lllcrc}
+\hline
+\textbf{API} & \textbf{Reconciler} & \textbf{Accuracy} & \textbf{Hosseini Index} & \textbf{Throughput (pps)} & \textbf{Batch Size} \\ \hline
+openf1 & quantum\_routed & 0.949 $\pm$ 0.000 & 0.949 $\pm$ 0.000 & 3 $\pm$ 0 & 16 \\
+finnhub & quantum\_routed & 0.892 $\pm$ 0.000 & 0.892 $\pm$ 0.000 & 3 $\pm$ 0 & 16 \\
+finnhub & quantum\_routed & 0.899 $\pm$ 0.000 & 0.899 $\pm$ 0.000 & 3 $\pm$ 0 & 16 \\
+openf1 & quantum\_routed & 0.946 $\pm$ 0.000 & 0.946 $\pm$ 0.000 & 2 $\pm$ 0 & 16 \\
+spacex & quantum\_routed & 0.827 $\pm$ 0.000 & 0.827 $\pm$ 0.000 & 7 $\pm$ 0 & 16 \\
+spacex & quantum\_routed & 0.967 $\pm$ 0.000 & 0.967 $\pm$ 0.000 & 2 $\pm$ 0 & 16 \\
+openweather & quantum\_routed & 0.981 $\pm$ 0.000 & 0.981 $\pm$ 0.000 & 3 $\pm$ 0 & 16 \\
+openweather & quantum\_routed & 0.979 $\pm$ 0.000 & 0.979 $\pm$ 0.000 & 6 $\pm$ 0 & 16 \\
+openf1 & quantum\_routed & 0.976 $\pm$ 0.000 & 0.976 $\pm$ 0.000 & 1 $\pm$ 0 & 16 \\
+finnhub & quantum\_routed & 0.796 $\pm$ 0.000 & 0.796 $\pm$ 0.000 & 1 $\pm$ 0 & 16 \\
+spacex & quantum\_routed & 0.954 $\pm$ 0.000 & 0.954 $\pm$ 0.000 & 1 $\pm$ 0 & 16 \\
+openweather & quantum\_routed & 0.992 $\pm$ 0.000 & 0.992 $\pm$ 0.000 & 1 $\pm$ 0 & 16 \\ \hline
+\end{tabular}
+\end{table}
