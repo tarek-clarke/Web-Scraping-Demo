@@ -16,4 +16,9 @@ build/
 .initialized
 *.so
 logs/
-.venv-mac/
+
+# Gated weights, benchmarks, and tokens
+run_nemotron_benchmarks.py
+run_benchmarks_local.sh
+*token*
+*.key
