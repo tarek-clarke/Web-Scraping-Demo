@@ -9,7 +9,7 @@
 ### **ApexFlow AI**
 *Quantum-Resilient Telemetry Ingestion for Mission-Critical Edge*
 
-*   **Subtitle:** Autonomous, self-healing stream integration powered by AMD Instinct™ and Fireworks AI.
+*   **Subtitle:** Autonomous, self-healing stream integration powered by AMD Instinct™ ROCm/PyTorch.
 *   **Presenter:** Tarek Clarke
 *   **Visual:** A sleek dark-themed slide with a glowing neon cyan-and-green F1 telemetry wave animation.
 
@@ -31,7 +31,7 @@
 *   **Classify:** An 11-qubit Variational Quantum Classifier (VQC) evaluates drift features locally on the node in microseconds.
 *   **Heal:** Telemetry is reconstructed in real-time based on complexity:
     *   *Simple drifts:* Fixed locally on AMD GPUs using character-distance and BERT models (**$0$ token cost**).
-    *   *Complex drifts:* Reconstructed using generative models hosted on **Fireworks AI**.
+    *   *Complex drifts:* Reconstructed using generative models hosted directly on the local AMD Instinct GPU allocation via ROCm.
 
 ---
 
@@ -40,7 +40,7 @@
 
 *   **Quantum Edge Routing:** Local Qiskit Aer simulation maps query features to quantum angle configurations to run the VQC.
 *   **Local GPU Acceleration (ROCm):** Lightweight local BERT models execute on ROCm-compiled PyTorch, dropping active GPU utilization down to $15\%$.
-*   **Generative Scaling:** Offloads heavy structural mappings to Llama-3-70B running on AMD-powered Fireworks AI hardware.
+*   **Generative Scaling:** Deploys heavy generative models (Gemma-4-E4B-it / Qwen-2.5-7B) directly on the local AMD Instinct GPU allocation via ROCm/PyTorch.
 *   **Bypass Caching:** Caches resolved mappings, executing repeat anomalies in a near-instant $0.01\text{ ms}$.
 
 ---
@@ -82,7 +82,7 @@ Show Slide 2 and 3. Transition to showing the running dashboard page in the brow
 
 ### **Audio / Speaking Track**
 "Let's look at the live gateway in action. Here we have a simulated Formula 1 telemetry feed. When I inject structural schema chaos, the VQC immediately detects it. It maps simple key renames and value types to a local ROCm-accelerated BERT model—costing exactly zero remote tokens."
-"For complex structural shifts, the router escalates to Llama-3-70B on the Fireworks AI API. But once a schema anomaly is solved once, our bypass cache indexes it, executing subsequent matches in a blistering 0.01 milliseconds."
+"For complex structural shifts, the router escalates to generative models (Gemma/Qwen) hosted directly on the local AMD Instinct GPU allocation via ROCm. But once a schema anomaly is solved once, our bypass cache indexes it, executing subsequent matches in a blistering 0.01 milliseconds."
 
 ---
 
