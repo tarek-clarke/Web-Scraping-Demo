@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ApexFlow AI — Resilient Telemetry Gateway</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">🏎️</span>
+                <h1>ApexFlow <span class="accent">AI</span></h1>
+            </div>
+            
+            <nav class="nav-links">
+                <a href="#" class="active"><span class="icon">📊</span> Dashboard</a>
+                <a href="/pitch.md" target="_blank"><span class="icon">📄</span> Pitch Deck</a>
+                <a href="https://github.com/tarek-clarke/resilient-rap-framework" target="_blank"><span class="icon">💻</span> Codebase</a>
+            </nav>
+
+            <div class="status-panel">
+                <h2>Gateway Status</h2>
+                <div class="status-row">
+                    <span>VQC Router:</span>
+                    <span id="status-router" class="badge ok">AerSimulator</span>
+                </div>
+                <div class="status-row">
+                    <span>Fireworks AI:</span>
+                    <span id="status-fireworks" class="badge warning">No API Key</span>
+                </div>
+                <div class="status-row">
+                    <span>Active Driver:</span>
+                    <span id="status-driver" class="badge info">Alonso</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-title">
+                    <h2>Mission-Control Analytics</h2>
+                    <p>Live self-healing F1 telemetry pipeline on AMD Instinct GPU infrastructure.</p>
+                </div>
+                <div class="controls-bar">
+                    <div class="control-group">
+                        <label for="driver-select">Select Driver</label>
+                        <select id="driver-select">
+                            <option value="Fernando Alonso">Fernando Alonso</option>
+                            <option value="Lewis Hamilton">Lewis Hamilton</option>
+                            <option value="Max Verstappen">Max Verstappen</option>
+                            <option value="Charles Leclerc">Charles Leclerc</option>
+                        </select>
+                    </div>
+                    <button id="btn-pause" class="btn btn-primary">Pause Gateway</button>
+                </div>
+            </header>
+
+            <!-- Top Level Grid: Stats & Sliders -->
+            <section class="grid-3">
+                <!-- Interactive Chaos Injection -->
+                <div class="card glass">
+                    <h3>⚡ Chaos Inoculator</h3>
+                    <p class="subtitle">Simulate real-time edge telemetry degradation.</p>
+                    
+                    <div class="slider-group">
+                        <div class="slider-labels">
+                            <label for="slider-drift">Drift Injection Rate</label>
+                            <span id="drift-rate-value" class="accent text-bold">30%</span>
+                        </div>
+                        <input type="range" id="slider-drift" min="0" max="1" step="0.05" value="0.30">
+                    </div>
+
+                    <div class="radio-group">
+                        <label>Chaos Injection Method</label>
+                        <div class="radio-options">
+                            <label class="radio-container">
+                                <input type="radio" name="chaos-type" value="json_manip" checked>
+                                <span class="checkmark"></span> Schema Rename
+                            </label>
+                            <label class="radio-container">
+                                <input type="radio" name="chaos-type" value="schema_alter">
+                                <span class="checkmark"></span> Nested Structs
+                            </label>
+                            <label class="radio-container">
+                                <input type="radio" name="chaos-type" value="numeric_noise">
+                                <span class="checkmark"></span> Type Drift
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quantum Router Visualizer -->
+                <div class="card glass">
+                    <h3>🔮 Qiskit VQC Router</h3>
+                    <p class="subtitle">Variational Quantum Classifier active routing decisions.</p>
+                    
+                    <div class="router-details">
+                        <div class="decision-box">
+                            <span class="label">Last Decision:</span>
+                            <span id="routing-decision" class="decision-badge">passthrough</span>
+                        </div>
+                        <div class="decision-box">
+                            <span class="label">VQC Confidence:</span>
+                            <span id="routing-confidence" class="metric-highlight">100.0%</span>
+                        </div>
+                        <div class="decision-box">
+                            <span class="label">Router Latency:</span>
+                            <span id="routing-latency" class="metric-highlight">0.05 ms</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="router-progress" class="progress-bar" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <!-- AMD Instinct MI300X Status -->
+                <div class="card glass">
+                    <h3>🔥 AMD Instinct™ Telemetry</h3>
+                    <p class="subtitle">Headless ROCm sysfs diagnostics.</p>
+                    
+                    <div class="gpu-grid">
+                        <div class="gpu-metric">
+                            <span class="label">Junction Temp</span>
+                            <span id="gpu-temp" class="value">42.5°C</span>
+                        </div>
+                        <div class="gpu-metric">
+                            <span class="label">Power Draw</span>
+                            <span id="gpu-power" class="value">82.3 W</span>
+                        </div>
+                        <div class="gpu-metric">
+                            <span class="label">VRAM Usage</span>
+                            <span id="gpu-vram" class="value">128.0 MB</span>
+                        </div>
+                    </div>
+                    <div class="gpu-model-tag">
+                        <span>Platform: AMD Instinct MI300X (ROCm 6.1)</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Mid Section: Telemetry Charts -->
+            <section class="grid-2">
+                <div class="card glass chart-card">
+                    <h3>📈 Real-time Telemetry Analytics</h3>
+                    <canvas id="chart-telemetry"></canvas>
+                </div>
+                <div class="card glass chart-card">
+                    <h3>⚡ Latency Profile (Local vs Cloud LLM)</h3>
+                    <canvas id="chart-latency"></canvas>
+                </div>
+            </section>
+
+            <!-- Bottom Section: Code Diff Viewer -->
+            <section class="diff-viewer">
+                <div class="card glass full-width">
+                    <h3>🛠️ Payload Integrity Analyzer (JSON Diff)</h3>
+                    <p class="subtitle">Compare incoming corrupted JSON payloads with healed, reconciled data structures.</p>
+                    
+                    <div class="diff-container">
+                        <div class="diff-column">
+                            <h4>Original (Expected)</h4>
+                            <pre><code id="json-original" class="language-json">{}</code></pre>
+                        </div>
+                        <div class="diff-column corrupted">
+                            <h4>Corrupted payload (Received)</h4>
+                            <pre><code id="json-drifted" class="language-json">{}</code></pre>
+                        </div>
+                        <div class="diff-column healed">
+                            <h4>Healed payload (Reconciled)</h4>
+                            <pre><code id="json-reconciled" class="language-json">{}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="/static/index.js"></script>
+</body>
+</html>

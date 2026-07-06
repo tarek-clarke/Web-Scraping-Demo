@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  apexflow-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: apexflow-dashboard
+    ports:
+      - "5000:5000"
+    devices:
+      - "/dev/kfd:/dev/kfd"
+      - "/dev/dri:/dev/dri"
+    security_opt:
+      - seccomp=unconfined
+    group_add:
+      - video
+      - render
+    environment:
+      - IS_LUMI=0
+      - HF_HOME=/app/hf_cache
+      - FIREWORKS_API_KEY=${FIREWORKS_API_KEY}
+      - GEMMA_MODEL_ID=google/gemma-4-E4B-it
+      - NEMOTRON_MODEL_ID=Qwen/Qwen2.5-7B-Instruct
+    restart: unless-stopped

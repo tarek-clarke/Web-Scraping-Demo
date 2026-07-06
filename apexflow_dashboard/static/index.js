@@ -1,0 +1,312 @@
+// Chart instances
+let telemetryChart;
+let latencyChart;
+
+// Chart history arrays
+const chartHistoryLimit = 20;
+const speedData = [];
+const throttleData = [];
+const brakeData = [];
+const chartLabels = [];
+
+const gemmaLatencyData = [];
+const bertLatencyData = [];
+const localLatencyLabels = [];
+
+// Initialize SSE Stream Connection
+let eventSource;
+let isRunning = true;
+
+// DOM Elements
+const driverSelect = document.getElementById("driver-select");
+const sliderDrift = document.getElementById("slider-drift");
+const driftValueText = document.getElementById("drift-rate-value");
+const btnPause = document.getElementById("btn-pause");
+
+const statusRouter = document.getElementById("status-router");
+const statusFireworks = document.getElementById("status-fireworks");
+const statusDriver = document.getElementById("status-driver");
+
+const textRoutingDecision = document.getElementById("routing-decision");
+const textRoutingConfidence = document.getElementById("routing-confidence");
+const textRoutingLatency = document.getElementById("routing-latency");
+const progressBarRouter = document.getElementById("router-progress");
+
+const textGpuTemp = document.getElementById("gpu-temp");
+const textGpuPower = document.getElementById("gpu-power");
+const textGpuVram = document.getElementById("gpu-vram");
+
+const codeOriginal = document.getElementById("json-original");
+const codeDrifted = document.getElementById("json-drifted");
+const codeReconciled = document.getElementById("json-reconciled");
+
+// Initialize charts using Chart.js CDN
+function initCharts() {
+    // 1. Telemetry Chart
+    const ctxTelemetry = document.getElementById("chart-telemetry").getContext("2d");
+    telemetryChart = new Chart(ctxTelemetry, {
+        type: 'line',
+        data: {
+            labels: chartLabels,
+            datasets: [
+                {
+                    label: 'Speed (km/h)',
+                    data: speedData,
+                    borderColor: '#00bcd4',
+                    backgroundColor: 'rgba(0, 188, 212, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                },
+                {
+                    label: 'Throttle (%)',
+                    data: throttleData,
+                    borderColor: '#24d29b',
+                    backgroundColor: 'rgba(36, 210, 155, 0.05)',
+                    borderWidth: 1.5,
+                    tension: 0.3,
+                    fill: false
+                },
+                {
+                    label: 'Brake (%)',
+                    data: brakeData,
+                    borderColor: '#ff4772',
+                    backgroundColor: 'rgba(255, 71, 114, 0.05)',
+                    borderWidth: 1.5,
+                    tension: 0.3,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { display: false },
+                y: {
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { color: '#90a4ae' }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: { color: '#f1f3f9', font: { family: 'Outfit' } }
+                }
+            }
+        }
+    });
+
+    // 2. Latency Comparison Chart
+    const ctxLatency = document.getElementById("chart-latency").getContext("2d");
+    latencyChart = new Chart(ctxLatency, {
+        type: 'bar',
+        data: {
+            labels: localLatencyLabels,
+            datasets: [
+                {
+                    label: 'Routed Reconciler (Local Edge)',
+                    data: bertLatencyData,
+                    backgroundColor: '#24d29b',
+                    borderColor: '#24d29b',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Fireworks AI (Cloud LLM)',
+                    data: gemmaLatencyData,
+                    backgroundColor: 'rgba(0, 188, 212, 0.6)',
+                    borderColor: '#00bcd4',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { display: false },
+                y: {
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { color: '#90a4ae' }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: { color: '#f1f3f9', font: { family: 'Outfit' } }
+                }
+            }
+        }
+    });
+}
+
+// Fetch status from Flask on boot
+async function checkBackendStatus() {
+    try {
+        const response = await fetch("/status");
+        const data = await response.json();
+        
+        // Update credentials status tags
+        if (data.imports_loaded) {
+            statusRouter.textContent = "AerSimulator";
+            statusRouter.className = "badge ok";
+        } else {
+            statusRouter.textContent = "Classical Mock";
+            statusRouter.className = "badge info";
+        }
+
+        if (data.fireworks_configured) {
+            statusFireworks.textContent = "Fireworks Configured";
+            statusFireworks.className = "badge ok";
+        } else {
+            statusFireworks.textContent = "Local Mock LLM";
+            statusFireworks.className = "badge warning";
+        }
+    } catch (e) {
+        console.error("Failed to fetch backend status:", e);
+    }
+}
+
+// Post configuration changes to backend
+async function updateBackendConfig(payload) {
+    try {
+        await fetch("/config", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+    } catch (e) {
+        console.error("Failed to update backend config:", e);
+    }
+}
+
+// Connect to the Flask Server Sent Events (SSE) route
+function connectStream() {
+    if (eventSource) {
+        eventSource.close();
+    }
+
+    eventSource = new EventSource("/stream");
+
+    eventSource.onmessage = function(event) {
+        const payload = JSON.parse(event.data);
+        
+        // 1. Update JSON Diff Viewer
+        codeOriginal.textContent = JSON.stringify(payload.original.data, null, 2);
+        if (payload.drifted) {
+            codeDrifted.textContent = JSON.stringify(payload.drifted.data, null, 2);
+            codeReconciled.textContent = JSON.stringify(payload.reconciled.data, null, 2);
+        } else {
+            codeDrifted.textContent = "// Payload Intact (No drift injected)";
+            codeReconciled.textContent = "// Payload Intact (No reconciliation needed)";
+        }
+
+        // 2. Update Quantum Router Info
+        const routedTo = payload.routing.decision;
+        textRoutingDecision.textContent = routedTo;
+        
+        // Add styling based on decision tier
+        if (routedTo === "passthrough") {
+            textRoutingDecision.className = "decision-badge";
+        } else if (routedTo === "bert") {
+            textRoutingDecision.className = "decision-badge ok";
+        } else {
+            textRoutingDecision.className = "decision-badge info"; // LLM Cloud Tier
+        }
+
+        textRoutingConfidence.textContent = `${(payload.routing.confidence * 100).toFixed(1)}%`;
+        textRoutingLatency.textContent = `${payload.routing.latency_ms.toFixed(2)} ms`;
+        progressBarRouter.style.width = `${payload.routing.confidence * 100}%`;
+
+        // 3. Update GPU metrics
+        textGpuTemp.textContent = `${payload.gpu.temperature_c.toFixed(1)}°C`;
+        textGpuPower.textContent = `${payload.gpu.power_w.toFixed(1)} W`;
+        textGpuVram.textContent = `${payload.gpu.vram_mb.toFixed(1)} MB`;
+
+        // 4. Update real-time charts history
+        const f1Data = payload.original.data;
+        chartLabels.push(payload.packet_idx);
+        speedData.push(f1Data.speed);
+        throttleData.push(f1Data.throttle);
+        brakeData.push(f1Data.brake);
+
+        if (chartLabels.length > chartHistoryLimit) {
+            chartLabels.shift();
+            speedData.shift();
+            throttleData.shift();
+            brakeData.shift();
+        }
+        telemetryChart.update();
+
+        // 5. Update latency profiles comparison chart
+        localLatencyLabels.push(payload.packet_idx);
+        
+        if (routedTo in ["gemma_e4b", "nemotron"]) {
+            gemmaLatencyData.push(payload.routing.latency_ms);
+            bertLatencyData.push(0);
+        } else {
+            bertLatencyData.push(payload.routing.latency_ms);
+            gemmaLatencyData.push(0);
+        }
+
+        if (localLatencyLabels.length > chartHistoryLimit) {
+            localLatencyLabels.shift();
+            gemmaLatencyData.shift();
+            bertLatencyData.shift();
+        }
+        latencyChart.update();
+    };
+
+    eventSource.onerror = function() {
+        console.error("SSE connection closed or lost. Retrying...");
+        eventSource.close();
+        setTimeout(connectStream, 2000);
+    };
+}
+
+// Interactive control events listener
+function registerListeners() {
+    driverSelect.addEventListener("change", function() {
+        statusDriver.textContent = this.value.split(" ")[1];
+        updateBackendConfig({ active_driver: this.value });
+    });
+
+    sliderDrift.addEventListener("input", function() {
+        const percent = Math.round(this.value * 100);
+        driftValueText.textContent = `${percent}%`;
+    });
+
+    sliderDrift.addEventListener("change", function() {
+        updateBackendConfig({ drift_rate: this.value });
+    });
+
+    // Chaos selection radios
+    const radios = document.getElementsByName("chaos-type");
+    radios.forEach(radio => {
+        radio.addEventListener("change", function() {
+            if (this.checked) {
+                updateBackendConfig({ chaos_type: this.value });
+            }
+        });
+    });
+
+    // Pause/Play Gateway button
+    btnPause.addEventListener("click", function() {
+        isRunning = !isRunning;
+        if (isRunning) {
+            this.textContent = "Pause Gateway";
+            this.className = "btn btn-primary";
+            updateBackendConfig({ is_running: true });
+        } else {
+            this.textContent = "Resume Gateway";
+            this.className = "btn btn-pause-active";
+            updateBackendConfig({ is_running: false });
+        }
+    });
+}
+
+// Initial Boot
+document.addEventListener("DOMContentLoaded", () => {
+    initCharts();
+    checkBackendStatus();
+    connectStream();
+    registerListeners();
+});
