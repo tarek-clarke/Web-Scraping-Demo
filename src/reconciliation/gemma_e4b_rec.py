@@ -17,7 +17,7 @@ class GemmaE4BReconciler:
         if self._llm is None:
             from ..inference.llm_manager import LLMManager
             import os as _os
-            model_id = _os.environ.get("HF_MODEL_ID", "google/gemma-4-E4B-it")
+            model_id = _os.environ.get("GEMMA_MODEL_ID", _os.environ.get("HF_MODEL_ID", "google/gemma-4-E4B-it"))
             device = "cuda" if self.hardware_profile in ("cuda", "rocm") else "mps" if self.hardware_profile == "silicon" else "cpu"
             self._llm = LLMManager(
                 model_id=model_id,

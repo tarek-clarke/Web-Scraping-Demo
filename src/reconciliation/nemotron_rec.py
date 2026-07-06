@@ -22,7 +22,7 @@ class NemotronReconciler:
             from ..inference.llm_manager import LLMManager
             import os as _os
             # Default to Nemotron-4-Mini-15B-Instruct or override via HF_MODEL_ID
-            model_id = _os.environ.get("HF_MODEL_ID", "nvidia/Nemotron-4-Mini-15B-Instruct")
+            model_id = _os.environ.get("NEMOTRON_MODEL_ID", _os.environ.get("HF_MODEL_ID", "Qwen/Qwen2.5-7B-Instruct"))
             device = "cuda" if self.hardware_profile in ("cuda", "rocm") else "mps" if self.hardware_profile == "silicon" else "cpu"
             self._llm = LLMManager(
                 model_id=model_id,
