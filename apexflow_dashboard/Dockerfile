@@ -1,12 +1,11 @@
-# Use official AMD ROCm PyTorch base image for native GPU acceleration
+# ApexFlow AI — Track 3: Unicorn Track
+# Full AMD ROCm PyTorch base for native GPU acceleration on Instinct MI300X
 FROM rocm/pytorch:rocm-6.1-py3.10
 
-# Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     HF_HOME=/app/hf_cache
 
-# Set working directory
 WORKDIR /app
 
 # Install system dependencies
@@ -15,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install python packages
+# Install Python packages
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
     Flask>=3.0.0 \
@@ -27,8 +26,12 @@ RUN pip install --no-cache-dir --upgrade pip && \
     qiskit-aer>=0.14.0 \
     Levenshtein>=0.20.0
 
-# Copy application files
-COPY . /app
+# Copy the routing module from the repo root
+COPY src/ /app/src/
+
+# Copy dashboard application files
+COPY apexflow_dashboard/app.py /app/app.py
+COPY apexflow_dashboard/static/ /app/static/
 
 # Expose port
 EXPOSE 5000

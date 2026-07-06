@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  qroute-agent:
+    build:
+      context: ..
+      dockerfile: track1_agent/Dockerfile
+    container_name: qroute-agent
+    ports:
+      - "8080:8080"
+    environment:
+      - FIREWORKS_API_KEY=${FIREWORKS_API_KEY}
+      - LOCAL_MODEL_ID=${LOCAL_MODEL_ID:-Qwen/Qwen2.5-7B-Instruct}
+      - FIREWORKS_MODEL_ID=${FIREWORKS_MODEL_ID:-accounts/fireworks/models/llama-v3-70b-instruct}
+      - CONFIDENCE_THRESHOLD=${CONFIDENCE_THRESHOLD:-0.55}
+      - QUALITY_THRESHOLD=${QUALITY_THRESHOLD:-0.6}
+      - HF_HOME=/app/hf_cache
+    volumes:
+      - hf_cache:/app/hf_cache
+    restart: unless-stopped
+
+volumes:
+  hf_cache:

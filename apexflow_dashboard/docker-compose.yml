@@ -3,8 +3,8 @@ version: '3.8'
 services:
   apexflow-gateway:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: apexflow_dashboard/Dockerfile
     container_name: apexflow-dashboard
     ports:
       - "5000:5000"
