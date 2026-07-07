@@ -380,6 +380,30 @@ def _fireworks_inference(query: str, system_prompt: str, max_tokens: int = 256, 
         raise
 
 
+MAX_TOKENS_PER_CATEGORY = {
+    "sentiment": 10,
+    "math": 200,
+    "factual": 150,
+    "summarization": 80,
+    "ner": 80,
+    "code_debug": 250,
+    "code_gen": 250,
+    "logic": 150,
+}
+
+SYSTEM_PROMPTS = {
+    "default": "Answer concisely. No reasoning or filler.",
+    "sentiment": "Reply with only: positive, negative, or neutral.",
+    "math": "Solve step by step. End with 'Answer: $X'.",
+    "logic": "Do NOT write 'We are given' or 'We need to'. Output ONLY: Pos1=X, Pos2=X, Pos3=X, Pos4=X, Pos5=X",
+    "code_debug": "Output only the corrected code block. No explanations.",
+    "code_gen": "Output only the code. No explanations.",
+    "ner": "Output only: Entity: Label, one per line.",
+    "summarization": "Output only the summary.",
+    "factual": "Answer concisely in 1-2 sentences.",
+}
+
+
 def _select_model_for_query(query: str) -> str:
     """Pick cheapest model that can handle the task accurately."""
     category = _detect_category(query)
@@ -398,12 +422,11 @@ def run_remote_model(query: str) -> str:
         return "[FIREWORKS_API_KEY environment variable missing]"
 
     try:
-        system_prompt = (
-            "Output ONLY the final answer. NO reasoning, NO 'We are given', NO 'Let me', NO explanations. "
-            "Code tasks: only code block. Logic: only solution like 'Pos1=Alice, Pos2=Bob...'. Math: only answer."
-        )
+        category = _detect_category(query)
+        system_prompt = SYSTEM_PROMPTS.get(category, SYSTEM_PROMPTS["default"])
+        max_tokens = MAX_TOKENS_PER_CATEGORY.get(category, 200)
         model = _select_model_for_query(query)
-        return _fireworks_inference(query, system_prompt, model=model)
+        return _fireworks_inference(query, system_prompt, max_tokens=max_tokens, model=model)
     except Exception as e:
         _record_usage(_current_task_id or "?", "remote")
         return f"[Fireworks API Error: {e}]"
@@ -535,28 +558,14 @@ def run_fireworks_confirm(prompt: str, draft: str) -> str:
         return draft
 
     try:
-        system_prompt = (
-            "You are a verification layer for an LLM-Judge evaluation harness. "
-            "Your goal: maximize accuracy with minimum tokens.\n\n"
-            "DOMAINS: Factual, Math, Sentiment, Summarization, NER, Code Debug, Logic, Code Gen.\n\n"
-            "RULES:\n"
-            "1. If the draft is correct, output it EXACTLY as-is. No filler, no preambles.\n"
-            "2. If the draft is wrong/incomplete, output ONLY the corrected answer.\n"
-            "3. For code tasks: output only the code block, no explanations.\n"
-            "4. For math: output only the final numeric answer and brief steps.\n"
-            "5. For logic: output only the final solution.\n"
-            "6. Never output reasoning, meta-commentary, or phrases like 'We are asked' or 'Let me'.\n"
-            "7. If JSON is required, output only valid JSON.\n"
-        )
+        category = _detect_category(prompt)
+        system_prompt = SYSTEM_PROMPTS.get(category, SYSTEM_PROMPTS["default"])
+        max_tokens = MAX_TOKENS_PER_CATEGORY.get(category, 200)
 
-        user_content = (
-            f"[TASK PROMPT]:\n{prompt[:500]}\n\n"
-            f"[LOCAL DRAFT ANSWER]:\n{draft[:800]}\n\n"
-            f"Final High-Accuracy Solution:"
-        )
+        user_content = f"Q: {prompt[:300]}\nDraft: {draft[:500]}\nAnswer:"
 
         model = _select_model_for_query(prompt)
-        return _fireworks_inference(user_content, system_prompt, max_tokens=256, model=model)
+        return _fireworks_inference(user_content, system_prompt, max_tokens=max_tokens, model=model)
     except Exception:
         _record_usage(_current_task_id or "?", "local")
         return draft
@@ -602,12 +611,12 @@ def clean_target_output(text: str, category: str) -> str:
             return m.group(1).lower()
 
     if category == "math":
-        m = _RE_DOLLAR.search(cleaned)
-        if m:
-            return m.group(0)
-        m = _RE_NUMBER.search(cleaned)
-        if m:
-            return m.group(1).strip()
+        matches = _RE_DOLLAR.findall(cleaned)
+        if matches:
+            return matches[-1]
+        matches = _RE_NUMBER.findall(cleaned)
+        if matches:
+            return matches[-1].strip()
 
     cleaned = cleaned.strip()
     cleaned = _RE_TRAILING_LINES.sub("\n", cleaned)
