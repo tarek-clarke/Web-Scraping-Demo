@@ -563,6 +563,59 @@ def run_fireworks_confirm(prompt: str, draft: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Output Cleaner — strips non-essential tokens before writing to JSON
+# ---------------------------------------------------------------------------
+
+_RE_FENCE_START = re.compile(r"^\s*```[a-zA-Z]*\s*\n?", re.MULTILINE)
+_RE_FENCE_END = re.compile(r"\n?```\s*$", re.MULTILINE)
+_RE_SENTIMENT = re.compile(r"\b(positive|negative|neutral)\b", re.IGNORECASE)
+_RE_DOLLAR = re.compile(r"\$[\d,]+(?:\.\d+)?")
+_RE_NUMBER = re.compile(r"(?:^|\s|=|:)\s*(-?\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(?:%|km/?h|kg|m|s|°|dollars?|euros?|\$)?\s*$", re.MULTILINE)
+_RE_TRAILING_LINES = re.compile(r"\n{2,}$")
+_RE_CARRIAGE = re.compile(r"\r")
+
+
+def clean_target_output(text: str, category: str) -> str:
+    if not text:
+        return text
+
+    cleaned = _RE_CARRIAGE.sub("", text)
+
+    if "```" in cleaned:
+        lines = cleaned.split("\n")
+        inside = False
+        extracted = []
+        for line in lines:
+            stripped_line = line.strip()
+            if stripped_line.startswith("```") and not inside:
+                inside = True
+                continue
+            elif stripped_line == "```" and inside:
+                inside = False
+                continue
+            extracted.append(line)
+        cleaned = "\n".join(extracted)
+
+    if category == "sentiment":
+        m = _RE_SENTIMENT.search(cleaned)
+        if m:
+            return m.group(1).lower()
+
+    if category == "math":
+        m = _RE_DOLLAR.search(cleaned)
+        if m:
+            return m.group(0)
+        m = _RE_NUMBER.search(cleaned)
+        if m:
+            return m.group(1).strip()
+
+    cleaned = cleaned.strip()
+    cleaned = _RE_TRAILING_LINES.sub("\n", cleaned)
+
+    return cleaned
+
+
+# ---------------------------------------------------------------------------
 # Main Execution Entrypoint
 # ---------------------------------------------------------------------------
 
@@ -601,6 +654,8 @@ def main():
         _current_task_id = task_id
 
         answer = process_task(prompt, router, extractor)
+        category = _detect_category(prompt)
+        answer = clean_target_output(answer, category)
 
         results.append({
             "task_id": task_id,
