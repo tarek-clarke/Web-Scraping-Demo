@@ -28,3 +28,6 @@ results.json
 # Presentation decks and scripts
 *presentation.md
 *script.md
+
+# Offline cache directory
+track1_agent/hf_cache/

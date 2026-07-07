@@ -29,8 +29,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
     torch>=2.0.0 \
     accelerate>=0.25.0
 
-# Copy Track 1 agent files
+# Copy Track 1 agent files and pre-downloaded model weights
 COPY track1_agent/ /app/
+COPY track1_agent/hf_cache/ /app/hf_cache/
 
 # Expose API port
 EXPOSE 8080

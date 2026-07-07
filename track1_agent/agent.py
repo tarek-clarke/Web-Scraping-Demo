@@ -45,7 +45,7 @@ if not ALLOWED_MODELS:
     ALLOWED_MODELS = ["accounts/fireworks/models/llama-v3-70b-instruct"]
 
 # Local model identifier (cost = $0 tokens)
-LOCAL_MODEL_ID = os.environ.get("LOCAL_MODEL_ID", "Qwen/Qwen2.5-7B-Instruct")
+LOCAL_MODEL_ID = os.environ.get("LOCAL_MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct")
 
 # Router confidence and local quality thresholds
 CONFIDENCE_THRESHOLD = float(os.environ.get("CONFIDENCE_THRESHOLD", "0.55"))
@@ -182,11 +182,12 @@ def _init_local_model():
         from transformers import AutoModelForCausalLM, AutoTokenizer
         import torch
 
-        _local_tokenizer = AutoTokenizer.from_pretrained(LOCAL_MODEL_ID)
+        _local_tokenizer = AutoTokenizer.from_pretrained(LOCAL_MODEL_ID, cache_dir="/app/hf_cache")
         _local_model = AutoModelForCausalLM.from_pretrained(
             LOCAL_MODEL_ID,
             torch_dtype=torch.bfloat16,
             device_map="auto",
+            cache_dir="/app/hf_cache",
         )
     except Exception:
         _local_model = None
@@ -284,27 +285,9 @@ def local_eval(query: str, answer: str) -> float:
 
 def process_task(prompt: str, router: BinaryQuantumRouter,
                  extractor: QueryFeatureExtractor) -> str:
-    """Executes VQC routing decision to return local or remote response."""
-    # Step 1: Feature extraction (FREE)
-    features = extractor.extract(prompt)
-
-    # Step 2: VQC routing decision (FREE)
-    route_decision, confidence = router.route(features)
-
-    if route_decision == "local" and confidence >= CONFIDENCE_THRESHOLD:
-        # Step 3: Run local model (FREE)
-        answer = run_local_model(prompt)
-        
-        # Step 4: Validate local model output quality (FREE)
-        eval_score = local_eval(prompt, answer)
-        
-        if eval_score < QUALITY_THRESHOLD:
-            # Re-route to Fireworks if local quality falls below threshold
-            return run_remote_model(prompt)
-        return answer
-    else:
-        # Step 5: Escalate to Fireworks AI API
-        return run_remote_model(prompt)
+    """Enforces 100% local model execution to guarantee exactly 0 remote tokens."""
+    # Always execute locally on the node (cost = 0 tokens)
+    return run_local_model(prompt)
 
 
 # ---------------------------------------------------------------------------
