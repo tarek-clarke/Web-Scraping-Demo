@@ -189,6 +189,9 @@ function connectStream() {
 
     eventSource.onmessage = function(event) {
         const payload = JSON.parse(event.data);
+        if (statusDriver && payload.original.data.driver) {
+            statusDriver.textContent = payload.original.data.driver;
+        }
         
         // 1. Update JSON Diff Viewer
         codeOriginal.textContent = JSON.stringify(payload.original.data, null, 2);
