@@ -46,6 +46,15 @@ ALLOWED_MODELS = [m.strip() for m in ALLOWED_MODELS_ENV.split(",") if m.strip()]
 if not ALLOWED_MODELS:
     ALLOWED_MODELS = ["accounts/fireworks/models/deepseek-v4-pro"]
 
+# Prefer Gemma models for the $6K Gemma prize — auto-select from ALLOWED_MODELS
+def _select_gemma_model():
+    for m in ALLOWED_MODELS:
+        if "gemma" in m.lower():
+            return m
+    return None
+
+GEMMA_MODEL = _select_gemma_model()
+
 # Local model identifier (cost = $0 tokens)
 LOCAL_MODEL_ID = os.environ.get("LOCAL_MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct")
 LOCAL_MODEL_PATH = os.environ.get("LOCAL_MODEL_PATH", "/app/hf_cache/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/latest")
@@ -303,38 +312,58 @@ def _print_stats():
 _current_task_id = None
 
 
-def run_remote_model(query: str) -> str:
-    """Run inference on Fireworks AI API using injected variables."""
-    if not FIREWORKS_API_KEY:
-        _record_usage(_current_task_id or "?", "remote")
-        return "[FIREWORKS_API_KEY environment variable missing]"
+def _fireworks_inference(query: str, system_prompt: str, max_tokens: int = 256) -> str:
+    """Call Fireworks API — tries chat, falls back to completions for Gemma."""
+    import openai
+
+    client = openai.OpenAI(
+        base_url=FIREWORKS_BASE_URL,
+        api_key=FIREWORKS_API_KEY,
+    )
+
+    model = GEMMA_MODEL or ALLOWED_MODELS[0]
 
     try:
-        import openai
-
-        client = openai.OpenAI(
-            base_url=FIREWORKS_BASE_URL,
-            api_key=FIREWORKS_API_KEY,
-        )
-
-        model = ALLOWED_MODELS[0]
-
-        system_prompt = (
-            "Output ONLY the final answer. NO reasoning, NO 'We are given', NO 'Let me', NO explanations. "
-            "Code tasks: only code block. Logic: only solution like 'Pos1=Alice, Pos2=Bob...'. Math: only answer."
-        )
-
         response = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": query},
             ],
-            temperature=0.1,
-            max_tokens=256,
+            temperature=0.0,
+            max_tokens=max_tokens,
         )
         _record_usage(_current_task_id or "?", "remote", response.usage)
         return response.choices[0].message.content.strip()
+    except Exception as chat_err:
+        if "chat template" in str(chat_err).lower() or "chat_template" in str(chat_err).lower():
+            full_prompt = (
+                f"<start_of_turn>user\n{system_prompt}\n\n{query}<end_of_turn>\n"
+                f"<start_of_turn>model\n"
+            )
+            response = client.completions.create(
+                model=model,
+                prompt=full_prompt,
+                temperature=0.0,
+                max_tokens=max_tokens,
+                stop=["<end_of_turn>"],
+            )
+            _record_usage(_current_task_id or "?", "remote", response.usage)
+            return response.choices[0].text.strip()
+        raise
+
+
+def run_remote_model(query: str) -> str:
+    if not FIREWORKS_API_KEY:
+        _record_usage(_current_task_id or "?", "remote")
+        return "[FIREWORKS_API_KEY environment variable missing]"
+
+    try:
+        system_prompt = (
+            "Output ONLY the final answer. NO reasoning, NO 'We are given', NO 'Let me', NO explanations. "
+            "Code tasks: only code block. Logic: only solution like 'Pos1=Alice, Pos2=Bob...'. Math: only answer."
+        )
+        return _fireworks_inference(query, system_prompt)
     except Exception as e:
         _record_usage(_current_task_id or "?", "remote")
         return f"[Fireworks API Error: {e}]"
@@ -468,15 +497,6 @@ def run_fireworks_confirm(prompt: str, draft: str) -> str:
         return draft
 
     try:
-        import openai
-
-        client = openai.OpenAI(
-            base_url=FIREWORKS_BASE_URL,
-            api_key=FIREWORKS_API_KEY,
-        )
-
-        model = ALLOWED_MODELS[0]
-
         system_prompt = (
             "You are a verification layer for an LLM-Judge evaluation harness. "
             "Your goal: maximize accuracy with minimum tokens.\n\n"
@@ -497,17 +517,7 @@ def run_fireworks_confirm(prompt: str, draft: str) -> str:
             f"Final High-Accuracy Solution:"
         )
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content},
-            ],
-            temperature=0.0,
-            max_tokens=256,
-        )
-        _record_usage(_current_task_id or "?", "remote", response.usage)
-        return response.choices[0].message.content.strip()
+        return _fireworks_inference(user_content, system_prompt, max_tokens=256)
     except Exception:
         _record_usage(_current_task_id or "?", "local")
         return draft
