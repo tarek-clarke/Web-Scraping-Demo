@@ -47,13 +47,36 @@ if not ALLOWED_MODELS:
     ALLOWED_MODELS = ["accounts/fireworks/models/deepseek-v4-pro"]
 
 # Prefer Gemma models for the $6K Gemma prize — auto-select from ALLOWED_MODELS
+# Gemma can be identified by "gemma" in model ID OR by a known deployment ID
+GEMMA_DEPLOYMENT_IDS = set(os.environ.get("GEMMA_DEPLOYMENT_IDS", "").split(","))
+
+def _is_gemma(model_id: str) -> bool:
+    if "gemma" in model_id.lower():
+        return True
+    return model_id in GEMMA_DEPLOYMENT_IDS
+
 def _select_gemma_model():
     for m in ALLOWED_MODELS:
-        if "gemma" in m.lower():
+        if _is_gemma(m):
             return m
     return None
 
 GEMMA_MODEL = _select_gemma_model()
+
+# Select a strong non-Gemma model for complex tasks
+def _select_strong_model():
+    for m in ALLOWED_MODELS:
+        if not _is_gemma(m):
+            return m
+    return ALLOWED_MODELS[0] if ALLOWED_MODELS else None
+
+STRONG_MODEL = _select_strong_model()
+
+# Categories that need a strong model (math/code/logic require accuracy)
+COMPLEX_CATEGORIES = {"math", "code_debug", "code_gen", "logic"}
+
+# Categories where Gemma is sufficient (factual/sentiment/summarization/NER)
+SIMPLE_CATEGORIES = {"factual", "sentiment", "summarization", "ner"}
 
 # Local model identifier (cost = $0 tokens)
 LOCAL_MODEL_ID = os.environ.get("LOCAL_MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct")
@@ -312,7 +335,7 @@ def _print_stats():
 _current_task_id = None
 
 
-def _fireworks_inference(query: str, system_prompt: str, max_tokens: int = 256) -> str:
+def _fireworks_inference(query: str, system_prompt: str, max_tokens: int = 256, model: str = None) -> str:
     """Call Fireworks API — tries chat, falls back to completions for Gemma."""
     import openai
 
@@ -321,9 +344,13 @@ def _fireworks_inference(query: str, system_prompt: str, max_tokens: int = 256) 
         api_key=FIREWORKS_API_KEY,
     )
 
-    model = GEMMA_MODEL or ALLOWED_MODELS[0]
+    if model is None:
+        model = GEMMA_MODEL or ALLOWED_MODELS[0]
+    is_gemma = _is_gemma(model)
 
     try:
+        if is_gemma:
+            raise Exception("chat template not allowed — use completions for Gemma")
         response = client.chat.completions.create(
             model=model,
             messages=[
@@ -336,7 +363,7 @@ def _fireworks_inference(query: str, system_prompt: str, max_tokens: int = 256) 
         _record_usage(_current_task_id or "?", "remote", response.usage)
         return response.choices[0].message.content.strip()
     except Exception as chat_err:
-        if "chat template" in str(chat_err).lower() or "chat_template" in str(chat_err).lower():
+        if is_gemma or "chat template" in str(chat_err).lower() or "chat_template" in str(chat_err).lower():
             full_prompt = (
                 f"<start_of_turn>user\n{system_prompt}\n\n{query}<end_of_turn>\n"
                 f"<start_of_turn>model\n"
@@ -353,6 +380,18 @@ def _fireworks_inference(query: str, system_prompt: str, max_tokens: int = 256) 
         raise
 
 
+def _select_model_for_query(query: str) -> str:
+    """Pick cheapest model that can handle the task accurately."""
+    category = _detect_category(query)
+    if category in COMPLEX_CATEGORIES and STRONG_MODEL:
+        print(f"[Q-Route] Category={category} -> STRONG model ({STRONG_MODEL})")
+        return STRONG_MODEL
+    if GEMMA_MODEL:
+        print(f"[Q-Route] Category={category} -> GEMMA model ({GEMMA_MODEL})")
+        return GEMMA_MODEL
+    return ALLOWED_MODELS[0]
+
+
 def run_remote_model(query: str) -> str:
     if not FIREWORKS_API_KEY:
         _record_usage(_current_task_id or "?", "remote")
@@ -363,7 +402,8 @@ def run_remote_model(query: str) -> str:
             "Output ONLY the final answer. NO reasoning, NO 'We are given', NO 'Let me', NO explanations. "
             "Code tasks: only code block. Logic: only solution like 'Pos1=Alice, Pos2=Bob...'. Math: only answer."
         )
-        return _fireworks_inference(query, system_prompt)
+        model = _select_model_for_query(query)
+        return _fireworks_inference(query, system_prompt, model=model)
     except Exception as e:
         _record_usage(_current_task_id or "?", "remote")
         return f"[Fireworks API Error: {e}]"
@@ -392,15 +432,13 @@ def _detect_category(query: str) -> str:
         return "summarization"
     if re.search(r"extract.*entit(?:y|ies)|named entity|ner\b|person.*org|label.*entit", q):
         return "ner"
-    if re.search(r"bug|debug|fix.*code|error.*in.*code|what'?s wrong", q):
+    if re.search(r"bug|debug|fix.*code|error.*in.*code|what'?s wrong.*code|find.*bug", q):
         return "code_debug"
     if re.search(r"def\s+\w+|function|write.*(?:code|program|script)|implement", q):
         return "code_gen"
-    if re.search(r"```|import\s+\w+|class\s+\w+", q):
-        return "code_debug"
-    if re.search(r"solve|calculat|arithmet|percent|equation|\d+\s*[\+\-\*\/]\s*\d+|if.*then.*how", q):
+    if re.search(r"solve|calculat|arithmet|percent|discount|\d+\s*[\+\-\*\/]\s*\d+|if.*then.*how|how much|how many|total cost|average speed", q):
         return "math"
-    if re.search(r"logic|puzzle|constraint|deduc|who.*lives|arrangement", q):
+    if re.search(r"logic|puzzle|constraint|deduc|who.*lives|arrangement|sit.*in.*row|who sits where|friends.*sit|seating", q):
         return "logic"
     return "factual"
 
@@ -517,7 +555,8 @@ def run_fireworks_confirm(prompt: str, draft: str) -> str:
             f"Final High-Accuracy Solution:"
         )
 
-        return _fireworks_inference(user_content, system_prompt, max_tokens=256)
+        model = _select_model_for_query(prompt)
+        return _fireworks_inference(user_content, system_prompt, max_tokens=256, model=model)
     except Exception:
         _record_usage(_current_task_id or "?", "local")
         return draft
