@@ -1,0 +1,113 @@
+Metadata-Version: 2.4
+Name: qiskit-algorithms
+Version: 0.4.0
+Summary: Qiskit Algorithms: A library of quantum computing algorithms
+Home-page: https://github.com/qiskit-community/qiskit-algorithms
+Author: Qiskit Algorithms Development Team
+Author-email: qiskit@us.ibm.com
+License: Apache-2.0
+Project-URL: Bug Tracker, https://github.com/qiskit-community/qiskit-algorithms/issues
+Project-URL: Documentation, https://qiskit-community.github.io/qiskit-algorithms/
+Project-URL: Source Code, https://github.com/qiskit-community/qiskit-algorithms
+Keywords: qiskit sdk quantum algorithms
+Classifier: Environment :: Console
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: MacOS
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Scientific/Engineering
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE.txt
+Requires-Dist: qiskit>=1.0
+Requires-Dist: scipy>=1.4
+Requires-Dist: numpy>=1.17
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license
+Dynamic: license-file
+Dynamic: project-url
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# Qiskit Algorithms
+
+[![License](https://img.shields.io/github/license/qiskit-community/qiskit-algorithms.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)
+
+> [!WARNING]  
+> **Qiskit Algorithms is no longer officially supported by IBM**.  
+> Like any other Apache 2 licensed code, you are free to use it or/and extend it, but please be aware that it is under your own risk. 
+
+## Installation
+
+We encourage installing Qiskit Algorithms via the pip tool (a python package manager).
+
+```bash
+pip install qiskit-algorithms
+```
+
+**pip** will handle all dependencies automatically and you will always install the latest
+(and well-tested) version.
+
+If you want to work on the very latest work-in-progress versions, either to try features ahead of
+their official release or if you want to contribute to Algorithms, then you can install from source.
+To do this follow the instructions in the
+ [documentation](https://qiskit-community.github.io/qiskit-algorithms/getting_started.html#installation).
+
+
+----------------------------------------------------------------------------------------------------
+
+### Optional Installs
+
+Some optimization algorithms require specific libraries to be run:
+
+* **Scikit-quant**, may be installed using the command `pip install scikit-quant`.
+
+* **SnobFit**, may be installed using the command `pip install SQSnobFit`.
+
+* **NLOpt**, may be installed using the command `pip install nlopt`.
+
+[//]: # (### Creating Your First Algorithm in Qiskit)
+
+[//]: # (### Further examples)
+
+----------------------------------------------------------------------------------------------------
+
+## Contribution Guidelines
+
+If you'd like to contribute to Qiskit Algorithms, please take a look at our
+[contribution guidelines](https://github.com/qiskit-community/qiskit-algorithms/blob/main/CONTRIBUTING.md).
+This project adheres to Qiskit's [code of conduct](https://github.com/qiskit-community/qiskit-algorithms/blob/main/CODE_OF_CONDUCT.md).
+By participating, you are expected to uphold this code.
+
+We use [GitHub issues](https://github.com/qiskit-community/qiskit-algorithms/issues) for tracking requests and bugs. Please
+[join the Qiskit Slack community](https://qisk.it/join-slack)
+and for discussion and simple questions.
+For questions that are more suited for a forum, we use the **Qiskit** tag in [Stack Overflow](https://stackoverflow.com/questions/tagged/qiskit).
+
+## Authors and Citation
+
+Qiskit Algorithms was inspired, authored and brought about by the collective work of a team of researchers.
+Algorithms continues to grow with the help and work of
+[many people](https://github.com/qiskit-community/qiskit-algorithms/graphs/contributors), who contribute
+to the project at different levels.
+If you use Qiskit, please cite as per the provided
+[BibTeX file](https://github.com/Qiskit/qiskit/blob/main/CITATION.bib).
+
+## License
+
+This project uses the [Apache License 2.0](https://github.com/qiskit-community/qiskit-algorithms/blob/main/LICENSE.txt).

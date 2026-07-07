@@ -19,8 +19,6 @@ An autonomous, self-healing stream gateway designed to reconcile upstream databa
 *   **Interactive Dashboard:** A premium, dark-mode glassmorphic interface displaying live stream charts, JSON diff alignment, and dynamic hardware telemetry.
 *   **AMD Validation:** Benchmark data compiled and validated on **AMD CDNA Instinct MI250X GPUs** on the LUMI-G supercomputer.
 
-> 📹 **[Demo Video →](https://youtu.be/TODO)**  *(Screen walkthrough of the live dashboard processing F1 telemetry streams)*
-
 ---
 
 ## 🛠️ Quick Start
