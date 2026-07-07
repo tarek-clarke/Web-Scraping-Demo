@@ -10,7 +10,7 @@
 *Quantum-Resilient Telemetry Ingestion & Intelligent Routing*
 
 *   **Subtitle:** Autonomous, self-healing stream integration and token-efficient routing powered by AMD Instinct™ CDNA and Qiskit.
-*   **Presenter:** Tarek Clarke
+*   **Presenter:** Tarek Clarke (Doctoral Candidate, Tallinn University of Technology)
 *   **Visual:** A dark background showing an entangled 11-qubit circuit model routing a dynamic telemetry data flow path.
 
 ---
@@ -69,7 +69,7 @@
 Show Slide 1. Webcam in the corner.
 
 ### **Audio / Speaking Track**
-"Hello, I'm Tarek Clarke. Today I'm pitching ApexFlow AI—a unified, quantum-classical hybrid stream intelligence gateway. Our submission addresses both Track 1 (intelligent token routing) and Track 3 (open innovation on AMD compute resources) by combining them into a single, cohesive, self-healing ingestion system."
+"Hello, I'm Tarek Clarke. I am a Doctoral Candidate at Tallinn University of Technology, and today I'm pitching ApexFlow AI—a unified, quantum-classical hybrid stream gateway that represents a core component of my PhD thesis on resilient data pipelines. This project addresses both Track 1 and Track 3 of the AMD ACT II Hackathon by combining intelligent routing and self-healing ingestion into a single, cohesive system."
 "In mission-critical IoT, connected vehicle fleets, or aerospace streams, telemetry data is highly fragile. Upstream schema mutations and sensor upgrades cause traditional data pipelines to crash, leading to expensive downtime."
 
 ---
