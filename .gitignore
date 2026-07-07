@@ -24,3 +24,7 @@ tasks.json
 results.json
 *token*
 *.key
+
+# Presentation decks and scripts
+*presentation.md
+*script.md
