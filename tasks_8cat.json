@@ -1,0 +1,34 @@
+[
+  {
+    "task_id": "factual_1",
+    "prompt": "What is the capital of Estonia and what is it known for?"
+  },
+  {
+    "task_id": "math_1",
+    "prompt": "A store sells laptops for $800 each. If a customer buys 3 laptops and receives a 15% discount on the total, how much does the customer pay?"
+  },
+  {
+    "task_id": "sentiment_1",
+    "prompt": "Classify the sentiment of this review as positive, negative, or neutral: 'The battery life is terrible and the screen cracked after two weeks. Customer service was unhelpful.'"
+  },
+  {
+    "task_id": "summarize_1",
+    "prompt": "Summarize the following text in one sentence: 'Artificial intelligence has transformed numerous industries over the past decade. From healthcare diagnostics to autonomous vehicles, AI systems are now capable of performing tasks that previously required human expertise. However, concerns about bias, privacy, and job displacement continue to drive debates about the responsible deployment of these technologies.'"
+  },
+  {
+    "task_id": "ner_1",
+    "prompt": "Extract all named entities from the following text and label them as Person, Organization, Location, or Date: 'On March 15, 2024, Elon Musk announced that SpaceX would launch a new mission from Cape Canaveral in partnership with NASA.'"
+  },
+  {
+    "task_id": "code_debug_1",
+    "prompt": "Find and fix the bug in this Python code:\n```python\ndef find_max(numbers):\n    max_val = 0\n    for num in numbers:\n        if num > max_val:\n            max_val = num\n    return max_val\n\nprint(find_max([-5, -2, -10, -1]))\n```"
+  },
+  {
+    "task_id": "logic_1",
+    "prompt": "Five friends — Alice, Bob, Carol, Dave, and Eve — sit in a row. Alice is not next to Bob. Carol is next to Dave. Eve is at one end. Bob is not at either end. Who sits where?"
+  },
+  {
+    "task_id": "code_gen_1",
+    "prompt": "Write a Python function called `is_palindrome` that takes a string and returns True if it reads the same forwards and backwards (ignoring spaces and case), and False otherwise."
+  }
+]

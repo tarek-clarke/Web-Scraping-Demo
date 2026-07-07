@@ -73,7 +73,7 @@ def mock_llm_reconciliation(original, drifted):
     }
 
 # Call Fireworks AI API for schema reconciliation
-def query_fireworks_ai(original, drifted, model="accounts/fireworks/models/llama-v3-70b-instruct"):
+def query_fireworks_ai(original, drifted, model="accounts/fireworks/models/deepseek-v4-pro"):
     api_key = os.environ.get("FIREWORKS_API_KEY")
     if not api_key:
         return mock_llm_reconciliation(original, drifted)
