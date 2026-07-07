@@ -182,12 +182,13 @@ def _init_local_model():
         from transformers import AutoModelForCausalLM, AutoTokenizer
         import torch
 
-        _local_tokenizer = AutoTokenizer.from_pretrained(LOCAL_MODEL_ID, cache_dir="/app/hf_cache")
+        _local_tokenizer = AutoTokenizer.from_pretrained(LOCAL_MODEL_ID, cache_dir="/app/hf_cache", local_files_only=True)
         _local_model = AutoModelForCausalLM.from_pretrained(
             LOCAL_MODEL_ID,
             torch_dtype=torch.bfloat16,
             device_map="auto",
             cache_dir="/app/hf_cache",
+            local_files_only=True,
         )
     except Exception:
         _local_model = None
