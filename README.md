@@ -53,6 +53,34 @@ python scripts/upload_to_r2.py
 python run_matrix.py
 ```
 
+## Hackathon Quick Start (ACT II Track 1 & Track 3)
+
+### 🏎️ Track 1: Q-Route Agent (Offline Docker Execution)
+To run the local-only Track 1 agent inside its offline-compliant container:
+```bash
+# 1. Pull the Docker image from Docker Hub
+docker pull ventimochatrex/qroute-agent:latest
+
+# 2. Run the agent locally on test inputs
+docker run --rm \
+  -v $(pwd)/tasks.json:/input/tasks.json \
+  -v $(pwd):/output \
+  ventimochatrex/qroute-agent:latest
+```
+This reads prompts from `./tasks.json`, executes them locally on-node (0 remote tokens), and writes results to `./results.json`.
+
+### 🦄 Track 3: ApexFlow Telemetry Dashboard
+To launch the interactive, self-healing telemetry gateway dashboard locally on your workstation:
+```bash
+# 1. Install dashboard server dependencies
+pip install flask transformers torch accelerate
+
+# 2. Run the dashboard application
+python3 apexflow_dashboard/app.py
+```
+Open your browser and navigate to **`http://localhost:5001`** to interact with the live F1 telemetry streams, the VQC router, and the AMD Instinct diagnostics interface.
+
+
 ## Benchmark Configuration
 
 ### Run Matrix (48 Runs)
