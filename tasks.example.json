@@ -1,0 +1,22 @@
+[
+  {
+    "task_id": "example_1",
+    "prompt": "What is the capital of Estonia?"
+  },
+  {
+    "task_id": "example_2",
+    "prompt": "Write a python function that returns the square of a number."
+  },
+  {
+    "task_id": "example_3",
+    "prompt": "Summarize the following text: Quantum computing leverages qubits, which can exist in superposition, enabling certain computations to be performed exponentially faster than classical computers."
+  },
+  {
+    "task_id": "example_4",
+    "prompt": "What is the sentiment of this review: The food was absolutely incredible and the service was outstanding."
+  },
+  {
+    "task_id": "example_5",
+    "prompt": "Solve: If a train travels 120km in 2 hours, what is its average speed in km/h?"
+  }
+]
