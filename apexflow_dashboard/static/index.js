@@ -35,6 +35,7 @@ const progressBarRouter = document.getElementById("router-progress");
 const textGpuTemp = document.getElementById("gpu-temp");
 const textGpuPower = document.getElementById("gpu-power");
 const textGpuVram = document.getElementById("gpu-vram");
+const textGpuPlatform = document.getElementById("gpu-platform-tag");
 
 const codeOriginal = document.getElementById("json-original");
 const codeDrifted = document.getElementById("json-drifted");
@@ -220,6 +221,9 @@ function connectStream() {
         textGpuTemp.textContent = `${payload.gpu.temperature_c.toFixed(1)}°C`;
         textGpuPower.textContent = `${payload.gpu.power_w.toFixed(1)} W`;
         textGpuVram.textContent = `${payload.gpu.vram_mb.toFixed(1)} MB`;
+        if (textGpuPlatform && payload.gpu.platform) {
+            textGpuPlatform.textContent = "Platform: " + payload.gpu.platform;
+        }
 
         // 4. Update real-time charts history
         const f1Data = payload.original.data;

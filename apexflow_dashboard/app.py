@@ -18,6 +18,27 @@ try:
 except ImportError:
     IMPORTS_OK = False
 
+# Dynamically detect hardware platform
+PLATFORM_NAME = "AMD Instinct MI300X (ROCm 6.1)"
+GPU_MODEL = "AMD Instinct MI300X"
+
+try:
+    import torch
+    if torch.cuda.is_available():
+        device_name = torch.cuda.get_device_name(0)
+        if "AMD" in device_name or "Instinct" in device_name:
+            PLATFORM_NAME = f"{device_name} (ROCm 6.1)"
+            GPU_MODEL = device_name
+        else:
+            PLATFORM_NAME = f"{device_name} (CUDA)"
+            GPU_MODEL = device_name
+    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        PLATFORM_NAME = "Apple Silicon (MPS / Unified Memory)"
+        GPU_MODEL = "Apple M4 (Metal)"
+except Exception:
+    PLATFORM_NAME = "Local CPU (Classical Fallback)"
+    GPU_MODEL = "Standard CPU"
+
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
 # Shared state for simulation configuration
@@ -265,7 +286,8 @@ def event_generator():
                 "temperature_c": temp,
                 "power_w": power,
                 "vram_mb": vram,
-                "model": "AMD Instinct MI300X"
+                "model": GPU_MODEL,
+                "platform": PLATFORM_NAME
             }
         }
 
