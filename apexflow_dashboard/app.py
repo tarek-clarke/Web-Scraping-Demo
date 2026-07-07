@@ -29,15 +29,23 @@ try:
         if "AMD" in device_name or "Instinct" in device_name:
             PLATFORM_NAME = f"{device_name} (ROCm 6.1)"
             GPU_MODEL = device_name
+            HW_PROFILE = "rocm"
         else:
             PLATFORM_NAME = f"{device_name} (CUDA)"
             GPU_MODEL = device_name
+            HW_PROFILE = "cuda"
     elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         PLATFORM_NAME = "Apple Silicon (MPS / Unified Memory)"
         GPU_MODEL = "Apple M4 (Metal)"
+        HW_PROFILE = "cpu"
+    else:
+        PLATFORM_NAME = "Local CPU (Classical Fallback)"
+        GPU_MODEL = "Standard CPU"
+        HW_PROFILE = "cpu"
 except Exception:
     PLATFORM_NAME = "Local CPU (Classical Fallback)"
     GPU_MODEL = "Standard CPU"
+    HW_PROFILE = "cpu"
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
@@ -57,7 +65,7 @@ DRIVERS = ["Fernando Alonso", "Lewis Hamilton", "Max Verstappen", "Charles Lecle
 if IMPORTS_OK:
     extractor = FeatureExtractor()
     router = QuantumRouter(backend="aer_simulator", enable_gemma=True)
-    engine = ReconciliationEngine(hardware_profile="cpu")  # Defaults to CPU edge for safety inside container
+    engine = ReconciliationEngine(hardware_profile=HW_PROFILE)
 else:
     extractor = None
     router = None
@@ -232,27 +240,34 @@ def event_generator():
                     routed_to = "gemma_e4b"
 
             # Execute routed self-healing tier
-            if routed_to == "levenshtein":
-                t_start = time.perf_counter()
-                healed_data = original_data  # Mock Levenshtein
-                latency_ms = (time.perf_counter() - t_start) * 1000
-                accuracy = 1.0
-            elif routed_to == "regex":
-                t_start = time.perf_counter()
-                healed_data = original_data  # Mock Regex
-                latency_ms = (time.perf_counter() - t_start) * 1000
-                accuracy = 1.0
+            if routed_to in ("levenshtein", "regex"):
+                if IMPORTS_OK:
+                    res = engine.reconcile({"data": original_data}, {"data": drifted_data}, routed_to)
+                    healed_data = res.get("reconciled_data", original_data)
+                    latency_ms = res["latency_ms"]
+                    accuracy = res["accuracy"]
+                else:
+                    import Levenshtein
+                    t_start = time.perf_counter()
+                    healed_data = dict(original_data)
+                    for ok in list(original_data.keys()):
+                        for dk in list(drifted_data.keys()):
+                            if Levenshtein.distance(ok, dk) <= 3:
+                                healed_data[ok] = drifted_data[dk]
+                                break
+                    latency_ms = (time.perf_counter() - t_start) * 1000
+                    accuracy = 1.0
             elif routed_to == "bert":
-                # Local BERT MiniLM mapping
                 if IMPORTS_OK:
                     t_start = time.perf_counter()
                     res = engine.reconcile_bert_batch([(original_data, drifted_data)])[0]
-                    healed_data = res["reconciled_data"]
+                    healed_data = res.get("reconciled_data", original_data)
                     latency_ms = (time.perf_counter() - t_start) * 1000
                     accuracy = res["accuracy"]
                 else:
                     healed_data = original_data
                     latency_ms = random.uniform(8.0, 15.0)
+                    accuracy = 0.85
             else:
                 # Heavy Generative LLM Tier -> calls Fireworks AI
                 res = query_fireworks_ai(original_data, drifted_data)

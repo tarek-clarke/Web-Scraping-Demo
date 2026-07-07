@@ -134,9 +134,14 @@ class BERTReconciler:
                     unmapped.append(ok)
 
             accuracy = total_score / len(orig_keys) if orig_keys else 0.0
+            reconciled_data = dict(orig)
+            for orig_key, drift_key in mapped:
+                if drift_key in drift:
+                    reconciled_data[orig_key] = drift[drift_key]
             results.append({
                 "accuracy": accuracy, "latency_ms": per_packet_latency,
                 "mapped_fields": mapped, "unmapped_fields": unmapped,
+                "reconciled_data": reconciled_data,
                 "batch_size": self.batch_size
             })
 

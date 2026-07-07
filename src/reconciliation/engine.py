@@ -34,6 +34,7 @@ class ReconciliationEngine:
             "latency_ms": result["latency_ms"],
             "mapped_fields": result["mapped_fields"],
             "unmapped_fields": result["unmapped_fields"],
+            "reconciled_data": result.get("reconciled_data", original_data),
             "batch_size": self.batch_size
         }
 

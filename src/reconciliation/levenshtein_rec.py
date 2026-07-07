@@ -31,11 +31,17 @@ class LevenshteinReconciler:
         
         accuracy = total_score / len(orig_keys) if orig_keys else 0.0
         latency = (time.perf_counter() - start) * 1000
-        
+
+        reconciled_data = dict(original)
+        for orig_key, drift_key in mapped:
+            if drift_key in drifted:
+                reconciled_data[orig_key] = drifted[drift_key]
+
         return {
             "accuracy": accuracy,
             "latency_ms": latency,
             "mapped_fields": mapped,
             "unmapped_fields": unmapped,
+            "reconciled_data": reconciled_data,
             "batch_size": 1
         }
