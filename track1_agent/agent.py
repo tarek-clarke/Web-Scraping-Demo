@@ -579,14 +579,17 @@ _RE_FENCE_START = re.compile(r"^\s*```[a-zA-Z]*\s*\n?", re.MULTILINE)
 _RE_FENCE_END = re.compile(r"\n?```\s*$", re.MULTILINE)
 _RE_SENTIMENT = re.compile(r"\b(positive|negative|neutral)\b", re.IGNORECASE)
 _RE_DOLLAR = re.compile(r"\$[\d,]+(?:\.\d+)?")
-_RE_NUMBER = re.compile(r"(?:^|\s|=|:)\s*(-?\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(?:%|km/?h|kg|m|s|°|dollars?|euros?|\$)?\s*$", re.MULTILINE)
+_RE_NUMBER = re.compile(r"(?:^|\s|=|:)\s*(-?\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(?:%|km/?h|kg|m|s|°|dollars?|euros?|\$|hours?|hrs?|minutes?|mins?|mph|miles?|feet|ft|seconds?|secs?)?\s*$", re.MULTILINE | re.IGNORECASE)
 _RE_TRAILING_LINES = re.compile(r"\n{2,}$")
 _RE_CARRIAGE = re.compile(r"\r")
+_RE_CODE_START = re.compile(r"(^|\n)((?:def |import |from |class |#|@\w+))", re.MULTILINE)
 
 
 def clean_target_output(text: str, category: str) -> str:
     if not text:
         return text
+
+    raw_trimmed = text.strip()
 
     cleaned = _RE_CARRIAGE.sub("", text)
 
@@ -605,6 +608,14 @@ def clean_target_output(text: str, category: str) -> str:
             extracted.append(line)
         cleaned = "\n".join(extracted)
 
+    if category in ("code_gen", "code_debug"):
+        m = _RE_CODE_START.search(cleaned)
+        if m:
+            cleaned = cleaned[m.start():]
+        cleaned = cleaned.strip()
+        cleaned = _RE_TRAILING_LINES.sub("\n", cleaned)
+        return cleaned
+
     if category == "sentiment":
         m = _RE_SENTIMENT.search(cleaned)
         if m:
@@ -617,8 +628,11 @@ def clean_target_output(text: str, category: str) -> str:
         matches = _RE_NUMBER.findall(cleaned)
         if matches:
             return matches[-1].strip()
+        return raw_trimmed
 
     cleaned = cleaned.strip()
+    if not cleaned:
+        return raw_trimmed
     cleaned = _RE_TRAILING_LINES.sub("\n", cleaned)
 
     return cleaned
