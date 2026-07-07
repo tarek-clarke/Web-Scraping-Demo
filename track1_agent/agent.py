@@ -382,13 +382,13 @@ def _fireworks_inference(query: str, system_prompt: str, max_tokens: int = 256, 
 
 MAX_TOKENS_PER_CATEGORY = {
     "sentiment": 10,
-    "math": 200,
-    "factual": 150,
-    "summarization": 80,
-    "ner": 80,
-    "code_debug": 250,
-    "code_gen": 250,
-    "logic": 150,
+    "math": 300,
+    "factual": 250,
+    "summarization": 150,
+    "ner": 150,
+    "code_debug": 400,
+    "code_gen": 400,
+    "logic": 300,
 }
 
 SYSTEM_PROMPTS = {
