@@ -13,7 +13,7 @@ ApexFlow AI is an autonomous, self-healing telemetry gateway.
 *   **Intercepts** raw telemetry streams at the edge.
 *   **Analyzes** structural drift features using high-speed extraction.
 *   **Classifies** drift complexity dynamically using a hybrid **Variational Quantum Classifier (VQC)**.
-*   **Heals** corrupted payloads instantly on **AMD Instinct GPUs (ROCm)** using local neural mappers (BERT) or remote Fireworks AI generative models—maintaining $100\%$ pipeline uptime with clean downstream feeds.
+*   **Heals** corrupted payloads instantly on **AMD Instinct GPUs (ROCm)** using local neural mappers (BERT) or **Google DeepMind Gemma 4 E4B** via Fireworks AI — maintaining $100\%$ pipeline uptime with clean downstream feeds.
 
 ---
 
@@ -34,9 +34,9 @@ Instead of running heavy, expensive, and slow LLMs on every incoming packet, Ape
            Simple Drift  │                 │ Complex Structural Drift
          (Local CPU/GPU) ▼                 ▼ (Fireworks AI Cloud)
              ┌───────────────┐         ┌───────────────┐
-             │ Levenshtein / │         │ Generative    │
-             │ BERT Mapper   │         │ Reconstructor │
-             │  (Cost = $0)  │         │ (Fireworks)   │
+              │ Levenshtein / │         │ Gemma 4 E4B   │
+              │ BERT Mapper   │         │ via Fireworks  │
+              │  (Cost = $0)  │         │ (AMD-hosted)  │
              └───────────────┘         └───────────────┘
 ```
 
@@ -44,7 +44,7 @@ Instead of running heavy, expensive, and slow LLMs on every incoming packet, Ape
 1.  **Levenshtein (Class 0 - Cost: $0):** Handles simple key renames and case changes.
 2.  **Regex (Class 1 - Cost: $0):** Patches standard numeric formats (timestamps, gears, speed).
 3.  **BERT (Class 2 - Cost: $0):** Resolves semantic synonyms using lightweight embeddings locally on AMD Instinct GPUs.
-4.  **Generative Tier (Class 3 - Cost: Cloud Tokens):** Dispatches complex structural changes (nested dicts, array migrations) to Fireworks AI's hostings of open-source models (like Llama-3-70B).
+4.  **Generative Tier (Class 3 - Gemma via Fireworks AI):** Dispatches complex structural changes (nested dicts, array migrations) to **Google DeepMind Gemma 4 E4B**, served on AMD-hardware through Fireworks AI. Gemma's lightweight architecture delivers fast, accurate reconstructions at minimal token cost.
 
 ---
 
@@ -70,5 +70,6 @@ ApexFlow AI is fully optimized to run on **AMD Instinct GPUs (MI250X / MI300X)**
 
 *   **ROCm Deep Learning:** The local BERT mapping reconciler runs natively on ROCm-supported PyTorch, offering sub-millisecond mapping latency.
 *   **Qiskit Aer Simulator Acceleration:** The local VQC quantum circuit (ZZFeatureMap + RealAmplitudes ansatz, 12 qubits) runs simulated on-node utilizing the CPU/GPU C++ compiler, making decisions in less than $0.5\text{ ms}$.
-*   **Fireworks AI Integration:** Heavy generative payload reconstructions are offloaded to Fireworks AI's hardware-accelerated endpoints running on AMD server hardware, delivering completions in milliseconds.
+*   **Gemma 4 E4B via Fireworks AI:** Complex generative reconstructions are powered by **Google DeepMind Gemma 4 E4B**, served on AMD-hardware through Fireworks AI. Gemma's efficient architecture delivers low-latency, high-accuracy schema healing while qualifying for the Best AMD-Hosted Gemma Project prize.
+*   **Fireworks AI Integration:** All generative inference is routed through Fireworks AI's AMD-hosted endpoints, delivering completions in milliseconds.
 *   **Containerized Architecture:** Fully dockerized out-of-the-box (`Dockerfile` + `docker-compose.yml`) with mounted ROCm devices `/dev/kfd` and `/dev/dri` for zero-friction cloud deployments.
