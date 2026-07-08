@@ -336,7 +336,7 @@ _current_task_id = None
 
 
 def _fireworks_inference(query: str, system_prompt: str, max_tokens: int = 256, model: str = None) -> str:
-    """Call Fireworks API — tries chat, falls back to completions for Gemma."""
+    """Call Fireworks API — always tries chat first, falls back to completions."""
     import openai
 
     client = openai.OpenAI(
@@ -349,8 +349,6 @@ def _fireworks_inference(query: str, system_prompt: str, max_tokens: int = 256, 
     is_gemma = _is_gemma(model)
 
     try:
-        if is_gemma:
-            raise Exception("chat template not allowed — use completions for Gemma")
         response = client.chat.completions.create(
             model=model,
             messages=[
@@ -363,7 +361,7 @@ def _fireworks_inference(query: str, system_prompt: str, max_tokens: int = 256, 
         _record_usage(_current_task_id or "?", "remote", response.usage)
         return response.choices[0].message.content.strip()
     except Exception as chat_err:
-        if is_gemma or "chat template" in str(chat_err).lower() or "chat_template" in str(chat_err).lower():
+        if "chat template" in str(chat_err).lower() or "chat_template" in str(chat_err).lower():
             full_prompt = (
                 f"<start_of_turn>user\n{system_prompt}\n\n{query}<end_of_turn>\n"
                 f"<start_of_turn>model\n"
