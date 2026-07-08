@@ -91,9 +91,15 @@ def mock_llm_reconciliation(original, drifted):
         "latency_ms": random.uniform(120.0, 240.0)
     }
 
+# Runtime-only API key (in-memory, never persisted)
+_runtime_api_key = None
+
+def get_fireworks_key():
+    return _runtime_api_key or os.environ.get("FIREWORKS_API_KEY")
+
 # Call Fireworks AI API for schema reconciliation
 def query_fireworks_ai(original, drifted, model="accounts/tarek-clarke/deployments/rqehi2co"):
-    api_key = os.environ.get("FIREWORKS_API_KEY")
+    api_key = get_fireworks_key()
     if not api_key:
         return mock_llm_reconciliation(original, drifted)
 
@@ -488,11 +494,23 @@ def status():
     with state_lock:
         return jsonify({
             "imports_loaded": IMPORTS_OK,
-            "fireworks_configured": bool(os.environ.get("FIREWORKS_API_KEY")),
+            "fireworks_configured": bool(get_fireworks_key()),
             "data_sources": DATA_SOURCES,
             "source_labels": SOURCE_LABELS,
             "config": simulation_config
         })
+
+@app.route("/api-key", methods=["POST"])
+def set_api_key():
+    global _runtime_api_key
+    data = request.json
+    key = data.get("api_key", "").strip()
+    if key:
+        _runtime_api_key = key
+        return jsonify({"status": "success", "fireworks_configured": True})
+    else:
+        _runtime_api_key = None
+        return jsonify({"status": "cleared", "fireworks_configured": False})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))

@@ -52,6 +52,10 @@ const codeOriginal = document.getElementById("json-original");
 const codeDrifted = document.getElementById("json-drifted");
 const codeReconciled = document.getElementById("json-reconciled");
 
+const apiKeyInput = document.getElementById("api-key-input");
+const btnSetKey = document.getElementById("btn-set-key");
+const btnClearKey = document.getElementById("btn-clear-key");
+
 // Initialize charts using Chart.js CDN
 function initCharts() {
     // 1. Telemetry Chart
@@ -376,6 +380,46 @@ function registerListeners() {
             updateBackendConfig({ is_running: false });
         }
     });
+
+    // API key handlers
+    if (btnSetKey) {
+        btnSetKey.addEventListener("click", async function() {
+            const key = apiKeyInput.value.trim();
+            if (!key) return;
+            try {
+                const resp = await fetch("/api-key", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ api_key: key })
+                });
+                const data = await resp.json();
+                if (data.fireworks_configured) {
+                    statusFireworks.textContent = "Gemma Active";
+                    statusFireworks.className = "badge ok";
+                    apiKeyInput.value = "";
+                }
+            } catch (e) {
+                console.error("Failed to set API key:", e);
+            }
+        });
+    }
+
+    if (btnClearKey) {
+        btnClearKey.addEventListener("click", async function() {
+            try {
+                await fetch("/api-key", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ api_key: "" })
+                });
+                statusFireworks.textContent = "No API Key";
+                statusFireworks.className = "badge warning";
+                apiKeyInput.value = "";
+            } catch (e) {
+                console.error("Failed to clear API key:", e);
+            }
+        });
+    }
 }
 
 // Initial Boot

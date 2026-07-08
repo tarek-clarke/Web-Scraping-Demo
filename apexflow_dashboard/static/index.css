@@ -122,6 +122,48 @@ body {
     margin-bottom: 0;
 }
 
+.api-key-panel {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.api-key-panel label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.api-key-panel input {
+    width: 100%;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 0.5rem;
+}
+
+.api-key-panel input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.btn-small {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    margin-right: 0.5rem;
+}
+
+.btn-danger {
+    background: rgba(255, 71, 114, 0.2);
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+}
+
 .badge {
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
