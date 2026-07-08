@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import time
+import math
 import random
 import threading
 from datetime import datetime
@@ -52,11 +53,18 @@ app = Flask(__name__, static_folder="static", static_url_path="/static")
 # Shared state for simulation configuration
 state_lock = threading.Lock()
 simulation_config = {
-    "drift_rate": 0.30,         # 0% to 100%
-    "chaos_type": "json_manip",  # json_manip, schema_alter, numeric_noise
+    "drift_rate": 0.30,
+    "chaos_type": "json_manip",
     "active_driver": "Fernando Alonso",
+    "data_source": "openf1",
     "is_running": True
 }
+
+DATA_SOURCES = ["openf1", "openmeteo", "spacex", "finnhub"]
+
+STOCK_SYMBOLS = ["AAPL", "TSLA", "NVDA", "AMZN"]
+
+MISSIONS = ["Starlink-6", "Crew-9", "GPS-III-7", "Transporter-11"]
 
 # Real F1 drivers to simulate
 DRIVERS = ["Fernando Alonso", "Lewis Hamilton", "Max Verstappen", "Charles Leclerc"]
@@ -65,7 +73,10 @@ DRIVERS = ["Fernando Alonso", "Lewis Hamilton", "Max Verstappen", "Charles Lecle
 if IMPORTS_OK:
     extractor = FeatureExtractor()
     router = QuantumRouter(backend="aer_simulator", enable_gemma=True)
-    engine = ReconciliationEngine(hardware_profile=HW_PROFILE)
+    try:
+        engine = ReconciliationEngine(hardware_profile=HW_PROFILE)
+    except Exception:
+        engine = None
 else:
     extractor = None
     router = None
@@ -93,7 +104,7 @@ def query_fireworks_ai(original, drifted, model="accounts/tarek-clarke/deploymen
             api_key=api_key
         )
         
-        prompt = f"""You are a resilient schema mapper for Formula 1 edge telemetry.
+        prompt = f"""You are a resilient schema mapper for real-time edge telemetry.
 Given the original expected schema format and the corrupted, drifted schema format received from the sensor, reconstruct the data back to matching the original format. Correct all value type changes, missing keys, and nested structural modifications.
 
 Original Schema:
@@ -126,39 +137,37 @@ Return ONLY the corrected telemetry payload matching the original schema as a ra
         print(f"[Fireworks API Error] {e}")
         return mock_llm_reconciliation(original, drifted)
 
-# Chaos injector simulating telemetry drifts
+# Chaos injector simulating telemetry drifts (generic, works on any schema)
 def inject_drift(original_data, chaos_type, drift_rate):
     if random.random() > drift_rate:
         return None, None
 
     drifted = dict(original_data)
     sub_type = "unknown"
+    keys = list(drifted.keys())
 
     if chaos_type == "json_manip":
-        # Rename keys or alter structure
         sub_type = "key_rename"
-        if "throttle" in drifted:
-            drifted["throttle_pedal_pct"] = drifted.pop("throttle")
-        if "speed" in drifted:
-            drifted["velocity_kmh"] = drifted.pop("speed")
-            
+        # Rename 1-2 random keys
+        for k in random.sample(keys, min(2, len(keys))):
+            new_key = k + "_field" if not k.endswith("_field") else k.replace("_field", "_data")
+            drifted[new_key] = drifted.pop(k)
+
     elif chaos_type == "schema_alter":
-        # Nest structures or change types
         sub_type = "nested_schema"
-        if "rpm" in drifted or "n_gear" in drifted:
-            drifted["engine"] = {
-                "revs": drifted.pop("rpm", 0),
-                "gear": drifted.pop("n_gear", 0)
-            }
-            
+        # Nest 1-2 random numeric keys into a sub-dict
+        numeric_keys = [k for k in keys if isinstance(drifted[k], (int, float))]
+        for k in random.sample(numeric_keys, min(2, len(numeric_keys))):
+            drifted[k + "_group"] = {"value": drifted.pop(k), "unit": "auto"}
+
     elif chaos_type == "numeric_noise":
-        # Alter value types or add severe drift
         sub_type = "type_drift"
-        if "speed" in drifted:
-            # Change float speed to string
-            drifted["speed"] = f"{drifted['speed']} KMH"
-        if "brake" in drifted:
-            drifted["brake"] = "ACTIVE" if drifted["brake"] > 50 else "OFF"
+        # Convert 1-2 numeric values to strings
+        numeric_keys = [k for k in keys if isinstance(drifted[k], (int, float))]
+        for k in random.sample(numeric_keys, min(2, len(numeric_keys))):
+            drifted[k] = str(drifted[k]) + " UNIT"
+
+    return drifted, sub_type
 
     return drifted, sub_type
 
@@ -186,6 +195,132 @@ def generate_f1_packet(driver_name, packet_idx):
         "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
     }
 
+def generate_openmeteo_packet(station_id, packet_idx):
+    t = packet_idx * 0.1
+    base_temp = 15.0 + 10 * math.sin(t * 0.3)
+    temp = round(base_temp + random.uniform(-2, 2), 1)
+    humidity = max(20, min(100, int(60 + 20 * math.sin(t * 0.5) + random.randint(-5, 5))))
+    wind_speed = max(0, int(15 + 10 * math.sin(t * 0.2) + random.randint(-3, 3)))
+    wind_dir = (packet_idx * 5) % 360
+    pressure = round(1013 + 5 * math.sin(t * 0.1) + random.uniform(-1, 1), 1)
+    precipitation = round(max(0, 3 * math.sin(t * 0.4) + random.uniform(-0.5, 0.5)), 1)
+
+    return {
+        "station_id": station_id,
+        "temperature": temp,
+        "humidity": humidity,
+        "wind_speed": wind_speed,
+        "wind_direction": wind_dir,
+        "pressure": pressure,
+        "precipitation": precipitation,
+        "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    }
+
+def generate_spacex_packet(mission_name, packet_idx):
+    t = packet_idx * 0.5
+    altitude = 100 + int(t * 50 + random.randint(-20, 20))
+    velocity = int(7800 + 200 * math.sin(t * 0.1) + random.randint(-50, 50))
+    fuel_pct = max(5, round(100 - t * 0.8, 1))
+    stage = 1 if fuel_pct > 30 else 2
+    engine_count = 9 if stage == 1 else 1
+    thrust = int(7600 + 300 * math.sin(t * 0.2) + random.randint(-100, 100))
+
+    return {
+        "mission": mission_name,
+        "altitude_km": altitude,
+        "velocity_ms": velocity,
+        "fuel_pct": fuel_pct,
+        "stage": stage,
+        "engines_active": engine_count,
+        "thrust_kn": thrust,
+        "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    }
+
+def generate_finnhub_packet(symbol, packet_idx):
+    t = packet_idx * 0.1
+    base_price = {"AAPL": 225, "TSLA": 248, "NVDA": 128, "AMZN": 186}.get(symbol, 100)
+    price = round(base_price + 5 * math.sin(t * 0.3) + random.uniform(-1.5, 1.5), 2)
+    volume = int(1000000 + 500000 * math.sin(t * 0.2) + random.randint(-100000, 100000))
+    change_pct = round(2 * math.sin(t * 0.3) + random.uniform(-0.5, 0.5), 2)
+    market_cap = round(price * volume / 1e9, 2)
+
+    return {
+        "symbol": symbol,
+        "price": price,
+        "volume": volume,
+        "change_pct": change_pct,
+        "market_cap_b": market_cap,
+        "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    }
+
+# Live data fetchers (no API key required for OpenMeteo and OpenF1)
+def fetch_live_openmeteo(station_id, lat=59.4, lon=24.7):
+    try:
+        import urllib.request
+        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,surface_pressure,precipitation"
+        with urllib.request.urlopen(url, timeout=5) as resp:
+            data = json.loads(resp.read())
+        c = data.get("current", {})
+        return {
+            "station_id": station_id,
+            "temperature": c.get("temperature_2m", 0),
+            "humidity": c.get("relative_humidity_2m", 0),
+            "wind_speed": c.get("wind_speed_10m", 0),
+            "wind_direction": c.get("wind_direction_10m", 0),
+            "pressure": c.get("surface_pressure", 1013),
+            "precipitation": c.get("precipitation", 0),
+            "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        }
+    except Exception:
+        return None
+
+def fetch_live_openf1(driver_name):
+    try:
+        import urllib.request
+        url = "https://api.openf1.org/v1/car_data?driver_number=1&session_key=latest&speed>0&limit=1"
+        with urllib.request.urlopen(url, timeout=5) as resp:
+            data = json.loads(resp.read())
+        if data:
+            d = data[0]
+            return {
+                "driver": driver_name,
+                "speed": d.get("speed", 0),
+                "throttle": d.get("throttle", 0),
+                "brake": d.get("brake", 0),
+                "n_gear": d.get("n_gear", 1),
+                "rpm": d.get("rpm", 0),
+                "session_key": d.get("session_key", 0),
+                "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+            }
+    except Exception:
+        return None
+
+PACKET_GENERATORS = {
+    "openf1": lambda ctx, idx: generate_f1_packet(ctx, idx),
+    "openmeteo": lambda ctx, idx: generate_openmeteo_packet(ctx, idx),
+    "spacex": lambda ctx, idx: generate_spacex_packet(ctx, idx),
+    "finnhub": lambda ctx, idx: generate_finnhub_packet(ctx, idx),
+}
+
+SOURCE_LABELS = {
+    "openf1": "OpenF1 Telemetry",
+    "openmeteo": "OpenMeteo Weather",
+    "spacex": "SpaceX Launch",
+    "finnhub": "Finnhub Market Data",
+}
+
+SOURCE_CONTEXTS = {
+    "openf1": "Fernando Alonso",
+    "openmeteo": "STATION_42",
+    "spacex": "Starlink-6",
+    "finnhub": "AAPL",
+}
+
+LIVE_FETCHERS = {
+    "openf1": fetch_live_openf1,
+    "openmeteo": fetch_live_openmeteo,
+}
+
 # Event stream yielding live data to browser
 def event_generator():
     packet_idx = 0
@@ -196,16 +331,26 @@ def event_generator():
                 continue
             drift_rate = simulation_config["drift_rate"]
             chaos_type = simulation_config["chaos_type"]
-            driver = simulation_config["active_driver"]
+            data_source = simulation_config.get("data_source", "openf1")
+            context = SOURCE_CONTEXTS.get(data_source, "Fernando Alonso")
 
-        # Generate base telemetry
-        original_data = generate_f1_packet(driver, packet_idx)
         packet_idx += 1
+
+        # Try live data first, fall back to simulated
+        original_data = None
+        if data_source in LIVE_FETCHERS:
+            original_data = LIVE_FETCHERS[data_source](context)
+
+        if original_data is None:
+            gen = PACKET_GENERATORS.get(data_source, PACKET_GENERATORS["openf1"])
+            original_data = gen(context, packet_idx)
+
+        source_label = SOURCE_LABELS.get(data_source, "openf1")
 
         # Wrap in expected Ingestor payload
         original_payload = {
-            "source": "openf1",
-            "timestamp": original_data["timestamp"],
+            "source": data_source,
+            "timestamp": original_data.get("timestamp", datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')),
             "data": original_data
         }
 
@@ -221,8 +366,8 @@ def event_generator():
         if drift_result[0] is not None:
             drifted_data, sub_type = drift_result
             drifted_payload = {
-                "source": "openf1",
-                "timestamp": original_data["timestamp"],
+                "source": data_source,
+                "timestamp": original_data.get("timestamp", datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')),
                 "data": drifted_data
             }
 
@@ -276,8 +421,8 @@ def event_generator():
                 accuracy = res["accuracy"]
 
             reconciled_payload = {
-                "source": "openf1",
-                "timestamp": original_data["timestamp"],
+                "source": data_source,
+                "timestamp": original_data.get("timestamp", datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')),
                 "data": healed_data
             }
 
@@ -327,6 +472,10 @@ def update_config():
             simulation_config["chaos_type"] = data["chaos_type"]
         if "active_driver" in data:
             simulation_config["active_driver"] = data["active_driver"]
+        if "data_source" in data:
+            simulation_config["data_source"] = data["data_source"]
+            ctx = SOURCE_CONTEXTS.get(data["data_source"], "Fernando Alonso")
+            simulation_config["active_driver"] = ctx
         if "is_running" in data:
             simulation_config["is_running"] = bool(data["is_running"])
             
@@ -338,6 +487,8 @@ def status():
         return jsonify({
             "imports_loaded": IMPORTS_OK,
             "fireworks_configured": bool(os.environ.get("FIREWORKS_API_KEY")),
+            "data_sources": DATA_SOURCES,
+            "source_labels": SOURCE_LABELS,
             "config": simulation_config
         })
 
