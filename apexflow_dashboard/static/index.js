@@ -13,6 +13,16 @@ const gemmaLatencyData = [];
 const bertLatencyData = [];
 const localLatencyLabels = [];
 
+// Dynamic chart labels per data source
+const CHART_LABELS = {
+    "openf1": ["Speed (km/h)", "Throttle (%)", "Brake (%)"],
+    "openmeteo": ["Temperature (°C)", "Humidity (%)", "Wind Speed (km/h)"],
+    "spacex": ["Altitude (km)", "Velocity (m/s)", "Fuel (%)"],
+    "finnhub": ["Price ($)", "Volume", "Change (%)"],
+};
+
+let currentSource = "openf1";
+
 // Initialize SSE Stream Connection
 let eventSource;
 let isRunning = true;
@@ -138,6 +148,18 @@ function initCharts() {
             }
         }
     });
+}
+
+// Update telemetry chart labels based on data source
+function updateChartLabels(source) {
+    currentSource = source;
+    const labels = CHART_LABELS[source] || CHART_LABELS["openf1"];
+    if (telemetryChart) {
+        telemetryChart.data.datasets[0].label = labels[0];
+        telemetryChart.data.datasets[1].label = labels[1];
+        telemetryChart.data.datasets[2].label = labels[2];
+        telemetryChart.update();
+    }
 }
 
 // Fetch status from Flask on boot
@@ -279,6 +301,31 @@ function registerListeners() {
     if (sourceSelect) {
         sourceSelect.addEventListener("change", function() {
             updateBackendConfig({ data_source: this.value });
+            updateChartLabels(this.value);
+            // Update context dropdown based on source
+            const contexts = {
+                "openf1": ["Fernando Alonso", "Lewis Hamilton", "Max Verstappen", "Charles Leclerc"],
+                "openmeteo": ["STATION_42", "STATION_07", "STATION_15", "STATION_88"],
+                "spacex": ["Starlink-6", "Crew-9", "GPS-III-7", "Transporter-11"],
+                "finnhub": ["AAPL", "TSLA", "NVDA", "AMZN"]
+            };
+            const labels = {
+                "openf1": "Select Driver",
+                "openmeteo": "Select Station",
+                "spacex": "Select Mission",
+                "finnhub": "Select Symbol"
+            };
+            if (driverSelect) {
+                driverSelect.innerHTML = "";
+                (contexts[this.value] || []).forEach(ctx => {
+                    const opt = document.createElement("option");
+                    opt.value = ctx;
+                    opt.textContent = ctx;
+                    driverSelect.appendChild(opt);
+                });
+                const labelEl = driverSelect.closest(".control-group").querySelector("label");
+                if (labelEl) labelEl.textContent = labels[this.value] || "Context";
+            }
             // Clear chart history on source switch
             chartLabels.length = 0;
             speedData.length = 0;

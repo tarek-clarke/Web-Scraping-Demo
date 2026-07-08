@@ -332,7 +332,7 @@ def event_generator():
             drift_rate = simulation_config["drift_rate"]
             chaos_type = simulation_config["chaos_type"]
             data_source = simulation_config.get("data_source", "openf1")
-            context = SOURCE_CONTEXTS.get(data_source, "Fernando Alonso")
+            context = simulation_config.get("active_driver", SOURCE_CONTEXTS.get(data_source, "Fernando Alonso"))
 
         packet_idx += 1
 
@@ -470,12 +470,14 @@ def update_config():
             simulation_config["drift_rate"] = float(data["drift_rate"])
         if "chaos_type" in data:
             simulation_config["chaos_type"] = data["chaos_type"]
-        if "active_driver" in data:
+        if "active_driver" in data and "data_source" not in data:
             simulation_config["active_driver"] = data["active_driver"]
         if "data_source" in data:
+            old_source = simulation_config.get("data_source", "openf1")
             simulation_config["data_source"] = data["data_source"]
-            ctx = SOURCE_CONTEXTS.get(data["data_source"], "Fernando Alonso")
-            simulation_config["active_driver"] = ctx
+            if data["data_source"] != old_source:
+                ctx = SOURCE_CONTEXTS.get(data["data_source"], "Fernando Alonso")
+                simulation_config["active_driver"] = ctx
         if "is_running" in data:
             simulation_config["is_running"] = bool(data["is_running"])
             
