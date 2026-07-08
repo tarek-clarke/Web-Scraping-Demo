@@ -379,26 +379,26 @@ def _fireworks_inference(query: str, system_prompt: str, max_tokens: int = 256, 
 
 
 MAX_TOKENS_PER_CATEGORY = {
-    "sentiment": 10,
-    "math": 300,
-    "factual": 250,
-    "summarization": 150,
-    "ner": 150,
-    "code_debug": 400,
-    "code_gen": 400,
-    "logic": 300,
+    "sentiment": 100,
+    "math": 400,
+    "factual": 300,
+    "summarization": 200,
+    "ner": 200,
+    "code_debug": 500,
+    "code_gen": 500,
+    "logic": 400,
 }
 
 SYSTEM_PROMPTS = {
-    "default": "Answer concisely. No reasoning or filler.",
-    "sentiment": "Reply with only: positive, negative, or neutral.",
-    "math": "Solve step by step. End with 'Answer: $X'.",
-    "logic": "Do NOT write 'We are given' or 'We need to'. Output ONLY: Pos1=X, Pos2=X, Pos3=X, Pos4=X, Pos5=X",
-    "code_debug": "Output only the corrected code block. No explanations.",
-    "code_gen": "Output only the code. No explanations.",
-    "ner": "Output only: Entity: Label, one per line.",
-    "summarization": "Output only the summary.",
-    "factual": "Answer concisely in 1-2 sentences.",
+    "default": "Answer accurately and concisely.",
+    "sentiment": "Classify the sentiment as positive, negative, or neutral, then briefly justify your classification.",
+    "math": "Solve the problem step by step. Show your work and state the final answer clearly.",
+    "logic": "Solve the puzzle. State the final answer clearly after your reasoning.",
+    "code_debug": "Identify the bug, explain it briefly, and provide the corrected code.",
+    "code_gen": "Write the requested code. Include any necessary imports.",
+    "ner": "Extract all named entities and label each as Person, Organization, Location, or Date.",
+    "summarization": "Summarize the text as requested.",
+    "factual": "Answer the question accurately and concisely.",
 }
 
 
@@ -588,6 +588,8 @@ def clean_target_output(text: str, category: str) -> str:
         return text
 
     raw_trimmed = text.strip()
+    if not raw_trimmed:
+        return text
 
     cleaned = _RE_CARRIAGE.sub("", text)
 
@@ -605,28 +607,6 @@ def clean_target_output(text: str, category: str) -> str:
                 continue
             extracted.append(line)
         cleaned = "\n".join(extracted)
-
-    if category in ("code_gen", "code_debug"):
-        m = _RE_CODE_START.search(cleaned)
-        if m:
-            cleaned = cleaned[m.start():]
-        cleaned = cleaned.strip()
-        cleaned = _RE_TRAILING_LINES.sub("\n", cleaned)
-        return cleaned
-
-    if category == "sentiment":
-        m = _RE_SENTIMENT.search(cleaned)
-        if m:
-            return m.group(1).lower()
-
-    if category == "math":
-        matches = _RE_DOLLAR.findall(cleaned)
-        if matches:
-            return matches[-1]
-        matches = _RE_NUMBER.findall(cleaned)
-        if matches:
-            return matches[-1].strip()
-        return raw_trimmed
 
     cleaned = cleaned.strip()
     if not cleaned:
