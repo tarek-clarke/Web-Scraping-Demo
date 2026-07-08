@@ -196,11 +196,12 @@ async function checkBackendStatus() {
 // Post configuration changes to backend
 async function updateBackendConfig(payload) {
     try {
-        await fetch("/config", {
+        const resp = await fetch("/config", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         });
+        return await resp.json();
     } catch (e) {
         console.error("Failed to update backend config:", e);
     }
@@ -303,11 +304,10 @@ function connectStream() {
 // Interactive control events listener
 function registerListeners() {
     if (sourceSelect) {
-        sourceSelect.addEventListener("change", function() {
-            updateBackendConfig({ data_source: this.value });
+        sourceSelect.addEventListener("change", async function() {
+            await updateBackendConfig({ data_source: this.value });
             updateChartLabels(this.value);
-            // Reconnect SSE to pick up new data source
-            connectStream();
+            setTimeout(() => connectStream(), 500);
             // Update context dropdown based on source
             const contexts = {
                 "openf1": ["Fernando Alonso", "Lewis Hamilton", "Max Verstappen", "Charles Leclerc"],

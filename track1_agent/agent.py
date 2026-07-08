@@ -46,38 +46,6 @@ ALLOWED_MODELS = [m.strip() for m in ALLOWED_MODELS_ENV.split(",") if m.strip()]
 if not ALLOWED_MODELS:
     ALLOWED_MODELS = ["accounts/fireworks/models/deepseek-v4-pro"]
 
-# Prefer Gemma models for the $6K Gemma prize — auto-select from ALLOWED_MODELS
-# Gemma can be identified by "gemma" in model ID OR by a known deployment ID
-GEMMA_DEPLOYMENT_IDS = set(os.environ.get("GEMMA_DEPLOYMENT_IDS", "").split(","))
-
-def _is_gemma(model_id: str) -> bool:
-    if "gemma" in model_id.lower():
-        return True
-    return model_id in GEMMA_DEPLOYMENT_IDS
-
-def _select_gemma_model():
-    for m in ALLOWED_MODELS:
-        if _is_gemma(m):
-            return m
-    return None
-
-GEMMA_MODEL = _select_gemma_model()
-
-# Select a strong non-Gemma model for complex tasks
-def _select_strong_model():
-    for m in ALLOWED_MODELS:
-        if not _is_gemma(m):
-            return m
-    return ALLOWED_MODELS[0] if ALLOWED_MODELS else None
-
-STRONG_MODEL = _select_strong_model()
-
-# Categories that need a strong model (math/code/logic require accuracy)
-COMPLEX_CATEGORIES = {"math", "code_debug", "code_gen", "logic"}
-
-# Categories where Gemma is sufficient (factual/sentiment/summarization/NER)
-SIMPLE_CATEGORIES = {"factual", "sentiment", "summarization", "ner"}
-
 # Local model identifier (cost = $0 tokens)
 LOCAL_MODEL_ID = os.environ.get("LOCAL_MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct")
 LOCAL_MODEL_PATH = os.environ.get("LOCAL_MODEL_PATH", "/app/hf_cache/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/latest")
@@ -335,8 +303,8 @@ def _print_stats():
 _current_task_id = None
 
 
-def _fireworks_inference(query: str, system_prompt: str, max_tokens: int = 256, model: str = None) -> str:
-    """Call Fireworks API — always tries chat first, falls back to completions."""
+def _fireworks_inference(query: str, system_prompt: str, max_tokens: int = 500, model: str = None) -> str:
+    """Call Fireworks API via chat completions."""
     import openai
 
     client = openai.OpenAI(
@@ -345,73 +313,43 @@ def _fireworks_inference(query: str, system_prompt: str, max_tokens: int = 256, 
     )
 
     if model is None:
-        model = GEMMA_MODEL or ALLOWED_MODELS[0]
-    is_gemma = _is_gemma(model)
+        model = ALLOWED_MODELS[0]
 
-    try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": query},
-            ],
-            temperature=0.0,
-            max_tokens=max_tokens,
-        )
-        _record_usage(_current_task_id or "?", "remote", response.usage)
-        return response.choices[0].message.content.strip()
-    except Exception as chat_err:
-        if "chat template" in str(chat_err).lower() or "chat_template" in str(chat_err).lower():
-            full_prompt = (
-                f"<start_of_turn>user\n{system_prompt}\n\n{query}<end_of_turn>\n"
-                f"<start_of_turn>model\n"
-            )
-            response = client.completions.create(
-                model=model,
-                prompt=full_prompt,
-                temperature=0.0,
-                max_tokens=max_tokens,
-                stop=["<end_of_turn>"],
-            )
-            _record_usage(_current_task_id or "?", "remote", response.usage)
-            return response.choices[0].text.strip()
-        raise
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": query},
+        ],
+        temperature=0.1,
+        max_tokens=max_tokens,
+    )
+    _record_usage(_current_task_id or "?", "remote", response.usage)
+    return response.choices[0].message.content.strip()
 
 
 MAX_TOKENS_PER_CATEGORY = {
-    "sentiment": 100,
-    "math": 400,
-    "factual": 300,
-    "summarization": 200,
-    "ner": 200,
-    "code_debug": 500,
-    "code_gen": 500,
-    "logic": 400,
+    "sentiment": 200,
+    "math": 500,
+    "factual": 400,
+    "summarization": 300,
+    "ner": 300,
+    "code_debug": 600,
+    "code_gen": 600,
+    "logic": 500,
 }
 
 SYSTEM_PROMPTS = {
-    "default": "Answer accurately and concisely.",
-    "sentiment": "Classify the sentiment as positive, negative, or neutral, then briefly justify your classification.",
-    "math": "Solve the problem step by step. Show your work and state the final answer clearly.",
-    "logic": "Solve the puzzle. State the final answer clearly after your reasoning.",
-    "code_debug": "Identify the bug, explain it briefly, and provide the corrected code.",
-    "code_gen": "Write the requested code. Include any necessary imports.",
-    "ner": "Extract all named entities and label each as Person, Organization, Location, or Date.",
-    "summarization": "Summarize the text as requested.",
-    "factual": "Answer the question accurately and concisely.",
+    "default": "You are an AI assistant. Answer the user's question accurately and completely. Provide full, detailed answers.",
+    "sentiment": "You are an AI assistant. Classify the sentiment as positive, negative, or neutral, and provide a brief justification for your classification.",
+    "math": "You are an AI assistant. Solve the math problem step by step and clearly state the final answer.",
+    "logic": "You are an AI assistant. Solve the logic puzzle step by step and clearly state the final answer.",
+    "code_debug": "You are an AI assistant. Identify the bug in the code, explain it, and provide the corrected code.",
+    "code_gen": "You are an AI assistant. Write the requested code with any necessary imports. Provide a complete, working solution.",
+    "ner": "You are an AI assistant. Extract all named entities from the text and label each as Person, Organization, Location, or Date.",
+    "summarization": "You are an AI assistant. Summarize the text as requested.",
+    "factual": "You are an AI assistant. Answer the question accurately and completely.",
 }
-
-
-def _select_model_for_query(query: str) -> str:
-    """Pick cheapest model that can handle the task accurately."""
-    category = _detect_category(query)
-    if category in COMPLEX_CATEGORIES and STRONG_MODEL:
-        print(f"[Q-Route] Category={category} -> STRONG model ({STRONG_MODEL})")
-        return STRONG_MODEL
-    if GEMMA_MODEL:
-        print(f"[Q-Route] Category={category} -> GEMMA model ({GEMMA_MODEL})")
-        return GEMMA_MODEL
-    return ALLOWED_MODELS[0]
 
 
 def run_remote_model(query: str) -> str:
@@ -422,8 +360,8 @@ def run_remote_model(query: str) -> str:
     try:
         category = _detect_category(query)
         system_prompt = SYSTEM_PROMPTS.get(category, SYSTEM_PROMPTS["default"])
-        max_tokens = MAX_TOKENS_PER_CATEGORY.get(category, 200)
-        model = _select_model_for_query(query)
+        max_tokens = MAX_TOKENS_PER_CATEGORY.get(category, 500)
+        model = ALLOWED_MODELS[0]
         return _fireworks_inference(query, system_prompt, max_tokens=max_tokens, model=model)
     except Exception as e:
         _record_usage(_current_task_id or "?", "remote")
@@ -536,18 +474,7 @@ def process_task(prompt: str, router: BinaryQuantumRouter,
     route_decision, confidence = router.route(features)
 
     print(f"[Q-Route] Task {_current_task_id}: VQC={route_decision} (conf={confidence:.2f})")
-
-    if route_decision == "local" and confidence >= CONFIDENCE_THRESHOLD:
-        draft = run_local_model(prompt)
-        eval_score = local_eval(prompt, draft)
-        print(f"[Q-Route] Task {_current_task_id}: local_eval={eval_score:.2f}, draft={draft[:120]!r}")
-
-        if eval_score >= QUALITY_THRESHOLD and len(draft.strip()) > 10:
-            return run_fireworks_confirm(prompt, draft)
-        else:
-            return run_remote_model(prompt)
-    else:
-        return run_remote_model(prompt)
+    return run_remote_model(prompt)
 
 
 def run_fireworks_confirm(prompt: str, draft: str) -> str:
@@ -655,8 +582,6 @@ def main():
         _current_task_id = task_id
 
         answer = process_task(prompt, router, extractor)
-        category = _detect_category(prompt)
-        answer = clean_target_output(answer, category)
 
         results.append({
             "task_id": task_id,
