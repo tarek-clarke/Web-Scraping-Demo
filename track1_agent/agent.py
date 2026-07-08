@@ -358,11 +358,7 @@ def run_remote_model(query: str) -> str:
         return "[FIREWORKS_API_KEY environment variable missing]"
 
     try:
-        category = _detect_category(query)
-        system_prompt = SYSTEM_PROMPTS.get(category, SYSTEM_PROMPTS["default"])
-        max_tokens = MAX_TOKENS_PER_CATEGORY.get(category, 500)
-        model = ALLOWED_MODELS[0]
-        return _fireworks_inference(query, system_prompt, max_tokens=max_tokens, model=model)
+        return _fireworks_inference(query, "You are a helpful AI assistant. Answer the user's question accurately and completely.", max_tokens=1024)
     except Exception as e:
         _record_usage(_current_task_id or "?", "remote")
         return f"[Fireworks API Error: {e}]"
