@@ -302,6 +302,8 @@ function registerListeners() {
         sourceSelect.addEventListener("change", function() {
             updateBackendConfig({ data_source: this.value });
             updateChartLabels(this.value);
+            // Reconnect SSE to pick up new data source
+            connectStream();
             // Update context dropdown based on source
             const contexts = {
                 "openf1": ["Fernando Alonso", "Lewis Hamilton", "Max Verstappen", "Charles Leclerc"],
