@@ -46,11 +46,20 @@
             <header class="header">
                 <div class="header-title">
                     <h2>Mission-Control Analytics</h2>
-                    <p>Live self-healing F1 telemetry pipeline on AMD Instinct GPU infrastructure.</p>
+                    <p>Live self-healing telemetry pipeline on AMD Instinct GPU infrastructure.</p>
                 </div>
                 <div class="controls-bar">
                     <div class="control-group">
-                        <label for="driver-select">Select Driver</label>
+                        <label for="source-select">Data Source</label>
+                        <select id="source-select">
+                            <option value="openf1">OpenF1 Telemetry</option>
+                            <option value="openmeteo">OpenMeteo Weather (Live)</option>
+                            <option value="spacex">SpaceX Launch</option>
+                            <option value="finnhub">Finnhub Market Data</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="driver-select">Context</label>
                         <select id="driver-select">
                             <option value="Fernando Alonso">Fernando Alonso</option>
                             <option value="Lewis Hamilton">Lewis Hamilton</option>

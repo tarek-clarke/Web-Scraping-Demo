@@ -19,6 +19,7 @@ let isRunning = true;
 
 // DOM Elements
 const driverSelect = document.getElementById("driver-select");
+const sourceSelect = document.getElementById("source-select");
 const sliderDrift = document.getElementById("slider-drift");
 const driftValueText = document.getElementById("drift-rate-value");
 const btnPause = document.getElementById("btn-pause");
@@ -189,8 +190,12 @@ function connectStream() {
 
     eventSource.onmessage = function(event) {
         const payload = JSON.parse(event.data);
-        if (statusDriver && payload.original.data.driver) {
-            statusDriver.textContent = payload.original.data.driver;
+        const srcData = payload.original.data;
+        
+        // Update context label
+        if (statusDriver) {
+            const ctxLabel = srcData.driver || srcData.station_id || srcData.mission || srcData.symbol || "Unknown";
+            statusDriver.textContent = ctxLabel;
         }
         
         // 1. Update JSON Diff Viewer
@@ -228,12 +233,12 @@ function connectStream() {
             textGpuPlatform.textContent = "Platform: " + payload.gpu.platform;
         }
 
-        // 4. Update real-time charts history
-        const f1Data = payload.original.data;
+        // 4. Update real-time charts history — pick first 3 numeric fields
+        const numericVals = Object.values(srcData).filter(v => typeof v === 'number');
         chartLabels.push(payload.packet_idx);
-        speedData.push(f1Data.speed);
-        throttleData.push(f1Data.throttle);
-        brakeData.push(f1Data.brake);
+        speedData.push(numericVals[0] || 0);
+        throttleData.push(numericVals[1] || 0);
+        brakeData.push(numericVals[2] || 0);
 
         if (chartLabels.length > chartHistoryLimit) {
             chartLabels.shift();
@@ -271,6 +276,20 @@ function connectStream() {
 
 // Interactive control events listener
 function registerListeners() {
+    if (sourceSelect) {
+        sourceSelect.addEventListener("change", function() {
+            updateBackendConfig({ data_source: this.value });
+            // Clear chart history on source switch
+            chartLabels.length = 0;
+            speedData.length = 0;
+            throttleData.length = 0;
+            brakeData.length = 0;
+            localLatencyLabels.length = 0;
+            gemmaLatencyData.length = 0;
+            bertLatencyData.length = 0;
+        });
+    }
+
     driverSelect.addEventListener("change", function() {
         statusDriver.textContent = this.value.split(" ")[1];
         updateBackendConfig({ active_driver: this.value });
