@@ -432,7 +432,7 @@ def run_remote_model(query: str) -> str:
         api_key=FIREWORKS_API_KEY,
     )
 
-    system_prompt = "You are an expert AI assistant. Answer the user's question with extreme precision and accuracy. Think carefully before responding. Provide complete, correct answers."
+    system_prompt = "You are an expert AI assistant. Answer accurately and completely. For classification or extraction tasks, state the direct answer first. For math and logic problems, show your reasoning and then state the final answer explicitly at the end (e.g. 'Final answer: X'). For code, provide complete working code."
 
     # Collect answers from all models
     answers = []
