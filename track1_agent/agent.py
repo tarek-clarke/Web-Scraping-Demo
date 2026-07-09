@@ -368,7 +368,7 @@ def _pick_best_model(client, query):
             response = client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "You are a helpful AI assistant. Answer accurately and completely."},
+                    {"role": "system", "content": "You are a helpful AI assistant. Think through the problem step by step before giving your answer. Be thorough and precise."},
                     {"role": "user", "content": query},
                 ],
                 temperature=0.0,
@@ -406,7 +406,7 @@ def run_remote_model(query: str) -> str:
         response = client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": "You are a helpful AI assistant. Answer the user's question accurately and completely. Think carefully and provide a thorough, correct answer."},
+                {"role": "system", "content": "You are a helpful AI assistant. Think through the problem step by step before giving your answer. Be thorough and precise. Provide your final answer clearly."},
                 {"role": "user", "content": query},
             ],
             temperature=0.0,
