@@ -225,7 +225,7 @@ def run_local_model(query: str) -> str:
             output = _local_model.generate(
                 input_ids,
                 max_new_tokens=256,
-                temperature=0.1,
+                temperature=0.0,
                 do_sample=True,
             )
 
@@ -321,7 +321,7 @@ def _fireworks_inference(query: str, system_prompt: str, max_tokens: int = 500, 
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": query},
         ],
-        temperature=0.1,
+        temperature=0.0,
         max_tokens=max_tokens,
     )
     _record_usage(_current_task_id or "?", "remote", response.usage)
