@@ -344,7 +344,11 @@ def main():
     print(f"[Q-Route] GPU={has_gpu} VRAM={vram//1024//1024//1024 if vram else 0}GB", flush=True)
 
     init_vqc()
-    download_all_models()
+
+    # Only download + load Gemma if GPU is available (CPU is too slow for 3-tier)
+    use_gemma = has_gpu
+    if use_gemma:
+        download_all_models()
 
     extractor = QueryFeatureExtractor()
 
@@ -381,10 +385,16 @@ def main():
 
     print(f"[Q-Route] T1={len(tier1_tasks)} T2={len(tier2_tasks)} T3={len(tier3_tasks)}", flush=True)
 
-    # Process tiers dynamically
-    t1_results = process_tier(tier1_tasks, GEMMA_E4B_PATH, 5, has_gpu, vram, "T1-E4B", 100, ctx=2048)
-    t2_results = process_tier(tier2_tasks, GEMMA_26B_PATH, 15, has_gpu, vram, "T2-26B", 300, ctx=4096)
-    t3_results = process_tier(tier3_tasks, GEMMA_31B_PATH, 18, has_gpu, vram, "T3-31B", 500, ctx=4096)
+    # Process tiers dynamically (only if GPU available)
+    if use_gemma:
+        t1_results = process_tier(tier1_tasks, GEMMA_E4B_PATH, 5, has_gpu, vram, "T1-E4B", 100, ctx=2048)
+        t2_results = process_tier(tier2_tasks, GEMMA_26B_PATH, 15, has_gpu, vram, "T2-26B", 300, ctx=4096)
+        t3_results = process_tier(tier3_tasks, GEMMA_31B_PATH, 18, has_gpu, vram, "T3-31B", 500, ctx=4096)
+    else:
+        print("[Q-Route] No GPU — skipping Gemma, using Fireworks for all tasks", flush=True)
+        t1_results = {}
+        t2_results = {}
+        t3_results = {}
 
     # Merge results + Fireworks referral for failures
     all_results = {}
