@@ -400,23 +400,38 @@ def run_remote_model(query: str) -> str:
         api_key=FIREWORKS_API_KEY,
     )
 
-    model = _pick_best_model(client, query)
+    system_prompt = "You are a helpful AI assistant. Answer the user's question accurately and completely."
 
-    try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": "You are a helpful AI assistant. Answer the user's question accurately and completely. Think carefully and provide a thorough, correct answer."},
-                {"role": "user", "content": query},
-            ],
-            temperature=0.0,
-            max_tokens=2048,
-        )
-        _record_usage(_current_task_id or "?", "remote", response.usage)
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        _record_usage(_current_task_id or "?", "remote")
-        return f"[Fireworks API Error: {e}]"
+    best_answer = None
+    best_len = 0
+    last_error = None
+
+    for model in ALLOWED_MODELS:
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": query},
+                ],
+                temperature=0.0,
+                max_tokens=2048,
+            )
+            answer = response.choices[0].message.content.strip()
+            print(f"[Q-Route] Task {_current_task_id}: model={model}, len={len(answer)}")
+            if len(answer) > best_len:
+                best_answer = answer
+                best_len = len(answer)
+                _record_usage(_current_task_id or "?", "remote", response.usage)
+        except Exception as e:
+            last_error = e
+            print(f"[Q-Route] Task {_current_task_id}: model={model} failed: {e}")
+
+    if best_answer:
+        return best_answer
+
+    _record_usage(_current_task_id or "?", "remote")
+    return f"[Fireworks API Error: {last_error}]"
 
 
 # ---------------------------------------------------------------------------
