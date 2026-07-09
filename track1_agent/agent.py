@@ -426,6 +426,7 @@ def run_remote_model(query: str) -> str:
         return "[FIREWORKS_API_KEY environment variable missing]"
 
     import openai
+    from collections import Counter
 
     client = openai.OpenAI(
         base_url=FIREWORKS_BASE_URL,
@@ -433,6 +434,9 @@ def run_remote_model(query: str) -> str:
     )
 
     system_prompt = "You are an expert AI assistant. Answer accurately and completely. For classification or extraction tasks, state the direct answer first. For math and logic problems, show your reasoning and then state the final answer explicitly at the end (e.g. 'Final answer: X'). For code, provide complete working code."
+
+    category = _detect_category(query)
+    use_voting = category in ["sentiment", "ner", "factual", "summarization"]
 
     # Collect answers from all models
     answers = []
@@ -457,7 +461,26 @@ def run_remote_model(query: str) -> str:
     if not answers:
         return "[All models failed]"
 
-    # Pick the longest answer (most complete)
+    # For classification/extraction: majority vote
+    if use_voting:
+        # Extract first line or first sentence as the "vote"
+        votes = []
+        for model, answer in answers:
+            first_line = answer.split('\n')[0].strip()
+            # Normalize for comparison
+            normalized = first_line.lower().replace('.', '').replace(',', '').strip()
+            votes.append((normalized, answer))
+
+        # Count votes
+        vote_counts = Counter(v[0] for v in votes)
+        most_common_vote = vote_counts.most_common(1)[0][0]
+        
+        # Return the full answer that matches the most common vote
+        for normalized, full_answer in votes:
+            if normalized == most_common_vote:
+                return full_answer
+
+    # For reasoning tasks: pick longest answer
     best_model, best_answer = max(answers, key=lambda x: len(x[1]))
     return best_answer
 
