@@ -444,7 +444,7 @@ def run_remote_model(query: str) -> str:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": query},
                 ],
-                temperature=0.0,
+                temperature=0.1,
                 max_tokens=2048,
             )
             answer = response.choices[0].message.content.strip()
