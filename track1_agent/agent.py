@@ -258,9 +258,8 @@ def run_fireworks(query):
         return "[No API key]"
     import openai
     client = openai.OpenAI(base_url=FIREWORKS_BASE_URL, api_key=FIREWORKS_API_KEY)
-    models = ALLOWED_MODELS[:2] if len(ALLOWED_MODELS) >= 2 else ALLOWED_MODELS
     best, best_len = None, 0
-    for model in models:
+    for model in ALLOWED_MODELS:
         try:
             r = client.chat.completions.create(
                 model=model,
