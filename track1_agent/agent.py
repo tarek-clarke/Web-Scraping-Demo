@@ -148,55 +148,103 @@ def vqc_classify(features):
 # Model Download
 # ---------------------------------------------------------------------------
 
+# Models auto-downloaded by transformers at load time (safetensors format)
+# No manual GGUF download needed — transformers handles it
 def download_all_models():
-    for repo, fname, dest, size_gb in GEMMA_DOWNLOADS:
-        if os.path.exists(dest) and os.path.getsize(dest) > 100_000_000:
-            print(f"[Q-Route] {fname} already exists ({os.path.getsize(dest)//1024//1024}MB)", flush=True)
-            continue
-        try:
-            from huggingface_hub import hf_hub_download
-            print(f"[Q-Route] Downloading {fname} ({size_gb}GB)...", flush=True)
-            t0 = time.time()
-            path = hf_hub_download(repo_id=repo, filename=fname, local_dir="/tmp")
-            os.rename(path, dest)
-            print(f"[Q-Route] Downloaded in {time.time()-t0:.1f}s", flush=True)
-        except Exception as e:
-            print(f"[Q-Route] Download {fname} failed: {e}", flush=True)
+    print("[Q-Route] Models will be auto-downloaded by transformers on first load", flush=True)
+    pass
 
 # ---------------------------------------------------------------------------
-# Dynamic Tier Loading + Inference
+# Dynamic Tier Loading + Inference (uses pre-installed PyTorch + ROCm for GPU)
 # ---------------------------------------------------------------------------
 
 _gemma_temps = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55,
                 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0, 1.05, 1.1, 1.15,
                 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5, 1.55, 1.6, 1.65, 1.7, 1.75, 1.8, 1.85]
 
+_model_cache = {}
+
+def load_model(model_path, ctx=2048):
+    """Load model using transformers + PyTorch (pre-installed on scoring env)."""
+    if model_path in _model_cache:
+        return _model_cache[model_path]
+
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+    import torch
+
+    model_id = "google/gemma-3-1b-it"
+    if "26b" in model_path:
+        model_id = "google/gemma-4-26B-A4B-it"
+    elif "31b" in model_path:
+        model_id = "google/gemma-4-31B-it"
+    elif "e4b" in model_path:
+        model_id = "google/gemma-4-E4B-it"
+
+    print(f"[Q-Route] Loading {model_id} via transformers...", flush=True)
+    t0 = time.time()
+
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id, torch_dtype=dtype, device_map="auto"
+    )
+    model.eval()
+
+    _model_cache[model_path] = (model, tokenizer)
+    print(f"[Q-Route] Loaded in {time.time()-t0:.1f}s", flush=True)
+    return model, tokenizer
+
+def unload_model(model_path):
+    if model_path in _model_cache:
+        del _model_cache[model_path]
+        import gc; gc.collect()
+        try:
+            import torch; torch.cuda.empty_cache()
+        except: pass
+
 def load_instances(path, num_copies, n_gpu, ctx=2048):
-    from llama_cpp import Llama
+    """Load multiple copies for ensemble. Uses transformers on GPU."""
     instances = []
     for i in range(num_copies):
-        llm = Llama(model_path=path, n_ctx=ctx, n_threads=4, n_gpu_layers=n_gpu, verbose=False)
-        instances.append(llm)
+        try:
+            model, tokenizer = load_model(path, ctx)
+            instances.append((model, tokenizer))
+        except Exception as e:
+            print(f"[Q-Route] Load copy {i} failed: {e}", flush=True)
+            break
     return instances
 
 def unload_instances(instances):
-    for llm in instances:
+    for model, tokenizer in instances:
         try:
-            del llm
-        except:
-            pass
-    import gc
-    gc.collect()
+            del model, tokenizer
+        except: pass
+    import gc; gc.collect()
+    try:
+        import torch; torch.cuda.empty_cache()
+    except: pass
 
 def infer_one(instance, idx, query, max_tokens):
     try:
+        import torch
+        model, tokenizer = instance
         temp = _gemma_temps[idx % len(_gemma_temps)]
-        resp = instance.create_chat_completion(
-            messages=[{"role": "user", "content": query}],
-            temperature=temp,
-            max_tokens=max_tokens,
-        )
-        return resp["choices"][0]["message"]["content"].strip()
+
+        messages = [{"role": "user", "content": query}]
+        input_ids = tokenizer.apply_chat_template(
+            messages, return_tensors="pt", add_generation_prompt=True
+        ).to(model.device)
+
+        with torch.no_grad():
+            output = model.generate(
+                input_ids,
+                max_new_tokens=max_tokens,
+                temperature=temp,
+                do_sample=temp > 0,
+            )
+
+        response_ids = output[0][input_ids.shape[1]:]
+        return tokenizer.decode(response_ids, skip_special_tokens=True).strip()
     except:
         return ""
 
