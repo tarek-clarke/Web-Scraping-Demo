@@ -46,9 +46,8 @@ ALLOWED_MODELS = [m.strip() for m in ALLOWED_MODELS_ENV.split(",") if m.strip()]
 if not ALLOWED_MODELS:
     ALLOWED_MODELS = ["accounts/fireworks/models/deepseek-v4-pro"]
 
-# Local model identifier (cost = $0 tokens)
-LOCAL_MODEL_ID = os.environ.get("LOCAL_MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct")
-LOCAL_MODEL_PATH = os.environ.get("LOCAL_MODEL_PATH", "/app/hf_cache/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/latest")
+# Local model identifier (not used — Gemma GGUF is loaded directly)
+LOCAL_MODEL_ID = os.environ.get("LOCAL_MODEL_ID", "gemma-3-4b")
 
 # Router confidence and local quality thresholds
 CONFIDENCE_THRESHOLD = float(os.environ.get("CONFIDENCE_THRESHOLD", "0.50"))
@@ -168,73 +167,72 @@ class BinaryQuantumRouter:
 
 
 # ---------------------------------------------------------------------------
-# Local Model Inference (Cost = 0 Tokens)
+# Local Model Inference (Cost = 0 Fireworks Tokens)
+# Gemma 3 GGUF via llama-cpp-python
 # ---------------------------------------------------------------------------
 
-_local_model = None
-_local_tokenizer = None
+_gemma_1b = None
+_gemma_4b = None
+
+GEMMA_1B_PATH = "/app/gemma_cache/google_gemma-3-1b-it-Q4_K_M.gguf"
+GEMMA_4B_PATH = "/app/gemma_cache/google_gemma-3-4b-it-Q4_K_M.gguf"
 
 
-def _init_local_model():
-    global _local_model, _local_tokenizer
-    if _local_model is not None:
+def _init_gemma_1b():
+    global _gemma_1b
+    if _gemma_1b is not None:
         return
+    try:
+        from llama_cpp import Llama
+        print("[Q-Route] Loading Gemma 3 1B GGUF...")
+        _gemma_1b = Llama(model_path=GEMMA_1B_PATH, n_ctx=2048, n_threads=4, verbose=False)
+        print("[Q-Route] Gemma 3 1B loaded.")
+    except Exception as e:
+        print(f"[Q-Route] Gemma 1B load failed: {e}")
+        _gemma_1b = None
+
+
+def _init_gemma_4b():
+    global _gemma_4b
+    if _gemma_4b is not None:
+        return
+    try:
+        from llama_cpp import Llama
+        print("[Q-Route] Loading Gemma 3 4B GGUF...")
+        _gemma_4b = Llama(model_path=GEMMA_4B_PATH, n_ctx=4096, n_threads=4, verbose=False)
+        print("[Q-Route] Gemma 3 4B loaded.")
+    except Exception as e:
+        print(f"[Q-Route] Gemma 4B load failed: {e}")
+        _gemma_4b = None
+
+
+def run_local_model(query: str, use_4b: bool = True) -> str:
+    """Run inference on local Gemma. Cost = 0 Fireworks tokens."""
+    if use_4b:
+        _init_gemma_4b()
+        llm = _gemma_4b
+    else:
+        _init_gemma_1b()
+        llm = _gemma_1b
+
+    if llm is None:
+        if not use_4b:
+            return ""
+        _init_gemma_1b()
+        llm = _gemma_1b
+        if llm is None:
+            return ""
 
     try:
-        from transformers import AutoModelForCausalLM, AutoTokenizer
-        import torch
-
-        _local_tokenizer = AutoTokenizer.from_pretrained(LOCAL_MODEL_PATH)
-
-        if torch.cuda.is_available() or hasattr(torch, 'hip'):
-            print("[Q-Route] GPU detected, loading with bfloat16")
-            _local_model = AutoModelForCausalLM.from_pretrained(
-                LOCAL_MODEL_PATH,
-                torch_dtype=torch.bfloat16,
-                device_map="auto",
-            )
-        else:
-            print("[Q-Route] No GPU, loading with float32 on CPU")
-            _local_model = AutoModelForCausalLM.from_pretrained(
-                LOCAL_MODEL_PATH,
-                torch_dtype=torch.float32,
-                device_map="cpu",
-            )
-        _local_model.eval()
+        response = llm.create_chat_completion(
+            messages=[{"role": "user", "content": query}],
+            temperature=0.1,
+            max_tokens=512,
+        )
+        return response["choices"][0]["message"]["content"].strip()
     except Exception as e:
-        print(f"[Q-Route] Local model load failed: {e}")
-        _local_model = None
-        _local_tokenizer = None
-
-
-def run_local_model(query: str) -> str:
-    """Run inference on local model. Cost = $0 tokens."""
-    _init_local_model()
-
-    if _local_model is None or _local_tokenizer is None:
-        return f"[Local model fallback for query: '{query[:50]}']"
-
-    try:
-        import torch
-        messages = [{"role": "user", "content": query}]
-        input_ids = _local_tokenizer.apply_chat_template(
-            messages, return_tensors="pt", add_generation_prompt=True
-        ).to(_local_model.device)
-
-        with torch.no_grad():
-            output = _local_model.generate(
-                input_ids,
-                max_new_tokens=256,
-                temperature=0.0,
-                do_sample=True,
-            )
-
-        response_ids = output[0][input_ids.shape[1]:]
-        answer = _local_tokenizer.decode(response_ids, skip_special_tokens=True)
-        return answer.strip()
-    except Exception as e:
-        print(f"[Q-Route] Local inference error: {type(e).__name__}: {e}")
-        return f"[Local inference error: {e}]"
+        print(f"[Q-Route] Local inference error: {e}")
+        return ""
 
 
 # ---------------------------------------------------------------------------
@@ -572,14 +570,33 @@ def local_eval(query: str, answer: str) -> float:
 # Process Query Pipeline
 # ---------------------------------------------------------------------------
 
+SIMPLE_CATEGORIES = {"factual", "sentiment", "summarization", "ner"}
+COMPLEX_CATEGORIES = {"math", "code_debug", "code_gen", "logic"}
+
+
 def process_task(prompt: str, router: BinaryQuantumRouter,
                  extractor: QueryFeatureExtractor) -> str:
     global _current_task_id
+    
     features = extractor.extract(prompt)
     route_decision, confidence = router.route(features)
+    category = _detect_category(prompt)
 
-    print(f"[Q-Route] Task {_current_task_id}: VQC={route_decision} (conf={confidence:.2f})")
-    return run_remote_model(prompt)
+    print(f"[Q-Route] Task {_current_task_id}: cat={category} VQC={route_decision} (conf={confidence:.2f})")
+
+    if category in SIMPLE_CATEGORIES:
+        use_4b = category != "sentiment"
+        local_answer = run_local_model(prompt, use_4b=use_4b)
+        
+        if local_answer and len(local_answer.strip()) > 10:
+            print(f"[Q-Route] Task {_current_task_id}: LOCAL answer (0 tokens), len={len(local_answer)}")
+            _record_usage(_current_task_id or "?", "local")
+            return local_answer
+        else:
+            print(f"[Q-Route] Task {_current_task_id}: LOCAL failed, escalating to Fireworks")
+            return run_remote_model(prompt)
+    else:
+        return run_remote_model(prompt)
 
 
 def run_fireworks_confirm(prompt: str, draft: str) -> str:
@@ -675,7 +692,9 @@ def main():
         print(f"[Q-Route] Failed to parse input JSON: {e}")
         sys.exit(1)
 
-    print(f"[Q-Route] Initializing. Processing {len(tasks)} queries...")
+    print(f"[Q-Route] Initializing router. Processing {len(tasks)} queries...")
+    extractor = QueryFeatureExtractor()
+    router = BinaryQuantumRouter(shots=1024)
     
     results = []
 
@@ -684,7 +703,7 @@ def main():
         prompt = task.get("prompt", "")
         _current_task_id = task_id
 
-        answer = run_remote_model(prompt)
+        answer = process_task(prompt, router, extractor)
 
         results.append({
             "task_id": task_id,
