@@ -358,7 +358,7 @@ def run_remote_model(query: str) -> str:
         return "[FIREWORKS_API_KEY environment variable missing]"
 
     try:
-        return _fireworks_inference(query, "You are a helpful AI assistant. Answer the user's question accurately and completely.", max_tokens=1024)
+        return _fireworks_inference(query, "You are a helpful AI assistant. Answer the user's question accurately and completely.", max_tokens=2048)
     except Exception as e:
         _record_usage(_current_task_id or "?", "remote")
         return f"[Fireworks API Error: {e}]"
@@ -566,9 +566,7 @@ def main():
         print(f"[Q-Route] Failed to parse input JSON: {e}")
         sys.exit(1)
 
-    print(f"[Q-Route] Initializing router. Processing {len(tasks)} queries...")
-    extractor = QueryFeatureExtractor()
-    router = BinaryQuantumRouter(shots=1024)
+    print(f"[Q-Route] Initializing. Processing {len(tasks)} queries...")
     
     results = []
 
@@ -577,7 +575,7 @@ def main():
         prompt = task.get("prompt", "")
         _current_task_id = task_id
 
-        answer = process_task(prompt, router, extractor)
+        answer = run_remote_model(prompt)
 
         results.append({
             "task_id": task_id,
