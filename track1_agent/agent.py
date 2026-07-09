@@ -352,13 +352,68 @@ SYSTEM_PROMPTS = {
 }
 
 
+_selected_model = None
+
+def _pick_best_model(client, query):
+    """Test all models on first task, pick the one with the longest answer."""
+    global _selected_model
+    if _selected_model is not None:
+        return _selected_model
+
+    best_model = ALLOWED_MODELS[0]
+    best_len = 0
+
+    for model in ALLOWED_MODELS:
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "You are a helpful AI assistant. Answer accurately and completely."},
+                    {"role": "user", "content": query},
+                ],
+                temperature=0.0,
+                max_tokens=256,
+            )
+            answer = response.choices[0].message.content.strip()
+            print(f"[Q-Route] Model test: {model} -> len={len(answer)}")
+            if len(answer) > best_len:
+                best_len = len(answer)
+                best_model = model
+                _record_usage(_current_task_id or "?", "remote", response.usage)
+        except Exception as e:
+            print(f"[Q-Route] Model test: {model} failed: {e}")
+
+    _selected_model = best_model
+    print(f"[Q-Route] Selected model: {_selected_model}")
+    return _selected_model
+
+
 def run_remote_model(query: str) -> str:
     if not FIREWORKS_API_KEY:
         _record_usage(_current_task_id or "?", "remote")
         return "[FIREWORKS_API_KEY environment variable missing]"
 
+    import openai
+
+    client = openai.OpenAI(
+        base_url=FIREWORKS_BASE_URL,
+        api_key=FIREWORKS_API_KEY,
+    )
+
+    model = _pick_best_model(client, query)
+
     try:
-        return _fireworks_inference(query, "You are a helpful AI assistant. Answer the user's question accurately and completely.", max_tokens=2048)
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": "You are a helpful AI assistant. Answer the user's question accurately and completely. Think carefully and provide a thorough, correct answer."},
+                {"role": "user", "content": query},
+            ],
+            temperature=0.0,
+            max_tokens=2048,
+        )
+        _record_usage(_current_task_id or "?", "remote", response.usage)
+        return response.choices[0].message.content.strip()
     except Exception as e:
         _record_usage(_current_task_id or "?", "remote")
         return f"[Fireworks API Error: {e}]"
