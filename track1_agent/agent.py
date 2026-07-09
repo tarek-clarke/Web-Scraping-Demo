@@ -450,9 +450,13 @@ def run_remote_model(query: str) -> str:
         api_key=FIREWORKS_API_KEY,
     )
 
-    system_prompt = "You are an expert AI assistant. Answer accurately and completely. For classification or extraction tasks, state the direct answer first. For math and logic problems, show your reasoning and then state the final answer explicitly at the end. For code, provide complete working code."
-    
-    model = _pick_model_for_category(query)
+    system_prompt = "You are an expert AI assistant. Answer accurately and completely. For math and logic problems, show your reasoning and state the final answer explicitly. For code, provide complete working code."
+
+    model = ALLOWED_MODELS[0]
+    for m in ALLOWED_MODELS:
+        if "deepseek" in m.lower() or "kimi" in m.lower():
+            model = m
+            break
 
     try:
         response = client.chat.completions.create(
@@ -464,8 +468,28 @@ def run_remote_model(query: str) -> str:
             temperature=0.0,
             max_tokens=2048,
         )
+        first_answer = response.choices[0].message.content.strip()
         _record_usage(_current_task_id or "?", "remote", response.usage)
-        return response.choices[0].message.content.strip()
+
+        # Self-verify on complex tasks only (we have token budget since simple tasks are free)
+        verify_prompt = f"""Question: {query}
+
+Your answer: {first_answer}
+
+Check your answer carefully. If it is correct, return it unchanged. If there are errors, fix them. Output only the final answer."""
+
+        response2 = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": "You are a careful reviewer. Verify the answer and return the final corrected version."},
+                {"role": "user", "content": verify_prompt},
+            ],
+            temperature=0.0,
+            max_tokens=2048,
+        )
+        final_answer = response2.choices[0].message.content.strip()
+        _record_usage(_current_task_id or "?", "remote", response2.usage)
+        return final_answer
     except Exception as e:
         _record_usage(_current_task_id or "?", "remote")
         return f"[Fireworks API Error: {e}]"
