@@ -9,11 +9,12 @@ ENV CMAKE_ARGS="-DGGML_HIPBLAS=on"
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir llama-cpp-python>=0.2.0
 
-# Stage 2: Slim runtime
+# Stage 2: Slim runtime — assumes /opt/rocm exists on scoring env
 FROM python:3.10-slim
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:$LD_LIBRARY_PATH
 
 WORKDIR /app
 
@@ -29,9 +30,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
     qiskit>=1.0.0 \
     qiskit-aer>=0.14.0
 
+# Copy compiled llama-cpp-python from builder (has HIPBLAS support)
 COPY --from=builder /usr/local/lib/python3.10/site-packages/llama_cpp /usr/local/lib/python3.10/site-packages/llama_cpp
 COPY --from=builder /usr/local/lib/python3.10/site-packages/llama_cpp-*.dist-info /usr/local/lib/python3.10/site-packages/
-COPY --from=builder /usr/local/lib/python3.10/site-packages/lib /usr/local/lib/python3.10/site-packages/lib
 
 COPY track1_agent/agent.py /app/agent.py
 COPY track1_agent/query_feature_extractor.py /app/query_feature_extractor.py
