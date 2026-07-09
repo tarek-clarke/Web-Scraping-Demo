@@ -432,31 +432,47 @@ def run_remote_model(query: str) -> str:
         api_key=FIREWORKS_API_KEY,
     )
 
-    system_prompt = "You are a helpful AI assistant. Answer the user's question accurately and completely. Look at the examples provided and match their format and thoroughness."
-
     model = ALLOWED_MODELS[0]
     for m in ALLOWED_MODELS:
         if "deepseek" in m.lower() or "kimi" in m.lower():
             model = m
             break
 
-    category = _detect_category(query)
-    examples = FEW_SHOT_EXAMPLES.get(category, [])
-
-    messages = [{"role": "system", "content": system_prompt}]
-    for ex in examples:
-        messages.append({"role": ex["role"], "content": ex["content"]})
-    messages.append({"role": "user", "content": query})
+    system_prompt = "You are a helpful AI assistant. Answer the user's question accurately and completely."
 
     try:
+        # First pass: get answer
         response = client.chat.completions.create(
             model=model,
-            messages=messages,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": query},
+            ],
             temperature=0.0,
             max_tokens=2048,
         )
+        first_answer = response.choices[0].message.content.strip()
         _record_usage(_current_task_id or "?", "remote", response.usage)
-        return response.choices[0].message.content.strip()
+
+        # Second pass: verify and fix
+        verify_prompt = f"""Original question: {query}
+
+Your previous answer: {first_answer}
+
+Review your answer carefully. Is it correct? If there are any errors, fix them. If it is correct, return it unchanged. Output only the final answer."""
+
+        response2 = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": "You are a careful reviewer. Check the answer for correctness and return the final corrected answer."},
+                {"role": "user", "content": verify_prompt},
+            ],
+            temperature=0.0,
+            max_tokens=2048,
+        )
+        final_answer = response2.choices[0].message.content.strip()
+        _record_usage(_current_task_id or "?", "remote", response2.usage)
+        return final_answer
     except Exception as e:
         _record_usage(_current_task_id or "?", "remote")
         return f"[Fireworks API Error: {e}]"
