@@ -84,13 +84,20 @@ def detect_gpu():
     return has_rocm, 0
 
 def max_copies_for_vram(vram_bytes, model_size_gb, num_tasks):
+    """Calculate max model copies to fill 92% of available VRAM.
+    Context memory: ~128MB for 2048 ctx, ~256MB for 4096 ctx (per copy, not per task).
+    We process tasks sequentially within a tier, so 1 context slot per copy."""
     if vram_bytes <= 0:
         return 1, 0
     model_bytes = int(model_size_gb * 1024**3)
-    ctx_bytes = int(0.3 * 1024**3) * num_tasks
+    # Context memory depends on model size (larger model = larger KV cache)
+    if model_size_gb <= 6:
+        ctx_bytes = 128 * 1024**2  # 128MB for small models (2048 ctx)
+    else:
+        ctx_bytes = 256 * 1024**2  # 256MB for large models (4096 ctx)
     per_copy = model_bytes + ctx_bytes
-    usable = int(vram_bytes * 0.90)
-    copies = max(2, min(38, usable // per_copy))
+    usable = int(vram_bytes * 0.92)  # 92% utilization
+    copies = max(2, usable // per_copy)
     return copies, -1
 
 # ---------------------------------------------------------------------------
@@ -306,8 +313,10 @@ def run_fireworks(query):
         return "[No API key]"
     import openai
     client = openai.OpenAI(base_url=FIREWORKS_BASE_URL, api_key=FIREWORKS_API_KEY)
+    # Use up to 3 models for consensus (balances accuracy vs tokens)
+    models_to_try = ALLOWED_MODELS[:3] if len(ALLOWED_MODELS) >= 3 else ALLOWED_MODELS
     best, best_len = None, 0
-    for model in ALLOWED_MODELS:
+    for model in models_to_try:
         try:
             r = client.chat.completions.create(
                 model=model,
