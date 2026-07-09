@@ -388,6 +388,38 @@ def _pick_best_model(client, query):
     return _selected_model
 
 
+FEW_SHOT_EXAMPLES = {
+    "sentiment": [
+        {"role": "user", "content": "What is the sentiment of this review: 'The food was amazing and the staff was friendly!'"},
+        {"role": "assistant", "content": "Positive. The reviewer expresses satisfaction with both the food quality and the staff service, using strong positive words like 'amazing' and 'friendly.'"},
+    ],
+    "math": [
+        {"role": "user", "content": "A book costs $20. With a 10% discount, what is the final price?"},
+        {"role": "assistant", "content": "The final price is $18.\n\nStep 1: Discount = 10% of $20 = $2\nStep 2: Final price = $20 - $2 = $18"},
+    ],
+    "ner": [
+        {"role": "user", "content": "Extract named entities from: 'John Smith works at Google in New York since 2020.'"},
+        {"role": "assistant", "content": "Person: John Smith\nOrganization: Google\nLocation: New York\nDate: 2020"},
+    ],
+    "logic": [
+        {"role": "user", "content": "If A > B and B > C, who is the tallest?"},
+        {"role": "assistant", "content": "A is the tallest. Since A > B and B > C, the order from tallest to shortest is A, B, C."},
+    ],
+    "code_debug": [
+        {"role": "user", "content": "Fix the bug: def add(a, b): return a - b"},
+        {"role": "assistant", "content": "The bug is that the function uses subtraction (-) instead of addition (+).\n\nCorrected code:\n```python\ndef add(a, b):\n    return a + b\n```"},
+    ],
+    "code_gen": [
+        {"role": "user", "content": "Write a function that returns the square of a number."},
+        {"role": "assistant", "content": "```python\ndef square(n):\n    return n * n\n```"},
+    ],
+    "summarization": [
+        {"role": "user", "content": "Summarize in one sentence: 'The sun is a star at the center of the solar system. It provides light and heat to all planets.'"},
+        {"role": "assistant", "content": "The sun is the central star of the solar system that provides light and heat to all planets."},
+    ],
+}
+
+
 def run_remote_model(query: str) -> str:
     if not FIREWORKS_API_KEY:
         _record_usage(_current_task_id or "?", "remote")
@@ -400,7 +432,7 @@ def run_remote_model(query: str) -> str:
         api_key=FIREWORKS_API_KEY,
     )
 
-    system_prompt = "You are a helpful AI assistant. Answer the user's question accurately and completely."
+    system_prompt = "You are a helpful AI assistant. Answer the user's question accurately and completely. Look at the examples provided and match their format and thoroughness."
 
     model = ALLOWED_MODELS[0]
     for m in ALLOWED_MODELS:
@@ -408,13 +440,18 @@ def run_remote_model(query: str) -> str:
             model = m
             break
 
+    category = _detect_category(query)
+    examples = FEW_SHOT_EXAMPLES.get(category, [])
+
+    messages = [{"role": "system", "content": system_prompt}]
+    for ex in examples:
+        messages.append({"role": ex["role"], "content": ex["content"]})
+    messages.append({"role": "user", "content": query})
+
     try:
         response = client.chat.completions.create(
             model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": query},
-            ],
+            messages=messages,
             temperature=0.0,
             max_tokens=2048,
         )
