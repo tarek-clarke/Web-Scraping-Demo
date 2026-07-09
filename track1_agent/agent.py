@@ -438,10 +438,9 @@ def run_remote_model(query: str) -> str:
             model = m
             break
 
-    system_prompt = "You are a helpful AI assistant. Answer the user's question accurately and completely."
+    system_prompt = "You are an expert AI assistant. Answer the user's question with extreme precision and accuracy. Think carefully before responding. Provide complete, correct answers."
 
     try:
-        # First pass: get answer
         response = client.chat.completions.create(
             model=model,
             messages=[
@@ -451,28 +450,8 @@ def run_remote_model(query: str) -> str:
             temperature=0.0,
             max_tokens=2048,
         )
-        first_answer = response.choices[0].message.content.strip()
         _record_usage(_current_task_id or "?", "remote", response.usage)
-
-        # Second pass: verify and fix
-        verify_prompt = f"""Original question: {query}
-
-Your previous answer: {first_answer}
-
-Review your answer carefully. Is it correct? If there are any errors, fix them. If it is correct, return it unchanged. Output only the final answer."""
-
-        response2 = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": "You are a careful reviewer. Check the answer for correctness and return the final corrected answer."},
-                {"role": "user", "content": verify_prompt},
-            ],
-            temperature=0.0,
-            max_tokens=2048,
-        )
-        final_answer = response2.choices[0].message.content.strip()
-        _record_usage(_current_task_id or "?", "remote", response2.usage)
-        return final_answer
+        return response.choices[0].message.content.strip()
     except Exception as e:
         _record_usage(_current_task_id or "?", "remote")
         return f"[Fireworks API Error: {e}]"
