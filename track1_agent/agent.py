@@ -432,29 +432,34 @@ def run_remote_model(query: str) -> str:
         api_key=FIREWORKS_API_KEY,
     )
 
-    model = ALLOWED_MODELS[0]
-    for m in ALLOWED_MODELS:
-        if "deepseek" in m.lower() or "kimi" in m.lower():
-            model = m
-            break
-
     system_prompt = "You are an expert AI assistant. Answer the user's question with extreme precision and accuracy. Think carefully before responding. Provide complete, correct answers."
 
-    try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": query},
-            ],
-            temperature=0.0,
-            max_tokens=2048,
-        )
-        _record_usage(_current_task_id or "?", "remote", response.usage)
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        _record_usage(_current_task_id or "?", "remote")
-        return f"[Fireworks API Error: {e}]"
+    # Collect answers from all models
+    answers = []
+    for model in ALLOWED_MODELS:
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": query},
+                ],
+                temperature=0.0,
+                max_tokens=2048,
+            )
+            answer = response.choices[0].message.content.strip()
+            answers.append((model, answer))
+            _record_usage(_current_task_id or "?", "remote", response.usage)
+        except Exception as e:
+            print(f"[Q-Route] Model {model} failed: {e}")
+            continue
+
+    if not answers:
+        return "[All models failed]"
+
+    # Pick the longest answer (most complete)
+    best_model, best_answer = max(answers, key=lambda x: len(x[1]))
+    return best_answer
 
 
 # ---------------------------------------------------------------------------
