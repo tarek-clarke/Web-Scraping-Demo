@@ -420,69 +420,57 @@ FEW_SHOT_EXAMPLES = {
 }
 
 
+def _pick_model_for_category(query: str) -> str:
+    """Use deepseek for reasoning, kimi for code, fallback to first model."""
+    category = _detect_category(query)
+    
+    if category in ("math", "logic"):
+        for m in ALLOWED_MODELS:
+            if "deepseek" in m.lower():
+                return m
+    if category in ("code_gen", "code_debug"):
+        for m in ALLOWED_MODELS:
+            if "kimi" in m.lower():
+                return m
+    if category in ("factual", "sentiment", "summarization", "ner"):
+        for m in ALLOWED_MODELS:
+            if "deepseek" in m.lower() or "kimi" in m.lower():
+                return m
+    
+    return ALLOWED_MODELS[0]
+
+
 def run_remote_model(query: str) -> str:
     if not FIREWORKS_API_KEY:
         _record_usage(_current_task_id or "?", "remote")
         return "[FIREWORKS_API_KEY environment variable missing]"
 
     import openai
-    from collections import Counter
 
     client = openai.OpenAI(
         base_url=FIREWORKS_BASE_URL,
         api_key=FIREWORKS_API_KEY,
     )
 
-    system_prompt = "You are an expert AI assistant. Answer accurately and completely. For classification or extraction tasks, state the direct answer first. For math and logic problems, show your reasoning and then state the final answer explicitly at the end (e.g. 'Final answer: X'). For code, provide complete working code."
+    system_prompt = "You are an expert AI assistant. Answer accurately and completely. For classification or extraction tasks, state the direct answer first. For math and logic problems, show your reasoning and then state the final answer explicitly at the end. For code, provide complete working code."
+    
+    model = _pick_model_for_category(query)
 
-    category = _detect_category(query)
-    use_voting = category in ["sentiment", "ner", "factual", "summarization"]
-
-    # Collect answers from all models
-    answers = []
-    for model in ALLOWED_MODELS:
-        try:
-            response = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": query},
-                ],
-                temperature=0.1,
-                max_tokens=2048,
-            )
-            answer = response.choices[0].message.content.strip()
-            answers.append((model, answer))
-            _record_usage(_current_task_id or "?", "remote", response.usage)
-        except Exception as e:
-            print(f"[Q-Route] Model {model} failed: {e}")
-            continue
-
-    if not answers:
-        return "[All models failed]"
-
-    # For classification/extraction: majority vote
-    if use_voting:
-        # Extract first line or first sentence as the "vote"
-        votes = []
-        for model, answer in answers:
-            first_line = answer.split('\n')[0].strip()
-            # Normalize for comparison
-            normalized = first_line.lower().replace('.', '').replace(',', '').strip()
-            votes.append((normalized, answer))
-
-        # Count votes
-        vote_counts = Counter(v[0] for v in votes)
-        most_common_vote = vote_counts.most_common(1)[0][0]
-        
-        # Return the full answer that matches the most common vote
-        for normalized, full_answer in votes:
-            if normalized == most_common_vote:
-                return full_answer
-
-    # For reasoning tasks: pick longest answer
-    best_model, best_answer = max(answers, key=lambda x: len(x[1]))
-    return best_answer
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": query},
+            ],
+            temperature=0.0,
+            max_tokens=2048,
+        )
+        _record_usage(_current_task_id or "?", "remote", response.usage)
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        _record_usage(_current_task_id or "?", "remote")
+        return f"[Fireworks API Error: {e}]"
 
 
 # ---------------------------------------------------------------------------
