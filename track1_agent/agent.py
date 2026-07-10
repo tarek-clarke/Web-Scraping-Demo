@@ -1,13 +1,12 @@
 """
-agent.py — Track 1: Gemma 4 via vLLM (0 tokens) + Fireworks single-model fallback.
+agent.py — Track 1: Gemma 4 E4B via transformers on ROCm GPU + Fireworks fallback.
 
-Scoring env has ROCm 7.2 + vLLM 0.16.0 + PyTorch 2.9 pre-installed.
-Starts vLLM server with Gemma 4 E4B on MI300X GPU.
-Simple tasks answered locally at 0 Fireworks tokens.
-Complex tasks sent to Fireworks (single best model for token efficiency).
+Scoring env has ROCm 7.2 + PyTorch 2.13 pre-installed.
+Gemma handles simple tasks at 0 Fireworks tokens on MI300X.
+Fireworks single-model handles complex tasks (minimal tokens).
 """
 from __future__ import annotations
-import json, os, re, subprocess, sys, time
+import json, os, re, sys, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 FIREWORKS_API_KEY = os.environ.get("FIREWORKS_API_KEY", "")
@@ -17,9 +16,6 @@ if not ALLOWED_MODELS:
     ALLOWED_MODELS = ["accounts/fireworks/models/deepseek-v4-pro"]
 
 GEMMA_MODEL = "google/gemma-4-E4B-it"
-VLLM_PORT = 5555
-VLLM_URL = f"http://localhost:{VLLM_PORT}/v1"
-
 SIMPLE_CATEGORIES = {"sentiment", "ner", "summarization", "factual"}
 
 _stats = {"total_tokens": 0, "local": 0, "remote": 0, "per_task": []}
@@ -46,87 +42,56 @@ def _record_usage(task_id, route, usage=None):
     _stats["per_task"].append(e)
 
 # ---------------------------------------------------------------------------
-# vLLM Server (pre-installed on scoring env with ROCm 7.2)
+# Gemma 4 E4B on ROCm GPU (0 Fireworks tokens)
 # ---------------------------------------------------------------------------
 
-_vllm_process = None
-_vllm_ready = False
+_model = None
+_tokenizer = None
+_gpu_ok = False
 
-def start_vllm():
-    """Start vLLM server with Gemma 4 E4B on GPU."""
-    global _vllm_process, _vllm_ready
-
-    # Check if vLLM is available
+def init_gemma():
+    global _model, _tokenizer, _gpu_ok
     try:
-        result = subprocess.run(["python3", "-c", "import vllm; print(vllm.__version__)"],
-                              capture_output=True, text=True, timeout=10)
-        if result.returncode != 0:
-            print("[Q-Route] vLLM not available — using Fireworks fallback", flush=True)
+        import torch
+        if not torch.cuda.is_available():
+            print("[Q-Route] No GPU — using Fireworks fallback", flush=True)
             return False
-        print(f"[Q-Route] vLLM {result.stdout.strip()} found", flush=True)
+        device_name = torch.cuda.get_device_name(0)
+        vram = torch.cuda.get_device_properties(0).total_memory // 1024 // 1024 // 1024
+        print(f"[Q-Route] GPU: {device_name} ({vram}GB)", flush=True)
     except:
-        print("[Q-Route] vLLM not available — using Fireworks fallback", flush=True)
+        print("[Q-Route] No torch — using Fireworks fallback", flush=True)
         return False
 
-    # Start vLLM server
-    print(f"[Q-Route] Starting vLLM server with {GEMMA_MODEL}...", flush=True)
-    t0 = time.time()
+    try:
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+        print(f"[Q-Route] Loading {GEMMA_MODEL}...", flush=True)
+        t0 = time.time()
+        _tokenizer = AutoTokenizer.from_pretrained(GEMMA_MODEL)
+        _model = AutoModelForCausalLM.from_pretrained(
+            GEMMA_MODEL, torch_dtype=torch.bfloat16, device_map="auto",
+        )
+        _model.eval()
+        _gpu_ok = True
+        print(f"[Q-Route] Gemma loaded in {time.time()-t0:.1f}s", flush=True)
+        return True
+    except Exception as e:
+        print(f"[Q-Route] Gemma load failed: {e}", flush=True)
+        return False
 
-    cmd = [
-        "python3", "-m", "vllm.entrypoints.openai.api_server",
-        "--model", GEMMA_MODEL,
-        "--port", str(VLLM_PORT),
-        "--gpu-memory-utilization", "0.90",
-        "--max-model-len", "4096",
-        "--dtype", "bfloat16",
-        "--trust-remote-code",
-    ]
-
-    _vllm_process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-
-    # Wait for server to be ready
-    import urllib.request
-    for attempt in range(60):  # 60 seconds max
-        try:
-            req = urllib.request.urlopen(f"{VLLM_URL}/models", timeout=2)
-            if req.status == 200:
-                _vllm_ready = True
-                print(f"[Q-Route] vLLM ready in {time.time()-t0:.1f}s", flush=True)
-                return True
-        except:
-            pass
-        time.sleep(1)
-
-    print("[Q-Route] vLLM failed to start in 60s — using Fireworks fallback", flush=True)
-    if _vllm_process:
-        _vllm_process.kill()
-        _vllm_process = None
-    return False
-
-def run_local_vllm(query):
-    """Query local vLLM server (0 Fireworks tokens)."""
-    if not _vllm_ready:
+def run_local(query):
+    """Inference on MI300X via transformers (0 Fireworks tokens)."""
+    if not _gpu_ok:
         return ""
     try:
-        import urllib.request, json as _json
-        data = _json.dumps({
-            "model": GEMMA_MODEL,
-            "messages": [{"role": "user", "content": query}],
-            "temperature": 0.1,
-            "max_tokens": 200,
-        }).encode()
-        req = urllib.request.Request(f"{VLLM_URL}/chat/completions", data=data,
-                                    headers={"Content-Type": "application/json"})
-        resp = urllib.request.urlopen(req, timeout=30)
-        result = _json.loads(resp.read())
-        return result["choices"][0]["message"]["content"].strip()
+        import torch
+        messages = [{"role": "user", "content": query}]
+        inputs = _tokenizer.apply_chat_template(messages, return_tensors="pt", add_generation_prompt=True).to(_model.device)
+        with torch.no_grad():
+            outputs = _model.generate(inputs, max_new_tokens=200, temperature=0.1, do_sample=True)
+        return _tokenizer.decode(outputs[0][inputs.shape[1]:], skip_special_tokens=True).strip()
     except Exception as e:
-        print(f"[Q-Route] vLLM inference error: {e}", flush=True)
+        print(f"[Q-Route] Local error: {e}", flush=True)
         return ""
 
 # ---------------------------------------------------------------------------
@@ -140,7 +105,6 @@ def run_fireworks(query):
     import openai
     client = openai.OpenAI(base_url=FIREWORKS_BASE_URL, api_key=FIREWORKS_API_KEY)
 
-    # Use only the best model to minimize tokens
     model = ALLOWED_MODELS[0]
     for m in ALLOWED_MODELS:
         if "deepseek" in m.lower() or "kimi" in m.lower():
@@ -183,67 +147,53 @@ def main():
 
     print(f"[Q-Route] Processing {len(tasks)} queries...", flush=True)
 
-    # Start vLLM with Gemma (uses pre-installed ROCm + vLLM on scoring env)
-    vllm_ok = start_vllm()
+    gemma_ok = init_gemma()
 
-    # Split tasks
     simple_tasks = []
     complex_tasks = []
     for task in tasks:
         task_id = task.get("task_id")
         prompt = task.get("prompt", "")
         category = _detect_category(prompt)
-        if category in SIMPLE_CATEGORIES and vllm_ok:
+        if category in SIMPLE_CATEGORIES and gemma_ok:
             simple_tasks.append((task_id, prompt, category))
         else:
             complex_tasks.append((task_id, prompt, category))
 
-    print(f"[Q-Route] Split: {len(simple_tasks)} local (vLLM) + {len(complex_tasks)} remote (Fireworks)", flush=True)
+    print(f"[Q-Route] {len(simple_tasks)} local (Gemma) + {len(complex_tasks)} remote (Fireworks)", flush=True)
 
     results_map = {}
 
-    def process_local(task_info):
+    def do_local(task_info):
         global _current_task_id
-        task_id, prompt, category = task_info
-        _current_task_id = task_id
-        answer = run_local_vllm(prompt)
-        if answer and len(answer.strip()) > 10:
-            print(f"[Q-Route] {task_id}: LOCAL ({category}) — 0 tokens", flush=True)
-            _record_usage(task_id, "local")
-            return task_id, answer
-        # vLLM failed — fall back to Fireworks
-        print(f"[Q-Route] {task_id}: LOCAL failed → FIREWORKS", flush=True)
-        return task_id, run_fireworks(prompt)
+        tid, prompt, cat = task_info
+        _current_task_id = tid
+        ans = run_local(prompt)
+        if ans and len(ans.strip()) > 10:
+            print(f"[Q-Route] {tid}: LOCAL ({cat}) — 0 tokens", flush=True)
+            _record_usage(tid, "local")
+            return tid, ans
+        print(f"[Q-Route] {tid}: LOCAL failed → FIREWORKS", flush=True)
+        return tid, run_fireworks(prompt)
 
-    def process_remote(task_info):
+    def do_remote(task_info):
         global _current_task_id
-        task_id, prompt, category = task_info
-        _current_task_id = task_id
-        print(f"[Q-Route] {task_id}: FIREWORKS ({category})", flush=True)
-        return task_id, run_fireworks(prompt)
+        tid, prompt, cat = task_info
+        _current_task_id = tid
+        print(f"[Q-Route] {tid}: FIREWORKS ({cat})", flush=True)
+        return tid, run_fireworks(prompt)
 
-    # Run both pipelines in parallel
     with ThreadPoolExecutor(max_workers=8) as pool:
-        futures = []
-        for t in simple_tasks:
-            futures.append(pool.submit(process_local, t))
-        for t in complex_tasks:
-            futures.append(pool.submit(process_remote, t))
+        futures = [pool.submit(do_local, t) for t in simple_tasks]
+        futures += [pool.submit(do_remote, t) for t in complex_tasks]
+        for f in as_completed(futures):
+            tid, ans = f.result()
+            results_map[tid] = ans
 
-        for future in as_completed(futures):
-            task_id, answer = future.result()
-            results_map[task_id] = answer
-
-    # Cleanup vLLM
-    if _vllm_process:
-        _vllm_process.kill()
-        _vllm_process = None
-
-    # Assemble results in order
     results = []
     for task in tasks:
-        task_id = task.get("task_id")
-        results.append({"task_id": task_id, "answer": results_map.get(task_id, "[No answer]")})
+        tid = task.get("task_id")
+        results.append({"task_id": tid, "answer": results_map.get(tid, "[No answer]")})
 
     print("\n" + "=" * 60)
     print(f"[Q-Route] SUMMARY: local={_stats['local']} remote={_stats['remote']} tokens={_stats['total_tokens']}")
