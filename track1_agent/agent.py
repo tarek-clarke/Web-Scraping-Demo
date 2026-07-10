@@ -1,9 +1,12 @@
 """
-agent.py — Track 1: Gemma local (0 tokens) + Fireworks all-model consensus fallback.
+agent.py — Track 1: Gemma 4 E4B local (0 tokens) + Fireworks all-model consensus.
+
+Downloads Gemma 4 E4B QAT GGUF from HuggingFace at startup (open repo, no token).
+Gemma handles simple tasks locally at 0 Fireworks tokens.
+Fireworks all-model consensus handles complex tasks (proven 89.5% accuracy).
 """
 from __future__ import annotations
 import json, os, re, sys, time
-from concurrent.futures import ThreadPoolExecutor
 
 FIREWORKS_API_KEY = os.environ.get("FIREWORKS_API_KEY", "")
 FIREWORKS_BASE_URL = os.environ.get("FIREWORKS_BASE_URL", "https://api.fireworks.ai/inference/v1")
@@ -11,7 +14,9 @@ ALLOWED_MODELS = [m.strip() for m in os.environ.get("ALLOWED_MODELS", "").split(
 if not ALLOWED_MODELS:
     ALLOWED_MODELS = ["accounts/fireworks/models/deepseek-v4-pro"]
 
-GEMMA_PATH = "/models/gemma-1b.q4.gguf"
+GEMMA_REPO = "google/gemma-4-E4B-it-qat-q4_0-gguf"
+GEMMA_FILE = "gemma-4-E4B_q4_0-it.gguf"
+GEMMA_PATH = "/tmp/gemma-4-e4b.q4.gguf"
 SIMPLE_CATEGORIES = {"sentiment", "ner", "summarization", "factual"}
 
 _stats = {"total_tokens": 0, "local": 0, "remote": 0, "per_task": []}
@@ -38,18 +43,36 @@ def _record_usage(task_id, route, usage=None):
     _stats["per_task"].append(e)
 
 # ---------------------------------------------------------------------------
-# Local Gemma (0 Fireworks tokens)
+# Download + Load Gemma 4 E4B (0 Fireworks tokens)
 # ---------------------------------------------------------------------------
 
 _local_llm = None
+
+def download_gemma():
+    if os.path.exists(GEMMA_PATH) and os.path.getsize(GEMMA_PATH) > 1_000_000_000:
+        print(f"[Q-Route] Gemma already downloaded ({os.path.getsize(GEMMA_PATH)//1024//1024}MB)", flush=True)
+        return True
+    try:
+        from huggingface_hub import hf_hub_download
+        print(f"[Q-Route] Downloading Gemma 4 E4B QAT from HuggingFace...", flush=True)
+        t0 = time.time()
+        path = hf_hub_download(repo_id=GEMMA_REPO, filename=GEMMA_FILE, local_dir="/tmp")
+        os.rename(path, GEMMA_PATH)
+        print(f"[Q-Route] Downloaded in {time.time()-t0:.1f}s ({os.path.getsize(GEMMA_PATH)//1024//1024}MB)", flush=True)
+        return True
+    except Exception as e:
+        print(f"[Q-Route] Download failed: {e}", flush=True)
+        return False
 
 def init_local():
     global _local_llm
     if _local_llm is not None:
         return
+    if not download_gemma():
+        return
     try:
         from llama_cpp import Llama
-        print("[Q-Route] Loading Gemma 1B...", flush=True)
+        print("[Q-Route] Loading Gemma 4 E4B...", flush=True)
         t0 = time.time()
         _local_llm = Llama(model_path=GEMMA_PATH, n_ctx=2048, n_threads=4, verbose=False)
         print(f"[Q-Route] Gemma loaded in {time.time()-t0:.1f}s", flush=True)
@@ -131,7 +154,7 @@ def main():
 
         answer = None
 
-        # Try local Gemma for simple tasks
+        # Try local Gemma 4 E4B for simple tasks (0 tokens)
         if category in SIMPLE_CATEGORIES and _local_llm is not None:
             local_answer = run_local(prompt)
             if local_answer and len(local_answer.strip()) > 10:
@@ -139,7 +162,7 @@ def main():
                 _record_usage(task_id, "local")
                 answer = local_answer
 
-        # Fall back to Fireworks for complex tasks or failed local
+        # Fireworks all-model consensus for complex tasks or failed local
         if answer is None:
             print(f"[Q-Route] {task_id}: FIREWORKS ({category})", flush=True)
             answer = run_fireworks(prompt)
