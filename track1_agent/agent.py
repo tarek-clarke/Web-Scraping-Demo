@@ -316,32 +316,11 @@ def normalize_answer(text, category):
 
 import re as _re
 
-def compress_prompt(query):
-    """Compress prompt to reduce token count before sending to Fireworks."""
-    q = query.strip()
-    # Remove redundant phrases
-    q = _re.sub(r'\b(?:Please|Can you|Could you|I would like you to)\b', '', q, flags=_re.IGNORECASE)
-    q = _re.sub(r'\b(?:kindly|basically|essentially)\b', '', q, flags=_re.IGNORECASE)
-    # Collapse whitespace
-    q = _re.sub(r'\s+', ' ', q).strip()
-    # Truncate very long prompts (keep first 500 chars — enough context)
-    if len(q) > 500:
-        q = q[:500] + "..."
-    return q
-
-
 def run_fireworks(query):
     if not FIREWORKS_API_KEY:
         return "[No API key]"
     import openai
     client = openai.OpenAI(base_url=FIREWORKS_BASE_URL, api_key=FIREWORKS_API_KEY)
-
-    category = _detect_category(query)
-    compressed = compress_prompt(query)
-    # Tight caps per category — consensus picks longest, so shorter is fine
-    caps = {"sentiment": 80, "ner": 150, "summarization": 200, "factual": 300,
-            "math": 400, "logic": 800, "code_gen": 600, "code_debug": 600}
-    max_tok = caps.get(category, 500)
 
     best, best_len = None, 0
     for model in ALLOWED_MODELS:
@@ -349,10 +328,10 @@ def run_fireworks(query):
             r = client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "Answer directly and accurately. Be concise. Math: show calculation + final answer. Code: provide code. Sentiment: label + brief justification."},
-                    {"role": "user", "content": compressed},
+                    {"role": "system", "content": "You are an expert AI assistant. Answer accurately and completely. For math and logic problems, show your reasoning and state the final answer explicitly. For code, provide complete working code."},
+                    {"role": "user", "content": query},
                 ],
-                temperature=0.0, max_tokens=max_tok,
+                temperature=0.0, max_tokens=2048,
             )
             a = r.choices[0].message.content.strip()
             if len(a) > best_len:
