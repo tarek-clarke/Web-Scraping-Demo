@@ -2,16 +2,19 @@ FROM python:3.10-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
-    LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:$LD_LIBRARY_PATH
+    LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64
 
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
+    build-essential libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
+    torch>=2.0.0 \
+    transformers>=4.40.0 \
+    accelerate>=0.25.0 \
     openai>=1.0.0 \
     numpy>=1.22.0 \
     huggingface-hub>=0.20.0 \

@@ -73,15 +73,21 @@ def _record_usage(task_id, route, usage=None):
 # ---------------------------------------------------------------------------
 
 def detect_gpu():
-    has_rocm = os.path.exists("/opt/rocm") or os.path.exists("/opt/rocm-6.2.0")
+    """Detect AMD GPU. Returns (has_gpu, vram_bytes)."""
     try:
         import torch
         if torch.cuda.is_available():
             vram = torch.cuda.get_device_properties(0).total_memory
+            print(f"[Q-Route] GPU detected via torch: {vram//1024//1024//1024}GB", flush=True)
             return True, vram
-    except:
-        pass
-    return has_rocm, 0
+        print("[Q-Route] torch available but no CUDA/ROCm device", flush=True)
+        return False, 0
+    except ImportError:
+        print("[Q-Route] torch not installed — no GPU, using Fireworks fallback", flush=True)
+        return False, 0
+    except Exception as e:
+        print(f"[Q-Route] GPU detection error: {e}", flush=True)
+        return False, 0
 
 def max_copies_for_vram(vram_bytes, model_size_gb, num_tasks):
     """Calculate max model copies to fill 92% of available VRAM.
@@ -308,23 +314,45 @@ def normalize_answer(text, category):
 # Fireworks Referral
 # ---------------------------------------------------------------------------
 
+import re as _re
+
+def compress_prompt(query):
+    """Compress prompt to reduce token count before sending to Fireworks."""
+    q = query.strip()
+    # Remove redundant phrases
+    q = _re.sub(r'\b(?:Please|Can you|Could you|I would like you to)\b', '', q, flags=_re.IGNORECASE)
+    q = _re.sub(r'\b(?:kindly|basically|essentially)\b', '', q, flags=_re.IGNORECASE)
+    # Collapse whitespace
+    q = _re.sub(r'\s+', ' ', q).strip()
+    # Truncate very long prompts (keep first 500 chars — enough context)
+    if len(q) > 500:
+        q = q[:500] + "..."
+    return q
+
+
 def run_fireworks(query):
     if not FIREWORKS_API_KEY:
         return "[No API key]"
     import openai
     client = openai.OpenAI(base_url=FIREWORKS_BASE_URL, api_key=FIREWORKS_API_KEY)
-    # Use up to 3 models for consensus (balances accuracy vs tokens)
-    models_to_try = ALLOWED_MODELS[:3] if len(ALLOWED_MODELS) >= 3 else ALLOWED_MODELS
+
+    category = _detect_category(query)
+    compressed = compress_prompt(query)
+    # Tight caps per category — consensus picks longest, so shorter is fine
+    caps = {"sentiment": 80, "ner": 150, "summarization": 200, "factual": 300,
+            "math": 400, "logic": 800, "code_gen": 600, "code_debug": 600}
+    max_tok = caps.get(category, 500)
+
     best, best_len = None, 0
-    for model in models_to_try:
+    for model in ALLOWED_MODELS:
         try:
             r = client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "You are an expert AI assistant. Answer accurately and completely. For math and logic, show reasoning and state the final answer. For code, provide complete working code."},
-                    {"role": "user", "content": query},
+                    {"role": "system", "content": "Answer directly and accurately. Be concise. Math: show calculation + final answer. Code: provide code. Sentiment: label + brief justification."},
+                    {"role": "user", "content": compressed},
                 ],
-                temperature=0.0, max_tokens=2048,
+                temperature=0.0, max_tokens=max_tok,
             )
             a = r.choices[0].message.content.strip()
             if len(a) > best_len:
