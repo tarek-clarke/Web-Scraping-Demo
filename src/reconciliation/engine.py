@@ -46,6 +46,15 @@ class ReconciliationEngine:
             for orig, drift in pairs
         ]
 
+    def reconcile_levenshtein_batch(self, pairs: List[Tuple[Dict, Dict]]) -> List[Dict]:
+        lev = self.reconcilers.get("levenshtein")
+        if lev and hasattr(lev, "reconcile_batch"):
+            return lev.reconcile_batch(pairs)
+        return [
+            self.reconcile({"data": orig}, {"data": drift}, "levenshtein")
+            for orig, drift in pairs
+        ]
+
     def reconcile_gemma_batch(self, pairs: List[Tuple[Dict, Dict]], progress_cb=None) -> List[Dict]:
         gemma = self.reconcilers.get("gemma_e4b")
         if gemma and hasattr(gemma, "reconcile_batch"):
