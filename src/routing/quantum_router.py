@@ -578,6 +578,14 @@ class QuantumRouter:
             "feature_count": self.feature_count,
             "mode": self.mode,
             "enable_gemma": self.enable_gemma,
+            "shots": self.shots,
+            "backend_name": self.backend_name,
+            "paper_metadata": {
+                "purpose": "QPU optimization for telemetry stream reconciliation",
+                "framework": "resilient-rap-framework",
+                "circuit_ansatz": "ZZFeatureMap + RealAmplitudes",
+                "optimizer": "COBYLA"
+            }
         }
         with open(path, "w") as f:
             json.dump(data, f, indent=2)
