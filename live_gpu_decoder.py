@@ -325,15 +325,15 @@ def main():
     parser.add_argument("--chaos-rate", type=float, default=0.10,
                         help="Chaos injection rate 0-1 (default: 0.10)")
     parser.add_argument("--reconciler", type=str, default="bert",
-                        choices=["levenshtein", "regex", "bert", "quantum"],
+                        choices=["levenshtein", "regex", "bert", "quantum", "gemma", "gemma_e4b", "nemotron"],
                         help="Reconciler to use (default: bert)")
     parser.add_argument("--chaos-method", type=str, default="json_manip",
                         choices=["json_manip", "schema_alter", "qwen_chaos"],
                         help="Chaos injection method (default: json_manip)")
     parser.add_argument("--poll-interval", type=float, default=5.0,
                         help="Seconds between file polls (default: 5)")
-    parser.add_argument("--batch-size", type=int, default=16,
-                        help="Batch size for reconciliation (default: 16)")
+    parser.add_argument("--batch-size", type=int, default=0,
+                        help="Batch size for reconciliation (0 for auto-scale based on VRAM)")
     parser.add_argument("--shadow-routing", action="store_true",
                         help="Enable VQC shadow routing and log features for QPU execution")
     parser.add_argument("--telemetry-file", type=str, default="data/ingested/telemetry_latest.json",
@@ -347,6 +347,11 @@ def main():
     hardware, vram_info = detect_hardware()
     hw_type = hardware["type"]
     timestamp = setup_output_dir()
+
+    # Automatically scale batch size based on available VRAM if set to 0 (auto-scale)
+    if args.batch_size == 0:
+        args.batch_size = vram_info.get("batch_size", 16)
+        print(f"[Init] Auto-scaling batch size to {args.batch_size} to maximize GPU VRAM utilization.")
 
     # Initialize Shadow Routing components if enabled
     extractor = None
