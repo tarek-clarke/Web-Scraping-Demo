@@ -18,7 +18,7 @@ class ChaosInjector:
             "json_manip": self._apply_json_drift,
             "schema_alter": self._apply_schema_drift,
         }
-        self.qwen_chaos = QwenChaos(str(ROOT / "models" / "Qwen2.5-7B-Instruct-Q4_K_M.gguf"))
+        self.qwen_chaos = QwenChaos()
         self.json_chaos = JSONChaos()
         self.schema_chaos = SchemaChaos()
         self._sub_type_store: Dict[Tuple[int, int], str] = {}
@@ -63,14 +63,13 @@ class ChaosInjector:
 
     def _apply_qwen_drift(self, packet: Dict, event: Dict, seed: int, packet_idx: int) -> tuple:
         drifted = packet.copy()
-        result = self.qwen_chaos.generate_drift(packet)
-        if result and result.get("data"):
-            drifted["data"] = result["data"]
+        try:
+            sub_type, modified_data = self.qwen_chaos.inject_with_subtype(drifted.get("data", {}))
+            drifted["data"] = modified_data
             event["drift_type"] = "qwen_semantic"
-            event["drift_description"] = "Qwen2.5-7B semantic field rename"
-            event["chaos_model"] = "qwen2.5-7b"
-            sub_type = result.get("sub_type", "contextual_rename")
-        else:
+            event["drift_description"] = f"Qwen-style semantic field drift: {sub_type}"
+            event["chaos_model"] = "qwen_local"
+        except Exception:
             drifted, ev, sub_type = self._fallback_traditional(packet, seed, packet_idx)
             event["drift_type"] = ev["drift_type"]
             event["drift_description"] = "Fallback to traditional drift"

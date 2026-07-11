@@ -13,6 +13,12 @@ import json
 import argparse
 import numpy as np
 
+# SciPy / Qiskit compatibility monkeypatch
+if not hasattr(np, "long"):
+    np.long = int
+if not hasattr(np, "ulong"):
+    np.ulong = int
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.routing.quantum_router import QuantumRouter
