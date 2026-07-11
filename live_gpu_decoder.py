@@ -182,10 +182,12 @@ class TelemetryTailer:
                 if line:
                     try:
                         packet = json.loads(line)
+                        if not isinstance(packet, dict):
+                            raise ValueError("Parsed JSON is not a dictionary")
                         new_packets.append(packet)
                         self.total_count += 1
                         lines_read += 1
-                    except json.JSONDecodeError:
+                    except (json.JSONDecodeError, ValueError):
                         self._malformed_count += 1
                         if self._malformed_count % 100 == 1:
                             print(f"[Tailer] Warning: {self._malformed_count} malformed lines skipped")
@@ -579,7 +581,7 @@ def main():
                             
                             # Invoke active reconciler
                             if rec_type == "levenshtein":
-                                rec_results = [engine.reconcile(x["original"], x["drifted"], "levenshtein") for x in b_info]
+                                rec_results = engine.reconcile_levenshtein_batch(pairs)
                             elif rec_type == "regex":
                                 rec_results = [engine.reconcile(x["original"], x["drifted"], "regex") for x in b_info]
                             elif rec_type == "bert":
