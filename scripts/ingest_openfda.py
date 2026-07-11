@@ -18,7 +18,7 @@ import urllib.parse
 from datetime import datetime
 
 OUTPUT_FILE = "data/ingested/telemetry_latest.json"
-TARGET_PACKETS = 500
+TARGET_PACKETS = 2500
 
 def fetch_openfda_events(limit=100, skip=0, api_key=None):
     """Fetch drug event records from openFDA REST API."""
