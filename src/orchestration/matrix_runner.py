@@ -32,7 +32,7 @@ class MatrixRunner:
         self._progress_total = 0
         self.quantum_backend = quantum_backend
 
-        self.apis = ["openf1", "finnhub", "spacex", "openweather"]
+        self.apis = ["openf1", "finnhub", "spacex", "openweather", "clinical"]
         if only_api:
             self.apis = [only_api]
 

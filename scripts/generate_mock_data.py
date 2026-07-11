@@ -76,9 +76,24 @@ def generate_openweather():
         }
     }
 
+# Dynamic import for ClinicalVitalsGenerator
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from data.generators.clinical_vitals import ClinicalVitalsGenerator
+
+def generate_clinical(gen):
+    packet = gen.generate_packet()
+    return {
+        "source": "clinical",
+        "timestamp": packet["timestamp"],
+        "data": {k: v for k, v in packet.items() if k not in ["patient_id", "timestamp"]}
+    }
+
 def main():
     os.makedirs("data/ingested", exist_ok=True)
     packets = []
+    
+    clinical_gen = ClinicalVitalsGenerator(drift_probability=0.0) # Generate clean base packets; chaos injector will apply drift during execution
 
     for _ in range(PACKETS_PER_API):
         packets.append(generate_openf1())
@@ -88,6 +103,8 @@ def main():
         packets.append(generate_spacex())
     for _ in range(PACKETS_PER_API):
         packets.append(generate_openweather())
+    for _ in range(PACKETS_PER_API):
+        packets.append(generate_clinical(clinical_gen))
 
     random.shuffle(packets)
 

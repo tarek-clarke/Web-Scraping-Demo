@@ -16,9 +16,10 @@ import numpy as np
 
 # Ordinal encoding map for known data sources.
 _SOURCE_ENCODING: Dict[str, float] = {
-    "openf1": 0.25,
-    "finnhub": 0.50,
-    "spacex": 0.75,
+    "clinical": 0.20,
+    "openf1": 0.40,
+    "finnhub": 0.60,
+    "spacex": 0.80,
     "openweather": 1.00,
 }
 
