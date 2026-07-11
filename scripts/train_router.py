@@ -45,6 +45,18 @@ def generate_mock_packet(api: str, seq: int) -> dict:
                 "launch_success": True
             }
         }
+    elif api == "clinical":
+        return {
+            "source": "clinical",
+            "timestamp": "2026-07-04T00:00:00Z",
+            "data": {
+                "heart_rate": 72.0 + (seq % 10),
+                "spo2": 98.0 - (seq % 2),
+                "systolic_bp": 120.0 + (seq % 15),
+                "diastolic_bp": 80.0 + (seq % 10),
+                "respiratory_rate": 14.0 + (seq % 4)
+            }
+        }
     else:  # openweather
         return {
             "source": "openweather",
@@ -58,7 +70,17 @@ def generate_mock_packet(api: str, seq: int) -> dict:
         }
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Train Quantum Router VQC Model")
+    parser.add_argument("--backend", type=str, default="aer_simulator",
+                        help="Backend to run training on (e.g., aer_simulator, ibm_quantum)")
+    parser.add_argument("--maxiter", type=int, default=40,
+                        help="Maximum optimization iterations (default: 40)")
+    args = parser.parse_args()
+
     print("=== Training Quantum Router VQC Model ===")
+    print(f"Target Backend: {args.backend}")
+    print(f"Max Iterations: {args.maxiter}\n")
     
     # 1. Load historical benchmark data
     print("[Trainer] Loading benchmark data from data/reports/MI250X...")
@@ -90,10 +112,10 @@ def main():
     X_list = []
     y_list = []
     
-    apis = ["openf1", "finnhub", "spacex", "openweather"]
+    apis = ["openf1", "finnhub", "spacex", "openweather", "clinical"]
     chaos_methods = ["json_manip", "schema_alter"]
     
-    # Generate 5 samples per (api, chaos_method) combination to build a solid training set (40 total samples)
+    # Generate 5 samples per (api, chaos_method) combination to build a solid training set (50 total samples)
     samples_per_group = 5
     seq = 0
     
@@ -131,12 +153,23 @@ def main():
     print(f"[Trainer] Generated X_train shape: {X_train.shape}, y_train shape: {y_train.shape}")
     
     # 3. Train the VQC model
-    print("\n[Trainer] Initializing QuantumRouter and training VQC (COBYLA, maxiter=40)...")
-    # Use aer_simulator for local noiseless training
-    router = QuantumRouter(backend="aer_simulator", enable_gemma=False)
+    print(f"\n[Trainer] Initializing QuantumRouter and training VQC (COBYLA, maxiter={args.maxiter})...")
+    
+    # Handle secure token input for real hardware
+    token = os.getenv("QISKIT_IBM_TOKEN") or os.getenv("IBM_QUANTUM_TOKEN")
+    if token:
+        os.environ["QISKIT_IBM_TOKEN"] = token
+        if len(token) == 44 or token.startswith("ApiKey-"):
+            os.environ["QISKIT_IBM_CHANNEL"] = "ibm_cloud"
+            if "QISKIT_IBM_INSTANCE" not in os.environ:
+                os.environ["QISKIT_IBM_INSTANCE"] = "crn:v1:bluemix:public:quantum-computing:us-east:a/139dcf0745314450af23aa33e3f8029a:d626fe8a-08ca-47ab-9412-7a93f954e2b0::"
+        else:
+            os.environ["QISKIT_IBM_CHANNEL"] = "ibm_quantum_platform"
+
+    router = QuantumRouter(backend=args.backend, enable_gemma=False)
     
     try:
-        metrics = router.train(X_train, y_train, maxiter=40)
+        metrics = router.train(X_train, y_train, maxiter=args.maxiter)
         print("\n=== Training Complete ===")
         print(f"Training Accuracy: {metrics['train_accuracy']*100:.2f}%")
         print(f"Total Samples:     {metrics['n_samples']}")
@@ -148,9 +181,21 @@ def main():
         params_path = os.path.join(config_dir, "quantum_router_params.json")
         router.save_params(params_path)
         print(f"[Trainer] Trained VQC parameters saved to: {params_path}")
+        
+        # Also copy parameters to individual router config paths for all 5 APIs
+        for api in apis:
+            api_path = os.path.join(config_dir, f"trained_router_{api}.json")
+            router.save_params(api_path)
+        print("[Trainer] Synchronized VQC parameters across all API endpoints.")
+        
     except Exception as e:
         print(f"ERROR: VQC training failed: {e}")
         sys.exit(1)
+    finally:
+        # Securely wipe Qiskit credentials from memory
+        for env_var in ["QISKIT_IBM_TOKEN", "QISKIT_IBM_CHANNEL", "QISKIT_IBM_INSTANCE", "IBM_QUANTUM_TOKEN"]:
+            if env_var in os.environ:
+                del os.environ[env_var]
 
 if __name__ == "__main__":
     main()
