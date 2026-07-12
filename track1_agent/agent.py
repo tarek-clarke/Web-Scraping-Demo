@@ -1,14 +1,14 @@
 """
 agent.py — Track 1: 100% Local Gemma 4 E4B on MI300X (0 Fireworks tokens).
 
-Uses transformers + PyTorch with ROCm to load Gemma 4 E4B on AMD MI300X GPU.
+Assumes scoring env has ROCm 7.2 + PyTorch 2.13 + transformers pre-installed.
+Loads Gemma 4 E4B on AMD MI300X GPU via transformers.
+8-sample consensus voting with different temperatures.
 ALL tasks answered locally = 0 Fireworks tokens.
-Parallel consensus with multiple temperature samples.
-Falls back to Fireworks single-model if GPU unavailable.
+Falls back to Fireworks single-model if GPU/torch unavailable.
 """
 from __future__ import annotations
 import json, os, re, sys, time, gc
-from concurrent.futures import ThreadPoolExecutor
 from collections import Counter
 
 FIREWORKS_API_KEY = os.environ.get("FIREWORKS_API_KEY", "")
@@ -18,7 +18,7 @@ if not ALLOWED_MODELS:
     ALLOWED_MODELS = ["accounts/fireworks/models/deepseek-v4-pro"]
 
 GEMMA_MODEL = "google/gemma-4-E4B-it"
-NUM_SAMPLES = 8  # Run 8 inference passes with different temperatures for consensus
+NUM_SAMPLES = 8
 
 _stats = {"total_tokens": 0, "local": 0, "remote": 0, "per_task": []}
 _current_task_id = None
@@ -48,10 +48,6 @@ def _record_usage(task_id, route, usage=None):
     else: _stats["remote"] += 1
     _stats["per_task"].append(e)
 
-# ---------------------------------------------------------------------------
-# Init Gemma 4 E4B on ROCm GPU
-# ---------------------------------------------------------------------------
-
 def init_gemma():
     global _model, _tokenizer, _gpu_ok
     try:
@@ -63,7 +59,7 @@ def init_gemma():
         vram = torch.cuda.get_device_properties(0).total_memory // 1024 // 1024 // 1024
         print(f"[Q-Route] GPU: {name} ({vram}GB)", flush=True)
     except Exception as e:
-        print(f"[Q-Route] torch import failed: {e} — Fireworks fallback", flush=True)
+        print(f"[Q-Route] torch not available: {e} — Fireworks fallback", flush=True)
         return False
 
     try:
@@ -84,8 +80,7 @@ def init_gemma():
         print(f"[Q-Route] Gemma load failed: {e}", flush=True)
         return False
 
-def run_local_single(query, temp, max_tokens=300):
-    """Single inference pass on GPU (0 Fireworks tokens)."""
+def run_local_single(query, temp, max_tokens=400):
     try:
         import torch
         messages = [{"role": "user", "content": query}]
@@ -103,22 +98,17 @@ def run_local_single(query, temp, max_tokens=300):
         print(f"[Q-Route] Inference error: {e}", flush=True)
         return ""
 
-def run_local_consensus(query, category, max_tokens=300):
-    """Run NUM_SAMPLES passes with different temperatures, consensus vote."""
+def run_local_consensus(query, category, max_tokens=400):
     if not _gpu_ok:
         return None
-
-    # Run all samples sequentially (single GPU, can't truly parallelize model inference)
     answers = []
     for i in range(NUM_SAMPLES):
         ans = run_local_single(query, _TEMPS[i % len(_TEMPS)], max_tokens)
         if ans and len(ans) > 5:
             answers.append(ans)
-
     if not answers:
         return None
 
-    # Consensus voting
     def normalize(text, cat):
         t = text.lower().strip()
         if cat == "sentiment":
@@ -147,13 +137,7 @@ def run_local_consensus(query, category, max_tokens=300):
         for i, nv in enumerate(normalized):
             if nv == most_common:
                 return answers[i]
-
-    # No consensus — return longest (most complete)
     return max(answers, key=len)
-
-# ---------------------------------------------------------------------------
-# Fireworks Fallback (tokens)
-# ---------------------------------------------------------------------------
 
 def run_fireworks(query):
     global _current_task_id
@@ -181,10 +165,6 @@ def run_fireworks(query):
         _record_usage(_current_task_id or "?", "remote")
         return "[Fireworks failed]"
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
 def main():
     global _current_task_id
 
@@ -201,8 +181,6 @@ def main():
         tasks = json.load(f)
 
     print(f"[Q-Route] Processing {len(tasks)} queries...", flush=True)
-
-    # Load Gemma 4 E4B on GPU (0 Fireworks tokens for all tasks)
     gemma_ok = init_gemma()
 
     results = []
@@ -213,30 +191,24 @@ def main():
         category = _detect_category(prompt)
 
         answer = None
-
-        # Try local Gemma consensus for ALL tasks (0 tokens)
         if gemma_ok:
             answer = run_local_consensus(prompt, category, max_tokens=400)
             if answer:
                 print(f"[Q-Route] {task_id}: LOCAL ({category}) — 0 tokens", flush=True)
                 _record_usage(task_id, "local")
 
-        # Fallback to Fireworks
         if answer is None:
             print(f"[Q-Route] {task_id}: FIREWORKS ({category})", flush=True)
             answer = run_fireworks(prompt)
 
         results.append({"task_id": task_id, "answer": answer})
 
-    # Cleanup
     if _model:
         del _model
         gc.collect()
         try:
-            import torch
-            torch.cuda.empty_cache()
-        except:
-            pass
+            import torch; torch.cuda.empty_cache()
+        except: pass
 
     print("\n" + "=" * 60)
     print(f"[Q-Route] SUMMARY: local={_stats['local']} remote={_stats['remote']} tokens={_stats['total_tokens']}")
