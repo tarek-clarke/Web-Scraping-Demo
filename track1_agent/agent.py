@@ -1,11 +1,9 @@
 """
-agent.py — Track 1: 100% Local Gemma 4 E4B on MI300X (0 Fireworks tokens).
+agent.py — Track 1: Multi-Model Gemma 4 Ensemble on MI300X (0 Fireworks tokens).
 
-Assumes scoring env has ROCm 7.2 + PyTorch 2.13 + transformers pre-installed.
-Loads Gemma 4 E4B on AMD MI300X GPU via transformers.
-8-sample consensus voting with different temperatures.
-ALL tasks answered locally = 0 Fireworks tokens.
-Falls back to Fireworks single-model if GPU/torch unavailable.
+Loads multiple Gemma 4 models from HuggingFace cache (cached by scoring env).
+Each model votes with temperature diversity. Consensus = 0 tokens.
+Falls back to Fireworks single-model if no GPU/no cached models.
 """
 from __future__ import annotations
 import json, os, re, sys, time, gc
@@ -17,15 +15,16 @@ ALLOWED_MODELS = [m.strip() for m in os.environ.get("ALLOWED_MODELS", "").split(
 if not ALLOWED_MODELS:
     ALLOWED_MODELS = ["accounts/fireworks/models/deepseek-v4-pro"]
 
-GEMMA_MODEL = "google/gemma-4-E4B-it"
-NUM_SAMPLES = 8
+GEMMA_MODELS = [
+    "google/gemma-4-E4B-it",
+    "google/gemma-4-12B-it",
+    "google/gemma-4-26B-A4B-it",
+]
 
 _stats = {"total_tokens": 0, "local": 0, "remote": 0, "per_task": []}
 _current_task_id = None
-_model = None
-_tokenizer = None
+_models = []  # [(model, tokenizer, name), ...]
 _gpu_ok = False
-
 _TEMPS = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
 
 def _detect_category(query):
@@ -48,8 +47,12 @@ def _record_usage(task_id, route, usage=None):
     else: _stats["remote"] += 1
     _stats["per_task"].append(e)
 
-def init_gemma():
-    global _model, _tokenizer, _gpu_ok
+# ---------------------------------------------------------------------------
+# Load Multiple Gemma 4 Models from HF Cache
+# ---------------------------------------------------------------------------
+
+def init_models():
+    global _models, _gpu_ok
     try:
         import torch
         if not torch.cuda.is_available():
@@ -62,50 +65,57 @@ def init_gemma():
         print(f"[Q-Route] torch not available: {e} — Fireworks fallback", flush=True)
         return False
 
-    try:
-        from transformers import AutoModelForCausalLM, AutoTokenizer
-        print(f"[Q-Route] Loading {GEMMA_MODEL} on GPU...", flush=True)
-        t0 = time.time()
-        _tokenizer = AutoTokenizer.from_pretrained(GEMMA_MODEL)
-        _model = AutoModelForCausalLM.from_pretrained(
-            GEMMA_MODEL,
-            torch_dtype=torch.bfloat16,
-            device_map="auto",
-        )
-        _model.eval()
-        _gpu_ok = True
-        print(f"[Q-Route] Gemma loaded in {time.time()-t0:.1f}s", flush=True)
-        return True
-    except Exception as e:
-        print(f"[Q-Route] Gemma load failed: {e}", flush=True)
-        return False
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
-def run_local_single(query, temp, max_tokens=400):
+    for model_name in GEMMA_MODELS:
+        try:
+            t0 = time.time()
+            tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only=True)
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name, torch_dtype=torch.bfloat16, device_map="auto", local_files_only=True,
+            )
+            model.eval()
+            _models.append((model, tokenizer, model_name))
+            print(f"[Q-Route] Loaded {model_name} in {time.time()-t0:.1f}s", flush=True)
+        except Exception:
+            print(f"[Q-Route] {model_name.split('/')[-1]} not cached — skipping", flush=True)
+
+    if _models:
+        _gpu_ok = True
+        print(f"[Q-Route] {len(_models)} models loaded for ensemble", flush=True)
+    else:
+        print("[Q-Route] No models cached — Fireworks fallback", flush=True)
+
+    return _gpu_ok
+
+# ---------------------------------------------------------------------------
+# Multi-Model Ensemble Inference
+# ---------------------------------------------------------------------------
+
+def infer_one(model, tokenizer, query, temp, max_tokens):
     try:
         import torch
         messages = [{"role": "user", "content": query}]
-        inputs = _tokenizer.apply_chat_template(messages, return_tensors="pt", add_generation_prompt=True).to(_model.device)
+        inputs = tokenizer.apply_chat_template(messages, return_tensors="pt", add_generation_prompt=True).to(model.device)
         with torch.no_grad():
-            outputs = _model.generate(
-                inputs,
-                max_new_tokens=max_tokens,
-                temperature=temp,
-                do_sample=temp > 0,
-                pad_token_id=_tokenizer.eos_token_id,
-            )
-        return _tokenizer.decode(outputs[0][inputs.shape[1]:], skip_special_tokens=True).strip()
+            outputs = model.generate(inputs, max_new_tokens=max_tokens, temperature=temp, do_sample=temp > 0, pad_token_id=tokenizer.eos_token_id)
+        return tokenizer.decode(outputs[0][inputs.shape[1]:], skip_special_tokens=True).strip()
     except Exception as e:
         print(f"[Q-Route] Inference error: {e}", flush=True)
         return ""
 
-def run_local_consensus(query, category, max_tokens=400):
-    if not _gpu_ok:
+def ensemble_vote(query, category, max_tokens=400):
+    """Run all models × 3 temperatures each. Consensus vote. 0 Fireworks tokens."""
+    if not _gpu_ok or not _models:
         return None
+
     answers = []
-    for i in range(NUM_SAMPLES):
-        ans = run_local_single(query, _TEMPS[i % len(_TEMPS)], max_tokens)
-        if ans and len(ans) > 5:
-            answers.append(ans)
+    for model, tokenizer, name in _models:
+        for i in range(3):
+            ans = infer_one(model, tokenizer, query, _TEMPS[i % len(_TEMPS)], max_tokens)
+            if ans and len(ans) > 5:
+                answers.append((ans, name))
+
     if not answers:
         return None
 
@@ -128,16 +138,21 @@ def run_local_consensus(query, category, max_tokens=400):
             words = set(t.split())
             return " ".join(sorted(list(words))[:10])
 
-    normalized = [normalize(a, category) for a in answers]
+    normalized = [normalize(a, cat) for a, _ in answers]
     counts = Counter(normalized)
     most_common, count = counts.most_common(1)[0]
-    threshold = max(2, int(len(answers) * 0.5))
+    threshold = max(2, int(len(answers) * 0.4))
 
     if count >= threshold:
         for i, nv in enumerate(normalized):
             if nv == most_common:
-                return answers[i]
-    return max(answers, key=len)
+                return answers[i][0]
+    # No consensus — return longest answer
+    return max(answers, key=lambda x: len(x[0]))[0]
+
+# ---------------------------------------------------------------------------
+# Fireworks Fallback
+# ---------------------------------------------------------------------------
 
 def run_fireworks(query):
     global _current_task_id
@@ -165,6 +180,10 @@ def run_fireworks(query):
         _record_usage(_current_task_id or "?", "remote")
         return "[Fireworks failed]"
 
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
 def main():
     global _current_task_id
 
@@ -181,7 +200,7 @@ def main():
         tasks = json.load(f)
 
     print(f"[Q-Route] Processing {len(tasks)} queries...", flush=True)
-    gemma_ok = init_gemma()
+    gemma_ok = init_models()
 
     results = []
     for task in tasks:
@@ -192,7 +211,7 @@ def main():
 
         answer = None
         if gemma_ok:
-            answer = run_local_consensus(prompt, category, max_tokens=400)
+            answer = ensemble_vote(prompt, category, max_tokens=400)
             if answer:
                 print(f"[Q-Route] {task_id}: LOCAL ({category}) — 0 tokens", flush=True)
                 _record_usage(task_id, "local")
@@ -203,13 +222,16 @@ def main():
 
         results.append({"task_id": task_id, "answer": answer})
 
+    # Cleanup
+    for model, _, _ in _models:
+        try:
+            del model
+        except: pass
+    _models.clear()
+    gc.collect()
     try:
-        if _model is not None:
-            del _model
-            gc.collect()
-            import torch; torch.cuda.empty_cache()
-    except:
-        pass
+        import torch; torch.cuda.empty_cache()
+    except: pass
 
     print("\n" + "=" * 60)
     print(f"[Q-Route] SUMMARY: local={_stats['local']} remote={_stats['remote']} tokens={_stats['total_tokens']}")
