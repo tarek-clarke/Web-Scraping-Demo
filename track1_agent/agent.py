@@ -203,12 +203,13 @@ def main():
 
         results.append({"task_id": task_id, "answer": answer})
 
-    if _model:
-        del _model
-        gc.collect()
-        try:
+    try:
+        if _model is not None:
+            del _model
+            gc.collect()
             import torch; torch.cuda.empty_cache()
-        except: pass
+    except:
+        pass
 
     print("\n" + "=" * 60)
     print(f"[Q-Route] SUMMARY: local={_stats['local']} remote={_stats['remote']} tokens={_stats['total_tokens']}")
