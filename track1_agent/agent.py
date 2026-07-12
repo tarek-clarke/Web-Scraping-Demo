@@ -70,15 +70,16 @@ def init_models():
     for model_name in GEMMA_MODELS:
         try:
             t0 = time.time()
-            tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only=True)
+            print(f"[Q-Route] Attempting to load {model_name}...", flush=True)
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
             model = AutoModelForCausalLM.from_pretrained(
-                model_name, torch_dtype=torch.bfloat16, device_map="auto", local_files_only=True,
+                model_name, torch_dtype=torch.bfloat16, device_map="auto",
             )
             model.eval()
             _models.append((model, tokenizer, model_name))
             print(f"[Q-Route] Loaded {model_name} in {time.time()-t0:.1f}s", flush=True)
-        except Exception:
-            print(f"[Q-Route] {model_name.split('/')[-1]} not cached — skipping", flush=True)
+        except Exception as e:
+            print(f"[Q-Route] {model_name} failed: {e}", flush=True)
 
     if _models:
         _gpu_ok = True
