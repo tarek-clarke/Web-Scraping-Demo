@@ -1,10 +1,9 @@
 """
-agent.py — Track 1: 100% Local Gemma 4 E4B Consensus (0 Fireworks tokens).
+agent.py — Track 1: 100% Local Gemma 4 E4B on MI300X (0 Fireworks tokens).
 
-Downloads Gemma 4 E4B QAT GGUF from HuggingFace (open repo, not gated).
-Loads multiple copies into GPU VRAM for parallel consensus voting.
-No Fireworks API calls = 0 tokens.
-
+Uses transformers + PyTorch with ROCm to load Gemma 4 E4B on AMD MI300X GPU.
+ALL tasks answered locally = 0 Fireworks tokens.
+Parallel consensus with multiple temperature samples.
 Falls back to Fireworks single-model if GPU unavailable.
 """
 from __future__ import annotations
@@ -18,14 +17,16 @@ ALLOWED_MODELS = [m.strip() for m in os.environ.get("ALLOWED_MODELS", "").split(
 if not ALLOWED_MODELS:
     ALLOWED_MODELS = ["accounts/fireworks/models/deepseek-v4-pro"]
 
-# Gemma 4 E4B QAT GGUF — open repo, NOT gated
-GEMMA_REPO = "google/gemma-4-E4B-it-qat-q4_0-gguf"
-GEMMA_FILE = "gemma-4-E4B_q4_0-it.gguf"
-GEMMA_PATH = "/tmp/gemma-4-e4b.q4.gguf"
-MODEL_SIZE_GB = 5.0
+GEMMA_MODEL = "google/gemma-4-E4B-it"
+NUM_SAMPLES = 8  # Run 8 inference passes with different temperatures for consensus
 
 _stats = {"total_tokens": 0, "local": 0, "remote": 0, "per_task": []}
 _current_task_id = None
+_model = None
+_tokenizer = None
+_gpu_ok = False
+
+_TEMPS = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
 
 def _detect_category(query):
     q = query.lower()
@@ -48,116 +49,76 @@ def _record_usage(task_id, route, usage=None):
     _stats["per_task"].append(e)
 
 # ---------------------------------------------------------------------------
-# Download Gemma 4 E4B (open repo, not gated)
+# Init Gemma 4 E4B on ROCm GPU
 # ---------------------------------------------------------------------------
 
-def download_gemma():
-    if os.path.exists(GEMMA_PATH) and os.path.getsize(GEMMA_PATH) > 1_000_000_000:
-        print(f"[Q-Route] Gemma already downloaded ({os.path.getsize(GEMMA_PATH)//1024//1024}MB)", flush=True)
-        return True
-    try:
-        from huggingface_hub import hf_hub_download
-        print(f"[Q-Route] Downloading {GEMMA_FILE} from {GEMMA_REPO}...", flush=True)
-        t0 = time.time()
-        path = hf_hub_download(repo_id=GEMMA_REPO, filename=GEMMA_FILE, local_dir="/tmp")
-        os.rename(path, GEMMA_PATH)
-        print(f"[Q-Route] Downloaded in {time.time()-t0:.1f}s ({os.path.getsize(GEMMA_PATH)//1024//1024}MB)", flush=True)
-        return True
-    except Exception as e:
-        print(f"[Q-Route] Download failed: {e}", flush=True)
-        return False
-
-# ---------------------------------------------------------------------------
-# GPU Detection + VRAM Auto-Scaling
-# ---------------------------------------------------------------------------
-
-def detect_gpu():
+def init_gemma():
+    global _model, _tokenizer, _gpu_ok
     try:
         import torch
-        if torch.cuda.is_available():
-            vram = torch.cuda.get_device_properties(0).total_memory
-            name = torch.cuda.get_device_name(0)
-            print(f"[Q-Route] GPU: {name} ({vram//1024//1024//1024}GB)", flush=True)
-            return True, vram
-    except:
-        pass
-    if os.path.exists("/opt/rocm"):
-        print("[Q-Route] /opt/rocm found — assuming GPU (192GB)", flush=True)
-        return True, 192 * 1024**3
-    print("[Q-Route] No GPU — Fireworks fallback", flush=True)
-    return False, 0
+        if not torch.cuda.is_available():
+            print("[Q-Route] No GPU — Fireworks fallback", flush=True)
+            return False
+        name = torch.cuda.get_device_name(0)
+        vram = torch.cuda.get_device_properties(0).total_memory // 1024 // 1024 // 1024
+        print(f"[Q-Route] GPU: {name} ({vram}GB)", flush=True)
+    except Exception as e:
+        print(f"[Q-Route] torch import failed: {e} — Fireworks fallback", flush=True)
+        return False
 
-def max_copies(vram_bytes, model_size_gb):
-    if vram_bytes <= 0:
-        return 1
-    model_bytes = int(model_size_gb * 1024**3)
-    ctx_bytes = 256 * 1024**2
-    per_copy = model_bytes + ctx_bytes
-    usable = int(vram_bytes * 0.90)
-    raw = usable // per_copy
-    return max(2, raw - 1)
-
-# ---------------------------------------------------------------------------
-# Gemma 4 E4B Parallel Ensemble (0 Fireworks tokens)
-# ---------------------------------------------------------------------------
-
-_instances = []
-_TEMPS = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45,
-          0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95,
-          1.0, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45,
-          1.5, 1.55, 1.6, 1.65, 1.7, 1.75, 1.8, 1.85]
-
-def init_gemma(num_copies, n_gpu):
-    global _instances
-    if _instances:
-        return
-    if not os.path.exists(GEMMA_PATH):
-        if not download_gemma():
-            return
     try:
-        from llama_cpp import Llama
-        print(f"[Q-Route] Loading {num_copies}× Gemma 4 E4B (n_gpu_layers={n_gpu})...", flush=True)
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+        print(f"[Q-Route] Loading {GEMMA_MODEL} on GPU...", flush=True)
         t0 = time.time()
-        for i in range(num_copies):
-            llm = Llama(
-                model_path=GEMMA_PATH,
-                n_ctx=2048,
-                n_threads=4,
-                n_gpu_layers=n_gpu,
-                verbose=False,
-            )
-            _instances.append(llm)
-            print(f"[Q-Route] Copy {i+1}/{num_copies} loaded", flush=True)
-        print(f"[Q-Route] {len(_instances)} copies loaded in {time.time()-t0:.1f}s", flush=True)
+        _tokenizer = AutoTokenizer.from_pretrained(GEMMA_MODEL)
+        _model = AutoModelForCausalLM.from_pretrained(
+            GEMMA_MODEL,
+            torch_dtype=torch.bfloat16,
+            device_map="auto",
+        )
+        _model.eval()
+        _gpu_ok = True
+        print(f"[Q-Route] Gemma loaded in {time.time()-t0:.1f}s", flush=True)
+        return True
     except Exception as e:
         print(f"[Q-Route] Gemma load failed: {e}", flush=True)
-        _instances = []
+        return False
 
-def infer_one(idx, query, max_tokens=300):
-    if idx >= len(_instances):
-        return ""
+def run_local_single(query, temp, max_tokens=300):
+    """Single inference pass on GPU (0 Fireworks tokens)."""
     try:
-        temp = _TEMPS[idx % len(_TEMPS)]
-        resp = _instances[idx].create_chat_completion(
-            messages=[{"role": "user", "content": query}],
-            temperature=temp,
-            max_tokens=max_tokens,
-        )
-        return resp["choices"][0]["message"]["content"].strip()
-    except:
+        import torch
+        messages = [{"role": "user", "content": query}]
+        inputs = _tokenizer.apply_chat_template(messages, return_tensors="pt", add_generation_prompt=True).to(_model.device)
+        with torch.no_grad():
+            outputs = _model.generate(
+                inputs,
+                max_new_tokens=max_tokens,
+                temperature=temp,
+                do_sample=temp > 0,
+                pad_token_id=_tokenizer.eos_token_id,
+            )
+        return _tokenizer.decode(outputs[0][inputs.shape[1]:], skip_special_tokens=True).strip()
+    except Exception as e:
+        print(f"[Q-Route] Inference error: {e}", flush=True)
         return ""
 
-def parallel_consensus(query, num_copies, category, max_tokens=300):
-    n = min(num_copies, len(_instances))
-    with ThreadPoolExecutor(max_workers=min(n, 8)) as pool:
-        answers = list(pool.map(
-            lambda i: infer_one(i, query, max_tokens),
-            range(n)
-        ))
-    answers = [a for a in answers if a and len(a) > 5]
+def run_local_consensus(query, category, max_tokens=300):
+    """Run NUM_SAMPLES passes with different temperatures, consensus vote."""
+    if not _gpu_ok:
+        return None
+
+    # Run all samples sequentially (single GPU, can't truly parallelize model inference)
+    answers = []
+    for i in range(NUM_SAMPLES):
+        ans = run_local_single(query, _TEMPS[i % len(_TEMPS)], max_tokens)
+        if ans and len(ans) > 5:
+            answers.append(ans)
+
     if not answers:
         return None
 
+    # Consensus voting
     def normalize(text, cat):
         t = text.lower().strip()
         if cat == "sentiment":
@@ -180,16 +141,18 @@ def parallel_consensus(query, num_copies, category, max_tokens=300):
     normalized = [normalize(a, category) for a in answers]
     counts = Counter(normalized)
     most_common, count = counts.most_common(1)[0]
-    threshold = max(2, int(n * 0.5))
+    threshold = max(2, int(len(answers) * 0.5))
 
     if count >= threshold:
         for i, nv in enumerate(normalized):
             if nv == most_common:
                 return answers[i]
+
+    # No consensus — return longest (most complete)
     return max(answers, key=len)
 
 # ---------------------------------------------------------------------------
-# Fireworks Fallback
+# Fireworks Fallback (tokens)
 # ---------------------------------------------------------------------------
 
 def run_fireworks(query):
@@ -237,15 +200,10 @@ def main():
     with open(input_path) as f:
         tasks = json.load(f)
 
-    num_tasks = len(tasks)
-    print(f"[Q-Route] Processing {num_tasks} queries...", flush=True)
+    print(f"[Q-Route] Processing {len(tasks)} queries...", flush=True)
 
-    has_gpu, vram = detect_gpu()
-    n_gpu = -1 if has_gpu else 0
-    copies = max_copies(vram, MODEL_SIZE_GB) if has_gpu else 0
-
-    if has_gpu:
-        init_gemma(copies, n_gpu)
+    # Load Gemma 4 E4B on GPU (0 Fireworks tokens for all tasks)
+    gemma_ok = init_gemma()
 
     results = []
     for task in tasks:
@@ -256,20 +214,29 @@ def main():
 
         answer = None
 
-        if _instances:
-            answer = parallel_consensus(prompt, copies, category, max_tokens=300)
+        # Try local Gemma consensus for ALL tasks (0 tokens)
+        if gemma_ok:
+            answer = run_local_consensus(prompt, category, max_tokens=400)
             if answer:
                 print(f"[Q-Route] {task_id}: LOCAL ({category}) — 0 tokens", flush=True)
                 _record_usage(task_id, "local")
 
+        # Fallback to Fireworks
         if answer is None:
             print(f"[Q-Route] {task_id}: FIREWORKS ({category})", flush=True)
             answer = run_fireworks(prompt)
 
         results.append({"task_id": task_id, "answer": answer})
 
-    _instances.clear()
-    gc.collect()
+    # Cleanup
+    if _model:
+        del _model
+        gc.collect()
+        try:
+            import torch
+            torch.cuda.empty_cache()
+        except:
+            pass
 
     print("\n" + "=" * 60)
     print(f"[Q-Route] SUMMARY: local={_stats['local']} remote={_stats['remote']} tokens={_stats['total_tokens']}")
