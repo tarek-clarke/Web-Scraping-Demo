@@ -12,8 +12,10 @@ Executes 48-combination matrix: **4 APIs × 3 Chaos Methods × 4 Reconcilers × 
 - **Chaos Engineering**: 10% injection rate via Qwen2.5-7B (semantic), JSON manipulation, schema alteration
 - **Reconciliation**: Levenshtein, Regex, BERT (MiniLM-v2), Gemma E4B-it
 - **Hardware Detection**: Auto-bootstrap for CUDA, ROCm, Apple Silicon, CPU with VRAM probing
+- **Energy & Carbon Profiling**: Integrated `EnergyTracker` wrapping execution blocks for real-time power, temp, and carbon intensity measurement (using CodeCarbon + native NVML/Sysfs wrappers for NVIDIA and AMD Instinct GPUs).
 
 ### Target Volume
+
 
 - **10,000 packets** total (2,500 per API source)
 - **1,000 chaos injections** (10% of total)
@@ -432,7 +434,43 @@ Calculated post-hoc from raw data. Reference: Hosseini, S., Barker, K., & Ramire
 - Bucket: `rap-framework`
 - Credentials: `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (env vars, git-ignored)
 
+## Energy & Carbon Tracking Architecture
+
+To guarantee green computing and compliance with EuroHPC environment restrictions, the framework provides hardware-native energy profiling and carbon tracking.
+
+### 1. Telemetry Sources
+- **NVIDIA NVML (CUDA Platforms)**: Direct kernel interface read via Python `pynvml` wrappers querying power limits and real-time core metrics.
+- **AMD Sysfs Interface (ROCm/LUMI-G)**: Since `rocm-smi` might block permissions in unprivileged containers, the telemetry fallbacks dynamically to reading GPU sensors directly from the host sysfs interface:
+  - Power: `/sys/class/drm/card{index}/device/hwmon/hwmon0/power1_average`
+  - Temperature: `/sys/class/drm/card{index}/device/hwmon/hwmon0/temp1_input`
+- **CPU RAPL Telemetry**: Falling back to `/sys/class/powercap/intel-rapl` sensors when running on generic CPUs.
+- **Localized Carbon Calculations**: Uses `CodeCarbon` alongside custom grid carbon coefficient estimations to compute estimated $gCO_2e$ values dynamically.
+
+### 2. Context Manager Wrapper
+Wrap execution blocks cleanly using `EnergyTracker`:
+```python
+from src.telemetry.metrics_logger import EnergyTracker
+
+with EnergyTracker(output_path="/workspace/metrics/energy_profile.csv") as tracker:
+    # Run processing loop here
+    for epoch in range(1080):
+        # execute operations
+        tracker.log_epoch()
+```
+All logged data is saved to a clean structured CSV in `/workspace/metrics/energy_profile.csv`.
+
+### 3. Container Recipes (Apptainer/Singularity)
+Build definition recipe is stored in `Apptainer.def`. To execute benchmarks with host driver sensors attached, run:
+```bash
+# NVIDIA (CUDA via TalTech amp node)
+apptainer run --nv --bind /sys:/sys,$(pwd):/workspace resilient-rap.sif run_matrix.py
+
+# AMD Instinct (ROCm via LUMI-G)
+apptainer run --rocm --bind /sys:/sys,$(pwd):/workspace resilient-rap.sif run_matrix.py
+```
+
 ## Batch Size Scaling
+
 
 | VRAM | Batch Size | Target Hardware |
 |------|------------|-----------------|

@@ -124,13 +124,18 @@ def main():
     total_runs = len(runner.apis) * len(runner.chaos_methods) * len(runner.reconcilers) * args.repetitions
     print(f"Running {total_runs} matrix runs ({len(runner.apis)} APIs x {len(runner.chaos_methods)} chaos x {len(runner.reconcilers)} reconcilers x {args.repetitions} iterations)...\n")
 
-    results = runner.run(packets)
+    from src.telemetry.metrics_logger import EnergyTracker
+
+    with EnergyTracker(output_path="./metrics/energy_profile.csv") as et:
+        results = runner.run(packets)
+        et.log_epoch()
 
     results["run_metadata"] = {
         "start_time": run_start,
         "end_time": time_mod.time(),
         "total_duration_s": time_mod.time() - run_start,
         "total_packets": len(packets),
+
         "hardware": {
             "model": hardware.get("model", "unknown"),
             "type": hardware.get("type", "unknown"),
