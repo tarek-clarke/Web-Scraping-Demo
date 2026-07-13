@@ -88,6 +88,11 @@ class ReconciliationEngine:
         reconciler_name, confidence = router.route_packet(features)
         routing_latency_ms = (time.perf_counter() - start_time) * 1000
         
+        # Policy: Drop gemma_e4b from routing UNLESS routing confidence is very low (< 0.40),
+        # which indicates high ambiguity and justifies using the slower LLM reconciler.
+        if reconciler_name == "gemma_e4b" and confidence >= 0.40:
+            reconciler_name = "bert"
+            
         # Reconcile using selected reconciler
         rec_result = self.reconcile(original, drifted, reconciler_name)
         
