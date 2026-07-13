@@ -22,3 +22,11 @@ run_nemotron_benchmarks.py
 run_benchmarks_local.sh
 *token*
 *.key
+track1_agent/
+results.json
+tasks.json
+data/reports/
+data/ingested/telemetry_clean_bench_25000.json
+data/ingested/telemetry_clean_bench_12500.json
+archive_logs/
+.DS_Store
