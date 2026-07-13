@@ -33,12 +33,12 @@ DOMAINS: Dict[str, Dict[str, str]] = {
         "description": "Aviation Vector Logistics"
     },
     "08_football_uefa": {
-        "url": "https://api.football-data.org/v4/competitions/CL/matches",
-        "description": "Continental Football"
+        "url": "https://raw.githubusercontent.com/statsbomb/open-data/master/data/events/3788741.json",
+        "description": "Continental Football (StatsBomb Events)"
     },
     "09_industrial_iiot": {
-        "url": "https://api.openaq.org/v2/measurements?limit=100",
-        "description": "Industrial IoT Tracking"
+        "url": "https://data.sensor.community/airrohr/v1/sensor/63212/",
+        "description": "Industrial IoT Tracking (SensorCommunity)"
     },
     "10_smartcity_transit": {
         "url": "https://api.tfl.gov.uk/Line/victoria/Arrivals",
