@@ -52,9 +52,30 @@ def main():
         sys.exit(1)
 
     with open(packets_file, 'r') as f:
-        packets = json.load(f)
+        content = f.read().strip()
+        if content.startswith('['):
+            try:
+                packets = json.loads(content)
+            except json.JSONDecodeError:
+                # Fallback to line-by-line in case it starts with [ but has bad overall structure
+                packets = []
+                for line in content.splitlines():
+                    if line.strip():
+                        try:
+                            packets.append(json.loads(line))
+                        except Exception:
+                            pass
+        else:
+            packets = []
+            for line in content.splitlines():
+                if line.strip():
+                    try:
+                        packets.append(json.loads(line))
+                    except Exception:
+                        pass
 
     print(f"Loaded {len(packets)} total packets")
+
 
     max_per_api = args.max_packets_per_api
     if max_per_api > 0:
