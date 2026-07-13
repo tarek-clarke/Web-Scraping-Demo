@@ -151,7 +151,9 @@ class MatrixRunner:
                 if any(p.get("source") == api for p in packets)
             ) * len(self.chaos_methods) * len(reconcilers)
 
-            use_threads = phase_name != "gemma"
+            import os as _os
+            use_threads = (phase_name != "gemma") or (_os.environ.get("HF_LOAD_4BIT", "").lower() in ("1", "true", "yes"))
+
             iteration_data = {}
 
             if use_threads:
