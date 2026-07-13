@@ -32,9 +32,13 @@ class MatrixRunner:
         self._progress_total = 0
         self.quantum_backend = quantum_backend
 
-        self.apis = ["openf1", "finnhub", "spacex", "openweather", "clinical"]
+        self.apis = [
+            "openf1", "finnhub", "spacex", "openweather", "clinical",
+            "hockey_nhl", "aviation_opensky", "football_uefa", "industrial_iiot", "smartcity_transit"
+        ]
         if only_api:
             self.apis = [only_api]
+
 
         self.chaos_methods = ["qwen", "json_manip", "schema_alter"]
 

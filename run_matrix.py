@@ -46,10 +46,14 @@ def main():
     print(f"Batch Size: {vram_info['batch_size']}")
     print(f"Iterations: {args.repetitions}\n")
 
-    packets_file = "data/ingested/telemetry_latest.json"
+    packets_file = "data/ingested/telemetry_clean_bench_25000.json"
     if not os.path.exists(packets_file):
-        print(f"Error: {packets_file} not found. Run Go ingestion first.")
+        packets_file = "data/ingested/telemetry_latest.json"
+        
+    if not os.path.exists(packets_file):
+        print(f"Error: Telemetry packet benchmark datasets not found in data/ingested/")
         sys.exit(1)
+
 
     with open(packets_file, 'r') as f:
         content = f.read().strip()

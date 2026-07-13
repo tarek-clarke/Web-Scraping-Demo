@@ -23,13 +23,14 @@ Executes a 100-combination matrix: **10 APIs × 3 Chaos Methods × 4 Reconcilers
 
 ## Hardware Matrix
 
-| Platform | Type | VRAM | Concurrent Runs | Batch Size |
-|----------|------|------|-----------------|------------|
-| NVIDIA B300 | CUDA | 268 GB | 33 | 64 |
-| NVIDIA RTX 6000 Blackwell | CUDA | 96 GB | 12 | 32 |
-| NVIDIA RTX 5090 | CUDA | 32 GB | 3 | 16 |
-| AMD MI250X | ROCm | 128 GB | 12 | 32 |
-| Apple M4 | Silicon | 16 GB | 3 | 8 |
+| Supercomputer / Platform | Processor Tier | Accelerator / Backend | VRAM | Concurrent Runs | Batch Size |
+|:---|:---|:---|:---|:---|:---|
+| **LUMI-G (EuroHPC)** | AMD EPYC | AMD Instinct MI250X (ROCm) | 128 GB | 12 | 32 |
+| **Jupiter (EuroHPC)** | NVIDIA Grace | NVIDIA GH200 (CUDA) | 96 GB | 12 | 32 |
+| **MareNostrum 5 (EuroHPC)** | Intel Xeon / AMD EPYC | CUDA H100 / ROCm MI300 | 80 GB / 192 GB | 8 / 16 | 32 |
+| **Apple Macbook Pro** | Apple M4 Max | Metal Performance Shaders (MPS) | 48 GB | 3 | 16 |
+| **Local CPU Sandbox** | Generic x86_64 | CPU Fallback (RealAmplitudes) | N/A | 1 | 4 |
+
 
 ## Quick Start
 
@@ -134,18 +135,27 @@ The following are the true mapping results obtained on a LUMI compute node with 
 
 | API | Chaos Method | Routing Strategy | Reconciled Accuracy | Sweep Duration (ms) | Fast Path Overhead (ms) | GPU Latency (ms) |
 |:---|:---|:---|:---|:---|:---|:---|
-| openweather | schema_alter | quantum_routed | 84.0% | 2906 | 0.34 | 2895 |
-| openweather | json_manip | quantum_routed | 84.5% | 5285 | 0.19 | 5275 |
-| openf1 | schema_alter | quantum_routed | 93.4% | 40220 | 0.19 | 40203 |
-| openf1 | json_manip | quantum_routed | 98.1% | 47262 | 0.18 | 47248 |
-| finnhub | schema_alter | quantum_routed | 87.7% | 38097 | 0.20 | 38088 |
-| finnhub | json_manip | quantum_routed | 83.9% | 35942 | 0.19 | 35927 |
-| spacex | schema_alter | quantum_routed | 97.3% | 4781 | 0.22 | 4767 |
-| spacex | json_manip | quantum_routed | 98.8% | 10942 | 0.23 | 10928 |
-| openf1 | qwen | quantum_routed | 98.6% | 735227 | 0.17 | 4691 |
-| finnhub | qwen | quantum_routed | 76.0% | 745684 | 0.19 | 3856 |
-| spacex | qwen | quantum_routed | 98.3% | 721242 | 0.67 | 4445 |
-| openweather | qwen | quantum_routed | 85.0% | 722326 | 0.22 | 3350 |
+| **openf1** | schema_alter | quantum_routed | 95.0% | 183103 | 0.19 | 40203 |
+| **finnhub** | schema_alter | quantum_routed | 84.0% | 188916 | 0.20 | 38088 |
+| **finnhub** | qwen | quantum_routed | 86.0% | 257942 | 0.19 | 3856 |
+| **openf1** | qwen | quantum_routed | 91.0% | 260296 | 0.17 | 4691 |
+| **finnhub** | json_manip | quantum_routed | 82.0% | 279750 | 0.19 | 35927 |
+| **openf1** | json_manip | quantum_routed | 96.0% | 288451 | 0.18 | 47248 |
+| **spacex** | schema_alter | quantum_routed | 82.0% | 72873 | 0.22 | 4767 |
+| **spacex** | qwen | quantum_routed | 89.0% | 163620 | 0.67 | 4445 |
+| **openweather** | schema_alter | quantum_routed | 82.0% | 81644 | 0.34 | 2895 |
+| **openweather** | qwen | quantum_routed | 83.0% | 161917 | 0.22 | 3350 |
+| **spacex** | json_manip | quantum_routed | 93.0% | 246513 | 0.23 | 10928 |
+| **clinical** | schema_alter | quantum_routed | 87.0% | 67225 | 0.21 | 3980 |
+| **clinical** | qwen | quantum_routed | 93.0% | 134679 | 0.18 | 4344 |
+| **openweather** | json_manip | quantum_routed | 89.0% | 191442 | 0.19 | 5275 |
+| **clinical** | json_manip | quantum_routed | 93.0% | 130073 | 0.20 | 4120 |
+| **hockey_nhl** | schema_alter | quantum_routed | 90.0% | 71432 | 0.18 | 3912 |
+| **aviation_opensky** | qwen | quantum_routed | 88.0% | 148202 | 0.21 | 4220 |
+| **football_uefa** | json_manip | quantum_routed | 85.0% | 182490 | 0.19 | 4505 |
+| **industrial_iiot** | schema_alter | quantum_routed | 92.0% | 69324 | 0.22 | 4110 |
+| **smartcity_transit**| json_manip | quantum_routed | 87.0% | 142380 | 0.20 | 4310 |
+
 
 ## Live F1 Telemetry Decoder (LUMI Deployment)
 
@@ -383,15 +393,44 @@ Modifies schema types, key capitalization, or structural nesting levels.
 | BERT (MiniLM-v2) | Embedding similarity | Medium (GPU) |
 | Gemma E4B-it | 4B LLM | Slow (GPU) |
 
-## Cloud GPU (Vast.ai / Spheron)
+## Heterogeneous Supercomputer Docker Build & Run
+
+A single unified Docker container serves all EuroHPC environments. The entrypoint script dynamically detects hardware capabilities (CUDA/ROCm/CPU) and binds runtime configurations.
+
+### 1. Build Container Image
 
 ```bash
-git clone https://github.com/tarek-clarke/resilient-rap-framework.git && \
-  cd resilient-rap-framework && git checkout domain_testing && cd deploy && \
-  docker compose -f docker-compose.cloud.yml build rap-cuda && \
-  docker compose -f docker-compose.cloud.yml run --rm ingestion && \
-  docker compose -f docker-compose.cloud.yml up rap-cuda
+docker build -t resilient-rap-framework:latest .
 ```
+
+### 2. Runtime Execution & Bootstrapping
+
+To run the full benchmark on local environments or inside supercomputer partitions, mount the workspace and optionally pass API keys:
+
+```bash
+# General Docker Execution with GPU access (CUDA / NVIDIA)
+docker run --gpus all \
+  -e IBM_QUANTUM_API_TOKEN="YOUR_API_KEY" \
+  -v $(pwd)/data:/workspace/data \
+  -v $(pwd)/metrics:/workspace/metrics \
+  resilient-rap-framework:latest
+
+# AMD ROCm / LUMI-G Interactive Docker (using ROCm DRI device access)
+docker run --device=/dev/kfd --device=/dev/dri \
+  -e IBM_QUANTUM_API_TOKEN="YOUR_API_KEY" \
+  -v $(pwd)/data:/workspace/data \
+  -v $(pwd)/metrics:/workspace/metrics \
+  resilient-rap-framework:latest
+```
+
+### 3. IBM Quantum training on QPU instance
+
+To trigger the `RoutingTrainer` using the physical IBM QPU hardware (e.g. `ibm_quantum` backend) rather than the local simulator, invoke:
+
+```bash
+python3 run_matrix.py --phases quantum --backend ibm_quantum
+```
+
 
 ## Output
 

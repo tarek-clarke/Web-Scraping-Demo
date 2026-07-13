@@ -1,105 +1,84 @@
-# ──────────────────────────────────────────────────────────────────────────
-# Telemetry Platform Telemetry Pipeline: ROCm 6.2 + PyTorch
-# ──────────────────────────────────────────────────────────────────────────
-# Base: Official ROCm 6.2 PyTorch image (AMD 7900 XT / RDNA3)
-# GPU Support: Hip/ROCm (Linux native) + CPU fallback (Windows/WSL2)
-# ──────────────────────────────────────────────────────────────────────────
+# Heterogeneous Multi-Supercomputer Dockerfile for Resilient RAP Framework
+# Optimized to bootstrap and run on:
+# 1. LUMI (AMD Instinct MI250X - ROCm/HIP)
+# 2. Jupiter (NVIDIA GH200 - CUDA)
+# 3. Marenostrum (Heterogeneous CUDA/ROCm/CPU partitions)
+# 4. IBM Quantum (Qiskit hardware runtime integration)
 
-FROM rocm/pytorch:rocm6.2_ubuntu22.04_py3.10_pytorch_release_2.3.0
+# Standardize on high-compatibility PyTorch base image
+FROM pytorch/pytorch:2.4.1-cuda12.4-cudnn9-devel
 
 USER root
 ARG DEBIAN_FRONTEND=noninteractive
 
-# ──────────────────────────────────────────────────────────────────────────
-# 1. System Foundation: Build tools, libraries, compilers
-# ──────────────────────────────────────────────────────────────────────────
+# Install system dependencies, compilers, and hardware diagnostic tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    # Build essentials for C++ extensions
     build-essential \
     cmake \
     git \
     wget \
+    curl \
     ca-certificates \
-    \
-    # ROCm development packages
-    rocm-libs \
-    hip-dev \
-    hipcc \
-    hipsparse-dev \
-    hipblas-dev \
-    hipblaslt-dev \
-    hipsolver-dev \
-    \
-    # Python & data science
-    python3-dev \
-    python3-pip \
-    python3-setuptools \
-    \
-    # System libraries
-    libcurl4-openssl-dev \
+    pciutils \
+    kmod \
+    lm-sensors \
     libssl-dev \
-    libxml2-dev \
-    \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
-# ──────────────────────────────────────────────────────────────────────────
-# 3. Install Python packages (PyTorch already in base, add data science)
-# ──────────────────────────────────────────────────────────────────────────
-RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip3 install --no-cache-dir \
-    # Core data processing
+# Install python requirements including Qiskit and CodeCarbon
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir \
     numpy \
+    pandas \
     scipy \
     scikit-learn \
-    \
-    # HTTP
+    transformers \
+    codecarbon \
+    pynvml \
+    qiskit \
+    qiskit-aer \
+    qiskit-ibm-runtime \
+    Levenshtein \
     requests \
-    \
-    # Testing & utilities
-    pytest \
-    pyyaml \
-    python-dotenv \
-    \
-    # Kafka DLQ 3-stream routing (Python 3.10–3.13 compatible fork)
-    kafka-python-ng
+    httpx
 
-# ──────────────────────────────────────────────────────────────────────────
-# 4. ROCm Environment Configuration  
-# ──────────────────────────────────────────────────────────────────────────
-# GPU-specific tuning for AMD 7900 XT (gfx1100)
-ENV ROCM_HOME=/opt/rocm
-ENV LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm-6.2.0/lib:/usr/local/lib:$LD_LIBRARY_PATH
-ENV PATH=/opt/rocm/bin:/opt/rocm/sbin:$PATH
-
-# HSA (Heterogeneous System Architecture) tuning
-# Force gfx1100 (7900 XT)
-ENV HSA_OVERRIDE_GFX_VERSION=11.0.0
-# Use compute instead of SDMA for stability
-ENV HSA_ENABLE_SDMA=0
-# Default to first GPU
-ENV GPU_DEVICE_ORDINAL=0
-
-# ──────────────────────────────────────────────────────────────────────────
-# 5. Build fast_ingest C++ extension (zero-copy GPU ingestion)
-# ──────────────────────────────────────────────────────────────────────────
-WORKDIR /app
-
-# Copy only build-relevant files first (cache-friendly: Python/doc changes
-# won't invalidate the expensive C++ extension build layer)
-COPY setup.py fast_ingest.cpp /app/
-
-RUN cd /app && \
-    python3 setup.py build_ext --inplace 2>&1 | tee /tmp/build.log && \
-    (grep -q "error:" /tmp/build.log && exit 1 || true) || echo "Build complete"
-
-# Now copy the rest of the application
-COPY . /app
-
-# ──────────────────────────────────────────────────────────────────────────
-# 6. Final configuration
-# ──────────────────────────────────────────────────────────────────────────
-ENV PYTHONPATH=/app
+# Configure dynamic hardware environment variables
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/workspace
+ENV HF_HOME=/workspace/hf_cache
 
-WORKDIR /app
-CMD ["/bin/bash"]
+# Create mountable workspace directories
+WORKDIR /workspace
+RUN mkdir -p /workspace/data /workspace/metrics /workspace/configs
+
+# Setup bootstrap script to detect hardware capabilities and configure run backends
+RUN echo '#!/bin/bash\n\
+echo "=== Resilient RAP Multi-Supercomputer Bootstrapping ==="\n\
+\n\
+# 1. Detect Accelerator\n\
+if command -v nvidia-smi &> /dev/null; then\n\
+    echo "Detected NVIDIA GPU Architecture (CUDA)." \n\
+    export ACCELERATOR_TYPE="CUDA"\n\
+elif command -v rocm-smi &> /dev/null || [ -d /opt/rocm ]; then\n\
+    echo "Detected AMD GPU Architecture (ROCm)." \n\
+    export ACCELERATOR_TYPE="ROCm"\n\
+    # Fix for unprivileged sysfs access on LUMI-G\n\
+    export HSA_ENABLE_SDMA=0\n\
+else\n\
+    echo "No accelerator found. Falling back to CPU Mode." \n\
+    export ACCELERATOR_TYPE="CPU"\n\
+fi\n\
+\n\
+# 2. IBM Quantum API Key injection\n\
+if [ -n "$IBM_QUANTUM_API_TOKEN" ]; then\n\
+    echo "IBM Quantum API token detected. Initializing IBM Runtime integration..."\n\
+    python3 -c "from qiskit_ibm_runtime import QiskitRuntimeService; QiskitRuntimeService.save_account(channel=\"ibm_quantum\", token=\"$IBM_QUANTUM_API_TOKEN\", overwrite=True)"\n\
+else\n\
+    echo "No IBM Quantum API Token provided. Simulator fallback active."\n\
+fi\n\
+\n\
+# Execute user command\n\
+exec "$@"' > /entrypoint.sh && chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["python3", "run_matrix.py"]
