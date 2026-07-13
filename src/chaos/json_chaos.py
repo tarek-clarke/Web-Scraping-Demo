@@ -14,6 +14,8 @@ class JSONChaos:
         return result
 
     def inject_with_subtype(self, data: Dict) -> Tuple[str, Dict]:
+        if not isinstance(data, dict):
+            return "none", data
         sub_types = [
             "field_split", "field_join", "variable_drop", "field_merge_value",
             "array_to_scalar", "scalar_to_array", "array_expansion",
@@ -21,6 +23,7 @@ class JSONChaos:
             "outlier_injection"
         ]
         sub_type = random.choice(sub_types)
+
         method_map = {
             "field_split": self._field_split,
             "field_join": self._field_join,
@@ -36,6 +39,7 @@ class JSONChaos:
         }
         method = method_map.get(sub_type, self._variable_drop)
         return sub_type, method(data)
+
 
     def _field_split(self, data: Dict) -> Dict:
         if not data: return data

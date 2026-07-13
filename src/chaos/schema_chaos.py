@@ -14,6 +14,8 @@ class SchemaChaos:
         return result
 
     def alter_with_subtype(self, data: Dict) -> Tuple[str, Dict]:
+        if not isinstance(data, dict):
+            return "none", data
         sub_types = [
             "translation", "type_change", "precision_loss", "unit_conversion",
             "nesting_flatten", "nesting_deepen", "timestamp_format_change",
@@ -37,6 +39,7 @@ class SchemaChaos:
         }
         method = method_map.get(sub_type, self._translation)
         return sub_type, method(data)
+
 
     def _translation(self, data: Dict) -> Dict:
         t = {"temperature": "temp_c", "speed": "velocity", "price": "cost", "timestamp": "ts"}
@@ -75,12 +78,15 @@ class SchemaChaos:
         return data
 
     def _nesting_deepen(self, data: Dict) -> Dict:
+        if not isinstance(data, dict):
+            return data
         keys = list(data.keys())[:2]
         nested = {}
         for key in keys:
             nested[key] = data.pop(key)
         data["nested"] = nested
         return data
+
 
     def _timestamp_format_change(self, data: Dict) -> Dict:
         if "timestamp" in data:
