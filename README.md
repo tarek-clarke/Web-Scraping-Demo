@@ -4,22 +4,22 @@
 
 ## Overview
 
-Executes 48-combination matrix: **4 APIs × 3 Chaos Methods × 4 Reconcilers × 1 Iteration** across heterogeneous hardware platforms.
+Executes a 100-combination matrix: **10 APIs × 3 Chaos Methods × 4 Reconcilers × 1 Iteration** across heterogeneous hardware platforms.
 
 ### Components
 
-- **Ingestion**: Go-based async streaming from 4 live APIs (OpenF1, IEX Cloud, SpaceX, OpenMeteo)
-- **Chaos Engineering**: 10% injection rate via Qwen2.5-7B (semantic), JSON manipulation, schema alteration
-- **Reconciliation**: Levenshtein, Regex, BERT (MiniLM-v2), Gemma E4B-it
-- **Hardware Detection**: Auto-bootstrap for CUDA, ROCm, Apple Silicon, CPU with VRAM probing
+- **Ingestion**: Seeding and synthetically generating telemetry for 10 domains (OpenF1, Finnhub, SpaceX, OpenMeteo, FDA Clinical, NHL Hockey Event Streams, OpenSky Aviation Vectors, UEFA Football Match Events, SensorCommunity IoT, TfL Transit Predictions).
+- **Chaos Engineering**: 10% injection rate via Qwen2.5-7B (semantic synonyms), JSON manipulation (structure/value changes), schema alteration (type/nesting depth).
+- **Reconciliation**: Levenshtein, Regex, BERT (MiniLM-v2), Gemma E4B-it.
+- **Hardware Detection**: Auto-bootstrap for CUDA, ROCm, Apple Silicon, CPU with VRAM probing.
 - **Energy & Carbon Profiling**: Integrated `EnergyTracker` wrapping execution blocks for real-time power, temp, and carbon intensity measurement (using CodeCarbon + native NVML/Sysfs wrappers for NVIDIA and AMD Instinct GPUs).
 
 ### Target Volume
 
+- **25,000 packets** total (2,500 per API source across all 10 domains)
+- **2,500 chaos injections** (10% of total)
+- **22,500 clean packets** (fast-path bypass, no GPU)
 
-- **10,000 packets** total (2,500 per API source)
-- **1,000 chaos injections** (10% of total)
-- **9,000 clean packets** (fast-path bypass, no GPU)
 
 ## Hardware Matrix
 
