@@ -51,7 +51,8 @@ python3 -m src.routing.training --data data/reports/MI250X/ --output configs/tra
 # Step 2: Run full benchmark matrix with quantum phase
 echo ""
 echo "=== Step 2: Running Quantum-Routed Benchmark ==="
-python3 run_matrix.py --max-packets-per-api 2500 --chaos-rate 0.10 --repetitions 10 --phases fast,bert,quantum --backend aer_simulator
+python3 run_matrix.py --max-packets-per-api 2500 --chaos-rate 0.10 --repetitions 10 --phases fast,bert,gemma,quantum --backend aer_simulator
+
 
 echo ""
 echo "=== Quantum Routing Benchmark Finished ==="
