@@ -153,7 +153,8 @@ class MatrixRunner:
             self._progress_total = sum(
                 1 for api in self.apis
                 if any(p.get("source") == api for p in packets)
-            ) * len(self.chaos_methods) * len(reconcilers)
+            ) * len(self.chaos_methods) * len(reconcilers) * self.repetitions
+
 
             import os as _os
             use_threads = (phase_name != "gemma") or (_os.environ.get("HF_LOAD_4BIT", "").lower() in ("1", "true", "yes"))
@@ -169,14 +170,15 @@ class MatrixRunner:
                             print(f"  Skipping {api}: no packets found")
                             continue
                         for chaos_method in self.chaos_methods:
-                            seed = random.randint(0, 2**31)
-                            for reconciler in reconcilers:
-                                future = executor.submit(
-                                    self._run_combination,
-                                    api_packets, api, chaos_method, reconciler,
-                                    phase_name, 1, seed
-                                )
-                                futures.append(future)
+                            for rep in range(1, self.repetitions + 1):
+                                seed = random.randint(0, 2**31)
+                                for reconciler in reconcilers:
+                                    future = executor.submit(
+                                        self._run_combination,
+                                        api_packets, api, chaos_method, reconciler,
+                                        phase_name, rep, seed
+                                    )
+                                    futures.append(future)
 
                     for future in as_completed(futures):
                         it = future.result()
@@ -193,18 +195,19 @@ class MatrixRunner:
                         print(f"  Skipping {api}: no packets found")
                         continue
                     for chaos_method in self.chaos_methods:
-                        seed = random.randint(0, 2**31)
-                        for reconciler in reconcilers:
-                            it = self._run_combination(
-                                api_packets, api, chaos_method, reconciler,
-                                phase_name, 1, seed
-                            )
-                            results["iterations"].append(it)
-                            results["drift_events"].extend(it.pop("_drift_events", []))
-                            key = (it["phase"], it["api"], it["chaos_method"], it["reconciler"])
-                            if key not in iteration_data:
-                                iteration_data[key] = []
-                            iteration_data[key].append(it)
+                        for rep in range(1, self.repetitions + 1):
+                            seed = random.randint(0, 2**31)
+                            for reconciler in reconcilers:
+                                it = self._run_combination(
+                                    api_packets, api, chaos_method, reconciler,
+                                    phase_name, rep, seed
+                                )
+                                results["iterations"].append(it)
+                                results["drift_events"].extend(it.pop("_drift_events", []))
+                                key = (it["phase"], it["api"], it["chaos_method"], it["reconciler"])
+                                if key not in iteration_data:
+                                    iteration_data[key] = []
+                                iteration_data[key].append(it)
 
             for key, iters in iteration_data.items():
                 agg = self._aggregate(iters)
