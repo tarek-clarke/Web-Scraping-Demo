@@ -7,9 +7,10 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=14
 #SBATCH --mem=120G
-#SBATCH --time=03:00:00
+#SBATCH --time=08:00:00
 #SBATCH --output=job_%j.out
 #SBATCH --error=job_%j.err
+
 
 echo "=== Quantum Routing Benchmark Started ==="
 echo "Node: $SLURM_NODENAME"

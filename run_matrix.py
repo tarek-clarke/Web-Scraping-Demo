@@ -128,11 +128,18 @@ def main():
     total_runs = len(runner.apis) * len(runner.chaos_methods) * len(runner.reconcilers) * args.repetitions
     print(f"Running {total_runs} matrix runs ({len(runner.apis)} APIs x {len(runner.chaos_methods)} chaos x {len(runner.reconcilers)} reconcilers x {args.repetitions} iterations)...\n")
 
+    # Resolve folder name dynamically based on hardware metadata
+    folder = re.sub(r'[^a-zA-Z0-9_-]', '', hardware.get("model", hardware['type']).replace(' ', '_'))
+    if not folder:
+        folder = hardware['type']
+        
     from src.telemetry.metrics_logger import EnergyTracker
 
-    with EnergyTracker(output_path="./metrics/energy_profile.csv") as et:
+    energy_path = f"data/reports/{folder}/energy_profile.csv"
+    with EnergyTracker(output_path=energy_path) as et:
         results = runner.run(packets)
         et.log_epoch()
+
 
     results["run_metadata"] = {
         "start_time": run_start,
@@ -157,12 +164,10 @@ def main():
         "method_reference": "Hosseini, S., Barker, K., & Ramirez-Marquez, J.E. (2016). A review of definitions and measures of system resilience. Reliability Engineering & System Safety, 145, 47-61."
     }
 
-    folder = re.sub(r'[^a-zA-Z0-9_-]', '', hardware.get("model", hardware['type']).replace(' ', '_'))
-    if not folder:
-        folder = hardware['type']
     print(f"\nCompleted {len(results['matrix'])} aggregated combinations ({len(results['iterations'])} total iterations)")
     print(f"Duration: {results['run_metadata']['total_duration_s']:.0f}s")
     print(f"Results saved to data/reports/{folder}/")
+
 
 if __name__ == "__main__":
     main()

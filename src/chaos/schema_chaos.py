@@ -48,6 +48,7 @@ class SchemaChaos:
         return data
 
     def _type_change(self, data: Dict) -> Dict:
+        if not isinstance(data, dict): return data
         for key in list(data.keys()):
             if isinstance(data[key], str):
                 try:
@@ -59,17 +60,20 @@ class SchemaChaos:
         return data
 
     def _precision_loss(self, data: Dict) -> Dict:
+        if not isinstance(data, dict): return data
         for key in list(data.keys()):
             if isinstance(data[key], float):
                 data[key] = round(data[key], 2)
         return data
 
     def _unit_conversion(self, data: Dict) -> Dict:
+        if not isinstance(data, dict): return data
         if "speed" in data and isinstance(data["speed"], (int, float)):
             data["speed"] = data["speed"] * 1.60934
         return data
 
     def _nesting_flatten(self, data: Dict) -> Dict:
+        if not isinstance(data, dict): return data
         if "nested" in data and isinstance(data["nested"], dict):
             for k, v in data["nested"].items():
                 if k not in data:
@@ -89,21 +93,25 @@ class SchemaChaos:
 
 
     def _timestamp_format_change(self, data: Dict) -> Dict:
+        if not isinstance(data, dict): return data
         if "timestamp" in data:
             data["timestamp"] = str(data["timestamp"])
         return data
 
     def _timezone_change(self, data: Dict) -> Dict:
+        if not isinstance(data, dict): return data
         if "tz" in data:
             data["tz"] = "UTC"
         return data
 
     def _date_format_change(self, data: Dict) -> Dict:
+        if not isinstance(data, dict): return data
         if "date" in data:
             data["date"] = str(data["date"])
         return data
 
     def _encoding_change(self, data: Dict) -> Dict:
+        if not isinstance(data, dict): return data
         for key in list(data.keys()):
             if isinstance(data[key], str):
                 try:
@@ -113,6 +121,7 @@ class SchemaChaos:
         return data
 
     def _key_case_change(self, data: Dict) -> Dict:
+        if not isinstance(data, dict): return data
         new_data = {}
         for key in data.keys():
             new_key = key.upper() if key.islower() else key.lower()
@@ -120,6 +129,7 @@ class SchemaChaos:
         return new_data
 
     def _array_index_rename(self, data: Dict) -> Dict:
+        if not isinstance(data, dict): return data
         if "items" in data and isinstance(data["items"], list):
             data["items"] = {f"item_{i}": v for i, v in enumerate(data["items"])}
         return data
