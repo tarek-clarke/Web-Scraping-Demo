@@ -72,89 +72,118 @@ python run_matrix.py
 | Drifted (GPU reconciliation) | 1,000 (10%) |
 | GPU batches per reconciler | 16 (batch_size=64) |
 
-## AMD MI250X Benchmark Results
+## 10-Repetition Systems & QPU Benchmark Results (Placeholders)
 
-The following are the true mapping results obtained on a LUMI compute node with 1 AMD MI250X GPU (isolated as `cuda:0` for Gemma and `cuda:1` for Qwen chaos). This run properly deep-copied packets to test all chaos methods (Qwen, JSON manipulation, and schema alteration) without in-place mutation interference.
+The following tables show the results of the 10-repetition sweeps comparing the classical reconciler tiers, the GPU-accelerated Quantum VQC Simulator, and the physical Star VLQ 24-Qubit QPU backend across all 10 API sources. 
 
-### True Mapping Throughput and Latency (Excluding Chaos Generation)
+### Global Performance, Energy, and Carbon savings Summary
+| Routing Strategy | Mean Accuracy (%) | Avg Latency (ms) | Energy / Packet (J) | Carbon / Packet (mg CO2e) | Carbon Saved vs. Gemma Baseline (%) |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| **Classical LLM (Gemma)** | *[Gemma Accuracy]* | *[Gemma Latency]* | *[Gemma Energy]* | *[Gemma Carbon]* | *[0.0%]* |
+| **Quantum Router (Sim)**  | *[Sim Accuracy]*   | *[Sim Latency]*   | *[Sim Energy]*   | *[Sim Carbon]*   | *[Sim Savings]* |
+| **Quantum Router (QPU)**  | *[QPU Accuracy]*   | *[QPU Latency]*   | *[QPU Energy]*   | *[QPU Carbon]*   | *[QPU Savings]* |
 
-| Phase | API | Chaos Method | Reconciler | Accuracy | GPU Latency (ms) | GPU Throughput (pps) |
-|:---|:---|:---|:---|---:|---:|---:|
-| fast | openf1 | schema_alter | levenshtein | 47.4% | 0.8 | 4839.2 |
-| fast | openf1 | json_manip | levenshtein | 94.6% | 92.6 | 161.9 |
-| fast | openf1 | json_manip | regex | 82.6% | 3.3 | 4487.7 |
-| fast | openf1 | schema_alter | regex | 81.1% | 0.9 | 4674.6 |
-| fast | finnhub | json_manip | levenshtein | 96.2% | 14.3 | 1259.2 |
-| fast | finnhub | json_manip | regex | 82.6% | 19.1 | 943.6 |
-| fast | finnhub | schema_alter | levenshtein | 88.9% | 12.5 | 797.6 |
-| fast | finnhub | schema_alter | regex | 83.2% | 2.0 | 4914.5 |
-| fast | openf1 | qwen | regex | 81.8% | 5.3 | 4743.4 |
-| fast | spacex | json_manip | levenshtein | 98.0% | 9.2 | 2496.0 |
-| fast | spacex | json_manip | regex | 82.9% | 6.9 | 3337.2 |
-| fast | spacex | schema_alter | levenshtein | 80.0% | 2.0 | 2444.8 |
-| fast | spacex | schema_alter | regex | 82.9% | 1.5 | 3257.5 |
-| fast | spacex | qwen | regex | 82.6% | 8.3 | 3001.1 |
-| fast | openf1 | qwen | levenshtein | 91.9% | 5.3 | 4695.2 |
-| fast | openweather | json_manip | levenshtein | 97.8% | 6.1 | 3296.5 |
-| fast | openweather | json_manip | regex | 84.8% | 5.1 | 3897.3 |
-| fast | openweather | schema_alter | levenshtein | 67.9% | 3.0 | 3284.4 |
-| fast | openweather | schema_alter | regex | 83.0% | 2.6 | 3820.4 |
-| fast | finnhub | qwen | levenshtein | 92.6% | 5.3 | 4716.9 |
-| fast | finnhub | qwen | regex | 75.1% | 5.0 | 4985.0 |
-| fast | spacex | qwen | levenshtein | 96.4% | 11.9 | 2095.9 |
-| fast | openweather | qwen | levenshtein | 97.5% | 8.2 | 3036.2 |
-| fast | openweather | qwen | regex | 85.0% | 6.4 | 3923.9 |
-| bert | openf1 | json_manip | bert | 96.8% | 1207.7 | 13.2 |
-| bert | openf1 | schema_alter | bert | 98.5% | 1229.9 | 5.7 |
-| bert | finnhub | json_manip | bert | 97.3% | 1254.8 | 15.9 |
-| bert | finnhub | schema_alter | bert | 95.9% | 1287.0 | 7.0 |
-| bert | spacex | json_manip | bert | 99.6% | 81.4 | 307.1 |
-| bert | spacex | schema_alter | bert | 98.0% | 68.9 | 101.6 |
-| bert | openweather | json_manip | bert | 98.2% | 44.3 | 429.3 |
-| bert | openweather | schema_alter | bert | 97.9% | 22.9 | 523.8 |
-| bert | openf1 | qwen | bert | 98.6% | 18.2 | 1373.1 |
-| bert | finnhub | qwen | bert | 82.2% | 18.4 | 1358.2 |
-| bert | spacex | qwen | bert | 98.2% | 17.9 | 1398.9 |
-| bert | openweather | qwen | bert | 99.1% | 12.5 | 1999.3 |
-| gemma | openf1 | qwen | gemma_e4b | 8.8% | 86855.1 | 0.3 |
-| gemma | openf1 | json_manip | gemma_e4b | 27.9% | 69405.5 | 0.2 |
-| gemma | openf1 | schema_alter | gemma_e4b | 49.1% | 91254.5 | 0.1 |
-| gemma | finnhub | qwen | gemma_e4b | 84.8% | 307641.7 | 0.1 |
-| gemma | finnhub | json_manip | gemma_e4b | 22.4% | 138618.6 | 0.1 |
-| gemma | finnhub | schema_alter | gemma_e4b | 39.2% | 85249.1 | 0.1 |
-| gemma | spacex | qwen | gemma_e4b | 5.9% | 111786.1 | 0.2 |
-| gemma | spacex | json_manip | gemma_e4b | 6.8% | 80755.4 | 0.3 |
-| gemma | spacex | schema_alter | gemma_e4b | 4.8% | 21637.7 | 0.1 |
-| gemma | openweather | qwen | gemma_e4b | 3.3% | 202262.1 | 0.1 |
-| gemma | openweather | json_manip | gemma_e4b | 8.8% | 87111.1 | 0.2 |
-| gemma | openweather | schema_alter | gemma_e4b | 3.1% | 76931.0 | 0.1 |
+### API-Specific Performance Tables
 
-### AMD MI250X Quantum Routing Benchmark Results (GPU-Accelerated)
+#### 1. OpenF1 Telemetry
+| Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
+|:---|:---:|:---:|:---:|:---:|
+| Levenshtein | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Regex | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| BERT | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Gemma-4B | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
-The following are the true mapping results obtained on a LUMI compute node with 2x AMD MI250X GPUs using a dedicated, pre-trained Quantum Router model per API. The routing logic was executed via Qiskit's `AerSimulator` simulator backend, while the reconcilers (including BERT) and Qwen chaos models were fully accelerated in BF16 on the GPUs.
+#### 2. Finnhub Financial Feeds
+| Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
+|:---|:---:|:---:|:---:|:---:|
+| Levenshtein | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Regex | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| BERT | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Gemma-4B | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
-| API | Chaos Method | Routing Strategy | Reconciled Accuracy | Sweep Duration (ms) | Fast Path Overhead (ms) | GPU Latency (ms) |
-|:---|:---|:---|:---|:---|:---|:---|
-| **openf1** | schema_alter | quantum_routed | 95.0% | 183103 | 0.19 | 40203 |
-| **finnhub** | schema_alter | quantum_routed | 84.0% | 188916 | 0.20 | 38088 |
-| **finnhub** | qwen | quantum_routed | 86.0% | 257942 | 0.19 | 3856 |
-| **openf1** | qwen | quantum_routed | 91.0% | 260296 | 0.17 | 4691 |
-| **finnhub** | json_manip | quantum_routed | 82.0% | 279750 | 0.19 | 35927 |
-| **openf1** | json_manip | quantum_routed | 96.0% | 288451 | 0.18 | 47248 |
-| **spacex** | schema_alter | quantum_routed | 82.0% | 72873 | 0.22 | 4767 |
-| **spacex** | qwen | quantum_routed | 89.0% | 163620 | 0.67 | 4445 |
-| **openweather** | schema_alter | quantum_routed | 82.0% | 81644 | 0.34 | 2895 |
-| **openweather** | qwen | quantum_routed | 83.0% | 161917 | 0.22 | 3350 |
-| **spacex** | json_manip | quantum_routed | 93.0% | 246513 | 0.23 | 10928 |
-| **clinical** | schema_alter | quantum_routed | 87.0% | 67225 | 0.21 | 3980 |
-| **clinical** | qwen | quantum_routed | 93.0% | 134679 | 0.18 | 4344 |
-| **openweather** | json_manip | quantum_routed | 89.0% | 191442 | 0.19 | 5275 |
-| **clinical** | json_manip | quantum_routed | 93.0% | 130073 | 0.20 | 4120 |
-| **hockey_nhl** | schema_alter | quantum_routed | 90.0% | 71432 | 0.18 | 3912 |
-| **aviation_opensky** | qwen | quantum_routed | 88.0% | 148202 | 0.21 | 4220 |
-| **football_uefa** | json_manip | quantum_routed | 85.0% | 182490 | 0.19 | 4505 |
-| **industrial_iiot** | schema_alter | quantum_routed | 92.0% | 69324 | 0.22 | 4110 |
-| **smartcity_transit**| json_manip | quantum_routed | 87.0% | 142380 | 0.20 | 4310 |
+#### 3. SpaceX Telemetry
+| Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
+|:---|:---:|:---:|:---:|:---:|
+| Levenshtein | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Regex | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| BERT | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Gemma-4B | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+
+#### 4. OpenWeather Vectors
+| Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
+|:---|:---:|:---:|:---:|:---:|
+| Levenshtein | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Regex | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| BERT | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Gemma-4B | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+
+#### 5. FDA Clinical Records
+| Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
+|:---|:---:|:---:|:---:|:---:|
+| Levenshtein | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Regex | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| BERT | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Gemma-4B | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+
+#### 6. NHL Hockey Event Streams
+| Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
+|:---|:---:|:---:|:---:|:---:|
+| Levenshtein | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Regex | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| BERT | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Gemma-4B | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+
+#### 7. OpenSky Aviation Vectors
+| Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
+|:---|:---:|:---:|:---:|:---:|
+| Levenshtein | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Regex | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| BERT | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Gemma-4B | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+
+#### 8. UEFA Football Match Events
+| Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
+|:---|:---:|:---:|:---:|:---:|
+| Levenshtein | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Regex | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| BERT | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Gemma-4B | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+
+#### 9. SensorCommunity IoT
+| Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
+|:---|:---:|:---:|:---:|:---:|
+| Levenshtein | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Regex | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| BERT | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Gemma-4B | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+
+#### 10. TfL Transit Predictions
+| Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
+|:---|:---:|:---:|:---:|:---:|
+| Levenshtein | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Regex | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| BERT | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Gemma-4B | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 
 ## Live F1 Telemetry Decoder (LUMI Deployment)
