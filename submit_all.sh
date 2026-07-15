@@ -25,7 +25,7 @@ do
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=7
 #SBATCH --mem=60G
-#SBATCH --time=02:30:00
+#SBATCH --time=08:00:00
 #SBATCH --output=job_rep_${run_idx}_%j.out
 #SBATCH --error=job_rep_${run_idx}_%j.err
 
@@ -57,12 +57,12 @@ python3 -m src.routing.training --data data/reports/MI250X/ --output configs/tra
 
 # Step 2: Run benchmark matrix sweep (single repetition loop instance)
 echo "Running matrix sweep..."
-python3 run_matrix.py \\
-  --max-packets-per-api 2500 \\
-  --chaos-rate 0.10 \\
-  --repetitions 1 \\
-  --phases fast,bert,gemma,quantum \\
-  --backend aer_simulator \\
+python3 run_matrix.py \
+  --max-packets-per-api 2500 \
+  --chaos-rate 0.10 \
+  --repetitions 1 \
+  --phases fast,bert,gemma,quantum \
+  --backend aer_simulator \
   --suffix "${run_suffix}"
 
 echo "End: \$(date)"
