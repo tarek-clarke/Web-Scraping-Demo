@@ -81,6 +81,15 @@ class FeatureExtractor:
         np.ndarray
             Shape ``(10,)`` with values in ``[0, π]``.
         """
+        if isinstance(original_data, list):
+            original_data = {str(i): v for i, v in enumerate(original_data)}
+        elif not isinstance(original_data, dict):
+            original_data = {}
+        if isinstance(drifted_data, list):
+            drifted_data = {str(i): v for i, v in enumerate(drifted_data)}
+        elif not isinstance(drifted_data, dict):
+            drifted_data = {}
+            
         original_keys = set(original_data.keys())
         drifted_keys = set(drifted_data.keys())
         field_count = len(original_keys)
