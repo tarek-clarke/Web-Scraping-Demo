@@ -79,9 +79,20 @@ class BERTReconciler:
         start = time.perf_counter()
 
         all_keys = set()
+        coerced_pairs = []
         for orig, drift in pairs:
+            if isinstance(orig, list):
+                orig = {str(i): v for i, v in enumerate(orig)}
+            elif not isinstance(orig, dict):
+                orig = {}
+            if isinstance(drift, list):
+                drift = {str(i): v for i, v in enumerate(drift)}
+            elif not isinstance(drift, dict):
+                drift = {}
+            coerced_pairs.append((orig, drift))
             all_keys.update(str(k) for k in orig.keys())
             all_keys.update(str(k) for k in drift.keys())
+        pairs = coerced_pairs
         unique_keys = list(all_keys)
         
         if not unique_keys:

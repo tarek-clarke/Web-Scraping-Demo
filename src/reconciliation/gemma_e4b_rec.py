@@ -63,14 +63,26 @@ class GemmaE4BReconciler:
         if not manager or not manager.is_loaded:
             return [{
                 "accuracy": 0.0, "latency_ms": 0.0,
-                "mapped_fields": [], "unmapped_fields": list(pairs[i][0].keys()),
+                "mapped_fields": [], "unmapped_fields": list(pairs[i][0].keys()) if isinstance(pairs[i][0], dict) else [],
                 "batch_size": self.batch_size
             } for i in range(len(pairs))]
 
         start = time.perf_counter()
         results = []
         total = len(pairs)
-
+        coerced_pairs = []
+        for orig, drift in pairs:
+            if isinstance(orig, list):
+                orig = {str(i): v for i, v in enumerate(orig)}
+            elif not isinstance(orig, dict):
+                orig = {}
+            if isinstance(drift, list):
+                drift = {str(i): v for i, v in enumerate(drift)}
+            elif not isinstance(drift, dict):
+                drift = {}
+            coerced_pairs.append((orig, drift))
+        pairs = coerced_pairs
+        
         for i, (orig, drift) in enumerate(pairs):
             if progress_cb:
                 progress_cb(i, total)

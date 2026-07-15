@@ -5,6 +5,14 @@ import multiprocessing
 
 def _reconcile_single_pair(args: Tuple[Dict, Dict]) -> Dict:
     original, drifted = args
+    if isinstance(original, list):
+        original = {str(i): v for i, v in enumerate(original)}
+    elif not isinstance(original, dict):
+        original = {}
+    if isinstance(drifted, list):
+        drifted = {str(i): v for i, v in enumerate(drifted)}
+    elif not isinstance(drifted, dict):
+        drifted = {}
     start = time.perf_counter()
     
     orig_keys = set(original.keys())
