@@ -49,6 +49,13 @@ class QwenChaos:
             "key_case_change", "array_index_rename"
         ]
         
+        import copy
+        data = copy.deepcopy(data)
+        if isinstance(data, list):
+            data = {str(i): v for i, v in enumerate(data)}
+        elif not isinstance(data, dict):
+            data = {}
+            
         sub_type = random.choice(sub_types)
         
         # Dispatch to the appropriate helper

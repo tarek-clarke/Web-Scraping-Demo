@@ -107,7 +107,11 @@ class ChaosInjector:
             "source": packet.get("source", "unknown"),
         }
         drifted = packet.copy()
-        data = drifted.get("data", {})
+        import copy
+        data = copy.deepcopy(drifted.get("data", {}))
+        if isinstance(data, list):
+            # If data is a list (e.g. spacex historical data array) convert it to a dictionary wrapper to prevent AttributeError keys
+            data = {str(i): v for i, v in enumerate(data)}
         if drift_type == "field_split":
             data = self._field_split(data)
         elif drift_type == "field_join":
