@@ -6,9 +6,9 @@ set -e
 PROJECT_DIR="/scratch/project_465002996/clarketa/resilient-rap-quantum"
 REPORTS_BASE="data/reports"
 
-echo "=== Submitting 100 Parallel Repetition runs to LUMI (small-g) ==="
+echo "=== Submitting 10 Parallel Repetition runs to LUMI (small-g) ==="
 
-for run_idx in {1..100}
+for run_idx in {1..10}
 do
     job_file="submit_run_${run_idx}.slurm"
     run_suffix="_run_${run_idx}"
