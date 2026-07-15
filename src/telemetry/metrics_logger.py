@@ -28,7 +28,7 @@ class EnergyTracker:
     """
     Unified, hardware-agnostic energy and carbon tracker for containerized HPC runs.
     Automatically detects NVIDIA GPUs (via NVML), AMD GPUs (via sysfs/rocm-smi),
-    and falls back to CPU telemetry (RAPL/sysfs) if no accelerator is discovered.
+    and tracks CPU telemetry (RAPL/sysfs) simultaneously.
     """
     def __init__(self, output_path: str = "/workspace/metrics/energy_profile.csv"):
         self.output_path = output_path
@@ -38,6 +38,9 @@ class EnergyTracker:
         self._cc_tracker = None
         self._start_time = 0.0
         self._start_energy_kwh = 0.0
+        self.cpu_joules = 0.0
+        self.gpu_joules = 0.0
+        self._last_time = 0.0
         
         # Detected AMD file paths (sysfs interfaces)
         self.amd_power_file: Optional[str] = None
@@ -59,6 +62,7 @@ class EnergyTracker:
     def start(self):
         """Detect hardware, initialize tracking libraries and files."""
         self._start_time = time.perf_counter()
+        self._last_time = self._start_time
         os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
         
         # Initialize output CSV structure if it doesn't exist
@@ -124,55 +128,62 @@ class EnergyTracker:
 
     def get_metrics(self) -> dict:
         """Query native hardware interfaces for power and temp measurements."""
-        power_w = 0.0
+        gpu_power_w = 0.0
+        cpu_power_w = 0.0
         temp_c = 0.0
 
+        # Query GPU
         try:
             if self.hardware_type == "NVIDIA" and self.nvml_handle:
-                # NVML returns milliwatts, convert to Watts
-                power_w = pynvml.nvmlDeviceGetPowerManagementLimit(self.nvml_handle) / 1000.0
+                gpu_power_w = pynvml.nvmlDeviceGetPowerManagementLimit(self.nvml_handle) / 1000.0
                 try:
-                    power_w = pynvml.nvmlDeviceGetPowerUsage(self.nvml_handle) / 1000.0
+                    gpu_power_w = pynvml.nvmlDeviceGetPowerUsage(self.nvml_handle) / 1000.0
                 except Exception:
                     pass
                 temp_c = pynvml.nvmlDeviceGetTemperature(self.nvml_handle, pynvml.NVML_TEMPERATURE_GPU)
 
             elif self.hardware_type == "AMD" and self.amd_power_file:
-                # Sysfs outputs microwatts or milliwatts. Most AMD drivers output microwatts.
                 with open(self.amd_power_file, "r") as f:
                     raw_val = float(f.read().strip())
-                    power_w = raw_val / 1000000.0 if raw_val > 10000 else raw_val / 1000.0
+                    gpu_power_w = raw_val / 1000000.0 if raw_val > 10000 else raw_val / 1000.0
                 
                 if self.amd_temp_file:
                     with open(self.amd_temp_file, "r") as f:
                         temp_c = float(f.read().strip()) / 1000.0  # millidegrees C
-
-            else:  # CPU Telemetry RAPL fallback
-                rapl_power_path = "/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj"
-                if os.path.exists(rapl_power_path):
-                    with open(rapl_power_path, "r") as f:
-                        e1 = float(f.read().strip())
-                    time.sleep(0.1)
-                    with open(rapl_power_path, "r") as f:
-                        e2 = float(f.read().strip())
-                    power_w = ((e2 - e1) / 1000000.0) / 0.1  # dJoules / dt = Watts
-                else:
-                    # Generic CPU default estimation
-                    power_w = 95.0  # Default TDP assumption
-                temp_c = 45.0
         except Exception as e:
-            logger.warning(f"Telemetry read failure (degrading gracefully): {e}")
+            logger.debug(f"GPU Telemetry read failure: {e}")
 
-        # Compute elapsed time
-        elapsed = time.perf_counter() - self._start_time
-        
-        # Calculate cumulative kWh
-        kwh = (power_w * (elapsed / 3600.0)) / 1000.0
-        
+        # Query CPU
+        try:
+            rapl_power_path = "/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj"
+            if os.path.exists(rapl_power_path):
+                with open(rapl_power_path, "r") as f:
+                    e1 = float(f.read().strip())
+                time.sleep(0.01)
+                with open(rapl_power_path, "r") as f:
+                    e2 = float(f.read().strip())
+                cpu_power_w = ((e2 - e1) / 1000000.0) / 0.01  # dJoules / dt = Watts
+            else:
+                cpu_power_w = 95.0  # Generic TDP fallback
+        except Exception:
+            cpu_power_w = 95.0
+
+        # Integrate energy
+        now = time.perf_counter()
+        dt = now - self._last_time
+        self._last_time = now
+
+        if dt > 0:
+            self.gpu_joules += gpu_power_w * dt
+            self.cpu_joules += cpu_power_w * dt
+
+        elapsed = now - self._start_time
+        total_power_w = gpu_power_w + cpu_power_w
+        kwh = ((self.gpu_joules + self.cpu_joules) / 3.6e6)
+
         # Estimate emissions (gCO2e)
         if HAS_CODECARBON and self._cc_tracker:
             try:
-                # Extract runtime emission estimations from CodeCarbon if possible
                 emissions_g = self._cc_tracker._total_emissions * 1000.0
             except Exception:
                 emissions_g = kwh * self.grid_intensity_g
@@ -182,10 +193,12 @@ class EnergyTracker:
         return {
             "elapsed_seconds": round(elapsed, 2),
             "hardware_tier": self.hardware_type,
-            "power_draw_w": round(power_w, 2),
+            "power_draw_w": round(total_power_w, 2),
             "temperature_c": round(temp_c, 1),
             "cumulative_kwh": round(kwh, 6),
-            "estimated_gCO2e": round(emissions_g, 4)
+            "estimated_gCO2e": round(emissions_g, 4),
+            "cpu_energy_draw_joules": round(self.cpu_joules, 2),
+            "gpu_energy_draw_joules": round(self.gpu_joules, 2),
         }
 
     def log_epoch(self):
@@ -206,8 +219,31 @@ class EnergyTracker:
         except Exception as e:
             logger.error(f"Failed to write to energy CSV: {e}")
 
+    def calculate_carbon_offset_mg(self, total_drifted_packets: int) -> float:
+        """
+        Calculate estimated carbon offset in mg comparing actual energy consumption
+        against a pure-Gemma baseline where ALL drifted packets are run on the heavy LLM.
+        """
+        if total_drifted_packets <= 0:
+            return 0.0
+        
+        # Heavy baseline: Gemma 4B takes ~600ms at 200W GPU power draw
+        baseline_gemma_latency = 0.6
+        baseline_gemma_power = 200.0
+        
+        baseline_energy_joules = total_drifted_packets * baseline_gemma_latency * baseline_gemma_power
+        actual_energy_joules = self.gpu_joules + self.cpu_joules
+        
+        saved_joules = max(0.0, baseline_energy_joules - actual_energy_joules)
+        saved_kwh = saved_joules / 3.6e6
+        
+        # Carbon offset in mg = gCO2e * 1000
+        offset_mg = saved_kwh * self.grid_intensity_g * 1000.0
+        return round(offset_mg, 2)
+
     def stop(self):
         """Clean teardown of measurement drivers and wrappers."""
+        metrics = self.get_metrics()  # final update
         if HAS_CODECARBON and self._cc_tracker:
             try:
                 self._cc_tracker.stop()
@@ -219,6 +255,13 @@ class EnergyTracker:
             except Exception:
                 pass
         logger.info("Energy tracking telemetry shutdown complete.")
+        return {
+            "total_joules": round(self.gpu_joules + self.cpu_joules, 2),
+            "cpu_energy_draw_joules": round(self.cpu_joules, 2),
+            "gpu_energy_draw_joules": round(self.gpu_joules, 2),
+            "avg_watts": metrics["power_draw_w"],
+            "samples_count": int(metrics["elapsed_seconds"])
+        }
 
 # --- Context Manager Integration Hook Example ---
 if __name__ == "__main__":

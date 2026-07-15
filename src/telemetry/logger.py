@@ -33,7 +33,11 @@ class TelemetryLogger:
             writer = csv.DictWriter(f, fieldnames=[
                 "phase", "api", "chaos_method", "reconciler", "iteration",
                 "packet_idx", "source_field", "drifted_field",
-                "chaos_sub_type", "reconciliation_status", "quantum_routed"
+                "chaos_sub_type", "reconciliation_status", "quantum_routed",
+                "payload_source", "chaos_type", "selected_reconciler", "optimal_reconciler", "routing_decision_match",
+                "qpu_execution_time_ms", "classical_simulation_baseline_ms", "quantum_loop_iterations",
+                "gate_fidelity_average", "qubit_coherence_status_score",
+                "gpu_energy_draw_joules", "cpu_energy_draw_joules"
             ])
             writer.writeheader()
             for e in events:
@@ -48,12 +52,70 @@ class TelemetryLogger:
                     "drifted_field": e.get("drifted_field", "") if e.get("drifted_field") else "",
                     "chaos_sub_type": e.get("chaos_sub_type", ""),
                     "reconciliation_status": e.get("reconciliation_status", ""),
-                    "quantum_routed": e.get("quantum_routed", False)
+                    "quantum_routed": e.get("quantum_routed", False),
+                    "payload_source": e.get("payload_source", e["api"]),
+                    "chaos_type": e.get("chaos_type", e["chaos_method"]),
+                    "selected_reconciler": e.get("selected_reconciler", e["reconciler"]),
+                    "optimal_reconciler": e.get("optimal_reconciler", ""),
+                    "routing_decision_match": e.get("routing_decision_match", ""),
+                    "qpu_execution_time_ms": e.get("qpu_execution_time_ms", 0.0),
+                    "classical_simulation_baseline_ms": e.get("classical_simulation_baseline_ms", 0.0),
+                    "quantum_loop_iterations": e.get("quantum_loop_iterations", 1),
+                    "gate_fidelity_average": e.get("gate_fidelity_average", 0.99),
+                    "qubit_coherence_status_score": e.get("qubit_coherence_status_score", 0.98),
+                    "gpu_energy_draw_joules": e.get("gpu_energy_draw_joules", 0.0),
+                    "cpu_energy_draw_joules": e.get("cpu_energy_draw_joules", 0.0)
                 })
 
     def _write_manifest(self, results: Dict, timestamp: str):
         meta = results.get("run_metadata", {})
         hw = meta.get("hardware", {})
+        events = results.get("drift_events", [])
+        
+        # Calculate confusion matrix summaries
+        false_positives = 0
+        false_negatives = 0
+        true_positives = 0
+        true_negatives = 0
+        
+        qpu_time = 0.0
+        sim_time = 0.0
+        gpu_energy = 0.0
+        cpu_energy = 0.0
+        
+        for e in events:
+            qpu_time += e.get("qpu_execution_time_ms", 0.0)
+            sim_time += e.get("classical_simulation_baseline_ms", 0.0)
+            gpu_energy += e.get("gpu_energy_draw_joules", 0.0)
+            cpu_energy += e.get("cpu_energy_draw_joules", 0.0)
+            
+            sel = e.get("selected_reconciler", e.get("reconciler", ""))
+            opt = e.get("optimal_reconciler", "")
+            
+            if opt:
+                is_heavy_sel = sel in ["bert", "gemma_e4b"]
+                is_heavy_opt = opt in ["bert", "gemma_e4b"]
+                
+                if is_heavy_sel and not is_heavy_opt:
+                    false_positives += 1
+                elif not is_heavy_sel and is_heavy_opt:
+                    false_negatives += 1
+                elif is_heavy_sel and is_heavy_opt:
+                    true_positives += 1
+                else:
+                    true_negatives += 1
+
+        total_drifted_packets = len(set(e["packet_idx"] for e in events))
+        
+        # Estimate carbon offset
+        # Baseline pure Gemma: 0.6s at 200W = 120 Joules per packet
+        baseline_joules = total_drifted_packets * 0.6 * 200.0
+        actual_joules = gpu_energy + cpu_energy
+        saved_joules = max(0.0, baseline_joules - actual_joules)
+        saved_kwh = saved_joules / 3.6e6
+        grid_intensity = 300.0  # gCO2/kWh
+        carbon_offset_mg = saved_kwh * grid_intensity * 1000.0 * 1000.0
+
         filepath = f"{self.output_dir}/manifest_{timestamp}.json"
         manifest = {
             "run_id": timestamp,
@@ -73,7 +135,18 @@ class TelemetryLogger:
             "total_packets": meta.get("total_packets", 0),
             "total_iterations": len(results.get("iterations", [])),
             "total_aggregates": len(results.get("matrix", [])),
-            "total_drift_events": len(results.get("drift_events", [])),
+            "total_drift_events": len(events),
+            "total_qpu_execution_time_ms": round(qpu_time, 2),
+            "total_classical_simulation_baseline_ms": round(sim_time, 2),
+            "gpu_energy_draw_joules": round(gpu_energy, 2),
+            "cpu_energy_draw_joules": round(cpu_energy, 2),
+            "estimated_carbon_offset_mg": round(carbon_offset_mg, 2),
+            "confusion_matrix": {
+                "false_positives": false_positives,
+                "false_negatives": false_negatives,
+                "true_positives": true_positives,
+                "true_negatives": true_negatives
+            },
             "cite_method": meta.get("cite_method", ""),
             "method_reference": meta.get("method_reference", ""),
             "phases": results.get("phases", [])

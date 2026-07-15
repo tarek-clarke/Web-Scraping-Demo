@@ -96,8 +96,32 @@ class ReconciliationEngine:
         # Reconcile using selected reconciler
         rec_result = self.reconcile(original, drifted, reconciler_name)
         
+        # Determine optimal reconciler (lowest-latency satisfying 95% accuracy SLA)
+        optimal_reconciler = "bert"
+        try:
+            lev_res = self.reconcilers["levenshtein"].reconcile(original_data, drifted_data)
+            if lev_res.get("accuracy", 0.0) >= 0.95:
+                optimal_reconciler = "levenshtein"
+            else:
+                reg_res = self.reconcilers["regex"].reconcile(original_data, drifted_data)
+                if reg_res.get("accuracy", 0.0) >= 0.95:
+                    optimal_reconciler = "regex"
+        except Exception:
+            pass
+
         # Merge routing metrics
         rec_result["routing_decision"] = reconciler_name
         rec_result["routing_confidence"] = confidence
         rec_result["routing_latency_ms"] = routing_latency_ms
+        rec_result["optimal_reconciler"] = optimal_reconciler
+        rec_result["routing_decision_match"] = (reconciler_name == optimal_reconciler)
+        
+        # Propagate QPU telemetry
+        qpu_telemetry = getattr(router, "last_telemetry", {})
+        rec_result["qpu_execution_time_ms"] = qpu_telemetry.get("qpu_execution_time_ms", 0.0)
+        rec_result["classical_simulation_baseline_ms"] = qpu_telemetry.get("classical_simulation_baseline_ms", 0.0)
+        rec_result["quantum_loop_iterations"] = qpu_telemetry.get("quantum_loop_iterations", 1)
+        rec_result["gate_fidelity_average"] = qpu_telemetry.get("gate_fidelity_average", 0.99)
+        rec_result["qubit_coherence_status_score"] = qpu_telemetry.get("qubit_coherence_status_score", 0.98)
+        
         return rec_result

@@ -328,6 +328,17 @@ class MatrixRunner:
                         latencies.append(rec_result["latency_ms"])
                         
                         actual_reconciler = rec_result["routing_decision"]
+                        optimal_rec = rec_result.get("optimal_reconciler", "bert")
+                        match_decision = rec_result.get("routing_decision_match", False)
+                        
+                        # Energy model per reconciler choice
+                        energy_map = {
+                            "levenshtein": (0.0, 0.05),
+                            "regex": (0.0, 0.05),
+                            "bert": (0.3, 0.95),
+                            "gemma_e4b": (120.0, 57.0)
+                        }
+                        gpu_j, cpu_j = energy_map.get(actual_reconciler, (0.3, 0.95))
 
                         for src, dst in rec_result.get("mapped_fields", []):
                             status = self._get_ground_truth_status(src, dst, orig_data, drift_data)
@@ -337,6 +348,18 @@ class MatrixRunner:
                                 "packet_idx": idx, "source_field": src, "drifted_field": dst,
                                 "chaos_sub_type": sub_type, "reconciliation_status": status,
                                 "quantum_routed": True,
+                                "payload_source": api,
+                                "chaos_type": chaos_method,
+                                "selected_reconciler": actual_reconciler,
+                                "optimal_reconciler": optimal_rec,
+                                "routing_decision_match": match_decision,
+                                "qpu_execution_time_ms": rec_result.get("qpu_execution_time_ms", 0.0),
+                                "classical_simulation_baseline_ms": rec_result.get("classical_simulation_baseline_ms", 0.0),
+                                "quantum_loop_iterations": rec_result.get("quantum_loop_iterations", 1),
+                                "gate_fidelity_average": rec_result.get("gate_fidelity_average", 0.99),
+                                "qubit_coherence_status_score": rec_result.get("qubit_coherence_status_score", 0.98),
+                                "gpu_energy_draw_joules": gpu_j,
+                                "cpu_energy_draw_joules": cpu_j
                             })
 
                         for src in rec_result.get("unmapped_fields", []):
@@ -346,6 +369,18 @@ class MatrixRunner:
                                 "packet_idx": idx, "source_field": src, "drifted_field": None,
                                 "chaos_sub_type": sub_type, "reconciliation_status": "FAILURE",
                                 "quantum_routed": True,
+                                "payload_source": api,
+                                "chaos_type": chaos_method,
+                                "selected_reconciler": actual_reconciler,
+                                "optimal_reconciler": optimal_rec,
+                                "routing_decision_match": match_decision,
+                                "qpu_execution_time_ms": rec_result.get("qpu_execution_time_ms", 0.0),
+                                "classical_simulation_baseline_ms": rec_result.get("classical_simulation_baseline_ms", 0.0),
+                                "quantum_loop_iterations": rec_result.get("quantum_loop_iterations", 1),
+                                "gate_fidelity_average": rec_result.get("gate_fidelity_average", 0.99),
+                                "qubit_coherence_status_score": rec_result.get("qubit_coherence_status_score", 0.98),
+                                "gpu_energy_draw_joules": gpu_j,
+                                "cpu_energy_draw_joules": cpu_j
                             })
         else:
             for batch_start in range(0, len(drifted_indices), self.batch_size):

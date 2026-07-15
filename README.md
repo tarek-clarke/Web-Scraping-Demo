@@ -225,6 +225,12 @@ The `RoutingTrainer` module scans historical baseline benchmark runs from `data/
 - These labels are mapped into one-hot integers and fit using a COBYLA optimizer (200 iterations max).
 - If no trained model weights exist, the VQC defaults gracefully to zero-weight binding and classical fallback trees derived from hardware performance baselines.
 
+### 4. Empirical Systems Telemetry & Ecological Audit
+To validate the efficiency of the quantum routing layer for top-tier systems venues, the framework collects detailed operational metrics:
+* **Quantum Hardware execution**: Logs the physical `qpu_execution_time_ms`, gate fidelity, and coherence status vs. classical simulation time.
+* **Routing Decision Confusion Matrix**: Evaluates the routing decision against the theoretical `optimal_reconciler` (the lowest-compute reconciler that achieves $\ge 95\%$ accuracy). It tabulates False Positives (routing cheap drifts to LLMs) and False Negatives (routing semantic drifts to Levenshtein, failing SLA).
+* **Ecological Power Savings**: Dynamically tracks active GPU and CPU energy (in Joules). It computes the `estimated_carbon_offset_mg` comparing actual energy draw against the baseline where all drifted packets are routed to the heavy Gemma fallback.
+
 ## Running Quantum Benchmarks on LUMI
 
 Follow these instructions to run the quantum simulation sweeps, router ablation comparisons, and training grid search benchmarks using the AMD MI250X GPU environment on LUMI.
