@@ -21,15 +21,11 @@ Executes a 100-combination matrix: **10 APIs × 3 Chaos Methods × 4 Reconcilers
 - **22,500 clean packets** (fast-path bypass, no GPU)
 
 
-## Hardware Matrix
+## Hardware Platform
 
 | Supercomputer / Platform | Processor Tier | Accelerator / Backend | VRAM | Concurrent Runs | Batch Size |
 |:---|:---|:---|:---|:---|:---|
-| **LUMI-G (EuroHPC)** | AMD EPYC | AMD Instinct MI250X (ROCm) | 128 GB | 12 | 32 |
-| **Jupiter (EuroHPC)** | NVIDIA Grace | NVIDIA GH200 (CUDA) | 96 GB | 12 | 32 |
-| **MareNostrum 5 (EuroHPC)** | Intel Xeon / AMD EPYC | CUDA H100 / ROCm MI300 | 80 GB / 192 GB | 8 / 16 | 32 |
-| **Apple Macbook Pro** | Apple M4 Max | Metal Performance Shaders (MPS) | 48 GB | 3 | 16 |
-| **Local CPU Sandbox** | Generic x86_64 | CPU Fallback (RealAmplitudes) | N/A | 1 | 4 |
+| **LUMI-G (EuroHPC)** | AMD EPYC | AMD Instinct MI250X (ROCm) | 128 GB (Dual GCDs) | 10 | 32 |
 
 
 ## Quick Start
@@ -317,31 +313,31 @@ python3 run_training_sweep.py
 - If the packet is 100% clean: instantly append to in-memory execution log and short-circuit to next packet
 - **No GPU reconciler calls for clean packets**
 
-### Stage 2: GPU Routing (B300)
+### Stage 2: GPU Routing (MI250X)
 - Only packets that fail the schema verification check (anomalies/drift) are routed to GPU
-- Batch size: 64 (dynamically adjusted to VRAM)
+- Batch size: 32 (dynamically adjusted to VRAM)
 - Deferred bulk I/O: all results accumulated in RAM and serialized in single write after matrix run
 
 ### Per-Run Processing
 ```
-For each of 48 runs:
-  for each packet in 10,000:
+For each of 30 sweeps:
+  for each packet in 2,500:
     if packet is clean (schema check passes):
       → append to in-memory log → continue (bypass GPU)
     else:
-      → route to GPU batch queue (batch_size=64)
+      → route to GPU batch queue (batch_size=32)
   after all packets:
-    → GPU processes 16 batches × 4 reconcilers
+    → GPU processes batches in parallel
     → bulk write all results to disk in one I/O block
 ```
 
-### Estimated Runtime (B300, 1 GPU)
+### Estimated Runtime (MI250X, 1 GPU)
 
 | Metric | Value |
 |--------|-------|
-| Per run | ~5 sec |
-| 48 runs | ~4-5 min |
-| Well under 1-hour budget | ✓ |
+| Per repetition (including Gemma) | ~2.5 - 3 hours |
+| 10 parallel repetitions | ~3 hours (concurrent) |
+| Within Slurm queue time allocations | ✓ |
 
 ## Chaos Methods
 
@@ -493,7 +489,7 @@ Results saved to `data/reports/<hardware_type>/`:
 | packets_clean | 9,000 |
 | packets_drifted | 1,000 |
 | fast_path_latency_ms | CPU time for clean packet bypass |
-| gpu_latency_ms | B300 processing time |
+| gpu_latency_ms | MI250X processing time |
 | drift_events | array of {source_field, drifted_field, sub_type, status} |
 | reconciliation_time_ms | wall-clock time |
 | accuracy | % correctly reconciled |
@@ -542,17 +538,6 @@ apptainer run --nv --bind /sys:/sys,$(pwd):/workspace resilient-rap.sif run_matr
 # AMD Instinct (ROCm via LUMI-G)
 apptainer run --rocm --bind /sys:/sys,$(pwd):/workspace resilient-rap.sif run_matrix.py
 ```
-
-## Batch Size Scaling
-
-
-| VRAM | Batch Size | Target Hardware |
-|------|------------|-----------------|
-| < 16 GB | 4 | CPU, M4 |
-| 16-31 GB | 8 | 7900XT, M4 Pro |
-| 32-79 GB | 16 | RTX 5090, RTX 6000 |
-| 80-199 GB | 32 | A100, H100, GH200, MI250X |
-| ≥ 200 GB | 64 | B300 |
 
 ## Architecture
 
