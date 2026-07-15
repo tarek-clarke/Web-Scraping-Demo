@@ -34,7 +34,7 @@ Executes a 100-combination matrix: **10 APIs × 3 Chaos Methods × 4 Reconcilers
 # 1. Clone
 git clone https://github.com/tarek-clarke/resilient-rap-framework.git
 cd resilient-rap-framework
-git checkout domain_testing
+git checkout quantum
 
 # 2. Detect hardware
 ./deploy/detect_hardware.sh
@@ -42,7 +42,7 @@ git checkout domain_testing
 # 3. Download models from R2
 chmod +x models/download_from_r2.sh && ./models/download_from_r2.sh
 
-# 4. Ingest 10k packets (cloud instance)
+# 4. Ingest 25k packets (cloud instance)
 cd go/ingestion && go run main.go
 
 # 5. Upload to R2 (Mac)
