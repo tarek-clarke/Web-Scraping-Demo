@@ -54,19 +54,19 @@ python run_matrix.py
 
 ## Benchmark Configuration
 
-### Run Matrix (48 Runs)
+### Run Matrix (120 Runs)
 
-- 4 APIs × 3 chaos methods × 4 reconcilers × 1 iteration = 48 total runs
-- 48 unique combinations
+- 10 APIs × 3 chaos methods × 4 reconcilers × 1 iteration = 120 total runs (for classical baseline sweep)
+- 10 APIs × 3 chaos methods × 1 quantum-routed × 1 iteration = 30 total runs (for quantum routing sweep)
 
-### Per-Run Data (10,000 Packets)
+### Per-Run Data (25,000 Packets)
 
 | Metric | Value |
 |--------|-------|
-| Total packets | 10,000 (2,500 per API) |
-| Clean (fast-path bypass) | 9,000 (90%) |
-| Drifted (GPU reconciliation) | 1,000 (10%) |
-| GPU batches per reconciler | 16 (batch_size=64) |
+| Total packets | 25,000 (2,500 per API) |
+| Clean (fast-path bypass) | 22,500 (90%) |
+| Drifted (GPU reconciliation) | 2,500 (10%) |
+| GPU batches per reconciler | 79 (batch_size=32) |
 
 ## 10-Repetition Systems & QPU Benchmark Results (Placeholders)
 
@@ -478,16 +478,16 @@ Results saved to `data/reports/<hardware_type>/`:
 
 | Field | Description |
 |-------|-------------|
-| run_id | 0-47 |
+| run_id | 0-119 (classical) / 0-29 (quantum) |
 | iteration | 1 |
-| api | spacex / openf1 / iexcloud / openmeteo |
+| api | 10 sources (openf1, finnhub, spacex, openweather, clinical, hockey_nhl, aviation_opensky, football_uefa, industrial_iiot, smartcity_transit) |
 | chaos_method | qwen / json_manip / schema_alter |
 | chaos_sub_type | e.g., field_split, translation, contextual_rename |
-| reconciler | levenshtein / regex / bert / gemma_e4b |
+| reconciler | levenshtein / regex / bert / gemma_e4b / quantum_routed |
 | reconciliation_status | SUCCESS / FALSE_POSITIVE / FAILURE |
-| packets_total | 10,000 |
-| packets_clean | 9,000 |
-| packets_drifted | 1,000 |
+| packets_total | 25,000 |
+| packets_clean | 22,500 |
+| packets_drifted | 2,500 |
 | fast_path_latency_ms | CPU time for clean packet bypass |
 | gpu_latency_ms | MI250X processing time |
 | drift_events | array of {source_field, drifted_field, sub_type, status} |
