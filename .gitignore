@@ -30,3 +30,14 @@ data/ingested/telemetry_clean_bench_25000.json
 data/ingested/telemetry_clean_bench_12500.json
 archive_logs/
 .DS_Store
+
+# VLQ / LEXIS credentials and local connection scripts
+# These files hold EuroHPC project IDs and access tokens - must NEVER be committed.
+.env.vlq
+vlq_connect*.py
+vlq_connect*.sh
+vlq_submit*.py
+vlq_submit*.sh
+*lexis_token*
+*qaas_token*
+configs/vlq_*.json

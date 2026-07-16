@@ -5,8 +5,16 @@ Provides pluggable backends for the quantum routing module:
   - QiskitAerBackend  : local Aer simulator (default)
   - IBMQuantumBackend : IBM Quantum hardware via qiskit-ibm-runtime
   - LumiQBackend      : LUMI-Q / VTT Q50 (53-qubit) via FiQCI
+  - VLQBackend        : IT4Innovations VLQ (Ostrava, 24-qubit IQM) via LEXIS QaaS
 
 Use the ``get_backend`` factory to instantiate by name.
+
+Credentials note
+----------------
+The ``VLQBackend`` reads all project/resource identifiers from environment
+variables at runtime.  **Never hard-code VLQ project or resource IDs in
+this file.**  Set them in a local ``.env`` file (which is git-ignored) or
+export them in your shell before invoking any QPU run.
 """
 
 from abc import ABC, abstractmethod
@@ -177,13 +185,186 @@ class LumiQBackend(QuantumBackend):
         }
 
 
+class VLQBackend(QuantumBackend):
+    """IT4Innovations VLQ (Ostrava) backend via LEXIS QaaS.
+
+    The VLQ is a 24-qubit IQM superconducting QPU hosted at the
+    IT4Innovations National Supercomputing Center under EuroHPC JU.
+    It is accessed through the LEXIS platform using the ``py4lexis``
+    and ``qaas`` Python packages.
+
+    Credentials are read **exclusively from environment variables**::
+
+        VLQ_PROJECT  – EuroHPC project ID  (e.g. OPEN-37-1)
+        VLQ_RESOURCE – Queue/resource name  (e.g. VLQ-CZ)
+
+    Never hard-code these values in source files committed to version
+    control.  Store them in a local ``.env`` file (git-ignored) or
+    export them in your shell session.
+
+    Parameters
+    ----------
+    project : str, optional
+        Overrides ``VLQ_PROJECT`` env var.  Use only in trusted,
+        non-version-controlled scripts.
+    resource : str, optional
+        Overrides ``VLQ_RESOURCE`` env var.
+    batch_size : int
+        Maximum circuits to bundle into a single QaaS job submission.
+        Larger batches reduce per-call overhead dramatically (default 100).
+    """
+
+    #: VLQ system specification (24-qubit IQM, star topology, 2600 CLOPS)
+    SYSTEM_INFO: Dict = {
+        "name": "VLQ",
+        "provider": "IQM / IT4Innovations",
+        "location": "Ostrava, CZ",
+        "qubits": 24,
+        "topology": "star",
+        "clops": 2600,
+        "single_qubit_gate_ns": 40,
+        "two_qubit_gate_ns": 60,
+        "access": "EuroHPC JU / LEXIS QaaS",
+    }
+
+    def __init__(
+        self,
+        project: Optional[str] = None,
+        resource: Optional[str] = None,
+        batch_size: int = 100,
+    ) -> None:
+        import os
+        self._project: str = project or os.environ.get("VLQ_PROJECT", "")
+        self._resource: str = resource or os.environ.get("VLQ_RESOURCE", "")
+        self.batch_size: int = batch_size
+        self._backend = None   # qaas.QBackend, populated lazily
+        self._token: Optional[str] = None
+
+        if not self._project:
+            raise ValueError(
+                "VLQ project ID not configured. "
+                "Export VLQ_PROJECT=<your-project-id> before running."
+            )
+        if not self._resource:
+            raise ValueError(
+                "VLQ resource not configured. "
+                "Export VLQ_RESOURCE=<resource-id> (e.g. VLQ-CZ) before running."
+            )
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _authenticate(self) -> str:
+        """Trigger LEXIS OAuth2 flow and return a fresh access token."""
+        try:
+            from py4lexis.session import LexisSession  # type: ignore[import-untyped]
+        except ImportError as exc:
+            raise ImportError(
+                "py4lexis is not installed. "
+                "Run: pip install --index-url "
+                "https://opencode.it4i.eu/api/v4/projects/107/packages/pypi/simple py4lexis"
+            ) from exc
+
+        print("[VLQBackend] Opening LEXIS authentication page …")
+        session = LexisSession()
+        token = session.get_access_token()
+        if not token:
+            raise RuntimeError("LEXIS authentication failed: no token returned.")
+        print("[VLQBackend] Token obtained successfully.")
+        return token
+
+    def _init(self) -> None:
+        """Authenticate and bind to the VLQ QaaS backend."""
+        try:
+            from qaas.client import QProvider  # type: ignore[import-untyped]
+        except ImportError as exc:
+            raise ImportError(
+                "qaas is not installed. Run: pip install qaas==v0.3.2"
+            ) from exc
+
+        self._token = self._authenticate()
+        provider = QProvider(self._token, self._project)
+        self._backend = provider.get_backend(self._resource)
+        print(
+            f"[VLQBackend] Connected to resource '{self._resource}' "
+            f"on project '{self._project}'."
+        )
+
+    # ------------------------------------------------------------------
+    # QuantumBackend interface
+    # ------------------------------------------------------------------
+
+    def execute_circuit(self, circuit, shots: int = 1024) -> Dict:
+        """Execute a single Qiskit circuit on the VLQ QPU.
+
+        The circuit is transpiled with Qiskit's standard transpiler then
+        submitted to the VLQ via QaaS.  Results are returned as a standard
+        Qiskit counts dict (bitstring -> count).
+        """
+        if self._backend is None:
+            self._init()
+        from qiskit import transpile
+        transpiled = transpile(circuit, self._backend)
+        job = self._backend.run(transpiled, shots=shots)
+        return job.result().get_counts()
+
+    def execute_batch(self, circuits: list, shots: int = 1024) -> list:
+        """Submit a list of circuits in batches to minimise QaaS overhead.
+
+        Circuits are chunked into groups of ``self.batch_size``.  Each
+        chunk is submitted as one job, keeping per-job API latency from
+        dominating total wall-clock time.
+
+        Returns
+        -------
+        list[dict]
+            One counts dict per input circuit, in original order.
+        """
+        if self._backend is None:
+            self._init()
+
+        from qiskit import transpile
+
+        all_counts: list = []
+        total = len(circuits)
+        for start in range(0, total, self.batch_size):
+            chunk = circuits[start : start + self.batch_size]
+            transpiled_chunk = [transpile(c, self._backend) for c in chunk]
+            n_batch = start // self.batch_size + 1
+            n_total = (total - 1) // self.batch_size + 1
+            print(
+                f"[VLQBackend] Submitting batch {n_batch}/{n_total} "
+                f"({len(chunk)} circuits) …"
+            )
+            job = self._backend.run(transpiled_chunk, shots=shots)
+            result = job.result()
+            for i in range(len(chunk)):
+                try:
+                    all_counts.append(result.get_counts(i))
+                except Exception:
+                    all_counts.append(result.get_counts())
+
+        return all_counts
+
+    def get_backend_info(self) -> Dict:
+        return {
+            **self.SYSTEM_INFO,
+            "type": "quantum_hpc",
+            "batch_size": self.batch_size,
+            "project": self._project,
+            "resource": self._resource,
+        }
+
+
 def get_backend(name: str, **kwargs) -> QuantumBackend:
     """Factory function to get a quantum backend by name.
 
     Parameters
     ----------
     name : str
-        One of ``"aer_simulator"``, ``"ibm_quantum"``, or ``"lumi_q"``.
+        One of ``"aer_simulator"``, ``"ibm_quantum"``, ``"lumi_q"``,
+        or ``"vlq"``.
     **kwargs
         Forwarded to the backend constructor.
 
@@ -191,11 +372,17 @@ def get_backend(name: str, **kwargs) -> QuantumBackend:
     -------
     QuantumBackend
         An initialised backend instance.
+
+    Notes
+    -----
+    The ``"vlq"`` backend requires ``VLQ_PROJECT`` and ``VLQ_RESOURCE``
+    to be set as environment variables before calling this function.
     """
     backends = {
         "aer_simulator": QiskitAerBackend,
         "ibm_quantum": IBMQuantumBackend,
         "lumi_q": LumiQBackend,
+        "vlq": VLQBackend,
     }
     if name not in backends:
         print(f"[WARNING] Unknown backend '{name}', falling back to aer_simulator")
