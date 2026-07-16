@@ -344,7 +344,12 @@ def main():
                         help="Do not skip historical backlog (read from the beginning of the file)")
     parser.add_argument("--max-packets", type=int, default=None,
                         help="Exit after processing this many packets (default: None)")
+    parser.add_argument("--output-dir", type=str, default="data/reports/live_f1",
+                        help="Directory to save output files")
     args = parser.parse_args()
+
+    global OUTPUT_DIR
+    OUTPUT_DIR = args.output_dir
 
     hardware, vram_info = detect_hardware()
     hw_type = hardware["type"]

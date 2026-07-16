@@ -305,6 +305,90 @@ python3 run_training_sweep.py
 *(Note: Gemma-7B/4B local semantic reconciliation benchmarking has been omitted from the grid configurations as it is extremely compute-heavy).*
 
 
+## Shadow Routing: Capture & Submit to Physical QPU (LUMI)
+
+This is the workflow to generate shadow logs on GPU and submit them to a physical IBM QPU — required when you want real QPU routing results rather than `aer_simulator`.
+
+> **Why this is needed**: The existing 10-run dataset in `data/reports/quantum_MI250X_10rep_success/` contains already-processed summary CSVs, not raw packet streams. The quantum routing in those runs used `aer_simulator` (local simulator). To route through a real QPU you must regenerate raw packet features via a new GPU run.
+
+### Step 1 — Clone & Setup (LUMI Login Node)
+
+```bash
+cd /scratch/project_465002996/clarketa
+git clone -b quantum https://github.com/tarek-clarke/resilient-rap-framework.git resilient-rap-quantum
+cd resilient-rap-quantum
+
+# Load modules
+module load LUMI/25.09
+module load partition/G
+module load rocm/6.3.4
+module load cray-python/3.10.10
+
+source .venv-lumi/bin/activate
+```
+
+### Step 2 — Submit 10 Shadow Routing GPU Runs
+
+This runs `live_gpu_decoder.py` with `--shadow-routing` on 10 SLURM GPU jobs. Each run processes 25,000 packets, injects 10% chaos, and saves a `shadow_log_*.json` capturing packet features + emulator routing decisions.
+
+```bash
+bash submit_shadow_runs.sh
+```
+
+Outputs will appear in:
+```
+data/reports/shadow_routing_10rep/run_1/
+  ├── shadow_log_<timestamp>.json      ← packet features for QPU replay
+  ├── live_results_<timestamp>.csv     ← per-packet accuracy/latency
+  ├── manifest_<timestamp>.json        ← run provenance
+  └── drift_details_<timestamp>.jsonl  ← per-packet chaos details
+...
+data/reports/shadow_routing_10rep/run_10/
+```
+
+Monitor job progress:
+```bash
+squeue -u $USER
+tail -f shadow_rep_1_<JOB_ID>.out
+```
+
+### Step 3 — Submit Shadow Logs to Physical QPU
+
+Once a run completes and `shadow_log_*.json` exists, submit it to IBM Quantum:
+
+```bash
+# Set your IBM Quantum API key
+export QISKIT_IBM_TOKEN="your_ibm_token_here"
+
+# Submit one log to physical QPU
+python3 scripts/submit_shadow_qpu.py \
+  --log data/reports/shadow_routing_10rep/run_1/shadow_log_<timestamp>.json \
+  --backend ibm_quantum \
+  --shots 1024
+```
+
+The script will:
+1. Load the shadow log (packet features + emulator decisions)
+2. Compile and transpile circuits for the IBM QPU
+3. Execute the batch on physical quantum hardware
+4. Compare QPU decisions vs. emulator decisions and save a `qpu_replay_report_*.json`
+
+### Step 4 — Retrieve & Compare Results
+
+Results are saved automatically to `data/reports/live_f1/qpu_replay_report_<timestamp>.json`:
+
+```json
+{
+  "backend": "ibm_quantum",
+  "total_packets": 2500,
+  "agreement_rate": 91.2,
+  "results": [...]
+}
+```
+
+
+
+
 ## Dual-Stage Gatekeeper Architecture
 
 ### Stage 1: Fast-Path Bypass (CPU)
