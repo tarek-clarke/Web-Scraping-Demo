@@ -36,8 +36,11 @@ archive_logs/
 .env.vlq
 vlq_connect*.py
 vlq_connect*.sh
-vlq_submit*.py
-vlq_submit*.sh
+vlq_smoke_test*.py
+vlq_submit_sweep*.py
+vlq_submit_sweep*.sh
+vlq_submit_run*.py
+vlq_submit_run*.sh
 *lexis_token*
 *qaas_token*
 configs/vlq_*.json
