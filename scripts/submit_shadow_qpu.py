@@ -22,6 +22,7 @@ if not hasattr(np, "ulong"):
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.routing.quantum_router import QuantumRouter
+from src.routing.quantum_backends import VLQBackend
 
 def main():
     parser = argparse.ArgumentParser(description="Submit logged shadow features to QPU")
@@ -53,38 +54,61 @@ def main():
     total_packets = len(log_data)
     print(f"Loaded {total_packets} shadow logged packet features.")
 
-    # Handle secure token input
-    token = os.getenv("QISKIT_IBM_TOKEN") or os.getenv("IBM_QUANTUM_TOKEN")
-    if not token and args.backend == "ibm_quantum" and sys.stdin.isatty():
-        import getpass
-        token = getpass.getpass("Enter IBM Quantum API Key: ").strip()
+    # ── VLQ (Ostrava) backend path ────────────────────────────────────────────
+    vlq_backend = None
+    if args.backend == "vlq" or args.backend == "lumi_q":
+        vlq_project  = os.getenv("VLQ_PROJECT", "")
+        vlq_resource = os.getenv("VLQ_RESOURCE", "")
 
-    if token:
-        os.environ["QISKIT_IBM_TOKEN"] = token
-        # Auto-detect IBM Cloud channel for 44-character API keys and set default CRN instance
-        if len(token) == 44 or token.startswith("ApiKey-"):
-            os.environ["QISKIT_IBM_CHANNEL"] = "ibm_cloud"
-            if "QISKIT_IBM_INSTANCE" not in os.environ:
-                os.environ["QISKIT_IBM_INSTANCE"] = "crn:v1:bluemix:public:quantum-computing:us-east:a/139dcf0745314450af23aa33e3f8029a:d626fe8a-08ca-47ab-9412-7a93f954e2b0::"
-        else:
-            os.environ["QISKIT_IBM_CHANNEL"] = "ibm_quantum_platform"
+        # Load from .env.vlq if not already set
+        if (not vlq_project or not vlq_resource) and os.path.exists(".env.vlq"):
+            with open(".env.vlq") as ef:
+                for line in ef:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        os.environ.setdefault(k.strip(), v.strip())
+            vlq_project  = os.getenv("VLQ_PROJECT", "")
+            vlq_resource = os.getenv("VLQ_RESOURCE", "")
 
-    # Initialize quantum router with QPU backend
-    print(f"[Init] Initializing router backend '{args.backend}'...")
-    try:
-        router = QuantumRouter(backend=args.backend, shots=args.shots, model_params_path=args.model_params)
-        # Force backend initialization to establish the Qiskit Runtime session
-        router._init_backend()
-    except Exception as e:
-        print(f"ERROR: Failed to initialize QPU backend: {e}")
-        # Ensure cleanup on failure
-        if "QISKIT_IBM_TOKEN" in os.environ:
-            del os.environ["QISKIT_IBM_TOKEN"]
-        if "QISKIT_IBM_CHANNEL" in os.environ:
-            del os.environ["QISKIT_IBM_CHANNEL"]
-        if "QISKIT_IBM_INSTANCE" in os.environ:
-            del os.environ["QISKIT_IBM_INSTANCE"]
-        sys.exit(1)
+        if not vlq_project or not vlq_resource:
+            print("ERROR: VLQ_PROJECT and VLQ_RESOURCE must be set (env vars or .env.vlq).")
+            sys.exit(1)
+
+        print(f"[Init] Connecting to VLQ backend (project={vlq_project}, resource={vlq_resource}) …")
+        try:
+            vlq_backend = VLQBackend(project=vlq_project, resource=vlq_resource)
+            vlq_backend._init()   # triggers LEXIS browser auth
+        except Exception as e:
+            print(f"ERROR: Failed to connect to VLQ backend: {e}")
+            sys.exit(1)
+        print("[VLQ] Connected to VLQ QPU successfully.")
+
+    else:
+        # ── IBM Quantum path ──────────────────────────────────────────────────
+        token = os.getenv("QISKIT_IBM_TOKEN") or os.getenv("IBM_QUANTUM_TOKEN")
+        if not token and args.backend == "ibm_quantum" and sys.stdin.isatty():
+            import getpass
+            token = getpass.getpass("Enter IBM Quantum API Key: ").strip()
+
+        if token:
+            os.environ["QISKIT_IBM_TOKEN"] = token
+            if len(token) == 44 or token.startswith("ApiKey-"):
+                os.environ["QISKIT_IBM_CHANNEL"] = "ibm_cloud"
+                if "QISKIT_IBM_INSTANCE" not in os.environ:
+                    os.environ["QISKIT_IBM_INSTANCE"] = "crn:v1:bluemix:public:quantum-computing:us-east:a/139dcf0745314450af23aa33e3f8029a:d626fe8a-08ca-47ab-9412-7a93f954e2b0::"
+            else:
+                os.environ["QISKIT_IBM_CHANNEL"] = "ibm_quantum_platform"
+
+        print(f"[Init] Initializing router backend '{args.backend}'...")
+        try:
+            router = QuantumRouter(backend=args.backend, shots=args.shots, model_params_path=args.model_params)
+            router._init_backend()
+        except Exception as e:
+            print(f"ERROR: Failed to initialize QPU backend: {e}")
+            for k in ["QISKIT_IBM_TOKEN", "QISKIT_IBM_CHANNEL", "QISKIT_IBM_INSTANCE"]:
+                os.environ.pop(k, None)
+            sys.exit(1)
 
     # Securely wipe the token from process environment and memory immediately
     if "QISKIT_IBM_TOKEN" in os.environ:
@@ -99,11 +123,11 @@ def main():
     print("[QPU] Securely wiped API key from process environment memory.")
 
     print("[QPU] Compiling and transpiling circuits for execution...")
-    
+
     # Extract features from log
     feature_list = []
     emulator_decisions = []
-    
+
     for idx, entry in enumerate(log_data):
         feature_list.append(np.array(entry["features"]))
         emulator_decisions.append(entry["emulator_decision"])
@@ -111,15 +135,33 @@ def main():
     # Batch submit to QPU
     print(f"[QPU] Submitting batch of {total_packets} circuits to the QPU...")
     qpu_decisions = []
-    
+
     try:
-        # Route batch on physical hardware
-        qpu_results = router.route_batch(np.array(feature_list))
-        qpu_decisions = [res[0] for res in qpu_results]
-        print("[QPU] Batch execution completed successfully.")
+        if vlq_backend is not None:
+            # ── VLQ path: use VLQBackend.execute_batch ────────────────────────
+            from src.routing.quantum_router import QuantumRouter as _QR
+            _tmp_router = _QR(backend="aer_simulator", shots=args.shots)
+            from qiskit import transpile as _transpile
+            circuits = []
+            for feat in feature_list:
+                qc = _tmp_router._build_vqc_circuit(feat)
+                bound = _tmp_router._bind_features(qc, feat)
+                circuits.append(bound)
+            all_counts = vlq_backend.execute_batch(circuits, shots=args.shots)
+            classes = {0: "levenshtein", 1: "regex", 2: "bert", 3: "gemma_e4b"}
+            for counts in all_counts:
+                best = max(counts, key=counts.get)
+                idx = int(best, 2) % 4
+                qpu_decisions.append(classes[idx])
+            print("[VLQ] Batch execution completed successfully.")
+        else:
+            # ── IBM / Aer path ────────────────────────────────────────────────
+            qpu_results = router.route_batch(np.array(feature_list))
+            qpu_decisions = [res[0] for res in qpu_results]
+            print("[QPU] Batch execution completed successfully.")
     except Exception as e:
         print(f"ERROR: QPU execution failed: {e}")
-        print("Make sure your Qiskit Runtime credentials are correct and you have access to the device.")
+        print("Make sure your credentials are correct and you have access to the device.")
         sys.exit(1)
 
     # Compare emulator vs physical QPU decisions

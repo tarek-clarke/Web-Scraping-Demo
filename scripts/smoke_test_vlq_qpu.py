@@ -1,0 +1,290 @@
+#!/usr/bin/env python3
+"""
+vlq_smoke_test.py — Smoke test for the Star VLQ 24-qubit QPU in Ostrava.
+
+Verifies end-to-end connectivity via LEXIS/QaaS before feeding full shadow logs.
+
+Tests:
+  1. LEXIS authentication (MyAccessID browser login)
+  2. Backend connection and qubit count check
+  3. Bell state circuit (2 qubits) — minimal round-trip smoke
+  4. VQC-shaped circuit (12 qubits) — matches what submit_shadow_qpu.py sends
+  5. Reports counts, fidelity proxy, and queue metadata
+
+Usage:
+    # Activate the vlq conda environment first:
+    conda activate vlq
+
+    # Run from the project root:
+    python3 vlq_smoke_test.py
+
+    # Or with explicit credentials (skips env file):
+    VLQ_PROJECT=OPEN-37-1 VLQ_RESOURCE=VLQ-CZ python3 vlq_smoke_test.py
+
+Environment variables (or .env.vlq):
+    VLQ_PROJECT   — e.g. OPEN-37-1
+    VLQ_RESOURCE  — e.g. VLQ-CZ
+"""
+
+import os
+import sys
+import time
+import json
+
+# ── Env loading ────────────────────────────────────────────────────────────────
+if os.path.exists(".env.vlq"):
+    with open(".env.vlq") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                os.environ.setdefault(k.strip(), v.strip())
+
+PROJECT  = os.environ.get("VLQ_PROJECT", "")
+RESOURCE = os.environ.get("VLQ_RESOURCE", "")
+
+if not PROJECT or not RESOURCE:
+    print("ERROR: VLQ_PROJECT and VLQ_RESOURCE must be set.")
+    print("  Either export them, or add them to .env.vlq")
+    sys.exit(1)
+
+SHOTS_SMOKE = 256   # fast — just checking connectivity
+SHOTS_VQC   = 512   # larger circuit needs fewer shots for smoke purposes
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+
+def header(title: str):
+    print()
+    print("=" * 60)
+    print(f"  {title}")
+    print("=" * 60)
+
+
+def check_counts_bell(counts: dict, shots: int) -> bool:
+    """Bell state should produce ~50% |00⟩ and ~50% |11⟩."""
+    total = sum(counts.values())
+    frac_00 = counts.get("00", 0) / total
+    frac_11 = counts.get("11", 0) / total
+    frac_combined = frac_00 + frac_11
+    print(f"  |00⟩: {counts.get('00', 0)} ({frac_00:.1%})")
+    print(f"  |11⟩: {counts.get('11', 0)} ({frac_11:.1%})")
+    print(f"  Other states: {total - counts.get('00',0) - counts.get('11',0)}")
+    print(f"  Combined Bell fidelity proxy: {frac_combined:.1%}  (expect ≥ 85% on real QPU)")
+    return frac_combined >= 0.70   # lenient threshold for smoke test
+
+
+def build_bell_circuit():
+    from qiskit import QuantumCircuit
+    qc = QuantumCircuit(2, 2)
+    qc.h(0)
+    qc.cx(0, 1)
+    qc.measure([0, 1], [0, 1])
+    return qc
+
+
+def build_vqc_circuit():
+    """12-qubit VQC shaped circuit identical to what submit_shadow_qpu.py sends.
+    Uses random zero-weight params — just checking the circuit runs on VLQ."""
+    import numpy as np
+    from qiskit import QuantumCircuit
+    from qiskit.circuit.library import ZZFeatureMap, RealAmplitudes
+
+    FEATURE_COUNT = 10
+    NUM_OUTPUT_QUBITS = 2
+    num_qubits = FEATURE_COUNT + NUM_OUTPUT_QUBITS  # 12
+
+    # Random feature vector (normalized to [0, π])
+    features = np.random.uniform(0, np.pi, FEATURE_COUNT)
+
+    qc = QuantumCircuit(num_qubits, NUM_OUTPUT_QUBITS)
+    feature_map = ZZFeatureMap(feature_dimension=FEATURE_COUNT, reps=2)
+    ansatz = RealAmplitudes(num_qubits=num_qubits, reps=2)
+    qc.compose(feature_map, qubits=list(range(FEATURE_COUNT)), inplace=True)
+    qc.compose(ansatz, inplace=True)
+    qc.measure(list(range(FEATURE_COUNT, num_qubits)), list(range(NUM_OUTPUT_QUBITS)))
+
+    # Bind all parameters to zeros
+    param_dict = {p: 0.0 for p in qc.parameters}
+    # Override feature params with actual feature values
+    feature_params = sorted([p for p in qc.parameters if p.name.startswith("x")], key=lambda p: p.name)
+    for p, v in zip(feature_params, features):
+        param_dict[p] = v
+
+    bound = qc.assign_parameters(param_dict)
+    return bound, features
+
+
+# ── Main ───────────────────────────────────────────────────────────────────────
+
+def main():
+    results = {}
+
+    # ── Step 1: Import check ──────────────────────────────────────────────────
+    header("Step 1 — Dependency check")
+    missing = []
+    for pkg, install_hint in [
+        ("py4lexis",  "pip install --index-url https://opencode.it4i.eu/api/v4/projects/107/packages/pypi/simple py4lexis"),
+        ("qaas",      "pip install qaas==v0.3.2"),
+        ("qiskit",    "pip install qiskit>=2.0.0"),
+        ("qiskit_aer","pip install qiskit-aer"),
+    ]:
+        try:
+            __import__(pkg.replace("-", "_"))
+            print(f"  ✓ {pkg}")
+        except ImportError:
+            print(f"  ✗ {pkg}  →  {install_hint}")
+            missing.append(pkg)
+
+    if missing:
+        print(f"\nERROR: Missing packages: {missing}. Install them and retry.")
+        sys.exit(1)
+
+    # ── Step 2: LEXIS authentication ──────────────────────────────────────────
+    header("Step 2 — LEXIS authentication (MyAccessID)")
+    print("  A browser window will open. Log in with your MyAccessID credentials.")
+    print("  Waiting for token …")
+
+    from py4lexis.session import LexisSession
+    t0 = time.time()
+    try:
+        session = LexisSession()
+        token = session.get_access_token()
+        elapsed = time.time() - t0
+        if not token:
+            raise RuntimeError("Empty token returned.")
+        print(f"  ✓ Token obtained in {elapsed:.1f}s  (length: {len(token)} chars)")
+        results["auth"] = "PASS"
+    except Exception as e:
+        print(f"  ✗ Authentication failed: {e}")
+        results["auth"] = f"FAIL: {e}"
+        sys.exit(1)
+
+    # ── Step 3: Backend connection ────────────────────────────────────────────
+    header("Step 3 — Backend connection")
+    print(f"  Project:  {PROJECT}")
+    print(f"  Resource: {RESOURCE}")
+
+    from qaas.client import QProvider, QBackend
+    try:
+        t0 = time.time()
+        provider = QProvider(token, PROJECT)
+        backend: QBackend = provider.get_backend(RESOURCE)
+        elapsed = time.time() - t0
+        print(f"  ✓ Backend connected in {elapsed:.1f}s")
+
+        # Print any available backend properties
+        try:
+            props = backend.properties() if hasattr(backend, "properties") else None
+            if props:
+                n_qubits = props.num_qubits if hasattr(props, "num_qubits") else "unknown"
+                print(f"  QPU qubits:   {n_qubits}")
+        except Exception:
+            pass
+
+        try:
+            config = backend.configuration() if hasattr(backend, "configuration") else None
+            if config:
+                print(f"  Backend name: {getattr(config, 'backend_name', 'unknown')}")
+                print(f"  n_qubits:     {getattr(config, 'n_qubits', 'unknown')}")
+                print(f"  basis_gates:  {getattr(config, 'basis_gates', 'unknown')}")
+        except Exception:
+            pass
+
+        results["backend_connect"] = "PASS"
+    except Exception as e:
+        print(f"  ✗ Backend connection failed: {e}")
+        results["backend_connect"] = f"FAIL: {e}"
+        sys.exit(1)
+
+    # ── Step 4: Bell state smoke circuit ─────────────────────────────────────
+    header("Step 4 — Bell state (2 qubits, minimal round-trip)")
+    try:
+        from qiskit import transpile
+        qc_bell = build_bell_circuit()
+        print(f"  Circuit depth: {qc_bell.depth()}, gates: {qc_bell.count_ops()}")
+        print(f"  Transpiling …")
+        t0 = time.time()
+        transpiled_bell = transpile(qc_bell, backend)
+        print(f"  Transpile time: {time.time()-t0:.2f}s")
+        print(f"  Submitting {SHOTS_SMOKE} shots to VLQ …")
+        t0 = time.time()
+        job = backend.run(transpiled_bell, shots=SHOTS_SMOKE)
+        print(f"  Job submitted. Job ID: {getattr(job, 'job_id', lambda: 'N/A')()}")
+        print(f"  Waiting for results …")
+        counts = job.result().get_counts()
+        elapsed = time.time() - t0
+        print(f"  ✓ Results received in {elapsed:.1f}s")
+        print(f"  Raw counts: {counts}")
+        passed = check_counts_bell(counts, SHOTS_SMOKE)
+        results["bell_smoke"] = "PASS" if passed else "WARN (low fidelity)"
+    except Exception as e:
+        print(f"  ✗ Bell circuit failed: {e}")
+        import traceback; traceback.print_exc()
+        results["bell_smoke"] = f"FAIL: {e}"
+
+    # ── Step 5: VQC-shaped circuit (12-qubit) ─────────────────────────────────
+    header("Step 5 — VQC circuit (12 qubits, matches shadow log shape)")
+    try:
+        from qiskit import transpile
+        qc_vqc, features = build_vqc_circuit()
+        print(f"  Circuit qubits: {qc_vqc.num_qubits}, depth: {qc_vqc.depth()}, gates: {qc_vqc.count_ops()}")
+        print(f"  Feature vector (first 5): {[round(float(f),3) for f in features[:5]]}")
+        print(f"  Transpiling …")
+        t0 = time.time()
+        transpiled_vqc = transpile(qc_vqc, backend)
+        print(f"  Transpile time: {time.time()-t0:.2f}s")
+        print(f"  Submitting {SHOTS_VQC} shots to VLQ …")
+        t0 = time.time()
+        job = backend.run(transpiled_vqc, shots=SHOTS_VQC)
+        print(f"  Job submitted. Job ID: {getattr(job, 'job_id', lambda: 'N/A')()}")
+        print(f"  Waiting for results …")
+        counts = job.result().get_counts()
+        elapsed = time.time() - t0
+        print(f"  ✓ Results received in {elapsed:.1f}s")
+        total = sum(counts.values())
+        top3 = sorted(counts.items(), key=lambda x: -x[1])[:3]
+        print(f"  Top 3 bitstrings: {[(b, c, f'{c/total:.1%}') for b,c in top3]}")
+        # Decode the most likely class
+        best_bits = top3[0][0]
+        class_idx = int(best_bits, 2)
+        classes = {0: "levenshtein", 1: "regex", 2: "bert", 3: "gemma_e4b"}
+        predicted = classes.get(class_idx % 4, "bert")
+        print(f"  Most probable class: {class_idx} → '{predicted}'")
+        results["vqc_smoke"] = "PASS"
+    except Exception as e:
+        print(f"  ✗ VQC circuit failed: {e}")
+        import traceback; traceback.print_exc()
+        results["vqc_smoke"] = f"FAIL: {e}"
+
+    # ── Summary ───────────────────────────────────────────────────────────────
+    header("Smoke Test Summary")
+    all_pass = True
+    for test, outcome in results.items():
+        icon = "✓" if "PASS" in outcome else ("⚠" if "WARN" in outcome else "✗")
+        print(f"  {icon}  {test:<25} {outcome}")
+        if "FAIL" in outcome:
+            all_pass = False
+
+    # Save report
+    report_path = "data/reports/vlq_smoke_test_report.json"
+    os.makedirs(os.path.dirname(report_path), exist_ok=True)
+    with open(report_path, "w") as f:
+        json.dump({"timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                   "project": PROJECT, "resource": RESOURCE,
+                   "results": results}, f, indent=2)
+    print(f"\n  Report saved to: {report_path}")
+
+    if all_pass:
+        print("\n  ✓ VLQ is healthy. Safe to submit shadow logs.\n")
+        print("  Next step:")
+        print("    python3 scripts/submit_shadow_qpu.py \\")
+        print("      --log data/reports/shadow_routing_10rep/run_1/shadow_log_<timestamp>.json \\")
+        print("      --backend vlq")
+        sys.exit(0)
+    else:
+        print("\n  ✗ One or more tests failed. Resolve issues before submitting shadow logs.\n")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
