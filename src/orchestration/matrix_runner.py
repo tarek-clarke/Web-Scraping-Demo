@@ -3,7 +3,7 @@ import time
 import random
 import hashlib
 import numpy as np
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 from ..chaos.injector import ChaosInjector
