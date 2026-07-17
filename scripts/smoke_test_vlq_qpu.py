@@ -54,6 +54,7 @@ class _StubModule(ModuleType):
             class CollectionType:
                 NDARRAY = 'ndarray'
                 DICT = 'dict'
+                SCALAR = 'scalar'
             return CollectionType
         if name == 'DataType':
             class DataType:
