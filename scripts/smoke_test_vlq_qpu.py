@@ -31,6 +31,44 @@ import sys
 import time
 import json
 
+# ── Dynamic module stubs for IQM internal packages ──────────────────────────────
+from types import ModuleType
+_STUB_PREFIXES = ('iqm.models', 'exa.')
+
+class _StubClass:
+    def __init__(self, *a, **kw): pass
+    def __call__(self, *a, **kw): return self
+    def __iter__(self): return iter([])
+    def __getattr__(self, name): return _StubClass()
+
+class _StubModule(ModuleType):
+    def __getattr__(self, name):
+        if name.startswith('__'):
+            raise AttributeError(name)
+        obj = type(name, (_StubClass,), {})
+        setattr(self, name, obj)
+        return obj
+
+class _StubFinder:
+    def find_module(self, fullname, path=None):
+        if fullname in sys.modules:
+            return None
+        if any(fullname == p or fullname.startswith(p + '.') for p in _STUB_PREFIXES):
+            return self
+        return None
+    def load_module(self, fullname):
+        if fullname in sys.modules:
+            return sys.modules[fullname]
+        mod = _StubModule(fullname)
+        mod.__file__ = f'<stub:{fullname}>'
+        mod.__loader__ = self
+        mod.__package__ = fullname.rpartition('.')[0]
+        mod.__path__ = [f'<stub:{fullname}>']
+        sys.modules[fullname] = mod
+        return mod
+
+sys.meta_path.insert(0, _StubFinder())
+
 # ── Env loading ────────────────────────────────────────────────────────────────
 if os.path.exists(".env.vlq"):
     with open(".env.vlq") as f:
