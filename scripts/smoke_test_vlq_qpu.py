@@ -141,23 +141,38 @@ def main():
 
     # ── Step 2: LEXIS authentication ──────────────────────────────────────────
     header("Step 2 — LEXIS authentication (MyAccessID)")
-    print("  A browser window will open. Log in with your MyAccessID credentials.")
-    print("  Waiting for token …")
+    
+    # Check for local gitignored token file
+    token = None
+    token_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lexis_token.txt")
+    if os.path.exists(token_path):
+        print(f"  Found cached token at {token_path}, loading...")
+        try:
+            with open(token_path, "r") as tf:
+                token = tf.read().strip()
+        except Exception as e:
+            print(f"  Warning: Failed to read token file: {e}")
 
-    from py4lexis.session import LexisSession
-    t0 = time.time()
-    try:
-        session = LexisSession()
-        token = session.get_access_token()
-        elapsed = time.time() - t0
-        if not token:
-            raise RuntimeError("Empty token returned.")
-        print(f"  ✓ Token obtained in {elapsed:.1f}s  (length: {len(token)} chars)")
+    if token:
+        print(f"  ✓ Token loaded from cache file  (length: {len(token)} chars)")
         results["auth"] = "PASS"
-    except Exception as e:
-        print(f"  ✗ Authentication failed: {e}")
-        results["auth"] = f"FAIL: {e}"
-        sys.exit(1)
+    else:
+        print("  A browser window will open. Log in with your MyAccessID credentials.")
+        print("  Waiting for token …")
+        from py4lexis.session import LexisSession
+        t0 = time.time()
+        try:
+            session = LexisSession()
+            token = session.get_access_token()
+            elapsed = time.time() - t0
+            if not token:
+                raise RuntimeError("Empty token returned.")
+            print(f"  ✓ Token obtained in {elapsed:.1f}s  (length: {len(token)} chars)")
+            results["auth"] = "PASS"
+        except Exception as e:
+            print(f"  ✗ Authentication failed: {e}")
+            results["auth"] = f"FAIL: {e}"
+            sys.exit(1)
 
     # ── Step 3: Backend connection ────────────────────────────────────────────
     header("Step 3 — Backend connection")
