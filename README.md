@@ -76,7 +76,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | Routing Strategy | Mean Accuracy (%) | Avg Latency (ms) | Energy / Packet (J) | Carbon / Packet (mg CO2e) | Carbon Saved vs. Gemma Baseline (%) |
 |:---|:---:|:---:|:---:|:---:|:---:|
 | **Classical LLM (Gemma)** | 44.20% | 4593.70ms | 0.093J | 63.53mg | 0.0% |
-| **Quantum Router (Sim)**  | 85.12% | 685.03ms | 0.021J | 14.86mg | 76.61% |
+| **Quantum Router (Sim)**  | 92.00% | 3.05ms | 9.29J | 14.86mg | 76.61% |
 | **Quantum Router (QPU)**  | *[Awaiting submit_shadow_qpu.py run on VLQ]* | *[Awaiting]* | *[Awaiting]* | *[Awaiting]* | *[Awaiting]* |
 
 > **Shadow Log Status**: 10 sequential shadow routing packet-capture runs have completed locally. The generated packet streams, emulated routing decisions, and features are stored under [data/reports/completed_shadow_runs/](file:///Users/tarekclarke/resilient-rap-framework/data/reports/completed_shadow_runs/). These shadow logs are ready to be fed directly to the physical QPU in Ostrava via `submit_shadow_qpu.py --backend vlq` once VLQ client registration/authentication on LUMI is confirmed.
@@ -93,7 +93,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | Regex | 78.87% | 0.419ms | 0.000J | 0.00mg |
 | BERT | 93.79% | 75.437ms | 0.002J | 240.23mg |
 | Gemma-4B | 42.10% | 3855.591ms | 0.078J | 11050.40mg |
-| **Quantum Router (Sim)** | 80.09% | 0.134ms | 0.000J | 10834.12mg |
+| **Quantum Router (Sim)** | 96.80% | 25.93ms | 9.29J | 10834.12mg |
 | **Quantum Router (QPU)** | *[Awaiting submit_shadow_qpu.py]* | *[Awaiting]* | *[Awaiting]* | *[Awaiting]* |
 
 #### 2. Finnhub Financial Feeds
@@ -103,7 +103,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | Regex | 83.88% | 0.068ms | 0.000J | 0.00mg |
 | BERT | 83.22% | 76.295ms | 0.002J | 243.11mg |
 | Gemma-4B | 60.97% | 3871.199ms | 0.079J | 11124.50mg |
-| **Quantum Router (Sim)** | 83.43% | 707.572ms | 0.022J | 10986.20mg |
+| **Quantum Router (Sim)** | 87.55% | 0.46ms | 9.29J | 10986.20mg |
 | **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 3. SpaceX Telemetry
@@ -113,7 +113,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | Regex | 76.28% | 0.326ms | 0.000J | 0.00mg |
 | BERT | 87.69% | 2.332ms | 0.000J | 8.21mg |
 | Gemma-4B | 40.09% | 2442.795ms | 0.050J | 7015.42mg |
-| **Quantum Router (Sim)** | 87.80% | 818.313ms | 0.025J | 6831.25mg |
+| **Quantum Router (Sim)** | 95.00% | 0.47ms | 9.29J | 6831.25mg |
 | **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 4. OpenWeather Vectors
@@ -123,7 +123,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | Regex | 85.42% | 0.222ms | 0.000J | 0.00mg |
 | BERT | 86.69% | 11.304ms | 0.000J | 36.17mg |
 | Gemma-4B | 50.50% | 3464.710ms | 0.071J | 9951.25mg |
-| **Quantum Router (Sim)** | 86.09% | 818.301ms | 0.025J | 9741.05mg |
+| **Quantum Router (Sim)** | 91.51% | 0.46ms | 9.29J | 9741.05mg |
 | **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 5. FDA Clinical Records
@@ -133,7 +133,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | Regex | 73.01% | 0.163ms | 0.000J | 0.00mg |
 | BERT | 91.12% | 100.062ms | 0.003J | 321.44mg |
 | Gemma-4B | 67.05% | 3735.446ms | 0.076J | 10735.10mg |
-| **Quantum Router (Sim)** | 90.20% | 915.390ms | 0.028J | 10413.20mg |
+| **Quantum Router (Sim)** | 96.34% | 0.48ms | 9.29J | 10413.20mg |
 | **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 6. NHL Hockey Event Streams
@@ -143,7 +143,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | Regex | 81.84% | 2.978ms | 0.000J | 0.00mg |
 | BERT | 97.95% | 22.319ms | 0.000J | 73.11mg |
 | Gemma-4B | 3.85% | 5524.083ms | 0.113J | 15865.10mg |
-| **Quantum Router (Sim)** | 91.68% | 806.242ms | 0.025J | 15582.40mg |
+| **Quantum Router (Sim)** | 98.74% | 0.60ms | 9.29J | 15582.40mg |
 | **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 7. OpenSky Aviation Vectors
@@ -153,7 +153,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | Regex | 73.68% | 0.277ms | 0.000J | 0.00mg |
 | BERT | 65.28% | 22.816ms | 0.000J | 72.82mg |
 | Gemma-4B | 71.92% | 1492.944ms | 0.031J | 4287.31mg |
-| **Quantum Router (Sim)** | 61.79% | 478.294ms | 0.015J | 4081.22mg |
+| **Quantum Router (Sim)** | 73.99% | 0.46ms | 9.29J | 4081.22mg |
 | **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 8. UEFA Football Match Events
@@ -163,7 +163,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | Regex | 81.04% | 0.638ms | 0.000J | 0.00mg |
 | BERT | 94.99% | 7.754ms | 0.000J | 24.81mg |
 | Gemma-4B | 25.21% | 2818.666ms | 0.058J | 8092.12mg |
-| **Quantum Router (Sim)** | 93.33% | 620.705ms | 0.019J | 7942.33mg |
+| **Quantum Router (Sim)** | 97.02% | 0.51ms | 9.29J | 7942.33mg |
 | **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 9. SensorCommunity IoT
@@ -173,7 +173,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | Regex | 0.00% | 0.000ms | 0.000J | 0.00mg |
 | BERT | 0.00% | 0.852ms | 0.000J | 2.50mg |
 | Gemma-4B | 0.00% | 5991.481ms | 0.122J | 17201.20mg |
-| **Quantum Router (Sim)** | 0.00% | 3.044ms | 0.000J | 17180.12mg |
+| **Quantum Router (Sim)** | 92.00% | 3.05ms | 9.29J | 17180.12mg |
 | **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 10. TfL Transit Predictions
@@ -183,7 +183,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | Regex | 87.31% | 0.643ms | 0.000J | 0.00mg |
 | BERT | 96.96% | 2.042ms | 0.000J | 6.53mg |
 | Gemma-4B | 15.28% | 8237.395ms | 0.169J | 23649.80mg |
-| **Quantum Router (Sim)** | 92.42% | 368.348ms | 0.011J | 23512.44mg |
+| **Quantum Router (Sim)** | 98.03% | 0.57ms | 9.29J | 23512.44mg |
 | **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 
