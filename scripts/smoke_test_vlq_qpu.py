@@ -36,7 +36,7 @@ from types import ModuleType
 _STUB_PREFIXES = ('iqm.models', 'exa.')
 
 import dataclasses
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class _StubClass:
     def __init__(self, *a, **kw): pass
     def __call__(self, *a, **kw): return self
