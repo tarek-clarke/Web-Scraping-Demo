@@ -53,6 +53,8 @@ class _StubClass:
     def qubits(self): return ['QB1', 'QB2', 'QB3', 'QB4', 'QB5']
     @property
     def computational_resonators(self): return []
+    @property
+    def connectivity(self): return [("QB1", "QB3"), ("QB2", "QB3"), ("QB3", "QB4"), ("QB3", "QB5")]
 
 class _StubModule(ModuleType):
     def __getattr__(self, name):
