@@ -257,6 +257,18 @@ class VLQBackend(QuantumBackend):
 
     def _authenticate(self) -> str:
         """Trigger LEXIS OAuth2 flow and return a fresh access token."""
+        # Check for local gitignored token override
+        token_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "lexis_token.txt")
+        if os.path.exists(token_path):
+            print(f"[VLQBackend] Found cached token at {token_path}, loading...")
+            try:
+                with open(token_path, "r") as tf:
+                    token = tf.read().strip()
+                if token:
+                    return token
+            except Exception as e:
+                print(f"[VLQBackend] Warning: Failed to read token file: {e}")
+
         try:
             from py4lexis.session import LexisSession  # type: ignore[import-untyped]
         except ImportError as exc:
