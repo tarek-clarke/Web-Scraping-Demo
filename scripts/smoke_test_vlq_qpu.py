@@ -53,7 +53,8 @@ class _StubFinder:
     def find_module(self, fullname, path=None):
         if fullname in sys.modules:
             return None
-        if any(fullname == p or fullname.startswith(p + '.') for p in _STUB_PREFIXES):
+        # Match if the prefix ends with a dot or matches the string exactly
+        if any(fullname == p.rstrip('.') or fullname.startswith(p) for p in _STUB_PREFIXES):
             return self
         return None
     def load_module(self, fullname):
