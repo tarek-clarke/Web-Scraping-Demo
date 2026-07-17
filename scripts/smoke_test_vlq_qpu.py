@@ -80,6 +80,10 @@ class _StubModule(ModuleType):
             class MoveGateFrameTrackingMode:
                 FULL = 'full'
             return MoveGateFrameTrackingMode
+        if name == 'DDMode':
+            class DDMode:
+                DISABLED = 'disabled'
+            return DDMode
         obj = type(name, (_StubClass,), {})
         setattr(self, name, obj)
         return obj
