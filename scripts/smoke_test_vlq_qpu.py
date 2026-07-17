@@ -269,6 +269,7 @@ def main():
     try:
         t0 = time.time()
         provider = QProvider(token, PROJECT)
+        # Pass the resource name explicitly to bypass a bug in the QaaS SDK project-auto-detect loop
         backend: QBackend = provider.get_backend(RESOURCE)
         elapsed = time.time() - t0
         print(f"  ✓ Backend connected in {elapsed:.1f}s")
