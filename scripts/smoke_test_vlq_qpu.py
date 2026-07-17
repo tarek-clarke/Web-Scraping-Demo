@@ -58,6 +58,7 @@ class _StubModule(ModuleType):
         if name == 'DataType':
             class DataType:
                 STRING = 'string'
+                BOOLEAN = 'boolean'
             return DataType
         obj = type(name, (_StubClass,), {})
         setattr(self, name, obj)
