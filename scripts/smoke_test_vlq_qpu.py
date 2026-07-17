@@ -40,6 +40,8 @@ class _StubClass:
     def __call__(self, *a, **kw): return self
     def __iter__(self): return iter([])
     def __getattr__(self, name): return _StubClass()
+    @classmethod
+    def non_timelike_attributes(cls): return []
 
 class _StubModule(ModuleType):
     def __getattr__(self, name):
