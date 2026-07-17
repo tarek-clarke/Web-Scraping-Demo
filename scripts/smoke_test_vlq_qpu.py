@@ -47,6 +47,8 @@ class _StubClass:
         class DictMock(dict):
             def get(self, k, d=None): return d
         return DictMock()
+    def __add__(self, other): return []
+    def __radd__(self, other): return []
 
 class _StubModule(ModuleType):
     def __getattr__(self, name):
