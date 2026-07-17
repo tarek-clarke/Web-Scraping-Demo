@@ -166,17 +166,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | **Quantum Router (Sim)** | 97.02% | 0.51ms | 9.29J | 7942.33mg |
 | **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
-#### 9. SensorCommunity IoT
-| Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
-|:---|:---:|:---:|:---:|:---:|
-| Levenshtein | 0.00% | 0.000ms | 0.000J | 0.00mg |
-| Regex | 0.00% | 0.000ms | 0.000J | 0.00mg |
-| BERT | 0.00% | 0.852ms | 0.000J | 2.50mg |
-| Gemma-4B | 0.00% | 5991.481ms | 0.122J | 17201.20mg |
-| **Quantum Router (Sim)** | 92.00% | 3.05ms | 9.29J | 17180.12mg |
-| **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
-
-#### 10. TfL Transit Predictions
+#### 9. TfL Transit Predictions
 | Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
 |:---|:---:|:---:|:---:|:---:|
 | Levenshtein | 91.70% | 0.755ms | 0.000J | 0.00mg |
