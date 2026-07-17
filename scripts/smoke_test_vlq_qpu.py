@@ -47,8 +47,12 @@ class _StubClass:
         class DictMock(dict):
             def get(self, k, d=None): return d
         return DictMock()
-    def __add__(self, other): return []
-    def __radd__(self, other): return []
+    def __add__(self, other): return ['QB1', 'QB2', 'QB3', 'QB4', 'QB5']
+    def __radd__(self, other): return ['QB1', 'QB2', 'QB3', 'QB4', 'QB5']
+    @property
+    def qubits(self): return ['QB1', 'QB2', 'QB3', 'QB4', 'QB5']
+    @property
+    def computational_resonators(self): return []
 
 class _StubModule(ModuleType):
     def __getattr__(self, name):
