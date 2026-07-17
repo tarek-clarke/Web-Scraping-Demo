@@ -99,6 +99,19 @@ def generate_synthetic_for_domain(domain_dir: str, source_name: str) -> list:
             random.shuffle(mutated_data)
             mutated_data = mutated_data[:3]
             
+        elif source_name == "industrial_iiot" and "sensordatavalues" in mutated_data:
+            # Shift the value slightly to simulate sensor drift
+            if isinstance(mutated_data["sensordatavalues"], list):
+                for val in mutated_data["sensordatavalues"]:
+                    if "value" in val:
+                        try:
+                            # Perturb numeric values by +/- 5%
+                            fval = float(val["value"])
+                            fval = fval * random.uniform(0.95, 1.05)
+                            val["value"] = f"{fval:.2f}"
+                        except ValueError:
+                            pass
+            
         # Wrap into standard RAP telemetry packet structure
         packet = {
             "source": source_name,

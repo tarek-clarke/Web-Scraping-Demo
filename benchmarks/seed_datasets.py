@@ -37,7 +37,7 @@ DOMAINS: Dict[str, Dict[str, str]] = {
         "description": "Continental Football (StatsBomb Events)"
     },
     "09_industrial_iiot": {
-        "url": "https://data.sensor.community/airrohr/v1/sensor/63212/",
+        "url": "https://data.sensor.community/airrohr/v1/sensor/141/",
         "description": "Industrial IoT Tracking (SensorCommunity)"
     },
     "10_smartcity_transit": {
