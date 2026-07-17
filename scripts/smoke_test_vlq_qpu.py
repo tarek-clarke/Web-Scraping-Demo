@@ -68,6 +68,10 @@ class _StubModule(ModuleType):
                 COMPLEX = 'complex'
                 INT = 'int'
             return DataType
+        if name == 'HeraldingMode':
+            class HeraldingMode:
+                NONE = 'none'
+            return HeraldingMode
         obj = type(name, (_StubClass,), {})
         setattr(self, name, obj)
         return obj
