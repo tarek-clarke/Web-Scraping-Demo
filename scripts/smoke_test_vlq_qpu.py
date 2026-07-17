@@ -72,6 +72,10 @@ class _StubModule(ModuleType):
             class HeraldingMode:
                 NONE = 'none'
             return HeraldingMode
+        if name == 'MoveGateValidationMode':
+            class MoveGateValidationMode:
+                STRICT = 'strict'
+            return MoveGateValidationMode
         obj = type(name, (_StubClass,), {})
         setattr(self, name, obj)
         return obj
