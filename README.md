@@ -81,6 +81,9 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 
 > **Shadow Log Status**: 10 sequential shadow routing packet-capture runs have completed locally. The generated packet streams, emulated routing decisions, and features are stored under [data/reports/completed_shadow_runs/](file:///Users/tarekclarke/resilient-rap-framework/data/reports/completed_shadow_runs/). These shadow logs are ready to be fed directly to the physical QPU in Ostrava via `submit_shadow_qpu.py --backend vlq` once VLQ client registration/authentication on LUMI is confirmed.
 
+> [!NOTE]
+> **Energy Metrics Interpretation**: Classical reconcilers (Levenshtein and Regex) execute strictly on CPU threads using parallel processes. Because the integrated hardware profiling tools measure active GPU-specific accelerator energy consumption (e.g. Instinct MI250X GCD power state probing), these CPU-bound tasks are reported as `0.000J` in the GPU-focused energy comparison matrix.
+
 ### API-Specific Performance Tables
 
 #### 1. OpenF1 Telemetry
