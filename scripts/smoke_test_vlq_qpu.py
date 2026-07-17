@@ -51,6 +51,10 @@ class _StubModule(ModuleType):
                 NDARRAY = 'ndarray'
                 DICT = 'dict'
             return CollectionType
+        if name == 'DataType':
+            class DataType:
+                STRING = 'string'
+            return DataType
         obj = type(name, (_StubClass,), {})
         setattr(self, name, obj)
         return obj
