@@ -45,6 +45,12 @@ class _StubModule(ModuleType):
     def __getattr__(self, name):
         if name.startswith('__'):
             raise AttributeError(name)
+        # If class object CollectionType is requested, pre-seed it with the NDARRAY/DICT attributes
+        if name == 'CollectionType':
+            class CollectionType:
+                NDARRAY = 'ndarray'
+                DICT = 'dict'
+            return CollectionType
         obj = type(name, (_StubClass,), {})
         setattr(self, name, obj)
         return obj
