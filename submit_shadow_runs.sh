@@ -19,6 +19,10 @@ do
 
     echo "Creating Slurm job for shadow repetition ${run_idx}..."
 
+    # Randomly select a chaos method for this run to test hybrid capabilities
+    chaos_methods=("json_manip" "qwen_chaos" "schema_alter")
+    chaos_method=${chaos_methods[$((RANDOM % 3))]}
+
     cat <<EOT > ${job_file}
 #!/bin/bash
 #SBATCH --job-name=shadow-r${run_idx}
@@ -36,6 +40,7 @@ do
 echo "=== Shadow Routing Run ${run_idx} ==="
 echo "Node: \$SLURM_NODENAME"
 echo "Start: \$(date)"
+echo "Chaos Method: ${chaos_method}"
 
 # Load modules
 module load LUMI/25.09
@@ -55,6 +60,7 @@ cd ${PROJECT_DIR}
 echo "Running live_gpu_decoder.py with shadow routing..."
 python3 -u live_gpu_decoder.py \\
   --reconciler quantum \\
+  --chaos-method ${chaos_method} \\
   --chaos-rate 0.10 \\
   --shadow-routing \\
   --no-skip \\
