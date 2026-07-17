@@ -76,6 +76,10 @@ class _StubModule(ModuleType):
             class MoveGateValidationMode:
                 STRICT = 'strict'
             return MoveGateValidationMode
+        if name == 'MoveGateFrameTrackingMode':
+            class MoveGateFrameTrackingMode:
+                FULL = 'full'
+            return MoveGateFrameTrackingMode
         obj = type(name, (_StubClass,), {})
         setattr(self, name, obj)
         return obj
