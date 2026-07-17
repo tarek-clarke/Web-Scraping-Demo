@@ -22,6 +22,10 @@ do
     # Randomly select a chaos method for this run to test hybrid capabilities
     chaos_methods=("json_manip" "qwen_chaos" "schema_alter")
     chaos_method=${chaos_methods[$((RANDOM % 3))]}
+    max_packets=25000
+    if [ "${chaos_method}" = "qwen_chaos" ]; then
+        max_packets=5000
+    fi
 
     cat <<EOT > ${job_file}
 #!/bin/bash
@@ -64,7 +68,7 @@ python3 -u live_gpu_decoder.py \\
   --chaos-rate 0.10 \\
   --shadow-routing \\
   --no-skip \\
-  --max-packets 25000 \\
+  --max-packets ${max_packets} \\
   --telemetry-file data/ingested/telemetry_clean_bench_25000.json \\
   --output-dir ${out_dir}
 
