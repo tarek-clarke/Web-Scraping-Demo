@@ -66,6 +66,7 @@ class _StubModule(ModuleType):
                 BOOLEAN = 'boolean'
                 FLOAT = 'float'
                 COMPLEX = 'complex'
+                INT = 'int'
             return DataType
         obj = type(name, (_StubClass,), {})
         setattr(self, name, obj)
