@@ -33,7 +33,7 @@ import json
 
 # ── Dynamic module stubs for IQM internal packages ──────────────────────────────
 from types import ModuleType
-_STUB_PREFIXES = ('iqm.models', 'exa.', 'iqm.station_control', 'iqm.qiskit_iqm.fake_backends')
+_STUB_PREFIXES = ('iqm.models', 'exa.', 'iqm.station_control', 'iqm.qiskit_iqm.fake_backends', 'py4heappe')
 
 import dataclasses
 @dataclasses.dataclass(frozen=True)
