@@ -77,7 +77,9 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 |:---|:---:|:---:|:---:|:---:|:---:|
 | **Classical LLM (Gemma)** | 44.20% | 4593.70ms | 0.093J | 63.53mg | 0.0% |
 | **Quantum Router (Sim)**  | 85.12% | 685.03ms | 0.021J | 14.86mg | 76.61% |
-| **Quantum Router (QPU)**  | *[Pending QPU Run]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (QPU)**  | *[Awaiting submit_shadow_qpu.py run on VLQ]* | *[Awaiting]* | *[Awaiting]* | *[Awaiting]* | *[Awaiting]* |
+
+> **Shadow Log Status**: 10 sequential shadow routing packet-capture runs have completed locally. The generated packet streams, emulated routing decisions, and features are stored under [data/reports/completed_shadow_runs/](file:///Users/tarekclarke/resilient-rap-framework/data/reports/completed_shadow_runs/). These shadow logs are ready to be fed directly to the physical QPU in Ostrava via `submit_shadow_qpu.py --backend vlq` once VLQ client registration/authentication on LUMI is confirmed.
 
 ### API-Specific Performance Tables
 
@@ -89,7 +91,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | BERT | 93.79% | 75.437ms | 0.002J | 240.23mg |
 | Gemma-4B | 42.10% | 3855.591ms | 0.078J | 11050.40mg |
 | **Quantum Router (Sim)** | 80.09% | 0.134ms | 0.000J | 10834.12mg |
-| **Quantum Router (QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (QPU)** | *[Awaiting submit_shadow_qpu.py]* | *[Awaiting]* | *[Awaiting]* | *[Awaiting]* |
 
 #### 2. Finnhub Financial Feeds
 | Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
