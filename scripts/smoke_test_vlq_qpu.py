@@ -43,7 +43,10 @@ class _StubClass:
     def __iter__(self): return iter([])
     def __getattr__(self, name): return _StubClass()
     @classmethod
-    def non_timelike_attributes(cls): return []
+    def non_timelike_attributes(cls):
+        class DictMock(dict):
+            def get(self, k, d=None): return d
+        return DictMock()
 
 class _StubModule(ModuleType):
     def __getattr__(self, name):
