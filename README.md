@@ -378,6 +378,15 @@ The script will:
 3. Execute the batch on physical quantum hardware
 4. Compare QPU decisions vs. emulator decisions and save a `qpu_replay_report_*.json`
 
+### Active Benchmark Parameters (IBM Quantum)
+
+The currently executing physical QPU benchmark uses the following properties:
+* **Job ID**: `d9dd55sjeosc73fhd94g`
+* **Selected Least-Busy Backend**: `ibm_fez` (156 Qubits)
+* **Total Packets Routed**: 5,200 circuits
+* **Shots per Circuit**: 1,024
+* **Ansatz Config**: `ZZFeatureMap` (2 reps) + `RealAmplitudes` (2 reps) on 12 qubits
+
 ### Step 4 — Retrieve & Compare Results
 
 Results are saved automatically to `data/reports/live_f1/qpu_replay_report_<timestamp>.json`:
