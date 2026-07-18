@@ -191,7 +191,8 @@ def main():
 
     # Save replay report
     timestamp = os.path.basename(args.log).replace("shadow_log_", "").replace(".json", "")
-    report_path = f"data/reports/live_f1/qpu_replay_report_{timestamp}.json"
+    suffix = "_IBM_QPU" if args.backend == "ibm_quantum" else ("_VLQ_QPU" if args.backend in ["vlq", "lumi_q"] else "")
+    report_path = f"data/reports/live_f1/qpu_replay_report_{timestamp}{suffix}.json"
     
     report = {
         "log_source": args.log,
