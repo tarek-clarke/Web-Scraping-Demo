@@ -398,6 +398,10 @@ class QuantumRouter:
             backend_qubits = 24
             
         pack_size = backend_qubits // qubits_per_circuit if qubits_per_circuit > 0 else 1
+        # Hard cap to 10 for large IBM systems to leave buffer qubits for SWAP routing (prevents NP-hard transpilation hangs)
+        if backend_qubits >= 156:
+            pack_size = min(pack_size, 10)
+            
         pack_size = max(1, pack_size)
         
         packed_circuits = []
