@@ -389,8 +389,40 @@ class QuantumRouter:
             bound_qc = self._bind_features(qc, features)
             circuits.append(bound_qc)
 
-        # 2. Transpile all circuits in a single batch (highly efficient)
-        transpiled_circuits = transpile(circuits, self._backend)
+        from qiskit import QuantumCircuit
+        qubits_per_circuit = circuits[0].num_qubits
+        clbits_per_circuit = circuits[0].num_clbits
+        
+        backend_qubits = getattr(self._backend, 'num_qubits', 24)
+        if callable(backend_qubits):
+            backend_qubits = 24
+            
+        pack_size = backend_qubits // qubits_per_circuit if qubits_per_circuit > 0 else 1
+        pack_size = max(1, pack_size)
+        
+        packed_circuits = []
+        pack_lengths = []
+        
+        for i in range(0, len(circuits), pack_size):
+            chunk = circuits[i : i + pack_size]
+            pack_lengths.append(len(chunk))
+            if len(chunk) == 1:
+                packed_circuits.append(chunk[0])
+            else:
+                packed_qc = QuantumCircuit(len(chunk) * qubits_per_circuit, len(chunk) * clbits_per_circuit)
+                for j, qc in enumerate(chunk):
+                    q_offset = j * qubits_per_circuit
+                    c_offset = j * clbits_per_circuit
+                    packed_qc.compose(
+                        qc,
+                        qubits=list(range(q_offset, q_offset + qubits_per_circuit)),
+                        clbits=list(range(c_offset, c_offset + clbits_per_circuit)),
+                        inplace=True
+                    )
+                packed_circuits.append(packed_qc)
+
+        # 2. Transpile all packed circuits in a single batch (highly efficient)
+        transpiled_circuits = transpile(packed_circuits, self._backend)
 
         # 3. Determine if it is an IBM backend
         try:
@@ -411,11 +443,24 @@ class QuantumRouter:
             print(f"[QPU] Submitted single QPU batch job with ID: {job.job_id()}")
             result = job.result()
             
-            for idx in range(len(feature_batch)):
+            for idx in range(len(packed_circuits)):
                 pub_result = result[idx]
                 reg_name = list(pub_result.data.keys())[0]
-                counts = getattr(pub_result.data, reg_name).get_counts()
-                results_counts.append(counts)
+                packed_counts = getattr(pub_result.data, reg_name).get_counts()
+                p_len = pack_lengths[idx]
+                
+                if p_len == 1:
+                    results_counts.append(packed_counts)
+                else:
+                    unpacked_dicts = [{} for _ in range(p_len)]
+                    for bitstring, count in packed_counts.items():
+                        clean_bits = bitstring.replace(" ", "")
+                        for j in range(p_len):
+                            end_idx = len(clean_bits) - j * clbits_per_circuit
+                            start_idx = len(clean_bits) - (j + 1) * clbits_per_circuit
+                            c_bits = clean_bits[start_idx:end_idx]
+                            unpacked_dicts[j][c_bits] = unpacked_dicts[j].get(c_bits, 0) + count
+                    results_counts.extend(unpacked_dicts)
         else:
             # Local simulator fallback
             job = self._backend.run(transpiled_circuits, shots=self.shots)
@@ -423,7 +468,21 @@ class QuantumRouter:
             counts_list = result.get_counts()
             if not isinstance(counts_list, list):
                 counts_list = [counts_list]
-            results_counts = counts_list
+                
+            for idx, packed_counts in enumerate(counts_list):
+                p_len = pack_lengths[idx]
+                if p_len == 1:
+                    results_counts.append(packed_counts)
+                else:
+                    unpacked_dicts = [{} for _ in range(p_len)]
+                    for bitstring, count in packed_counts.items():
+                        clean_bits = bitstring.replace(" ", "")
+                        for j in range(p_len):
+                            end_idx = len(clean_bits) - j * clbits_per_circuit
+                            start_idx = len(clean_bits) - (j + 1) * clbits_per_circuit
+                            c_bits = clean_bits[start_idx:end_idx]
+                            unpacked_dicts[j][c_bits] = unpacked_dicts[j].get(c_bits, 0) + count
+                    results_counts.extend(unpacked_dicts)
 
         # 5. Decode results
         results: List[Tuple[str, float]] = []

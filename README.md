@@ -68,6 +68,9 @@ python run_matrix.py
 | Drifted (GPU reconciliation) | 2,500 (10%) |
 | GPU batches per reconciler | 79 (batch_size=32) |
 
+> [!NOTE]
+> **Training Packet Discrepancy**: While the JSON and Schema chaos generators reliably hit the full target packet counts, the `qwen` semantic chaos drift method utilizes ~2,000 packets for training rather than the full 2,500. This is because the local LLM occasionally hallucinates unparseable JSON or violates hard length constraints during generation, causing those malformed packets to be dropped from the clean ingestion baseline.
+
 ## 10-Repetition Systems & QPU Benchmark Results (Placeholders)
 
 The following tables show the results of the 10-repetition sweeps comparing the classical reconciler tiers, the GPU-accelerated Quantum VQC Simulator, and the physical Star VLQ 24-Qubit QPU backend across all 10 API sources. 

@@ -324,10 +324,9 @@ class VLQBackend(QuantumBackend):
     def execute_batch(self, circuits: list, shots: int = 1024) -> list:
         """Submit a list of circuits in batches to minimise QaaS overhead.
 
-        Circuits are chunked into groups of ``self.batch_size``.  Each
-        chunk is submitted as one job, keeping per-job API latency from
-        dominating total wall-clock time.
-
+        Circuits are dynamically packed (multi-programming) into the QPU's width
+        to maximize throughput (e.g. packing two 12-qubit circuits into 24 qubits).
+        
         Returns
         -------
         list[dict]
@@ -336,26 +335,69 @@ class VLQBackend(QuantumBackend):
         if self._backend is None:
             self._init()
 
-        from qiskit import transpile
+        from qiskit import transpile, QuantumCircuit
+
+        qubits_per_circuit = circuits[0].num_qubits
+        clbits_per_circuit = circuits[0].num_clbits
+        pack_size = 24 // qubits_per_circuit if qubits_per_circuit > 0 else 1
+        pack_size = max(1, pack_size)
+        
+        packed_circuits = []
+        pack_lengths = []
+        
+        for i in range(0, len(circuits), pack_size):
+            chunk = circuits[i : i + pack_size]
+            pack_lengths.append(len(chunk))
+            if len(chunk) == 1:
+                packed_circuits.append(chunk[0])
+            else:
+                packed_qc = QuantumCircuit(len(chunk) * qubits_per_circuit, len(chunk) * clbits_per_circuit)
+                for j, qc in enumerate(chunk):
+                    q_offset = j * qubits_per_circuit
+                    c_offset = j * clbits_per_circuit
+                    packed_qc.compose(
+                        qc,
+                        qubits=list(range(q_offset, q_offset + qubits_per_circuit)),
+                        clbits=list(range(c_offset, c_offset + clbits_per_circuit)),
+                        inplace=True
+                    )
+                packed_circuits.append(packed_qc)
 
         all_counts: list = []
-        total = len(circuits)
+        total = len(packed_circuits)
+        
         for start in range(0, total, self.batch_size):
-            chunk = circuits[start : start + self.batch_size]
+            chunk = packed_circuits[start : start + self.batch_size]
+            chunk_lengths = pack_lengths[start : start + self.batch_size]
+            
             transpiled_chunk = [transpile(c, self._backend) for c in chunk]
             n_batch = start // self.batch_size + 1
             n_total = (total - 1) // self.batch_size + 1
             print(
                 f"[VLQBackend] Submitting batch {n_batch}/{n_total} "
-                f"({len(chunk)} circuits) …"
+                f"({len(chunk)} packed circuits, containing {sum(chunk_lengths)} original circuits) …"
             )
             job = self._backend.run(transpiled_chunk, shots=shots)
             result = job.result()
-            for i in range(len(chunk)):
+            for i, p_len in enumerate(chunk_lengths):
                 try:
-                    all_counts.append(result.get_counts(i))
+                    packed_counts = result.get_counts(i)
                 except Exception:
-                    all_counts.append(result.get_counts())
+                    packed_counts = result.get_counts()
+                    
+                if p_len == 1:
+                    all_counts.append(packed_counts)
+                else:
+                    unpacked_dicts = [{} for _ in range(p_len)]
+                    for bitstring, count in packed_counts.items():
+                        clean_bits = bitstring.replace(" ", "")
+                        for j in range(p_len):
+                            end_idx = len(clean_bits) - j * clbits_per_circuit
+                            start_idx = len(clean_bits) - (j + 1) * clbits_per_circuit
+                            c_bits = clean_bits[start_idx:end_idx]
+                            unpacked_dicts[j][c_bits] = unpacked_dicts[j].get(c_bits, 0) + count
+                            
+                    all_counts.extend(unpacked_dicts)
 
         return all_counts
 
