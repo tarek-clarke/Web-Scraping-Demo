@@ -17,6 +17,7 @@ this file.**  Set them in a local ``.env`` file (which is git-ignored) or
 export them in your shell before invoking any QPU run.
 """
 
+import os
 from abc import ABC, abstractmethod
 from typing import Dict, Optional
 
