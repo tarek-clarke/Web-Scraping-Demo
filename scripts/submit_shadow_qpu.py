@@ -29,7 +29,7 @@ def main():
     parser.add_argument("--log", type=str, required=True,
                         help="Path to the shadow_log_*.json file generated during the live run")
     parser.add_argument("--backend", type=str, default="ibm_quantum",
-                        choices=["aer_simulator", "ibm_quantum", "lumi_q"],
+                        choices=["aer_simulator", "ibm_quantum", "lumi_q", "vlq"],
                         help="Quantum hardware/simulator backend to target")
     parser.add_argument("--shots", type=int, default=1024,
                         help="Number of shots per circuit execution (default: 1024)")
