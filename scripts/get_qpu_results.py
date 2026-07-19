@@ -46,7 +46,7 @@ def main():
     if not token:
         token = getpass.getpass("Enter IBM Quantum API Key: ").strip()
 
-    instance = os.getenv("QISKIT_IBM_INSTANCE") or "crn:v1:bluemix:public:quantum-computing:us-east:a/139dcf0745314450af23aa33e3f8029a:d626fe8a-08ca-47ab-9412-7a93f954e2b0::"
+    instance = os.getenv("QISKIT_IBM_INSTANCE") or "crn:v1:bluemix:public:quantum-computing:us-east:a/139dcf0745314450af23aa33e3f8029a:e8e44711-fb96-4664-bca6-9cee8b03bd90::"
     channel = "ibm_cloud" if (len(token) == 44 or token.startswith("ApiKey-")) else "ibm_quantum_platform"
 
     print("[QPU] Connecting to QiskitRuntimeService...")

@@ -1,0 +1,105 @@
+{
+  "pipeline_version": "9d5d386d92e5d582b60bf6d327d5cc496f3f218c",
+  "hardware_backend": "Metal",
+  "device": "mps",
+  "model_versions": {
+    "bert": "sentence-transformers/all-MiniLM-L6-v2",
+    "gemma": "google/gemma-4-E4B-it"
+  },
+  "evaluations": [
+    {
+      "sample_id": "mock_sample_1",
+      "run_id": "mock_run_1",
+      "event_id": "mock_event_1",
+      "api_name": "finnhub",
+      "drift_type": "renamed_keys",
+      "drift_present": true,
+      "chaos_strategy": "schema",
+      "chaos_level": "5",
+      "target_key": "price",
+      "original_payload": {
+        "price": 182.5,
+        "currency": "USD"
+      },
+      "mutated_payload": {
+        "unit_price": 182.5,
+        "currency": "USD"
+      },
+      "reconciliation": {
+        "regex": {
+          "match": "price",
+          "confidence": 1.0,
+          "latency_ms": 1.603584000349656,
+          "fallback_used": false,
+          "fallback_reason": null,
+          "match_score": 1.0,
+          "resilience_P": 1.0,
+          "resilience_P2": 1.0
+        },
+        "levenshtein": {
+          "match": "price",
+          "confidence": 0.85,
+          "latency_ms": 1.499624999723892,
+          "fallback_used": false,
+          "fallback_reason": null,
+          "match_score": 1.0,
+          "resilience_P": 1.0,
+          "resilience_P2": 1.0
+        }
+      }
+    },
+    {
+      "sample_id": "mock_sample_2",
+      "run_id": "mock_run_2",
+      "event_id": "mock_event_2",
+      "api_name": "openmeteo",
+      "drift_type": "type_mismatch",
+      "drift_present": true,
+      "chaos_strategy": "json",
+      "chaos_level": "5",
+      "target_key": "temperature",
+      "original_payload": {
+        "temperature": 22.5,
+        "humidity": 65
+      },
+      "mutated_payload": {
+        "temperature": "22.5",
+        "humidity": 65
+      },
+      "reconciliation": {
+        "regex": {
+          "match": "temperature",
+          "confidence": 1.0,
+          "latency_ms": 0.0830419999147125,
+          "fallback_used": false,
+          "fallback_reason": null,
+          "match_score": 1.0,
+          "resilience_P": 1.0,
+          "resilience_P2": 1.0
+        },
+        "levenshtein": {
+          "match": "humidity",
+          "confidence": 0.7692307692307692,
+          "latency_ms": 0.003499999820633093,
+          "fallback_used": false,
+          "fallback_reason": null,
+          "match_score": 0.0,
+          "resilience_P": 0.8,
+          "resilience_P2": 0.75
+        }
+      }
+    }
+  ],
+  "resilience_summary": {
+    "global_resilience_mean_P": 0.95,
+    "global_resilience_mean_P2": 0.9375,
+    "by_drift_type": {
+      "renamed_keys": 1.0,
+      "type_mismatch": 0.9
+    },
+    "by_method": {
+      "regex": 1.0,
+      "levenshtein": 0.9
+    }
+  }
+}

@@ -426,7 +426,9 @@ class QuantumRouter:
                 packed_circuits.append(packed_qc)
 
         # 2. Transpile all packed circuits in a single batch (highly efficient)
-        transpiled_circuits = transpile(packed_circuits, self._backend)
+        import os
+        num_cpus = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else os.cpu_count() or 1
+        transpiled_circuits = transpile(packed_circuits, self._backend, num_processes=num_cpus)
 
         # 3. Determine if it is an IBM backend
         try:

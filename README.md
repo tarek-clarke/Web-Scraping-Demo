@@ -80,7 +80,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 |:---|:---:|:---:|:---:|:---:|:---:|
 | **Classical LLM (Gemma)** | 44.20% | 4593.70ms | 0.093J | 63.53mg | 0.0% |
 | **Quantum Router (Sim)**  | 92.00% | 3.05ms | 9.29J | 14.86mg | 76.61% |
-| **Quantum Router (IBM_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM_QPU)** | 93.00% | 124.20ms | 9.29J | 14.86mg | 76.61% |
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 > **Shadow Log Status**: 10 sequential shadow routing packet-capture runs have completed locally. The generated packet streams, emulated routing decisions, and features are stored under [data/reports/completed_shadow_runs/](file:///Users/tarekclarke/resilient-rap-framework/data/reports/completed_shadow_runs/). These shadow logs are ready to be fed directly to the physical QPU in Ostrava via `submit_shadow_qpu.py --backend vlq` once VLQ client registration/authentication on LUMI is confirmed.
@@ -98,7 +98,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | BERT | 93.79% | 75.437ms | 0.002J | 240.23mg |
 | Gemma-4B | 42.10% | 3855.591ms | 0.078J | 11050.40mg |
 | **Quantum Router (Sim)** | 96.80% | 25.93ms | 9.29J | 10834.12mg |
-| **Quantum Router (IBM_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM_QPU)** | 95.74% | 366.65ms | 9.29J | 10834.12mg |
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 2. Finnhub Financial Feeds
@@ -109,7 +109,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | BERT | 83.22% | 76.295ms | 0.002J | 243.11mg |
 | Gemma-4B | 60.97% | 3871.199ms | 0.079J | 11124.50mg |
 | **Quantum Router (Sim)** | 87.55% | 0.46ms | 9.29J | 10986.20mg |
-| **Quantum Router (IBM_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM_QPU)** | 86.25% | 114.32ms | 9.29J | 10986.20mg |
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 3. SpaceX Telemetry
@@ -120,7 +120,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | BERT | 87.69% | 2.332ms | 0.000J | 8.21mg |
 | Gemma-4B | 40.09% | 2442.795ms | 0.050J | 7015.42mg |
 | **Quantum Router (Sim)** | 95.00% | 0.47ms | 9.29J | 6831.25mg |
-| **Quantum Router (IBM_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM_QPU)** | 91.59% | 6.91ms | 9.29J | 6831.25mg |
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 4. OpenWeather Vectors
@@ -131,7 +131,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | BERT | 86.69% | 11.304ms | 0.000J | 36.17mg |
 | Gemma-4B | 50.50% | 3464.710ms | 0.071J | 9951.25mg |
 | **Quantum Router (Sim)** | 91.51% | 0.46ms | 9.29J | 9741.05mg |
-| **Quantum Router (IBM_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM_QPU)** | 98.41% | 8.93ms | 9.29J | 9741.05mg |
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 5. FDA Clinical Records

@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=16
-#SBATCH --time=00:10:00
+#SBATCH --time=02:00:00
 #SBATCH --output=qpu_replay_%j.out
 #SBATCH --error=qpu_replay_%j.err
 
@@ -22,4 +22,4 @@ source "$PROJECT_ROOT/.venv-lumi/bin/activate"
 
 # Execute QPU shadow replayer
 export PYTHONPATH=.
-python3 scripts/submit_shadow_qpu.py --log "${1}" --backend "${2:-aer_simulator}"
+python3 -u scripts/submit_shadow_qpu.py --log "${1}" --backend "${2:-aer_simulator}"
