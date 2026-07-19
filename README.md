@@ -4,11 +4,11 @@
 
 ## Overview
 
-Executes a 100-combination matrix: **10 APIs × 3 Chaos Methods × 4 Reconcilers × 1 Iteration** across heterogeneous hardware platforms.
+Executes a 108-combination matrix: **9 APIs × 3 Chaos Methods × 4 Reconcilers × 1 Iteration** across heterogeneous hardware platforms.
 
 ### Components
 
-- **Ingestion**: Seeding and synthetically generating telemetry for 10 domains (OpenF1, Finnhub, SpaceX, OpenMeteo, FDA Clinical, NHL Hockey Event Streams, OpenSky Aviation Vectors, UEFA Football Match Events, SensorCommunity IoT, TfL Transit Predictions).
+- **Ingestion**: Seeding and synthetically generating telemetry for 9 domains (OpenF1, Finnhub, SpaceX, OpenMeteo, FDA Clinical, NHL Hockey Event Streams, OpenSky Aviation Vectors, UEFA Football Match Events, TfL Transit Predictions).
 - **Chaos Engineering**: 10% injection rate via Qwen2.5-7B (semantic synonyms), JSON manipulation (structure/value changes), schema alteration (type/nesting depth).
 - **Reconciliation**: Levenshtein, Regex, BERT (MiniLM-v2), Gemma E4B-it.
 - **Hardware Detection**: Auto-bootstrap for CUDA, ROCm, Apple Silicon, CPU with VRAM probing.
@@ -16,9 +16,9 @@ Executes a 100-combination matrix: **10 APIs × 3 Chaos Methods × 4 Reconcilers
 
 ### Target Volume
 
-- **25,000 packets** total (2,500 per API source across all 10 domains)
-- **2,500 chaos injections** (10% of total)
-- **22,500 clean packets** (fast-path bypass, no GPU)
+- **22,500 packets** total (2,500 per API source across all 9 domains)
+- **2,250 chaos injections** (10% of total)
+- **20,250 clean packets** (fast-path bypass, no GPU)
 
 
 ## Hardware Platform
@@ -56,16 +56,16 @@ python run_matrix.py
 
 ### Run Matrix (120 Runs)
 
-- 10 APIs × 3 chaos methods × 4 reconcilers × 1 iteration = 120 total runs (for classical baseline sweep)
-- 10 APIs × 3 chaos methods × 1 quantum-routed × 1 iteration = 30 total runs (for quantum routing sweep)
+- 9 APIs × 3 chaos methods × 4 reconcilers × 1 iteration = 108 total runs (for classical baseline sweep)
+- 9 APIs × 3 chaos methods × 1 quantum-routed × 1 iteration = 27 total runs (for quantum routing sweep)
 
-### Per-Run Data (25,000 Packets)
+### Per-Run Data (22,500 Packets)
 
 | Metric | Value |
 |--------|-------|
-| Total packets | 25,000 (2,500 per API) |
-| Clean (fast-path bypass) | 22,500 (90%) |
-| Drifted (GPU reconciliation) | 2,500 (10%) |
+| Total packets | 22,500 (2,500 per API) |
+| Clean (fast-path bypass) | 20,250 (90%) |
+| Drifted (GPU reconciliation) | 2,250 (10%) |
 | GPU batches per reconciler | 79 (batch_size=32) |
 
 > [!NOTE]
@@ -73,7 +73,7 @@ python run_matrix.py
 
 ## 10-Repetition Systems & QPU Benchmark Results (Placeholders)
 
-The following tables show the results of the 10-repetition sweeps comparing the classical reconciler tiers, the GPU-accelerated Quantum VQC Simulator, and the physical Star VLQ 24-Qubit QPU backend across all 10 API sources. 
+The following tables show the results of the 10-repetition sweeps comparing the classical reconciler tiers, the GPU-accelerated Quantum VQC Simulator, and the physical Star VLQ 24-Qubit QPU backend across all 9 API sources. 
 
 ### Global Performance, Energy, and Carbon savings Summary
 | Routing Strategy | Mean Accuracy (%) | Avg Latency (ms) | Energy / Packet (J) | Carbon / Packet (mg CO2e) | Carbon Saved vs. Gemma Baseline (%) |
@@ -337,7 +337,7 @@ source .venv-lumi/bin/activate
 
 ### Step 2 — Submit 10 Shadow Routing GPU Runs
 
-This runs `live_gpu_decoder.py` with `--shadow-routing` on 10 SLURM GPU jobs. Each run processes 25,000 packets, injects 10% chaos, and saves a `shadow_log_*.json` capturing packet features + emulator routing decisions.
+This runs `live_gpu_decoder.py` with `--shadow-routing` on 10 SLURM GPU jobs. Each run processes 22,500 packets, injects 10% chaos, and saves a `shadow_log_*.json` capturing packet features + emulator routing decisions.
 
 ```bash
 bash submit_shadow_runs.sh
@@ -581,14 +581,14 @@ Results saved to `data/reports/<hardware_type>/`:
 |-------|-------------|
 | run_id | 0-119 (classical) / 0-29 (quantum) |
 | iteration | 1 |
-| api | 10 sources (openf1, finnhub, spacex, openweather, clinical, hockey_nhl, aviation_opensky, football_uefa, industrial_iiot, smartcity_transit) |
+| api | 9 sources (openf1, finnhub, spacex, openweather, clinical, hockey_nhl, aviation_opensky, football_uefa, smartcity_transit) |
 | chaos_method | qwen / json_manip / schema_alter |
 | chaos_sub_type | e.g., field_split, translation, contextual_rename |
 | reconciler | levenshtein / regex / bert / gemma_e4b / quantum_routed |
 | reconciliation_status | SUCCESS / FALSE_POSITIVE / FAILURE |
-| packets_total | 25,000 |
-| packets_clean | 22,500 |
-| packets_drifted | 2,500 |
+| packets_total | 22,500 |
+| packets_clean | 20,250 |
+| packets_drifted | 2,250 |
 | fast_path_latency_ms | CPU time for clean packet bypass |
 | gpu_latency_ms | MI250X processing time |
 | drift_events | array of {source_field, drifted_field, sub_type, status} |

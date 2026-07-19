@@ -44,3 +44,4 @@ vlq_submit_run*.sh
 *lexis_token*
 *qaas_token*
 configs/vlq_*.json
+.venv/

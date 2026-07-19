@@ -6,6 +6,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=16
 #SBATCH --time=02:00:00
+#SBATCH --mem=60G
 #SBATCH --output=qpu_replay_%j.out
 #SBATCH --error=qpu_replay_%j.err
 
