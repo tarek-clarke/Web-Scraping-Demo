@@ -1,3 +1,0 @@
-drift_type,regex_acc,levenshtein_acc,bert_acc,gemma_acc
-renamed_keys,1.0,1.0,0.0,0.0
-type_mismatch,1.0,0.0,0.0,0.0
