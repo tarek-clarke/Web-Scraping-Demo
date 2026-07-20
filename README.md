@@ -59,7 +59,6 @@ The active workflow and evaluation pipeline for the paper are driven by the foll
 | Workflow Phase | Core Script | Description |
 |:---|:---|:---|
 | **Classical & Sim Benchmarks** | [`run_matrix.py`](file:///Users/tarekclarke/resilient-rap-framework/run_matrix.py) | Executes the 108-combination matrix across classical reconcilers (Levenshtein, Regex, BERT, Gemma) and the 12-qubit Quantum Aer Simulator. |
-| **Live Shadow Routing** | [`live_gpu_decoder.py`](file:///Users/tarekclarke/resilient-rap-framework/live_gpu_decoder.py) | Evaluates live stream telemetry on-the-fly, extracting feature entropy and generating shadow routing logs. |
 | **Quantum Router (VQC)** | [`src/routing/quantum_router.py`](file:///Users/tarekclarke/resilient-rap-framework/src/routing/quantum_router.py) | Implements the 12-qubit Variational Quantum Classifier (VQC) deployed on the 24-qubit IBM QPU backend. |
 | **Physical QPU Replay** | [`scripts/submit_shadow_qpu.py`](file:///Users/tarekclarke/resilient-rap-framework/scripts/submit_shadow_qpu.py) / [`fetch_qpu_results.py`](file:///Users/tarekclarke/resilient-rap-framework/scripts/fetch_qpu_results.py) | Submits shadow routing telemetry to physical IBM QPU quantum hardware and fetches result execution manifests. |
 | **SLURM Batch Orchestration** | [`scripts/slurm/submit_shadow_runs.sh`](file:///Users/tarekclarke/resilient-rap-framework/scripts/slurm/submit_shadow_runs.sh) | Dispatches parallel multi-GPU shadow routing jobs across HPC clusters. |
@@ -67,7 +66,6 @@ The active workflow and evaluation pipeline for the paper are driven by the foll
 ### Consolidated Paper Artifacts Directory (`data/paper_2026/`)
 All primary datasets and execution logs used in the manuscript are unified via live symlinks in [`data/paper_2026/`](file:///Users/tarekclarke/resilient-rap-framework/data/paper_2026):
 - `data/paper_2026/qpu_runs`: Live symlink to physical IBM QPU execution results (`data/reports/quantum_MI250X_ibm_qpu`).
-- `data/paper_2026/qpu_replay_report_IBM_QPU.json`: Live symlink to physical IBM QPU shadow replay report (`data/reports/live_f1/qpu_replay_report_20260717_214239_IBM_QPU.json`).
 - `data/paper_2026/shadow_runs`: Live symlink to completed GPU shadow decoder runs (`data/reports/completed_shadow_runs`).
 - `data/paper_2026/classical_and_sim_sweeps`: Live symlink to 10-rep matrix benchmarks (`data/reports/quantum_MI250X_10rep_success`).
 - `data/paper_2026/telemetry_clean_bench_22500.json`: Filtered 9-API benchmark dataset (22,500 packets total).
@@ -211,39 +209,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 
-## Live F1 Telemetry Decoder (LUMI Deployment)
 
-This pipeline runs a real-time, GPU-accelerated schema reconciliation loop on live F1 telemetry data from OpenF1 on LUMI. 
-
-Because LUMI compute nodes do not have external internet access, the pipeline uses a **dual-node architecture**:
-1. **Go Ingestor** (runs on a login/interactive node): Streams live telemetry from `api.openf1.org` and writes to the shared Lustre directory.
-2. **GPU Decoder** (runs on a compute node under SLURM): Polls the ingested telemetry, injects schema/JSON drift, and runs the BERT/reconciler model on the AMD MI250X GPU in batches.
-
-### Step-by-Step Instructions
-
-#### 1. Start the Ingestor (Terminal 1 - Login Node)
-Navigate to the Go ingestion directory and execute the ingestor. This will download and write packets to `data/ingested/telemetry_latest.json`.
-```bash
-cd go/ingestion
-go run .
-```
-*Note: This runs in the background asynchronously writing and flushing packets atomically to prevent blocking I/O starvation.*
-
-#### 2. Start the Decoder (Terminal 2 - Compute Node via SLURM)
-From the project root directory, submit the SLURM job to allocate a `dev-g` node with an AMD MI250X GPU:
-```bash
-sbatch submit_live_decoder.slurm
-```
-
-To watch the live decoding statistics (warmup, throughput, accuracy, and average latency per packet), run:
-```bash
-tail -f live_decoder_<JOB_ID>.out
-```
-
-#### 3. Stopping the Pipeline
-* **Ingestor**: Press `Ctrl+C` in your Go terminal to gracefully terminate and write the final file.
-* **Decoder**: Cancel the SLURM job using `scancel <JOB_ID>`.
-* **Reports**: Results, including a metrics CSV and a JSON provenance manifest, are automatically written to `data/reports/live_f1/`.
 
 ---
 
@@ -356,42 +322,20 @@ module load cray-python/3.10.10
 source .venv-lumi/bin/activate
 ```
 
-### Step 2 — Submit 10 Shadow Routing GPU Runs
-
-This runs `live_gpu_decoder.py` with `--shadow-routing` on 10 SLURM GPU jobs. Each run processes 22,500 packets, injects 10% chaos, and saves a `shadow_log_*.json` capturing packet features + emulator routing decisions.
-
-```bash
-bash submit_shadow_runs.sh
-```
-
-Outputs will appear in:
-```
-data/reports/shadow_routing_10rep/run_1/
-  ├── shadow_log_<timestamp>.json      ← packet features for QPU replay
-  ├── live_results_<timestamp>.csv     ← per-packet accuracy/latency
-  ├── manifest_<timestamp>.json        ← run provenance
-  └── drift_details_<timestamp>.jsonl  ← per-packet chaos details
-...
-data/reports/shadow_routing_10rep/run_10/
-```
-
-Monitor job progress:
-```bash
-squeue -u $USER
-tail -f shadow_rep_1_<JOB_ID>.out
-```
+### Step 2 — Verify Completed Shadow Routing Logs
+The completed shadow routing runs (consisting of packet feature logs and VQC emulator decisions) are located in `data/reports/completed_shadow_runs/`. These files serve as the input for physical QPU replay.
 
 ### Step 3 — Submit Shadow Logs to Physical QPU
 
-Once a run completes and `shadow_log_*.json` exists, submit it to IBM Quantum:
+Once a shadow run log (`shadow_log_*.json`) is isolated, submit it to IBM Quantum for physical execution replay:
 
 ```bash
 # Set your IBM Quantum API key
 export QISKIT_IBM_TOKEN="your_ibm_token_here"
 
-# Submit one log to physical QPU
+# Submit shadow log to physical QPU
 python3 scripts/submit_shadow_qpu.py \
-  --log data/reports/shadow_routing_10rep/run_1/shadow_log_<timestamp>.json \
+  --log data/reports/completed_shadow_runs/run_1/shadow_log_<timestamp>.json \
   --backend ibm_quantum \
   --shots 1024
 ```
@@ -411,9 +355,7 @@ The currently executing physical QPU benchmark uses the following properties:
 * **Shots per Circuit**: 1,024
 * **Ansatz Config**: `ZZFeatureMap` (2 reps) + `RealAmplitudes` (2 reps) on 12 qubits
 
-### Step 4 — Retrieve & Compare Results
-
-Results are saved automatically to `data/reports/live_f1/qpu_replay_report_<timestamp>.json`:
+Results are saved automatically to the specified output reports directory:
 
 ```json
 {
