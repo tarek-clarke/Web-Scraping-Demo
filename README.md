@@ -67,7 +67,8 @@ The active workflow and evaluation pipeline for the paper are driven by the foll
 ### Consolidated Paper Artifacts Directory (`data/paper_2026/`)
 All primary datasets and execution logs used in the manuscript are unified via live symlinks in [`data/paper_2026/`](file:///Users/tarekclarke/resilient-rap-framework/data/paper_2026):
 - `data/paper_2026/qpu_runs`: Live symlink to physical IBM QPU execution results (`data/reports/quantum_MI250X_ibm_qpu`).
-- `data/paper_2026/shadow_runs`: Live symlink to GPU shadow decoder runs (`data/reports/live_f1`).
+- `data/paper_2026/qpu_replay_report_IBM_QPU.json`: Live symlink to physical IBM QPU shadow replay report (`data/reports/live_f1/qpu_replay_report_20260717_214239_IBM_QPU.json`).
+- `data/paper_2026/shadow_runs`: Live symlink to completed GPU shadow decoder runs (`data/reports/completed_shadow_runs`).
 - `data/paper_2026/classical_and_sim_sweeps`: Live symlink to 10-rep matrix benchmarks (`data/reports/quantum_MI250X_10rep_success`).
 - `data/paper_2026/telemetry_clean_bench_22500.json`: Filtered 9-API benchmark dataset (22,500 packets total).
 - `data/paper_2026/telemetry_clean_bench_25000.json`: 10-API raw benchmark dataset (25,000 packets total).
