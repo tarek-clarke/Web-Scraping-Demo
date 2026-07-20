@@ -52,6 +52,26 @@ python scripts/upload_to_r2.py
 python run_matrix.py
 ```
 
+## Core Paper Workflow & Active Scripts
+
+The active workflow and evaluation pipeline for the paper are driven by the following core scripts:
+
+| Workflow Phase | Core Script | Description |
+|:---|:---|:---|
+| **Classical & Sim Benchmarks** | [`run_matrix.py`](file:///Users/tarekclarke/resilient-rap-framework/run_matrix.py) | Executes the 108-combination matrix across classical reconcilers (Levenshtein, Regex, BERT, Gemma) and the 12-qubit Quantum Aer Simulator. |
+| **Live Shadow Routing** | [`live_gpu_decoder.py`](file:///Users/tarekclarke/resilient-rap-framework/live_gpu_decoder.py) | Evaluates live stream telemetry on-the-fly, extracting feature entropy and generating shadow routing logs. |
+| **Quantum Router (VQC)** | [`src/routing/quantum_router.py`](file:///Users/tarekclarke/resilient-rap-framework/src/routing/quantum_router.py) | Implements the 12-qubit Variational Quantum Classifier (VQC) deployed on the 24-qubit IBM QPU backend. |
+| **Physical QPU Replay** | [`scripts/submit_shadow_qpu.py`](file:///Users/tarekclarke/resilient-rap-framework/scripts/submit_shadow_qpu.py) / [`fetch_qpu_results.py`](file:///Users/tarekclarke/resilient-rap-framework/scripts/fetch_qpu_results.py) | Submits shadow routing telemetry to physical IBM QPU quantum hardware and fetches result execution manifests. |
+| **SLURM Batch Orchestration** | [`scripts/slurm/submit_shadow_runs.sh`](file:///Users/tarekclarke/resilient-rap-framework/scripts/slurm/submit_shadow_runs.sh) | Dispatches parallel multi-GPU shadow routing jobs across HPC clusters. |
+
+### Consolidated Paper Artifacts Directory (`data/paper_2026/`)
+All primary datasets and execution logs used in the manuscript are unified via live symlinks in [`data/paper_2026/`](file:///Users/tarekclarke/resilient-rap-framework/data/paper_2026):
+- `data/paper_2026/qpu_runs`: Live symlink to physical IBM QPU execution results (`data/reports/quantum_MI250X_ibm_qpu`).
+- `data/paper_2026/shadow_runs`: Live symlink to GPU shadow decoder runs (`data/reports/live_f1`).
+- `data/paper_2026/classical_and_sim_sweeps`: Live symlink to 10-rep matrix benchmarks (`data/reports/quantum_MI250X_10rep_success`).
+- `data/paper_2026/telemetry_clean_bench_22500.json`: Filtered 9-API benchmark dataset (22,500 packets total).
+- `data/paper_2026/telemetry_clean_bench_25000.json`: 10-API raw benchmark dataset (25,000 packets total).
+
 ## Benchmark Configuration
 
 ### Run Matrix (120 Runs)
