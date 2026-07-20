@@ -546,37 +546,7 @@ Modifies schema types, key capitalization, or structural nesting levels.
 | BERT (MiniLM-v2) | Embedding similarity | Medium (GPU) |
 | Gemma E4B-it | 4B LLM | Slow (GPU) |
 
-## Heterogeneous Supercomputer Docker Build & Run
-
-A single unified Docker container serves all EuroHPC environments. The entrypoint script dynamically detects hardware capabilities (CUDA/ROCm/CPU) and binds runtime configurations.
-
-### 1. Build Container Image
-
-```bash
-docker build -t resilient-rap-framework:latest .
-```
-
-### 2. Runtime Execution & Bootstrapping
-
-To run the full benchmark on local environments or inside supercomputer partitions, mount the workspace and optionally pass API keys:
-
-```bash
-# General Docker Execution with GPU access (CUDA / NVIDIA)
-docker run --gpus all \
-  -e IBM_QUANTUM_API_TOKEN="YOUR_API_KEY" \
-  -v $(pwd)/data:/workspace/data \
-  -v $(pwd)/metrics:/workspace/metrics \
-  resilient-rap-framework:latest
-
-# AMD ROCm / LUMI-G Interactive Docker (using ROCm DRI device access)
-docker run --device=/dev/kfd --device=/dev/dri \
-  -e IBM_QUANTUM_API_TOKEN="YOUR_API_KEY" \
-  -v $(pwd)/data:/workspace/data \
-  -v $(pwd)/metrics:/workspace/metrics \
-  resilient-rap-framework:latest
-```
-
-### 3. IBM Quantum training on QPU instance
+## Physical IBM QPU Training
 
 To trigger the `RoutingTrainer` using the physical IBM QPU hardware (e.g. `ibm_quantum` backend) rather than the local simulator, invoke:
 
@@ -665,7 +635,6 @@ apptainer run --rocm --bind /sys:/sys,$(pwd):/workspace resilient-rap.sif run_ma
 
 ```
 resilient-data/
-├── go/ingestion/          # Go async streaming clients
 ├── src/
 │   ├── chaos/             # Chaos injection engines (qwen, json_manip, schema_alter)
 │   │   ├── injector.py    # Main injector with sub_type tracking
@@ -676,10 +645,8 @@ resilient-data/
 │   ├── hardware/          # Detection & VRAM probing
 │   ├── orchestration/     # Matrix executor (Dual-Stage Gatekeeper)
 │   └── telemetry/        # IEEE-formatted logging
-├── scripts/               # upload_to_r2.py, mock_stream.py
+├── scripts/               # QPU submissions, SLURM jobs, and data utilities
 ├── models/                # GGUF model storage
-├── deploy/                # Docker, Slurm, native scripts
-├── configs/               # API endpoints, hardware profiles
 └── data/                  # Ingestion, chaos logs, results
 ```
 
