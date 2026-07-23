@@ -77,8 +77,8 @@ as the source of truth.
 
 ## Fresh Start Runbook
 
-Use this when you want to archive the existing outputs and rerun the whole
-pipeline from scratch.
+Use this when you want to archive the benchmark outputs and rerun the GPU/CPU
+pipeline from scratch. It keeps the ingested corpus in place.
 
 ### Stage 0: Archive Existing Outputs
 
@@ -103,8 +103,9 @@ do
 done
 ```
 
-If you want to keep the raw ingested corpus, leave
-`data/ingested/telemetry_clean_bench_22500.json` in place.
+This archives the benchmark outputs only. It does not touch
+`data/ingested/telemetry_clean_bench_22500.json` or any other ingested corpus
+files.
 
 ### Stage 1: Clone and Enter the Repo
 

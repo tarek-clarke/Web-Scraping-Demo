@@ -3,6 +3,11 @@
 This is the active paper workflow for the 9-API, 22,500-packet corpus. It
 replaces the legacy 81-job matrix and shadow-replay paths.
 
+If you are restarting from scratch, archive the benchmark outputs only
+(`data/reports/`, `data/training/qpu_router_multistart_v2/`, the frozen oracle
+files, and the selected router configs). Keep the ingested corpus in
+`data/ingested/` in place.
+
 ## What changed
 
 - Stage 1 compares packet schemas, not changing telemetry values.
