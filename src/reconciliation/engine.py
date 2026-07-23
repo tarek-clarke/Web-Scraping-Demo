@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple
 from .levenshtein_rec import LevenshteinReconciler
 from .regex_rec import RegexReconciler
 from .bert_rec import BERTReconciler
-from .gemma_e4b_rec import GemmaE4BReconciler
+from .gemma_e4b_rec import GemmaE2BReconciler
 from .nemotron_rec import NemotronReconciler
 
 class ReconciliationEngine:
@@ -13,7 +13,7 @@ class ReconciliationEngine:
             "levenshtein": LevenshteinReconciler(),
             "regex": RegexReconciler(),
             "bert": BERTReconciler(hardware_profile, batch_size),
-            "gemma_e4b": GemmaE4BReconciler(hardware_profile, batch_size),
+            "gemma_e2b": GemmaE2BReconciler(hardware_profile, batch_size),
             "nemotron": NemotronReconciler(hardware_profile, batch_size),
         }
 
@@ -56,11 +56,11 @@ class ReconciliationEngine:
         ]
 
     def reconcile_gemma_batch(self, pairs: List[Tuple[Dict, Dict]], progress_cb=None) -> List[Dict]:
-        gemma = self.reconcilers.get("gemma_e4b")
+        gemma = self.reconcilers.get("gemma_e2b")
         if gemma and hasattr(gemma, "reconcile_batch"):
             return gemma.reconcile_batch(pairs, progress_cb=progress_cb)
         return [
-            self.reconcile({"data": orig}, {"data": drift}, "gemma_e4b")
+            self.reconcile({"data": orig}, {"data": drift}, "gemma_e2b")
             for orig, drift in pairs
         ]
 
@@ -88,9 +88,9 @@ class ReconciliationEngine:
         reconciler_name, confidence = router.route_packet(features)
         routing_latency_ms = (time.perf_counter() - start_time) * 1000
         
-        # Policy: Drop gemma_e4b from routing UNLESS routing confidence is very low (< 0.40),
+        # Policy: Drop gemma_e2b from routing UNLESS routing confidence is very low (< 0.40),
         # which indicates high ambiguity and justifies using the slower LLM reconciler.
-        if reconciler_name == "gemma_e4b" and confidence >= 0.40:
+        if reconciler_name == "gemma_e2b" and confidence >= 0.40:
             reconciler_name = "bert"
             
         # Reconcile using selected reconciler

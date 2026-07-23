@@ -43,7 +43,7 @@ fi
 
 # Set environment variables for LUMI
 export IS_LUMI=1
-export HF_MODEL_ID=${HF_MODEL_ID:-"google/gemma-4-E4B-it"}
+export HF_MODEL_ID=${HF_MODEL_ID:-"google/gemma-4-E2B-it"}
 export CHAOS_MODEL_ID=${CHAOS_MODEL_ID:-"Qwen/Qwen2.5-7B-Instruct"}
 export USE_LLM_CHAOS=${USE_LLM_CHAOS:-"true"}
 

@@ -108,11 +108,11 @@ class ModelManager:
     Multi-platform model manager with automatic hardware detection.
     
     Create separate instances for reconciliation vs chaos models:
-        recon_model = ModelManager(model_id="google/gemma-4-E4B-it")
+        recon_model = ModelManager(model_id="google/gemma-4-E2B-it")
         chaos_model = ModelManager(model_id="Qwen/Qwen2.5-7B-Instruct")
     
     Environment variables:
-        HF_MODEL_ID: Model identifier (default: google/gemma-4-E4B-it)
+        HF_MODEL_ID: Model identifier (default: google/gemma-4-E2B-it)
         HF_TOKEN: Hugging Face API token
         HF_ENDPOINT: Custom Hugging Face endpoint (for mirrors/proxies)
         HF_HUB_OFFLINE: Use cached models only (1/true/yes)
@@ -131,7 +131,7 @@ class ModelManager:
         """Initialize model manager with auto-detected backend."""
         
         # Environment configuration
-        self.model_id = model_id or os.environ.get("HF_MODEL_ID", "google/gemma-4-E4B-it")
+        self.model_id = model_id or os.environ.get("HF_MODEL_ID", "google/gemma-4-E2B-it")
         self.hf_token = os.environ.get("HF_TOKEN")
         self.hf_endpoint = os.environ.get("HF_ENDPOINT")
         self.hf_offline = os.environ.get("HF_HUB_OFFLINE", "").lower() in ("1", "true", "yes")

@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
-class GemmaE4BReconciler:
+class GemmaE2BReconciler:
     def __init__(self, hardware_profile: str = "cpu", batch_size: int = 4, llm_manager=None):
         self.batch_size = batch_size
         self.hardware_profile = hardware_profile
@@ -17,7 +17,7 @@ class GemmaE4BReconciler:
         if self._llm is None:
             from ..inference.llm_manager import LLMManager
             import os as _os
-            model_id = _os.environ.get("GEMMA_MODEL_ID", _os.environ.get("HF_MODEL_ID", "google/gemma-4-E4B-it"))
+            model_id = _os.environ.get("GEMMA_MODEL_ID", _os.environ.get("HF_MODEL_ID", "google/gemma-4-E2B-it"))
             device = "cuda" if self.hardware_profile in ("cuda", "rocm") else "mps" if self.hardware_profile == "silicon" else "cpu"
             self._llm = LLMManager(
                 model_id=model_id,
@@ -28,7 +28,7 @@ class GemmaE4BReconciler:
         return self._llm
 
     def _parse_json(self, text: str) -> Dict[str, str]:
-        # Strip Gemma 4 reasoning tags
+        # Strip Gemma 4 reasoning tags.
         text = re.sub(r'<\|think\|>.*?<\|/think\|>', '', text, flags=re.DOTALL)
         text = re.sub(r'```(?:json)?\s*', '', text)
         text = re.sub(r'```', '', text)
@@ -111,3 +111,6 @@ class GemmaE4BReconciler:
     def __del__(self):
         if self._own_manager and self._llm:
             self._llm.unload()
+
+
+GemmaE4BReconciler = GemmaE2BReconciler

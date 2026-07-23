@@ -33,7 +33,7 @@ import numpy as np
 
 MODEL_SCHEMA_VERSION = 2
 CIRCUIT_ID = "rap-tree-vqc-12q-v2"
-DEFAULT_CLASS_NAMES = ("levenshtein", "regex", "bert", "gemma_e4b")
+DEFAULT_CLASS_NAMES = ("levenshtein", "regex", "bert", "gemma_e2b")
 DEFAULT_FEATURE_COUNT = 10
 DEFAULT_REPS = 2
 IBM_MAX_EXECUTIONS = 10_000_000

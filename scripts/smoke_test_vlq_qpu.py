@@ -348,7 +348,7 @@ def main():
         # Decode the most likely class
         best_bits = top3[0][0]
         class_idx = int(best_bits, 2)
-        classes = {0: "levenshtein", 1: "regex", 2: "bert", 3: "gemma_e4b"}
+        classes = {0: "levenshtein", 1: "regex", 2: "bert", 3: "gemma_e2b"}
         predicted = classes.get(class_idx % 4, "bert")
         print(f"  Most probable class: {class_idx} → '{predicted}'")
         results["vqc_smoke"] = "PASS"

@@ -156,7 +156,7 @@ def main():
                 bound = _tmp_router._bind_features(qc, feat)
                 circuits.append(bound)
             all_counts = vlq_backend.execute_batch(circuits, shots=args.shots)
-            classes = {0: "levenshtein", 1: "regex", 2: "bert", 3: "gemma_e4b"}
+            classes = {0: "levenshtein", 1: "regex", 2: "bert", 3: "gemma_e2b"}
             for counts in all_counts:
                 best = max(counts, key=counts.get)
                 idx = int(best, 2) % 4

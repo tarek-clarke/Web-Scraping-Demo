@@ -6,7 +6,7 @@ from typing import Optional
 @dataclass
 class InferenceConfig:
     model_id: str = field(
-        default_factory=lambda: os.environ.get("HF_MODEL_ID", "google/gemma-4-E4B-it")
+        default_factory=lambda: os.environ.get("HF_MODEL_ID", "google/gemma-4-E2B-it")
     )
     hf_token: Optional[str] = field(
         default_factory=lambda: os.environ.get("HF_TOKEN", None)

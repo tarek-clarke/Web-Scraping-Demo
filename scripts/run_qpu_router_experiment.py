@@ -973,7 +973,7 @@ def enrich_prediction(
         "p_levenshtein": probabilities[0],
         "p_regex": probabilities[1],
         "p_bert": probabilities[2],
-        "p_gemma_e4b": probabilities[3],
+        "p_gemma_e2b": probabilities[3],
         "selected_reconciliation_accuracy": float(selected_metrics["accuracy"]),
         "selected_reconciliation_latency_ms": float(selected_metrics["latency_ms"]),
         "oracle_reconciliation_accuracy": float(
@@ -1070,7 +1070,7 @@ def write_decision_csv(path: Path, rows: Sequence[dict]) -> None:
         "p_levenshtein",
         "p_regex",
         "p_bert",
-        "p_gemma_e4b",
+        "p_gemma_e2b",
         "selected_reconciliation_accuracy",
         "selected_reconciliation_latency_ms",
         "oracle_reconciliation_accuracy",

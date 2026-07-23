@@ -1,7 +1,7 @@
 """
 quantum_router.py — Quantum-accelerated packet router for resilient-rap-framework.
 
-Selects the optimal reconciler (levenshtein, regex, bert, or gemma_e4b)
+Selects the optimal reconciler (levenshtein, regex, bert, or gemma_e2b)
 for each drifted data packet using Variational Quantum Classifier (VQC)
 circuits or, optionally, QAOA-based batch optimization.
 
@@ -45,7 +45,7 @@ class QuantumRouter:
         ``"vqc"`` for per-packet classification, ``"qaoa"`` for batch
         optimisation (QAOA support is planned).
     enable_gemma : bool
-        When *True* the fourth reconciler class (``gemma_e4b``) is
+        When *True* the fourth reconciler class (``gemma_e2b``) is
         enabled.  Disabled by default because MI250X benchmarks showed
         unacceptable latency.
     shots : int
@@ -60,7 +60,7 @@ class QuantumRouter:
         0: "levenshtein",
         1: "regex",
         2: "bert",
-        3: "gemma_e4b",
+        3: "gemma_e2b",
         4: "nemotron",
     }
 

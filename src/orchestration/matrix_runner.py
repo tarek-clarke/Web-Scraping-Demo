@@ -50,13 +50,13 @@ class MatrixRunner:
             self.chaos_methods = [m for m in self.chaos_methods if m not in set(skip_chaos_methods)]
 
         skip = set(skip_reconcilers or [])
-        all_reconcilers = ["levenshtein", "regex", "bert", "gemma_e4b"]
+        all_reconcilers = ["levenshtein", "regex", "bert", "gemma_e2b"]
         self.reconcilers = [r for r in all_reconcilers if r not in skip]
 
         all_phases = [
             ("fast", ["levenshtein", "regex"]),
             ("bert", ["bert"]),
-            ("gemma", ["gemma_e4b"]),
+            ("gemma", ["gemma_e2b"]),
             ("quantum", ["quantum_routed"]),
         ]
         self.phases = [
@@ -311,7 +311,7 @@ class MatrixRunner:
                         "packet_idx": idx, "source_field": src, "drifted_field": None,
                         "chaos_sub_type": sub_type, "reconciliation_status": "FAILURE",
                     })
-        elif reconciler == "gemma_e4b" and original_data_list:
+        elif reconciler == "gemma_e2b" and original_data_list:
             pairs = [(orig, drift) for _, orig, drift in original_data_list]
             total_drift = len(pairs)
             label = f"{api}/{chaos_method}/{reconciler}"
@@ -370,7 +370,7 @@ class MatrixRunner:
                     })
 
                 for (idx, orig_data, drift_data, sub_type), (actual_reconciler, confidence) in zip(batch_records, routed_results):
-                    if actual_reconciler == "gemma_e4b" and confidence >= 0.40:
+                    if actual_reconciler == "gemma_e2b" and confidence >= 0.40:
                         actual_reconciler = "bert"
 
                     rec_result = self.reconciliation_engine.reconcile(
@@ -399,7 +399,7 @@ class MatrixRunner:
                         "levenshtein": (0.0, 0.05),
                         "regex": (0.0, 0.05),
                         "bert": (0.3, 0.95),
-                        "gemma_e4b": (120.0, 57.0)
+                        "gemma_e2b": (120.0, 57.0)
                     }
                     gpu_j, cpu_j = energy_map.get(actual_reconciler, (0.3, 0.95))
 

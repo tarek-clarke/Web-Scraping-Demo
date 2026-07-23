@@ -29,14 +29,14 @@ class RoutingTrainer:
         "levenshtein": 0,
         "regex": 1,
         "bert": 2,
-        "gemma_e4b": 3,
+        "gemma_e2b": 3,
         "nemotron": 4,
     }
     # Only these rows are valid oracle candidates.  ``quantum_routed`` is an
     # evaluation result produced by the model being trained, so including it
     # would leak prior router behaviour into the target labels.
     BASELINE_RECONCILERS = frozenset(
-        {"levenshtein", "regex", "bert", "gemma_e4b"}
+        {"levenshtein", "regex", "bert", "gemma_e2b"}
     )
     ACTIVE_APIS = frozenset(
         {
@@ -127,7 +127,7 @@ class RoutingTrainer:
         Parameters
         ----------
         exclude_gemma : bool
-            Drop ``gemma_e4b`` rows before ranking (default *True*).
+            Drop ``gemma_e2b`` rows before ranking (default *True*).
 
         Returns
         -------
@@ -145,7 +145,7 @@ class RoutingTrainer:
         df = df[df["api"].isin(self.ACTIVE_APIS)]
 
         if exclude_gemma:
-            df = df[df["reconciler"] != "gemma_e4b"]
+            df = df[df["reconciler"] != "gemma_e2b"]
 
         # First average repeated runs for each candidate reconciler.  Selecting
         # directly from raw repetitions would choose the lucky maximum run and
@@ -201,7 +201,7 @@ class RoutingTrainer:
         Parameters
         ----------
         exclude_gemma : bool
-            Exclude ``gemma_e4b`` from ranking.
+            Exclude ``gemma_e2b`` from ranking.
 
         Returns
         -------
@@ -257,7 +257,7 @@ class RoutingTrainer:
             )
 
         if exclude_gemma:
-            df = df[df["reconciler"] != "gemma_e4b"]
+            df = df[df["reconciler"] != "gemma_e2b"]
 
         # Count SUCCESS vs total per (sub_type, reconciler)
         results: List[Dict] = []

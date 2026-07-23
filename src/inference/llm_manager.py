@@ -46,7 +46,7 @@ class LLMManager:
     _lock = threading.Lock()
 
     def __new__(cls, model_id: Optional[str] = None, **kwargs):
-        key = model_id or os.environ.get("HF_MODEL_ID", "google/gemma-4-E4B-it")
+        key = model_id or os.environ.get("HF_MODEL_ID", "google/gemma-4-E2B-it")
         with cls._lock:
             if key not in cls._instances:
                 instance = super().__new__(cls)
@@ -59,7 +59,7 @@ class LLMManager:
         if getattr(self, "_initialized", False):
             return
 
-        self.model_id = model_id or os.environ.get("HF_MODEL_ID", "google/gemma-4-E4B-it")
+        self.model_id = model_id or os.environ.get("HF_MODEL_ID", "google/gemma-4-E2B-it")
         self.hf_token = kwargs.get("hf_token") or os.environ.get("HF_TOKEN", None)
         self.max_tokens = int(kwargs.get("max_reasoning_tokens") or os.environ.get("LLM_MAX_REASONING_TOKENS", "2048"))
         self.local_path = kwargs.get("local_model_path") or os.environ.get("HF_LOCAL_MODEL_PATH", None)

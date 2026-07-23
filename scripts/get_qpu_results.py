@@ -75,7 +75,7 @@ def main():
         0: "levenshtein",
         1: "regex",
         2: "bert",
-        3: "gemma_e4b",
+        3: "gemma_e2b",
     }
 
     try:

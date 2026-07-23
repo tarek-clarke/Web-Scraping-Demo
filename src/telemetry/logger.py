@@ -95,8 +95,8 @@ class TelemetryLogger:
             opt = e.get("optimal_reconciler", "")
             
             if opt:
-                is_heavy_sel = sel in ["bert", "gemma_e4b"]
-                is_heavy_opt = opt in ["bert", "gemma_e4b"]
+                is_heavy_sel = sel in ["bert", "gemma_e2b"]
+                is_heavy_opt = opt in ["bert", "gemma_e2b"]
                 
                 if is_heavy_sel and not is_heavy_opt:
                     false_positives += 1

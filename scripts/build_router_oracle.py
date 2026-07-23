@@ -244,7 +244,7 @@ def build_samples(
 
 
 def require_accelerator(methods: Sequence[str], allow_cpu: bool) -> Dict[str, object]:
-    gpu_methods = {"bert", "gemma_e4b"}
+    gpu_methods = {"bert", "gemma_e2b"}
     needs_gpu = bool(gpu_methods.intersection(methods))
     diagnostics: Dict[str, object] = {"required": needs_gpu, "allow_cpu": allow_cpu}
     if not needs_gpu:
@@ -296,7 +296,7 @@ def reconcile_chunk(
         started = time.perf_counter()
         if method == "bert":
             results = engine.reconcile_bert_batch(pairs)
-        elif method == "gemma_e4b":
+        elif method == "gemma_e2b":
             results = engine.reconcile_gemma_batch(pairs)
         elif method == "levenshtein":
             results = engine.reconcile_levenshtein_batch(pairs)
@@ -492,8 +492,8 @@ def main() -> None:
             "MiniLM failed to load on the requested accelerator; refusing to "
             "create oracle labels from the mock/zero-output fallback."
         )
-    if "gemma_e4b" in args.methods:
-        gemma_manager = engine.reconcilers["gemma_e4b"]._get_manager()
+    if "gemma_e2b" in args.methods:
+        gemma_manager = engine.reconcilers["gemma_e2b"]._get_manager()
         if not gemma_manager or not gemma_manager.is_loaded:
             raise RuntimeError(
                 "Gemma failed to load on the requested accelerator; refusing "

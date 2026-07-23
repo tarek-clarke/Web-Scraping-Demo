@@ -10,7 +10,7 @@ Executes a 108-combination matrix: **9 APIs × 3 Chaos Methods × 4 Reconcilers 
 
 - **Ingestion**: Seeding and synthetically generating telemetry for 9 domains (OpenF1, Finnhub, SpaceX, OpenMeteo, FDA Clinical, NHL Hockey Event Streams, OpenSky Aviation Vectors, UEFA Football Match Events, TfL Transit Predictions).
 - **Chaos Engineering**: 10% injection rate via Qwen2.5-7B (semantic synonyms), JSON manipulation (structure/value changes), schema alteration (type/nesting depth).
-- **Reconciliation**: Levenshtein, Regex, BERT (MiniLM-v2), Gemma E4B-it.
+- **Reconciliation**: Levenshtein, Regex, BERT (MiniLM-v2), Gemma E2B-it.
 - **Hardware Detection**: Auto-bootstrap for CUDA, ROCm, Apple Silicon, CPU with VRAM probing.
 - **Energy & Carbon Profiling**: Integrated `EnergyTracker` wrapping execution blocks for real-time power, temp, and carbon intensity measurement (using CodeCarbon + native NVML/Sysfs wrappers for NVIDIA and AMD Instinct GPUs).
 
@@ -492,7 +492,7 @@ Modifies schema types, key capitalization, or structural nesting levels.
 | Levenshtein | Edit distance | Fast (CPU) |
 | Regex | Pattern matching | Fast (CPU) |
 | BERT (MiniLM-v2) | Embedding similarity | Medium (GPU) |
-| Gemma E4B-it | 4B LLM | Slow (GPU) |
+| Gemma E2B-it | 2B LLM | Slow (GPU) |
 
 ## Physical QPU policy
 
@@ -524,7 +524,7 @@ Results saved to `data/reports/<hardware_type>/`:
 | api | 9 sources (openf1, finnhub, spacex, openweather, clinical, hockey_nhl, aviation_opensky, football_uefa, smartcity_transit) |
 | chaos_method | qwen / json_manip / schema_alter |
 | chaos_sub_type | e.g., field_split, translation, contextual_rename |
-| reconciler | levenshtein / regex / bert / gemma_e4b / quantum_routed |
+| reconciler | levenshtein / regex / bert / gemma_e2b / quantum_routed |
 | reconciliation_status | SUCCESS / FALSE_POSITIVE / FAILURE |
 | packets_total | 22,500 |
 | packets_clean | 20,250 |
