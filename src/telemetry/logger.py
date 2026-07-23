@@ -22,6 +22,7 @@ class TelemetryLogger:
         self._write_iterations_csv(results, timestamp)
         self._write_drift_events_csv(results, timestamp)
         self._write_latex(results, timestamp)
+        self._write_experiment_configuration_latex(results, timestamp)
         self._write_json(results, timestamp)
 
     def _write_drift_events_csv(self, results: Dict, timestamp: str):
@@ -71,6 +72,7 @@ class TelemetryLogger:
         meta = results.get("run_metadata", {})
         hw = meta.get("hardware", {})
         events = results.get("drift_events", [])
+        ibm_jobs = results.get("ibm_qpu_jobs", [])
         
         # Calculate confusion matrix summaries
         false_positives = 0
@@ -106,6 +108,20 @@ class TelemetryLogger:
                     true_negatives += 1
 
         total_drifted_packets = len(set(e["packet_idx"] for e in events))
+
+        # Event rows repeat a batch's routing telemetry for each affected
+        # field, so they are not valid for aggregation.  IBM Runtime job
+        # metrics are the authoritative remote-QPU measurements.
+        ibm_qpu_charge_seconds = sum(
+            float(job["qpu_charge_time_seconds"])
+            for job in ibm_jobs
+            if job.get("qpu_charge_time_seconds") is not None
+        )
+        ibm_circuit_execution_ns = sum(
+            float(job["circuits_execution_time_ns"])
+            for job in ibm_jobs
+            if job.get("circuits_execution_time_ns") is not None
+        )
         
         # Estimate carbon offset
         # Baseline pure Gemma: 0.6s at 200W = 120 Joules per packet
@@ -136,8 +152,17 @@ class TelemetryLogger:
             "total_iterations": len(results.get("iterations", [])),
             "total_aggregates": len(results.get("matrix", [])),
             "total_drift_events": len(events),
-            "total_qpu_execution_time_ms": round(qpu_time, 2),
+            "total_qpu_execution_time_ms": round(ibm_circuit_execution_ns / 1e6, 2) if ibm_jobs else round(qpu_time, 2),
             "total_classical_simulation_baseline_ms": round(sim_time, 2),
+            "ibm_qpu_jobs": ibm_jobs,
+            "ibm_qpu_job_count": len(ibm_jobs),
+            "ibm_qpu_charge_time_seconds": round(ibm_qpu_charge_seconds, 6),
+            "ibm_circuits_execution_time_ns": round(ibm_circuit_execution_ns, 2),
+            "host_observed_metrics": meta.get("host_observed_metrics", {}),
+            "energy_scope": {
+                "ibm_qpu": "IBM Runtime usage/circuit time only; no remote QPU energy or carbon telemetry is available.",
+                "host": "Locally observed CPU/GPU energy and estimated carbon during this client-side run."
+            },
             "gpu_energy_draw_joules": round(gpu_energy, 2),
             "cpu_energy_draw_joules": round(cpu_energy, 2),
             "estimated_carbon_offset_mg": round(carbon_offset_mg, 2),
@@ -273,6 +298,44 @@ class TelemetryLogger:
             f.write("\\hline\n")
             f.write("\\end{tabular}\n")
             f.write("\\end{table}\n")
+
+    def _write_experiment_configuration_latex(self, results: Dict, timestamp: str):
+        """Write a paste-ready provenance table for the paper methodology."""
+        filepath = f"{self.output_dir}/experiment_configuration_{timestamp}.tex"
+        meta = results.get("run_metadata", {})
+        host = meta.get("host_observed_metrics", {})
+        ibm_jobs = results.get("ibm_qpu_jobs", [])
+
+        def esc(value):
+            return str(value).replace("_", "\\_")
+
+        rows = [
+            ("Execution backend", meta.get("execution_backend", "unknown")),
+            ("Corpus", f"{meta.get('total_packets', 0)} packets / 9 APIs"),
+            ("Chaos configuration", f"{meta.get('chaos_rate', 0):.0%}; qwen, json-manip, schema-alter"),
+            ("Benchmark seed", meta.get("benchmark_seed", "unknown")),
+            ("Logical VQC", f"{meta.get('logical_qubits', 12)} qubits; {meta.get('shots_per_circuit', 1024)} shots"),
+            ("Host energy source", host.get("measurement_quality", "not recorded") + " / " + host.get("cpu_power_source", "not recorded")),
+        ]
+        if ibm_jobs:
+            rows.extend([
+                ("IBM QPU jobs", len(ibm_jobs)),
+                ("IBM charged QPU time", f"{sum(float(j.get('qpu_charge_time_seconds') or 0) for j in ibm_jobs):.3f} s"),
+            ])
+        if meta.get("execution_backend") == "aer_gpu":
+            rows.append(("Aer execution policy", "GPU required; CPU fallback disabled"))
+
+        with open(filepath, "w") as f:
+            f.write("% Paste-ready experiment configuration/provenance table\n")
+            f.write("\\begin{table}[htbp]\n")
+            f.write("\\caption{Hardware-comparable routing experiment configuration.}\n")
+            f.write("\\label{tab:routing-experiment-configuration}\n")
+            f.write("\\centering\n")
+            f.write("\\begin{tabular}{ll}\n\\hline\n")
+            f.write("Parameter & Value \\\\" + "\n\\hline\n")
+            for key, value in rows:
+                f.write(f"{esc(key)} & {esc(value)} \\\\" + "\n")
+            f.write("\\hline\n\\end{tabular}\n\\end{table}\n")
 
     def _write_json(self, results: Dict, timestamp: str):
         filepath = f"{self.output_dir}/full_results_{timestamp}.json"

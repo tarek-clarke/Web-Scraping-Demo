@@ -37,6 +37,14 @@ def main():
                         help="Path to VQC model parameters JSON file (default: configs/quantum_router_params.json)")
     args = parser.parse_args()
 
+    if args.backend in {"ibm_quantum", "vlq", "lumi_q"}:
+        parser.error(
+            "Legacy physical-QPU shadow replay is disabled because it does not "
+            "enforce the canonical v2 training circuit or the one-job paper "
+            "protocol. Prepare and submit with "
+            "scripts/run_qpu_router_experiment.py instead."
+        )
+
     if not os.path.exists(args.log):
         print(f"ERROR: Log file not found: {args.log}")
         sys.exit(1)

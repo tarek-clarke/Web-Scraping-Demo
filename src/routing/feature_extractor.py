@@ -16,10 +16,15 @@ import numpy as np
 
 # Ordinal encoding map for known data sources.
 _SOURCE_ENCODING: Dict[str, float] = {
-    "openf1": 0.25,
-    "finnhub": 0.50,
-    "spacex": 0.75,
-    "openweather": 1.00,
+    "openf1": 0.10,
+    "finnhub": 0.20,
+    "spacex": 0.30,
+    "openweather": 0.40,
+    "clinical": 0.50,
+    "hockey_nhl": 0.60,
+    "aviation_opensky": 0.70,
+    "football_uefa": 0.80,
+    "smartcity_transit": 0.90,
 }
 
 # Number of features produced by the extractor.

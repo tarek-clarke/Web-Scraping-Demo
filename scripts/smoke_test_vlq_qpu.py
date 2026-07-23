@@ -30,6 +30,10 @@ import os
 import sys
 import time
 import json
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT))
 
 # ── Dynamic module stubs for IQM internal packages ──────────────────────────────
 from types import ModuleType
@@ -169,35 +173,30 @@ def build_bell_circuit():
 
 
 def build_vqc_circuit():
-    """12-qubit VQC shaped circuit identical to what submit_shadow_qpu.py sends.
-    Uses random zero-weight params — just checking the circuit runs on VLQ."""
+    """Build a bound instance of the canonical v2 12-qubit paper circuit."""
     import numpy as np
-    from qiskit import QuantumCircuit
-    from qiskit.circuit.library import ZZFeatureMap, RealAmplitudes
+    from src.routing.canonical_vqc import bind_features, build_measured_circuit
 
-    FEATURE_COUNT = 10
-    NUM_OUTPUT_QUBITS = 2
-    num_qubits = FEATURE_COUNT + NUM_OUTPUT_QUBITS  # 12
-
-    # Random feature vector (normalized to [0, π])
-    features = np.random.uniform(0, np.pi, FEATURE_COUNT)
-
-    qc = QuantumCircuit(num_qubits, NUM_OUTPUT_QUBITS)
-    feature_map = ZZFeatureMap(feature_dimension=FEATURE_COUNT, reps=2)
-    ansatz = RealAmplitudes(num_qubits=num_qubits, reps=2)
-    qc.compose(feature_map, qubits=list(range(FEATURE_COUNT)), inplace=True)
-    qc.compose(ansatz, inplace=True)
-    qc.measure(list(range(FEATURE_COUNT, num_qubits)), list(range(NUM_OUTPUT_QUBITS)))
-
-    # Bind all parameters to zeros
-    param_dict = {p: 0.0 for p in qc.parameters}
-    # Override feature params with actual feature values
-    feature_params = sorted([p for p in qc.parameters if p.name.startswith("x")], key=lambda p: p.name)
-    for p, v in zip(feature_params, features):
-        param_dict[p] = v
-
-    bound = qc.assign_parameters(param_dict)
+    features = np.random.default_rng(20260723).uniform(0, np.pi, 10)
+    qc, feature_params, _ = build_measured_circuit(weights=np.zeros(24))
+    bound = bind_features(qc, feature_params, features)
     return bound, features
+
+
+def coerce_qaas_job(submission):
+    """Normalize the actual qaas v0.3.2 ``[backend, job_id]`` return."""
+    if hasattr(submission, "result"):
+        return submission
+    if isinstance(submission, (list, tuple)) and len(submission) == 2:
+        from qaas.client import QJob
+
+        return QJob(submission[0], submission[1])
+    raise TypeError(f"Unexpected QaaS submission handle: {type(submission).__name__}")
+
+
+def qaas_job_id(job):
+    value = getattr(job, "job_id", None)
+    return value() if callable(value) else value
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
@@ -310,8 +309,8 @@ def main():
         print(f"  Transpile time: {time.time()-t0:.2f}s")
         print(f"  Submitting {SHOTS_SMOKE} shots to VLQ …")
         t0 = time.time()
-        job = backend.run(transpiled_bell, shots=SHOTS_SMOKE)
-        print(f"  Job submitted. Job ID: {getattr(job, 'job_id', lambda: 'N/A')()}")
+        job = coerce_qaas_job(backend.run(transpiled_bell, shots=SHOTS_SMOKE))
+        print(f"  Job submitted. Job ID: {qaas_job_id(job)}")
         print(f"  Waiting for results …")
         counts = job.result().get_counts()
         elapsed = time.time() - t0
@@ -337,8 +336,8 @@ def main():
         print(f"  Transpile time: {time.time()-t0:.2f}s")
         print(f"  Submitting {SHOTS_VQC} shots to VLQ …")
         t0 = time.time()
-        job = backend.run(transpiled_vqc, shots=SHOTS_VQC)
-        print(f"  Job submitted. Job ID: {getattr(job, 'job_id', lambda: 'N/A')()}")
+        job = coerce_qaas_job(backend.run(transpiled_vqc, shots=SHOTS_VQC))
+        print(f"  Job submitted. Job ID: {qaas_job_id(job)}")
         print(f"  Waiting for results …")
         counts = job.result().get_counts()
         elapsed = time.time() - t0

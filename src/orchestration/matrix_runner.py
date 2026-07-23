@@ -8,13 +8,15 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 from ..chaos.injector import ChaosInjector
 from ..reconciliation.engine import ReconciliationEngine
+from ..routing.schema_fast_path import packet_schemas_match
 from ..telemetry.logger import TelemetryLogger
 
 class MatrixRunner:
     def __init__(self, hardware_profile: Dict, concurrent_runs: int = 1, batch_size: int = 4,
                  repetitions: int = 3, chaos_rate: float = 0.05, only_api: str = None,
                  skip_reconcilers: List[str] = None, skip_chaos_methods: List[str] = None,
-                 run_phases: List[str] = None, quantum_backend: str = "aer_simulator"):
+                 run_phases: List[str] = None, quantum_backend: str = "aer_simulator",
+                 benchmark_seed: int = 20260722):
         hw_type = hardware_profile.get("type", "cpu")
         hw_model = hardware_profile.get("model")
         self.hardware_type = hw_type
@@ -31,10 +33,12 @@ class MatrixRunner:
         self._progress_count = 0
         self._progress_total = 0
         self.quantum_backend = quantum_backend
+        self.benchmark_seed = benchmark_seed
+        self._ibm_jobs: List[Dict[str, Any]] = []
 
         self.apis = [
             "openf1", "finnhub", "spacex", "openweather", "clinical",
-            "hockey_nhl", "aviation_opensky", "football_uefa", "industrial_iiot", "smartcity_transit"
+            "hockey_nhl", "aviation_opensky", "football_uefa", "smartcity_transit"
         ]
         if only_api:
             self.apis = [only_api]
@@ -104,6 +108,11 @@ class MatrixRunner:
         h = hashlib.md5(str(len(api_packets)).encode()).hexdigest()
         return f"{api_packets[0]['source']}_{chaos_method}_{seed}_{h}"
 
+    def _combination_seed(self, api: str, chaos_method: str) -> int:
+        """Stable seed shared by IBM and emulated runs for a given workload."""
+        material = f"{self.benchmark_seed}:{api}:{chaos_method}".encode("utf-8")
+        return int(hashlib.sha256(material).hexdigest()[:8], 16)
+
     def _get_drifted(self, api_packets: List[Dict], chaos_method: str, seed: int) -> Tuple[List[Dict], Dict[int, str]]:
         key = self._cache_key(api_packets, chaos_method, seed)
         if key not in self._drift_cache:
@@ -154,7 +163,8 @@ class MatrixRunner:
             "phases": [],
             "iterations": [],
             "matrix": [],
-            "drift_events": []
+            "drift_events": [],
+            "ibm_qpu_jobs": [],
         }
 
         for phase_name, reconcilers in self.phases:
@@ -169,6 +179,11 @@ class MatrixRunner:
 
             import os as _os
             use_threads = (phase_name != "gemma") or (_os.environ.get("HF_LOAD_4BIT", "").lower() in ("1", "true", "yes"))
+            # Serialise IBM submissions so each job's accounting and result
+            # provenance remain unambiguous and capacity is not accidentally
+            # consumed by a burst of concurrent QPU jobs.
+            if phase_name == "quantum" and self.quantum_backend == "ibm_quantum":
+                use_threads = False
 
             iteration_data = {}
 
@@ -182,7 +197,7 @@ class MatrixRunner:
                             continue
                         for chaos_method in self.chaos_methods:
                             for rep in range(1, self.repetitions + 1):
-                                seed = random.randint(0, 2**31)
+                                seed = self._combination_seed(api, chaos_method)
                                 for reconciler in reconcilers:
                                     future = executor.submit(
                                         self._run_combination,
@@ -195,6 +210,7 @@ class MatrixRunner:
                         it = future.result()
                         results["iterations"].append(it)
                         results["drift_events"].extend(it.pop("_drift_events", []))
+                        results["ibm_qpu_jobs"].extend(it.pop("_ibm_qpu_jobs", []))
                         key = (it["phase"], it["api"], it["chaos_method"], it["reconciler"])
                         if key not in iteration_data:
                             iteration_data[key] = []
@@ -207,7 +223,7 @@ class MatrixRunner:
                         continue
                     for chaos_method in self.chaos_methods:
                         for rep in range(1, self.repetitions + 1):
-                            seed = random.randint(0, 2**31)
+                            seed = self._combination_seed(api, chaos_method)
                             for reconciler in reconcilers:
                                 it = self._run_combination(
                                     api_packets, api, chaos_method, reconciler,
@@ -215,6 +231,7 @@ class MatrixRunner:
                                 )
                                 results["iterations"].append(it)
                                 results["drift_events"].extend(it.pop("_drift_events", []))
+                                results["ibm_qpu_jobs"].extend(it.pop("_ibm_qpu_jobs", []))
                                 key = (it["phase"], it["api"], it["chaos_method"], it["reconciler"])
                                 if key not in iteration_data:
                                     iteration_data[key] = []
@@ -234,8 +251,11 @@ class MatrixRunner:
 
         self._drift_cache.clear()
         self._sub_type_cache.clear()
-        self.telemetry.log_results(results)
         return results
+
+    def log_results(self, results: Dict) -> None:
+        """Write results after the caller has attached run-level metadata."""
+        self.telemetry.log_results(results)
 
     def _run_combination(self, packets: List[Dict], api: str, chaos_method: str,
                          reconciler: str, phase: str, iteration: int, seed: int) -> Dict:
@@ -251,7 +271,10 @@ class MatrixRunner:
         original_data_list = []
 
         for idx, (orig, drift) in enumerate(zip(packets, drifted)):
-            if orig == drift:
+            # Stage 1 is a schema fast path.  Normal telemetry value changes,
+            # formatting changes that retain the same type, and no-op chaos
+            # injections must not consume Stage-2 QPU/GPU resources.
+            if packet_schemas_match(orig, drift):
                 clean_indices.append(idx)
             else:
                 drifted_indices.append(idx)
@@ -321,78 +344,107 @@ class MatrixRunner:
             if not router:
                 print(f"Skipping quantum_routed for {api} because quantum_router is not initialized")
             else:
-                for batch_start in range(0, len(drifted_indices), self.batch_size):
-                    batch_indices = drifted_indices[batch_start:batch_start + self.batch_size]
-                    for bi, idx in enumerate(batch_indices):
-                        di = batch_start + bi
-                        orig_data = original_data_list[di][1]
-                        drift_data = original_data_list[di][2]
-                        sub_type = sub_type_map.get(idx, "unknown")
+                batch_records = []
+                feature_rows = []
+                for pos, idx in enumerate(drifted_indices):
+                    orig_data = original_data_list[pos][1]
+                    drift_data = original_data_list[pos][2]
+                    feature_rows.append(self.feature_extractor.extract(orig_data, drift_data, api))
+                    batch_records.append((idx, orig_data, drift_data, sub_type_map.get(idx, "unknown")))
 
-                        rec_result = self.reconciliation_engine.route_and_reconcile(
-                            {"data": orig_data, "source": api},
-                            {"data": drift_data, "source": api},
-                            router,
-                            self.feature_extractor
-                        )
-                        accuracies.append(rec_result["accuracy"])
-                        latencies.append(rec_result["latency_ms"])
-                        
-                        actual_reconciler = rec_result["routing_decision"]
-                        optimal_rec = rec_result.get("optimal_reconciler", "bert")
-                        match_decision = rec_result.get("routing_decision_match", False)
-                        
-                        # Energy model per reconciler choice
-                        energy_map = {
-                            "levenshtein": (0.0, 0.05),
-                            "regex": (0.0, 0.05),
-                            "bert": (0.3, 0.95),
-                            "gemma_e4b": (120.0, 57.0)
-                        }
-                        gpu_j, cpu_j = energy_map.get(actual_reconciler, (0.3, 0.95))
+                routed_results = router.route_batch(np.array(feature_rows)) if feature_rows else []
+                qpu_telemetry = getattr(router, "last_telemetry", {})
+                ibm_jobs = []
+                if qpu_telemetry.get("ibm_job_id"):
+                    ibm_jobs.append({
+                        "job_id": qpu_telemetry["ibm_job_id"],
+                        "backend": qpu_telemetry.get("ibm_backend"),
+                        "qpu_charge_time_seconds": qpu_telemetry.get("ibm_qpu_charge_time_seconds"),
+                        "circuits_execution_time_ns": qpu_telemetry.get("ibm_circuits_execution_time_ns"),
+                        "usage_status": qpu_telemetry.get("ibm_usage_status"),
+                        "metrics": qpu_telemetry.get("ibm_job_metrics"),
+                        "api": api,
+                        "chaos_method": chaos_method,
+                        "iteration": iteration,
+                        "submitted_circuits": len(feature_rows),
+                    })
 
-                        for src, dst in rec_result.get("mapped_fields", []):
-                            status = self._get_ground_truth_status(src, dst, orig_data, drift_data)
-                            drift_events.append({
-                                "phase": phase, "api": api, "chaos_method": chaos_method,
-                                "reconciler": actual_reconciler, "iteration": iteration,
-                                "packet_idx": idx, "source_field": src, "drifted_field": dst,
-                                "chaos_sub_type": sub_type, "reconciliation_status": status,
-                                "quantum_routed": True,
-                                "payload_source": api,
-                                "chaos_type": chaos_method,
-                                "selected_reconciler": actual_reconciler,
-                                "optimal_reconciler": optimal_rec,
-                                "routing_decision_match": match_decision,
-                                "qpu_execution_time_ms": rec_result.get("qpu_execution_time_ms", 0.0),
-                                "classical_simulation_baseline_ms": rec_result.get("classical_simulation_baseline_ms", 0.0),
-                                "quantum_loop_iterations": rec_result.get("quantum_loop_iterations", 1),
-                                "gate_fidelity_average": rec_result.get("gate_fidelity_average", 0.99),
-                                "qubit_coherence_status_score": rec_result.get("qubit_coherence_status_score", 0.98),
-                                "gpu_energy_draw_joules": gpu_j,
-                                "cpu_energy_draw_joules": cpu_j
-                            })
+                for (idx, orig_data, drift_data, sub_type), (actual_reconciler, confidence) in zip(batch_records, routed_results):
+                    if actual_reconciler == "gemma_e4b" and confidence >= 0.40:
+                        actual_reconciler = "bert"
 
-                        for src in rec_result.get("unmapped_fields", []):
-                            drift_events.append({
-                                "phase": phase, "api": api, "chaos_method": chaos_method,
-                                "reconciler": actual_reconciler, "iteration": iteration,
-                                "packet_idx": idx, "source_field": src, "drifted_field": None,
-                                "chaos_sub_type": sub_type, "reconciliation_status": "FAILURE",
-                                "quantum_routed": True,
-                                "payload_source": api,
-                                "chaos_type": chaos_method,
-                                "selected_reconciler": actual_reconciler,
-                                "optimal_reconciler": optimal_rec,
-                                "routing_decision_match": match_decision,
-                                "qpu_execution_time_ms": rec_result.get("qpu_execution_time_ms", 0.0),
-                                "classical_simulation_baseline_ms": rec_result.get("classical_simulation_baseline_ms", 0.0),
-                                "quantum_loop_iterations": rec_result.get("quantum_loop_iterations", 1),
-                                "gate_fidelity_average": rec_result.get("gate_fidelity_average", 0.99),
-                                "qubit_coherence_status_score": rec_result.get("qubit_coherence_status_score", 0.98),
-                                "gpu_energy_draw_joules": gpu_j,
-                                "cpu_energy_draw_joules": cpu_j
-                            })
+                    rec_result = self.reconciliation_engine.reconcile(
+                        {"data": orig_data, "source": api},
+                        {"data": drift_data, "source": api},
+                        actual_reconciler,
+                    )
+                    accuracies.append(rec_result["accuracy"])
+                    latencies.append(rec_result["latency_ms"])
+
+                    optimal_rec = "bert"
+                    try:
+                        lev_res = self.reconciliation_engine.reconcilers["levenshtein"].reconcile(orig_data, drift_data)
+                        if lev_res.get("accuracy", 0.0) >= 0.95:
+                            optimal_rec = "levenshtein"
+                        else:
+                            reg_res = self.reconciliation_engine.reconcilers["regex"].reconcile(orig_data, drift_data)
+                            if reg_res.get("accuracy", 0.0) >= 0.95:
+                                optimal_rec = "regex"
+                    except Exception:
+                        pass
+
+                    match_decision = (actual_reconciler == optimal_rec)
+
+                    energy_map = {
+                        "levenshtein": (0.0, 0.05),
+                        "regex": (0.0, 0.05),
+                        "bert": (0.3, 0.95),
+                        "gemma_e4b": (120.0, 57.0)
+                    }
+                    gpu_j, cpu_j = energy_map.get(actual_reconciler, (0.3, 0.95))
+
+                    for src, dst in rec_result.get("mapped_fields", []):
+                        status = self._get_ground_truth_status(src, dst, orig_data, drift_data)
+                        drift_events.append({
+                            "phase": phase, "api": api, "chaos_method": chaos_method,
+                            "reconciler": actual_reconciler, "iteration": iteration,
+                            "packet_idx": idx, "source_field": src, "drifted_field": dst,
+                            "chaos_sub_type": sub_type, "reconciliation_status": status,
+                            "quantum_routed": True,
+                            "payload_source": api,
+                            "chaos_type": chaos_method,
+                            "selected_reconciler": actual_reconciler,
+                            "optimal_reconciler": optimal_rec,
+                            "routing_decision_match": match_decision,
+                            "qpu_execution_time_ms": qpu_telemetry.get("qpu_execution_time_ms", 0.0),
+                            "classical_simulation_baseline_ms": qpu_telemetry.get("classical_simulation_baseline_ms", 0.0),
+                            "quantum_loop_iterations": qpu_telemetry.get("quantum_loop_iterations", 1),
+                            "gate_fidelity_average": qpu_telemetry.get("gate_fidelity_average", 0.99),
+                            "qubit_coherence_status_score": qpu_telemetry.get("qubit_coherence_status_score", 0.98),
+                            "gpu_energy_draw_joules": gpu_j,
+                            "cpu_energy_draw_joules": cpu_j
+                        })
+
+                    for src in rec_result.get("unmapped_fields", []):
+                        drift_events.append({
+                            "phase": phase, "api": api, "chaos_method": chaos_method,
+                            "reconciler": actual_reconciler, "iteration": iteration,
+                            "packet_idx": idx, "source_field": src, "drifted_field": None,
+                            "chaos_sub_type": sub_type, "reconciliation_status": "FAILURE",
+                            "quantum_routed": True,
+                            "payload_source": api,
+                            "chaos_type": chaos_method,
+                            "selected_reconciler": actual_reconciler,
+                            "optimal_reconciler": optimal_rec,
+                            "routing_decision_match": match_decision,
+                            "qpu_execution_time_ms": qpu_telemetry.get("qpu_execution_time_ms", 0.0),
+                            "classical_simulation_baseline_ms": qpu_telemetry.get("classical_simulation_baseline_ms", 0.0),
+                            "quantum_loop_iterations": qpu_telemetry.get("quantum_loop_iterations", 1),
+                            "gate_fidelity_average": qpu_telemetry.get("gate_fidelity_average", 0.99),
+                            "qubit_coherence_status_score": qpu_telemetry.get("qubit_coherence_status_score", 0.98),
+                            "gpu_energy_draw_joules": gpu_j,
+                            "cpu_energy_draw_joules": cpu_j
+                        })
         else:
             for batch_start in range(0, len(drifted_indices), self.batch_size):
                 batch_indices = drifted_indices[batch_start:batch_start + self.batch_size]
@@ -452,6 +504,7 @@ class MatrixRunner:
             "drift_event_count": len(drift_events),
             "_drift_events": drift_events
         }
+        result["_ibm_qpu_jobs"] = locals().get("ibm_jobs", [])
 
         with self._results_lock:
             self._progress_count += 1

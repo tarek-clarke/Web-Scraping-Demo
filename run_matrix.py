@@ -5,6 +5,7 @@ import os
 import re
 import time as time_mod
 import argparse
+from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from src.hardware.detector import HardwareDetector
@@ -16,13 +17,41 @@ def main():
     parser.add_argument("--repetitions", type=int, default=1, help="Iterations per combination (default: 1)")
     parser.add_argument("--max-packets-per-api", type=int, default=500, help="Max packets per API source (default: 500)")
     parser.add_argument("--chaos-rate", type=float, default=0.05, help="Chaos injection rate 0-1 (default: 0.05)")
+    parser.add_argument("--benchmark-seed", type=int, default=20260722,
+                        help="Fixed seed for matching chaos injections across hardware runs")
     parser.add_argument("--only-api", type=str, default=None, help="Run only this API source")
     parser.add_argument("--skip-reconciler", action="append", default=[], help="Skip a reconciler (repeatable)")
     parser.add_argument("--skip-chaos", action="append", default=[], help="Skip a chaos method (repeatable)")
     parser.add_argument("--phases", type=str, default=None, help="Comma-separated list of phases to run (e.g., 'quantum' or 'fast,bert')")
     parser.add_argument("--backend", type=str, default="aer_simulator", help="Quantum backend name (default: aer_simulator)")
     parser.add_argument("--suffix", type=str, default=None, help="Custom suffix for the results output directory")
+    parser.add_argument("--run-date", type=str, default=datetime.now().date().isoformat(),
+                        help="ISO date included in IBM QPU result directory names (default: today)")
+    parser.add_argument("--run-number", type=int, default=1,
+                        help="Positive run number included in IBM QPU result directory names (default: 1)")
+    parser.add_argument(
+        "--packets-file",
+        type=str,
+        default="data/ingested/telemetry_clean_bench_22500.json",
+        help="Path to the benchmark telemetry dataset (default: committed 9-API, 22,500-packet corpus)",
+    )
     args = parser.parse_args()
+    if args.run_number < 1:
+        parser.error("--run-number must be at least 1")
+    requested_phases = {
+        phase.strip() for phase in (args.phases or "").split(",") if phase.strip()
+    }
+    if "quantum" in requested_phases and args.backend in {
+        "ibm_quantum",
+        "vlq",
+        "lumi_q",
+    }:
+        parser.error(
+            "Physical-QPU matrix submission is disabled because it creates one "
+            "provider job per API/chaos/repetition combination. Use "
+            "scripts/run_qpu_router_experiment.py, which freezes the held-out "
+            "workload and submits exactly one consolidated provider job."
+        )
 
     run_start = time_mod.time()
 
@@ -46,7 +75,7 @@ def main():
     print(f"Batch Size: {vram_info['batch_size']}")
     print(f"Iterations: {args.repetitions}\n")
 
-    packets_file = "data/ingested/telemetry_clean_bench_25000.json"
+    packets_file = args.packets_file
     if not os.path.exists(packets_file):
         packets_file = "data/ingested/telemetry_latest.json"
         
@@ -115,6 +144,8 @@ def main():
 
     if args.suffix:
         hardware["model"] = f"{hardware['model']}{args.suffix}"
+    elif args.phases and "quantum" in args.phases:
+        hardware["model"] = f"{hardware['model']}_{args.run_date}_run{args.run_number:02d}"
 
     runner = MatrixRunner(
         hardware_profile=hardware,
@@ -127,6 +158,7 @@ def main():
         skip_chaos_methods=args.skip_chaos,
         run_phases=args.phases.split(",") if args.phases else None,
         quantum_backend=args.backend,
+        benchmark_seed=args.benchmark_seed,
     )
 
     total_runs = len(runner.apis) * len(runner.chaos_methods) * len(runner.reconcilers) * args.repetitions
@@ -142,6 +174,7 @@ def main():
     energy_path = f"data/reports/{folder}/energy_profile.csv"
     with EnergyTracker(output_path=energy_path) as et:
         results = runner.run(packets)
+        host_observed_metrics = et.get_metrics()
         et.log_epoch()
 
 
@@ -150,6 +183,12 @@ def main():
         "end_time": time_mod.time(),
         "total_duration_s": time_mod.time() - run_start,
         "total_packets": len(packets),
+        "chaos_rate": args.chaos_rate,
+        "benchmark_seed": args.benchmark_seed,
+        "execution_backend": args.backend,
+        "execution_phase": args.phases,
+        "shots_per_circuit": 1024,
+        "logical_qubits": 12,
 
         "hardware": {
             "model": hardware.get("model", "unknown"),
@@ -167,6 +206,14 @@ def main():
         "cite_method": "Hosseini et al. (2016) - Quantitative Resilience Index: AUC / baseline_perf * t_total",
         "method_reference": "Hosseini, S., Barker, K., & Ramirez-Marquez, J.E. (2016). A review of definitions and measures of system resilience. Reliability Engineering & System Safety, 145, 47-61."
     }
+    results["run_metadata"]["host_observed_metrics"] = host_observed_metrics
+    results["run_metadata"]["output_directory"] = f"data/reports/{folder}"
+    results["run_metadata"]["run_date"] = args.run_date
+    results["run_metadata"]["run_number"] = args.run_number
+
+    # Results are written only after host telemetry and run provenance have
+    # been attached, so every artifact carries the same final metadata.
+    runner.log_results(results)
 
     print(f"\nCompleted {len(results['matrix'])} aggregated combinations ({len(results['iterations'])} total iterations)")
     print(f"Duration: {results['run_metadata']['total_duration_s']:.0f}s")

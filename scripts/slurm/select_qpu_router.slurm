@@ -1,33 +1,26 @@
 #!/bin/bash
-#SBATCH --job-name=vqc-train
+#SBATCH --job-name=vqc-select
 #SBATCH --account=project_465002996
 #SBATCH --partition=small-g
-#SBATCH --array=0-9
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
-#SBATCH --time=12:00:00
-#SBATCH --output=vqc_train_%A_%a.out
-#SBATCH --error=vqc_train_%A_%a.err
+#SBATCH --time=02:00:00
+#SBATCH --output=vqc_select_%j.out
+#SBATCH --error=vqc_select_%j.err
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
-cd "$PROJECT_ROOT" || exit 1
+cd "$PROJECT_ROOT"
 
-echo "=== Starting VQC Router Training on Compute Node ==="
-echo "Node: ${SLURM_NODENAME:-${SLURMD_NODENAME:-unknown}}"
-echo "Start time: $(date)"
-
-# Load modules
 module load LUMI/25.09
 module load partition/G
 module load rocm/6.3.4
 module load cray-python/3.11.7
 
-# Activate venv
 if [ -f "$PROJECT_ROOT/.venv/bin/activate" ]; then
     source "$PROJECT_ROOT/.venv/bin/activate"
 elif [ -f "$PROJECT_ROOT/.venv-lumi/bin/activate" ]; then
@@ -39,18 +32,12 @@ else
     exit 1
 fi
 
-# Export environment vars
-export IS_LUMI=1
-
-# Train one independent start per GPU.  The array therefore uses up to ten
-# GPUs concurrently without sharing optimizer state between starts.
-python3 -u scripts/train_qpu_router.py train \
+python3 -u scripts/train_qpu_router.py select \
     --oracle data/training/router_oracle_22500_v2.jsonl \
-    --output-dir data/training/qpu_router_multistart_v2 \
-    --start-index "$SLURM_ARRAY_TASK_ID" \
+    --candidates-dir data/training/qpu_router_multistart_v2 \
+    --model-output configs/quantum_router_v2.json \
+    --expected-starts 10 \
     --backend aer_gpu \
-    --training-shots 512 \
-    --maxiter 200
-
-echo "=== Training Start ${SLURM_ARRAY_TASK_ID} Complete ==="
-echo "End time: $(date)"
+    --evaluation-shots 2048 \
+    --min-macro-f1 0.70 \
+    --min-balanced-accuracy 0.70

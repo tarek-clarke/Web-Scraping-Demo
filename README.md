@@ -34,7 +34,7 @@ Executes a 108-combination matrix: **9 APIs × 3 Chaos Methods × 4 Reconcilers 
 # 1. Clone
 git clone https://github.com/tarek-clarke/resilient-rap-framework.git
 cd resilient-rap-framework
-git checkout quantum
+git checkout tkde
 
 # 2. Detect hardware
 ./deploy/detect_hardware.sh
@@ -59,9 +59,16 @@ The active workflow and evaluation pipeline for the paper are driven by the foll
 | Workflow Phase | Core Script | Description |
 |:---|:---|:---|
 | **Classical & Sim Benchmarks** | [`run_matrix.py`](file:///Users/tarekclarke/resilient-rap-framework/run_matrix.py) | Executes the 108-combination matrix across classical reconcilers (Levenshtein, Regex, BERT, Gemma) and the 12-qubit Quantum Aer Simulator. |
-| **Quantum Router (VQC)** | [`src/routing/quantum_router.py`](file:///Users/tarekclarke/resilient-rap-framework/src/routing/quantum_router.py) | Implements the 12-qubit Variational Quantum Classifier (VQC) deployed on the 24-qubit IBM QPU backend. |
-| **Physical QPU Replay** | [`scripts/submit_shadow_qpu.py`](file:///Users/tarekclarke/resilient-rap-framework/scripts/submit_shadow_qpu.py) / [`fetch_qpu_results.py`](file:///Users/tarekclarke/resilient-rap-framework/scripts/fetch_qpu_results.py) | Submits shadow routing telemetry to physical IBM QPU quantum hardware and fetches result execution manifests. |
+| **Canonical VQC** | [`src/routing/canonical_vqc.py`](src/routing/canonical_vqc.py) | Single versioned 12-qubit circuit shared by training, simulation, IBM, and VLQ. |
+| **Packet-level Oracle** | [`scripts/build_router_oracle.py`](scripts/build_router_oracle.py) | Measures all four reconcilers and generates cost-aware packet labels without train/test leakage. |
+| **Multi-start Training** | [`scripts/train_qpu_router.py`](scripts/train_qpu_router.py) | Trains ten independent simulator starts on LUMI and selects once on validation data. |
+| **Physical QPU Experiment** | [`scripts/run_qpu_router_experiment.py`](scripts/run_qpu_router_experiment.py) | Freezes a held-out bundle and submits exactly one IBM Sampler job or one VLQ QaaS job. |
 | **SLURM Batch Orchestration** | [`scripts/slurm/submit_shadow_runs.sh`](file:///Users/tarekclarke/resilient-rap-framework/scripts/slurm/submit_shadow_runs.sh) | Dispatches parallel multi-GPU shadow routing jobs across HPC clusters. |
+
+The current end-to-end commands and safeguards are documented in
+[`docs/QPU_SINGLE_JOB_WORKFLOW.md`](docs/QPU_SINGLE_JOB_WORKFLOW.md). Physical
+QPU execution through `run_matrix.py` and `submit_shadow_qpu.py` is disabled to
+prevent legacy multi-job or circuit-mismatch runs.
 
 ### Consolidated Paper Artifacts Directory (`data/paper_2026/`)
 All primary datasets and execution logs used in the manuscript are unified via live symlinks in [`data/paper_2026/`](file:///Users/tarekclarke/resilient-rap-framework/data/paper_2026):
@@ -90,19 +97,19 @@ All primary datasets and execution logs used in the manuscript are unified via l
 > [!NOTE]
 > **Training Packet Discrepancy**: While the JSON and Schema chaos generators reliably hit the full target packet counts, the `qwen` semantic chaos drift method utilizes ~2,000 packets for training rather than the full 2,500. This is because the local LLM occasionally hallucinates unparseable JSON or violates hard length constraints during generation, causing those malformed packets to be dropped from the clean ingestion baseline.
 
-## 10-Repetition Systems & QPU Benchmark Results (Placeholders)
+## 10-Repetition Systems & QPU Benchmark Results (Completed IBM sweep)
 
-The following tables show the results of the 10-repetition sweeps comparing the classical reconciler tiers, the GPU-accelerated Quantum VQC Simulator, and the physical Star VLQ 24-Qubit QPU backend across all 9 API sources. 
+The following tables summarize the completed IBM Quantum physical-QPU sweep over the 9-API benchmark corpus. The IBM figures come from `data/reports/quantum_run_ibm_qpu_2026-07-22_run31_complete/`, which contains the manifest, raw matrix outputs, drift logs, and the paper-ready LaTeX table for run31.
 
 ### Global Performance, Energy, and Carbon savings Summary
 | Routing Strategy | Mean Accuracy (%) | Avg Latency (ms) | Energy / Packet (J) | Carbon / Packet (mg CO2e) | Carbon Saved vs. Gemma Baseline (%) |
 |:---|:---:|:---:|:---:|:---:|:---:|
 | **Classical LLM (Gemma)** | 44.20% | 4593.70ms | 0.093J | 63.53mg | 0.0% |
 | **Quantum Router (Sim)**  | 92.00% | 3.05ms | 9.29J | 14.86mg | 76.61% |
-| **Quantum Router (IBM_QPU)** | 93.02% | 16.68ms | 9.29J | 14.86mg | 76.61% |
+| **Quantum Router (IBM_QPU)** | 45.29% | 0.028ms | 9.29J | 14.86mg | 76.61% |
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
-> **Shadow Log Status**: 10 sequential shadow routing packet-capture runs have completed locally. The generated packet streams, emulated routing decisions, and features are stored under [data/reports/completed_shadow_runs/](file:///Users/tarekclarke/resilient-rap-framework/data/reports/completed_shadow_runs/). These shadow logs are ready to be fed directly to the physical QPU in Ostrava via `submit_shadow_qpu.py --backend vlq` once VLQ client registration/authentication on LUMI is confirmed.
+> **Shadow Log Status**: Local shadow-routing artifacts are stored under [data/reports/completed_shadow_runs/](file:///Users/tarekclarke/resilient-rap-framework/data/reports/completed_shadow_runs/). They are separate from the completed IBM run31 bundle and can still be used later for VLQ replay once that backend is ready.
 
 > [!NOTE]
 > **Energy Metrics Interpretation**: Classical reconcilers (Levenshtein and Regex) execute strictly on CPU threads using parallel processes. Because the integrated hardware profiling tools measure active GPU-specific accelerator energy consumption (e.g. Instinct MI250X GCD power state probing), these CPU-bound tasks are reported as `0.000J` in the GPU-focused energy comparison matrix.
@@ -117,7 +124,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | BERT | 93.79% | 75.437ms | 0.002J | 240.23mg |
 | Gemma-4B | 42.10% | 3855.591ms | 0.078J | 11050.40mg |
 | **Quantum Router (Sim)** | 96.80% | 25.93ms | 9.29J | 10834.12mg |
-| **Quantum Router (IBM_QPU)** | 92.22% | 58.47ms | 9.29J | 10834.12mg |
+| **Quantum Router (IBM_QPU)** | 35.81% | 0.010ms | 9.29J | 10834.12mg |
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 2. Finnhub Financial Feeds
@@ -128,7 +135,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | BERT | 83.22% | 76.295ms | 0.002J | 243.11mg |
 | Gemma-4B | 60.97% | 3871.199ms | 0.079J | 11124.50mg |
 | **Quantum Router (Sim)** | 87.55% | 0.46ms | 9.29J | 10986.20mg |
-| **Quantum Router (IBM_QPU)** | 88.67% | 8.94ms | 9.29J | 10986.20mg |
+| **Quantum Router (IBM_QPU)** | 27.84% | 0.003ms | 9.29J | 10986.20mg |
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 3. SpaceX Telemetry
@@ -139,7 +146,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | BERT | 87.69% | 2.332ms | 0.000J | 8.21mg |
 | Gemma-4B | 40.09% | 2442.795ms | 0.050J | 7015.42mg |
 | **Quantum Router (Sim)** | 95.00% | 0.47ms | 9.29J | 6831.25mg |
-| **Quantum Router (IBM_QPU)** | 93.96% | 10.40ms | 9.29J | 6831.25mg |
+| **Quantum Router (IBM_QPU)** | 26.91% | 0.006ms | 9.29J | 6831.25mg |
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 4. OpenWeather Vectors
@@ -150,7 +157,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | BERT | 86.69% | 11.304ms | 0.000J | 36.17mg |
 | Gemma-4B | 50.50% | 3464.710ms | 0.071J | 9951.25mg |
 | **Quantum Router (Sim)** | 91.51% | 0.46ms | 9.29J | 9741.05mg |
-| **Quantum Router (IBM_QPU)** | 94.50% | 10.83ms | 9.29J | 9741.05mg |
+| **Quantum Router (IBM_QPU)** | 25.95% | 0.004ms | 9.29J | 9741.05mg |
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 5. FDA Clinical Records
@@ -161,7 +168,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | BERT | 91.12% | 100.062ms | 0.003J | 321.44mg |
 | Gemma-4B | 67.05% | 3735.446ms | 0.076J | 10735.10mg |
 | **Quantum Router (Sim)** | 96.34% | 0.48ms | 9.29J | 10413.20mg |
-| **Quantum Router (IBM_QPU)** | 95.39% | 10.91ms | 9.29J | 10413.20mg |
+| **Quantum Router (IBM_QPU)** | 29.79% | 0.007ms | 9.29J | 10413.20mg |
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 6. NHL Hockey Event Streams
@@ -172,7 +179,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | BERT | 97.95% | 22.319ms | 0.000J | 73.11mg |
 | Gemma-4B | 3.85% | 5524.083ms | 0.113J | 15865.10mg |
 | **Quantum Router (Sim)** | 98.74% | 0.60ms | 9.29J | 15582.40mg |
-| **Quantum Router (IBM_QPU)** | 94.04% | 13.08ms | 9.29J | 15582.40mg |
+| **Quantum Router (IBM_QPU)** | 72.35% | 0.113ms | 9.29J | 15582.40mg |
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 7. OpenSky Aviation Vectors
@@ -183,7 +190,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | BERT | 65.28% | 22.816ms | 0.000J | 72.82mg |
 | Gemma-4B | 71.92% | 1492.944ms | 0.031J | 4287.31mg |
 | **Quantum Router (Sim)** | 73.99% | 0.46ms | 9.29J | 4081.22mg |
-| **Quantum Router (IBM_QPU)** | 93.15% | 11.65ms | 9.29J | 4081.22mg |
+| **Quantum Router (IBM_QPU)** | 41.84% | 0.004ms | 9.29J | 4081.22mg |
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 8. UEFA Football Match Events
@@ -194,7 +201,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | BERT | 94.99% | 7.754ms | 0.000J | 24.81mg |
 | Gemma-4B | 25.21% | 2818.666ms | 0.058J | 8092.12mg |
 | **Quantum Router (Sim)** | 97.02% | 0.51ms | 9.29J | 7942.33mg |
-| **Quantum Router (IBM_QPU)** | 96.58% | 11.43ms | 9.29J | 7942.33mg |
+| **Quantum Router (IBM_QPU)** | 71.44% | 0.035ms | 9.29J | 7942.33mg |
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 9. TfL Transit Predictions
@@ -205,7 +212,7 @@ The following tables show the results of the 10-repetition sweeps comparing the 
 | BERT | 96.96% | 2.042ms | 0.000J | 6.53mg |
 | Gemma-4B | 15.28% | 8237.395ms | 0.169J | 23649.80mg |
 | **Quantum Router (Sim)** | 98.03% | 0.57ms | 9.29J | 23512.44mg |
-| **Quantum Router (IBM_QPU)** | 94.15% | 13.38ms | 9.29J | 23512.44mg |
+| **Quantum Router (IBM_QPU)** | 75.67% | 0.071ms | 9.29J | 23512.44mg |
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 
@@ -250,6 +257,19 @@ To validate the efficiency of the quantum routing layer for top-tier systems ven
 * **Quantum Hardware execution**: Logs the physical `qpu_execution_time_ms`, gate fidelity, and coherence status vs. classical simulation time.
 * **Routing Decision Confusion Matrix**: Evaluates the routing decision against the theoretical `optimal_reconciler` (the lowest-compute reconciler that achieves $\ge 95\%$ accuracy). It tabulates False Positives (routing cheap drifts to LLMs) and False Negatives (routing semantic drifts to Levenshtein, failing SLA).
 * **Ecological Power Savings**: Dynamically tracks active GPU and CPU energy (in Joules). It computes the `estimated_carbon_offset_mg` comparing actual energy draw against the baseline where all drifted packets are routed to the heavy Gemma fallback.
+
+### Current Accuracy Diagnosis
+The present IBM hardware run should be treated as diagnostic rather than final paper-quality evidence. The current result is dominated by two mismatches: the deployed inference circuit is not identical to the training circuit, and the training labels are derived from a coarser aggregate oracle than the packet-level evaluation used in the benchmark.
+
+Observed run-31 metrics:
+
+- packet-level routing decision match: `45.79%`
+- balanced accuracy: `33.58%`
+- macro-F1: `33.32%`
+- always-Levenshtein baseline: `51.14%`
+- always-BERT baseline: `45.75%`
+
+The paper-ready write-up lives in [`docs/QUANTUM_ROUTING_ACCURACY_DIAGNOSIS.md`](docs/QUANTUM_ROUTING_ACCURACY_DIAGNOSIS.md).
 
 ## Running Quantum Benchmarks on LUMI
 
@@ -300,7 +320,11 @@ python3 run_training_sweep.py
 *(Note: Gemma-7B/4B local semantic reconciliation benchmarking has been omitted from the grid configurations as it is extremely compute-heavy).*
 
 
-## Shadow Routing: Capture & Submit to Physical QPU (LUMI)
+## Legacy Shadow Routing (Deprecated)
+
+> **Do not use this section for new physical-QPU results.** It is retained only
+> to explain historical artifacts. The legacy submission command now fails
+> loudly. Use the [canonical single-job workflow](docs/QPU_SINGLE_JOB_WORKFLOW.md).
 
 This is the workflow to generate shadow logs on GPU and submit them to a physical IBM QPU — required when you want real QPU routing results rather than `aer_simulator`.
 
@@ -488,13 +512,14 @@ Modifies schema types, key capitalization, or structural nesting levels.
 | BERT (MiniLM-v2) | Embedding similarity | Medium (GPU) |
 | Gemma E4B-it | 4B LLM | Slow (GPU) |
 
-## Physical IBM QPU Training
+## Physical QPU policy
 
-To trigger the `RoutingTrainer` using the physical IBM QPU hardware (e.g. `ibm_quantum` backend) rather than the local simulator, invoke:
-
-```bash
-python3 run_matrix.py --phases quantum --backend ibm_quantum
-```
+The router is trained on LUMI's Aer GPU simulator, never on held-out physical
+results. IBM and VLQ minutes are reserved for frozen evaluation. Use
+[`scripts/slurm/submit_qpu_training_pipeline.sh`](scripts/slurm/submit_qpu_training_pipeline.sh)
+for ten independent LUMI starts and
+[`scripts/run_qpu_router_experiment.py`](scripts/run_qpu_router_experiment.py)
+for the single-job IBM/VLQ evaluation.
 
 
 ## Output

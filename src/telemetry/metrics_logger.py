@@ -40,6 +40,8 @@ class EnergyTracker:
         self._start_energy_kwh = 0.0
         self.cpu_joules = 0.0
         self.gpu_joules = 0.0
+        self.cpu_power_source = "unavailable"
+        self.gpu_power_source = "unavailable"
         self._last_time = 0.0
         
         # Detected AMD file paths (sysfs interfaces)
@@ -82,6 +84,7 @@ class EnergyTracker:
                 if device_count > 0:
                     self.hardware_type = "NVIDIA"
                     self.nvml_handle = pynvml.nvmlDeviceGetHandleByIndex(self.gpu_device_id)
+                    self.gpu_power_source = "nvml"
                     name = pynvml.nvmlDeviceGetName(self.nvml_handle)
                     logger.info(f"Detected NVIDIA GPU: {name} via NVML.")
             except Exception as e:
@@ -106,6 +109,7 @@ class EnergyTracker:
                                 self.amd_power_file = p_path
                                 self.amd_temp_file = t_path if os.path.exists(t_path) else None
                                 self.hardware_type = "AMD"
+                                self.gpu_power_source = "amd_sysfs"
                                 logger.info(f"Detected AMD GPU via sysfs: {p_path}")
                                 break
                 if self.hardware_type == "AMD":
@@ -163,10 +167,13 @@ class EnergyTracker:
                 with open(rapl_power_path, "r") as f:
                     e2 = float(f.read().strip())
                 cpu_power_w = ((e2 - e1) / 1000000.0) / 0.01  # dJoules / dt = Watts
+                self.cpu_power_source = "intel_rapl"
             else:
                 cpu_power_w = 95.0  # Generic TDP fallback
+                self.cpu_power_source = "generic_tdp_estimate"
         except Exception:
             cpu_power_w = 95.0
+            self.cpu_power_source = "generic_tdp_estimate"
 
         # Integrate energy
         now = time.perf_counter()
@@ -199,6 +206,9 @@ class EnergyTracker:
             "estimated_gCO2e": round(emissions_g, 4),
             "cpu_energy_draw_joules": round(self.cpu_joules, 2),
             "gpu_energy_draw_joules": round(self.gpu_joules, 2),
+            "cpu_power_source": self.cpu_power_source,
+            "gpu_power_source": self.gpu_power_source,
+            "measurement_quality": "measured" if self.cpu_power_source == "intel_rapl" or self.gpu_power_source in ("nvml", "amd_sysfs") else "estimated",
         }
 
     def log_epoch(self):
