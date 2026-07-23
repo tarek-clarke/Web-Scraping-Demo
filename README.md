@@ -70,6 +70,61 @@ The current end-to-end commands and safeguards are documented in
 QPU execution through `run_matrix.py` and `submit_shadow_qpu.py` is disabled to
 prevent legacy multi-job or circuit-mismatch runs.
 
+## How To Run The Current Workflow
+
+Use the runbook in [`docs/QPU_SINGLE_JOB_WORKFLOW.md`](docs/QPU_SINGLE_JOB_WORKFLOW.md)
+as the source of truth. The short version is:
+
+```bash
+# 1. LUMI training and oracle build
+bash scripts/slurm/submit_qpu_training_pipeline.sh
+
+# 2. Freeze the IBM bundle
+python3 scripts/run_qpu_router_experiment.py prepare \
+  --oracle data/training/router_oracle_22500_v2.jsonl \
+  --model configs/quantum_router_v2.json \
+  --run-name ibm_heron_r2_run01 \
+  --run-dir data/reports/qpu_router_20260723_ibm_run01 \
+  --repetitions 3 \
+  --shots 384
+
+# 3. Submit IBM
+python3 scripts/run_qpu_router_experiment.py submit-ibm \
+  --run-dir data/reports/qpu_router_20260723_ibm_run01 \
+  --backend-name auto-heron-r2
+
+# 4. Freeze the VLQ bundle
+python3 scripts/run_qpu_router_experiment.py prepare \
+  --oracle data/training/router_oracle_22500_v2.jsonl \
+  --model configs/quantum_router_v2.json \
+  --run-name vlq_run01 \
+  --run-dir data/reports/qpu_router_20260723_vlq_run01 \
+  --repetitions 3 \
+  --shots 384
+
+# 5. Submit VLQ when access is available
+python3 scripts/run_qpu_router_experiment.py submit-vlq \
+  --run-dir data/reports/qpu_router_20260723_vlq_run01
+```
+
+Each new hardware run should get a fresh date-stamped `--run-dir` and a fresh
+`--run-name` such as `run02`, `run03`, and so on.
+
+## Quick Submit Helpers
+
+These are the small wrapper scripts that make the workflow easier to launch:
+
+| Script | Purpose |
+|:---|:---|
+| [`scripts/slurm/submit_qpu_training_pipeline.sh`](scripts/slurm/submit_qpu_training_pipeline.sh) | Launches the LUMI training pipeline, including the resumable oracle build and the 10-start training array. |
+| [`scripts/slurm/build_router_oracle.slurm`](scripts/slurm/build_router_oracle.slurm) | Resumable GPU job that builds the packet-level oracle. |
+| [`scripts/slurm/submit_train.slurm`](scripts/slurm/submit_train.slurm) | Single training start used by the training array. |
+| [`scripts/slurm/select_qpu_router.slurm`](scripts/slurm/select_qpu_router.slurm) | Selection job that writes `configs/quantum_router_v2.json`. |
+| [`scripts/slurm/submit_aer_gpu_3runs_tkde.sh`](scripts/slurm/submit_aer_gpu_3runs_tkde.sh) | Convenience launcher for three Aer GPU runs on LUMI. |
+| [`scripts/slurm/rebuild_aer_rocm_tkde.slurm`](scripts/slurm/rebuild_aer_rocm_tkde.slurm) | Rebuilds and preflights the ROCm Aer path on LUMI. |
+| [`scripts/slurm/validate_aer_gpu_tkde.slurm`](scripts/slurm/validate_aer_gpu_tkde.slurm) | Quick Aer GPU validation before a longer run. |
+| [`scripts/slurm/vlq_submit_all.sh`](scripts/slurm/vlq_submit_all.sh) | Legacy VLQ batch launcher retained for reference. The canonical path is `scripts/run_qpu_router_experiment.py submit-vlq`. |
+
 ### Consolidated Paper Artifacts Directory (`data/paper_2026/`)
 All primary datasets and execution logs used in the manuscript are unified via live symlinks in [`data/paper_2026/`](file:///Users/tarekclarke/resilient-rap-framework/data/paper_2026):
 - `data/paper_2026/qpu_runs`: Live symlink to physical IBM QPU execution results (`data/reports/quantum_MI250X_ibm_qpu`).
@@ -271,83 +326,10 @@ Observed run-31 metrics:
 
 The paper-ready write-up lives in [`docs/QUANTUM_ROUTING_ACCURACY_DIAGNOSIS.md`](docs/QUANTUM_ROUTING_ACCURACY_DIAGNOSIS.md).
 
-## Running Quantum Benchmarks on LUMI
+## Current Workflow
 
-Follow these instructions to run the quantum simulation sweeps, router ablation comparisons, and training grid search benchmarks using the AMD MI250X GPU environment on LUMI.
-
-### 1. Clone and Setup Environment
-Load the required LUMI modules and activate your virtual environment:
-```bash
-# Clone the repository (quantum branch)
-cd /scratch/project_465002996/clarketa
-git clone -b quantum https://github.com/tarek-clarke/resilient-rap-framework.git resilient-rap-quantum
-cd resilient-rap-quantum
-
-# Load environment modules
-module load LUMI/25.09
-module load partition/G
-module load rocm/6.3.4
-module load cray-python/3.10.10
-
-# Activate Python virtual environment
-source .venv-lumi/bin/activate
-```
-
-### 2. Run Qiskit GPU Simulator Scaling Sweep
-Run the benchmark script that measures simulation time scaling as a function of qubits and circuit depth on the AMD MI250X GPU via `AerSimulator`:
-```bash
-python3 run_scaling_sweep.py
-```
-*Outputs JSON metrics to `data/reports/quantum_gpu_scaling_sweep.json`.*
-
-### 3. Run Router Ablation Study
-Compare brute-force BERT (GPU only) vs. the hybrid quantum-routed (VQC + CPU fallbacks) pipeline performance:
-```bash
-# Run brute-force BERT baseline
-python3 run_matrix.py --max-packets-per-api 500 --chaos-rate 0.05 --phases bert --suffix _bert_only
-
-# Run quantum-routed pipeline (using Aer GPU simulator)
-python3 run_matrix.py --max-packets-per-api 500 --chaos-rate 0.05 --phases quantum --backend aer_simulator --suffix _quantum_routed
-```
-
-### 4. Run VQC Training Grid Search
-Evaluate routing model parameter fitting convergence across various optimizers (COBYLA, SPSA) and feature maps:
-```bash
-python3 run_training_sweep.py
-```
-*Outputs grid search metrics to `data/reports/router_training_grid_search.json`.*
-
-*(Note: Gemma-7B/4B local semantic reconciliation benchmarking has been omitted from the grid configurations as it is extremely compute-heavy).*
-
-
-## Legacy Shadow Routing (Deprecated)
-
-> **Do not use this section for new physical-QPU results.** It is retained only
-> to explain historical artifacts. The legacy submission command now fails
-> loudly. Use the [canonical single-job workflow](docs/QPU_SINGLE_JOB_WORKFLOW.md).
-
-This is the workflow to generate shadow logs on GPU and submit them to a physical IBM QPU — required when you want real QPU routing results rather than `aer_simulator`.
-
-> **Why this is needed**: The existing 10-run dataset in `data/reports/quantum_MI250X_10rep_success/` contains already-processed summary CSVs, not raw packet streams. The quantum routing in those runs used `aer_simulator` (local simulator). To route through a real QPU you must regenerate raw packet features via a new GPU run.
-
-### Step 1 — Clone & Setup (LUMI Login Node)
-
-```bash
-cd /scratch/project_465002996/clarketa
-git clone -b quantum https://github.com/tarek-clarke/resilient-rap-framework.git resilient-rap-quantum
-cd resilient-rap-quantum
-
-# Load modules
-module load LUMI/25.09
-module load partition/G
-module load rocm/6.3.4
-module load cray-python/3.10.10
-
-source .venv-lumi/bin/activate
-```
-
-### Step 2 — Verify Completed Shadow Routing Logs
-The completed shadow routing runs (consisting of packet feature logs and VQC emulator decisions) are located in `data/reports/completed_shadow_runs/`. These files serve as the input for physical QPU replay.
+The maintained end-to-end commands for this branch live in
+[`docs/QPU_SINGLE_JOB_WORKFLOW.md`](docs/QPU_SINGLE_JOB_WORKFLOW.md). That runbook covers the current LUMI training path plus the one-job IBM and VLQ physical-QPU submission flow.
 
 ### Step 3 — Submit Shadow Logs to Physical QPU
 
