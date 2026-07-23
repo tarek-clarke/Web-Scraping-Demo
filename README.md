@@ -73,13 +73,62 @@ prevent legacy multi-job or circuit-mismatch runs.
 ## How To Run The Current Workflow
 
 Use the runbook in [`docs/QPU_SINGLE_JOB_WORKFLOW.md`](docs/QPU_SINGLE_JOB_WORKFLOW.md)
-as the source of truth. The short version is:
+as the source of truth.
+
+## Fresh Start Runbook
+
+Use this when you want to archive the existing outputs and rerun the whole
+pipeline from scratch.
+
+### Stage 0: Archive Existing Outputs
+
+Run this on your Mac before starting over:
 
 ```bash
-# 1. LUMI training and oracle build
-bash scripts/slurm/submit_qpu_training_pipeline.sh
+cd /Users/tarekclarke/Documents/RAP/resilient-rap-framework
+ts="$(date +%Y%m%d_%H%M%S)"
+archive_dir="archive/$ts"
+mkdir -p "$archive_dir"
 
-# 2. Freeze the IBM bundle
+for path in \
+  data/reports \
+  data/training/qpu_router_multistart_v2 \
+  data/training/router_oracle_22500_v2.jsonl \
+  data/training/router_oracle_22500_v2.manifest.json \
+  data/training/router_oracle_22500_v2.workload.jsonl \
+  configs/quantum_router_v2.json \
+  configs/trained_router_*.json
+do
+  [ -e "$path" ] && mv "$path" "$archive_dir"/
+done
+```
+
+If you want to keep the raw ingested corpus, leave
+`data/ingested/telemetry_clean_bench_22500.json` in place.
+
+### Stage 1: Clone and Enter the Repo
+
+```bash
+git clone https://github.com/tarek-clarke/resilient-rap-framework.git
+cd resilient-rap-framework
+git checkout tkde
+```
+
+### Stage 2: Build the LUMI Training Inputs
+
+```bash
+bash scripts/slurm/submit_qpu_training_pipeline.sh
+```
+
+That launcher:
+
+1. builds the packet-level oracle if it is missing;
+2. starts 10 independent LUMI training runs, one GPU per start; and
+3. writes `configs/quantum_router_v2.json` from the validation winner.
+
+### Stage 3: Freeze the IBM Bundle
+
+```bash
 python3 scripts/run_qpu_router_experiment.py prepare \
   --oracle data/training/router_oracle_22500_v2.jsonl \
   --model configs/quantum_router_v2.json \
@@ -87,13 +136,26 @@ python3 scripts/run_qpu_router_experiment.py prepare \
   --run-dir data/reports/qpu_router_20260723_ibm_run01 \
   --repetitions 3 \
   --shots 384
+```
 
-# 3. Submit IBM
+### Stage 4: Submit IBM
+
+```bash
 python3 scripts/run_qpu_router_experiment.py submit-ibm \
   --run-dir data/reports/qpu_router_20260723_ibm_run01 \
   --backend-name auto-heron-r2
+```
 
-# 4. Freeze the VLQ bundle
+### Stage 5: Retrieve IBM
+
+```bash
+python3 scripts/run_qpu_router_experiment.py retrieve-ibm \
+  --run-dir data/reports/qpu_router_20260723_ibm_run01
+```
+
+### Stage 6: Freeze the VLQ Bundle
+
+```bash
 python3 scripts/run_qpu_router_experiment.py prepare \
   --oracle data/training/router_oracle_22500_v2.jsonl \
   --model configs/quantum_router_v2.json \
@@ -101,9 +163,21 @@ python3 scripts/run_qpu_router_experiment.py prepare \
   --run-dir data/reports/qpu_router_20260723_vlq_run01 \
   --repetitions 3 \
   --shots 384
+```
 
-# 5. Submit VLQ when access is available
+### Stage 7: Submit VLQ
+
+```bash
+python3 scripts/smoke_test_vlq_qpu.py
+
 python3 scripts/run_qpu_router_experiment.py submit-vlq \
+  --run-dir data/reports/qpu_router_20260723_vlq_run01
+```
+
+### Stage 8: Retrieve VLQ
+
+```bash
+python3 scripts/run_qpu_router_experiment.py retrieve-vlq \
   --run-dir data/reports/qpu_router_20260723_vlq_run01
 ```
 
