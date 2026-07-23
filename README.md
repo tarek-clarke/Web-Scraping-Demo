@@ -52,18 +52,54 @@ python scripts/upload_to_r2.py
 python run_matrix.py
 ```
 
+## What To Rerun When Gemma Changes
+
+If you change the GPU reconciler model, the safe default is to rerun the full
+benchmarking chain that depends on it:
+
+| Change | Rerun needed? | Why |
+|:---|:---:|:---|
+| Gemma model ID or weights | Yes | The GPU reconciliation outputs change, so the oracle and labels change too. |
+| Oracle generation | Yes | New Gemma outputs change the packet-level labels used for training. |
+| LUMI multi-start training | Yes | The router should be retrained against the new oracle. |
+| IBM / VLQ `prepare` bundles | Yes | The frozen provider bundles must match the new model and oracle hashes. |
+| IBM / VLQ physical submissions | Yes | Results are only comparable if they come from the same frozen bundle. |
+| Ingested corpus in `data/ingested/` | No | Keep it as the fixed source corpus unless the raw data itself changes. |
+
+Minimal rerun path:
+
+1. archive old benchmark outputs only
+2. rebuild the oracle
+3. rerun the LUMI training pipeline
+4. freeze new IBM and VLQ bundles
+5. submit IBM and VLQ again if you need fresh physical-QPU results
+
+If you are only changing paper wording or README text, none of the GPU/QPU
+artifacts need to be regenerated.
+
 ## Core Paper Workflow & Active Scripts
 
 The active workflow and evaluation pipeline for the paper are driven by the following core scripts:
 
 | Workflow Phase | Core Script | Description |
 |:---|:---|:---|
-| **Classical & Sim Benchmarks** | [`run_matrix.py`](file:///Users/tarekclarke/resilient-rap-framework/run_matrix.py) | Executes the 108-combination matrix across classical reconcilers (Levenshtein, Regex, BERT, Gemma) and the 12-qubit Quantum Aer Simulator. |
+| **Classical & Sim Benchmarks** | [`run_matrix.py`](file:///Users/tarekclarke/resilient-rap-framework/run_matrix.py) | Executes the 108-combination matrix across classical reconcilers (Levenshtein, Regex, BERT, Gemma E2B) and the 12-qubit Quantum Aer Simulator. |
 | **Canonical VQC** | [`src/routing/canonical_vqc.py`](src/routing/canonical_vqc.py) | Single versioned 12-qubit circuit shared by training, simulation, IBM, and VLQ. |
 | **Packet-level Oracle** | [`scripts/build_router_oracle.py`](scripts/build_router_oracle.py) | Measures all four reconcilers and generates cost-aware packet labels without train/test leakage. |
 | **Multi-start Training** | [`scripts/train_qpu_router.py`](scripts/train_qpu_router.py) | Trains ten independent simulator starts on LUMI and selects once on validation data. |
 | **Physical QPU Experiment** | [`scripts/run_qpu_router_experiment.py`](scripts/run_qpu_router_experiment.py) | Freezes a held-out bundle and submits exactly one IBM Sampler job or one VLQ QaaS job. |
 | **SLURM Batch Orchestration** | [`scripts/slurm/submit_shadow_runs.sh`](file:///Users/tarekclarke/resilient-rap-framework/scripts/slurm/submit_shadow_runs.sh) | Dispatches parallel multi-GPU shadow routing jobs across HPC clusters. |
+
+## Run Modes
+
+| Mode | Use It For | Entry Point |
+|:---|:---|:---|
+| Benchmark sweep | Rebuild GPU/CPU reconciliation results after model changes | `bash scripts/slurm/submit_qpu_training_pipeline.sh` |
+| Oracle build only | Refresh labels without rerunning provider jobs | `python3 scripts/build_router_oracle.py` |
+| LUMI training only | Refit the router on the new oracle | `python3 scripts/train_qpu_router.py` |
+| IBM bundle prep | Freeze model + workload for one physical QPU run | `python3 scripts/run_qpu_router_experiment.py prepare` |
+| IBM submit/retrieve | Run and fetch the IBM physical experiment | `python3 scripts/run_qpu_router_experiment.py submit-ibm` / `retrieve-ibm` |
+| VLQ submit/retrieve | Run and fetch the VLQ physical experiment | `python3 scripts/run_qpu_router_experiment.py submit-vlq` / `retrieve-vlq` |
 
 The current end-to-end commands and safeguards are documented in
 [`docs/QPU_SINGLE_JOB_WORKFLOW.md`](docs/QPU_SINGLE_JOB_WORKFLOW.md). Physical
