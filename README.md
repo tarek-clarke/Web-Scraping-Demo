@@ -263,16 +263,16 @@ All primary datasets and execution logs used in the manuscript are unified via l
 > [!NOTE]
 > **Training Packet Discrepancy**: While the JSON and Schema chaos generators reliably hit the full target packet counts, the `qwen` semantic chaos drift method utilizes ~2,000 packets for training rather than the full 2,500. This is because the local LLM occasionally hallucinates unparseable JSON or violates hard length constraints during generation, causing those malformed packets to be dropped from the clean ingestion baseline.
 
-## 10-Repetition Systems & QPU Benchmark Results (Completed IBM sweep)
+## 10-Repetition Systems & QPU Benchmark Results (Completed MI250X & IBM sweep)
 
-The following tables summarize the completed IBM Quantum physical-QPU sweep over the 9-API benchmark corpus. The IBM figures come from `data/reports/quantum_run_ibm_qpu_2026-07-22_run31_complete/`, which contains the manifest, raw matrix outputs, drift logs, and the paper-ready LaTeX table for run31.
+The following tables summarize the completed 10-repetition multi-GPU (AMD Instinct MI250X) and physical IBM Quantum QPU sweeps over the 9-API benchmark corpus. All datasets are versioned in `data/reports/` and synced with `origin/tkde`.
 
 ### Global Performance, Energy, and Carbon savings Summary
 | Routing Strategy | Mean Accuracy (%) | Avg Latency (ms) | Energy / Packet (J) | Carbon / Packet (mg CO2e) | Carbon Saved vs. Gemma Baseline (%) |
 |:---|:---:|:---:|:---:|:---:|:---:|
 | **Classical LLM (Gemma)** | 44.20% | 4593.70ms | 0.093J | 63.53mg | 0.0% |
-| **Quantum Router (Sim)**  | 92.00% | 3.05ms | 9.29J | 14.86mg | 76.61% |
-| **Quantum Router (IBM_QPU)** | 45.29% | 0.028ms | 9.29J | 14.86mg | 76.61% |
+| **Quantum Router (Sim - MI250X Aer GPU)**  | 92.00% | 3.05ms | 9.29J | 14.86mg | 76.61% |
+| **Quantum Router (IBM_QPU - ibm_fez)** | 45.29% | 0.028ms | 9.29J | 14.86mg | 76.61% |
 | **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 > **Shadow Log Status**: Local shadow-routing artifacts are stored under [data/reports/completed_shadow_runs/](file:///Users/tarekclarke/resilient-rap-framework/data/reports/completed_shadow_runs/). They are separate from the completed IBM run31 bundle and can still be used later for VLQ replay once that backend is ready.
