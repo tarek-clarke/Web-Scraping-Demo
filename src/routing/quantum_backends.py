@@ -97,10 +97,10 @@ class IBMQuantumBackend(QuantumBackend):
                 except Exception:
                     pass
 
-            # 4. Try loading ibm_quantum_platform channel generally
+            # 4. Try loading ibm_quantum channel generally
             if service is None:
                 try:
-                    service = QiskitRuntimeService(channel="ibm_quantum_platform", instance=self.instance)
+                    service = QiskitRuntimeService(channel="ibm_quantum", instance=self.instance)
                 except Exception:
                     pass
 
