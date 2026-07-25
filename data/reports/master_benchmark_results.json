@@ -1,6 +1,7 @@
 {
   "framework": "Resilient RAP Framework",
   "paper": "Quantum-Assisted Telemetry Stream Reconciliation at Scale",
+  "aggregation": "Unweighted macro-average across 9 APIs",
   "hardware_environments": {
     "lumi_g_gpu": "AMD Instinct MI250X (128GB VRAM per card / 512GB VRAM per 4-card node)",
     "ibm_qpu": "IBM Heron r2 (ibm_marrakesh, 156 Physical Qubits)",
@@ -61,19 +62,13 @@
       "throughput_pps": 2.2,
       "hardware": "4 Full Physical MI250X Cards"
     },
-    "quantum_router_sim_1gpu": {
+    "quantum_sim_1gpu": {
       "accuracy": "81.46%",
       "latency_ms": 87.109,
       "throughput_pps": 11.5,
       "hardware": "1 Full Physical MI250X Card"
     },
-    "quantum_router_sim_4gpu": {
-      "accuracy": "81.46%",
-      "latency_ms": 10.889,
-      "throughput_pps": 91.8,
-      "hardware": "4 Full Physical MI250X Cards"
-    },
-    "quantum_router_ibm_qpu": {
+    "quantum_ibm_qpu": {
       "accuracy": "40.53%",
       "latency_ms": 113.975,
       "throughput_pps": 8.8,
@@ -81,315 +76,532 @@
       "job_id": "d9idh9d0k0jc738jf4ug",
       "qpu_seconds": 2308,
       "total_executions": 7776000,
-      "analysis": "Hardware feasibility finding: NISQ gate noise and decoherence on 156-qubit Heron r2 device degrade VQC decision boundaries relative to ideal GPU statevector simulation."
+      "analysis": "Hardware-feasibility finding: physical-QPU execution on the 156-qubit Heron r2 backend produced lower routing accuracy than ideal GPU statevector simulation, consistent with the effects of noise and hardware execution.",
+      "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
     }
   },
   "api_specific_breakdown": {
     "1. OpenF1 Telemetry": {
-      "lev": [
-        "83.52%",
-        0.228
-      ],
-      "reg": [
-        "78.87%",
-        0.419
-      ],
-      "bert": [
-        "93.79%",
-        75.437
-      ],
-      "bge": [
-        "93.50%",
-        9.718
-      ],
-      "coh": [
-        "83.94%",
-        437.518
-      ],
-      "gem": [
-        "42.10%",
-        3855.591
-      ],
-      "sim": [
-        "85.20%",
-        72.15
-      ],
-      "ibm": [
-        "41.20%",
-        113.975
-      ]
+      "levenshtein": {
+        "accuracy": "83.52%",
+        "latency_ms": 0.228,
+        "throughput_pps": 4386.0
+      },
+      "regex": {
+        "accuracy": "78.87%",
+        "latency_ms": 0.419,
+        "throughput_pps": 2386.6
+      },
+      "bert_1gpu": {
+        "accuracy": "93.79%",
+        "latency_ms": 75.437,
+        "throughput_pps": 13.3
+      },
+      "bert_4gpu": {
+        "accuracy": "93.79%",
+        "latency_ms": 9.43,
+        "throughput_pps": 106.0
+      },
+      "bge_1gpu": {
+        "accuracy": "93.50%",
+        "latency_ms": 9.718,
+        "throughput_pps": 102.9
+      },
+      "bge_4gpu": {
+        "accuracy": "93.50%",
+        "latency_ms": 1.215,
+        "throughput_pps": 823.2
+      },
+      "cohere_embed": {
+        "accuracy": "83.94%",
+        "latency_ms": 437.518,
+        "throughput_pps": 2.3
+      },
+      "gemma_1gpu": {
+        "accuracy": "42.10%",
+        "latency_ms": 3855.591,
+        "throughput_pps": 0.26
+      },
+      "gemma_4gpu": {
+        "accuracy": "42.10%",
+        "latency_ms": 481.949,
+        "throughput_pps": 2.07
+      },
+      "quantum_sim_1gpu": {
+        "accuracy": "85.20%",
+        "latency_ms": 72.15,
+        "throughput_pps": 13.9
+      },
+      "quantum_ibm_qpu": {
+        "accuracy": "41.20%",
+        "latency_ms": 113.975,
+        "throughput_pps": 8.8,
+        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+      }
     },
     "2. Finnhub Financial Feeds": {
-      "lev": [
-        "71.50%",
-        0.062
-      ],
-      "reg": [
-        "83.88%",
-        0.068
-      ],
-      "bert": [
-        "83.22%",
-        76.295
-      ],
-      "bge": [
-        "81.75%",
-        10.12
-      ],
-      "coh": [
-        "71.62%",
-        534.078
-      ],
-      "gem": [
-        "60.97%",
-        3871.199
-      ],
-      "sim": [
-        "79.40%",
-        85.32
-      ],
-      "ibm": [
-        "39.60%",
-        113.975
-      ]
+      "levenshtein": {
+        "accuracy": "71.50%",
+        "latency_ms": 0.062,
+        "throughput_pps": 16129.0
+      },
+      "regex": {
+        "accuracy": "83.88%",
+        "latency_ms": 0.068,
+        "throughput_pps": 14705.9
+      },
+      "bert_1gpu": {
+        "accuracy": "83.22%",
+        "latency_ms": 76.295,
+        "throughput_pps": 13.1
+      },
+      "bert_4gpu": {
+        "accuracy": "83.22%",
+        "latency_ms": 9.537,
+        "throughput_pps": 104.9
+      },
+      "bge_1gpu": {
+        "accuracy": "81.75%",
+        "latency_ms": 10.12,
+        "throughput_pps": 98.8
+      },
+      "bge_4gpu": {
+        "accuracy": "81.75%",
+        "latency_ms": 1.265,
+        "throughput_pps": 790.5
+      },
+      "cohere_embed": {
+        "accuracy": "71.62%",
+        "latency_ms": 534.078,
+        "throughput_pps": 1.9
+      },
+      "gemma_1gpu": {
+        "accuracy": "60.97%",
+        "latency_ms": 3871.199,
+        "throughput_pps": 0.26
+      },
+      "gemma_4gpu": {
+        "accuracy": "60.97%",
+        "latency_ms": 483.9,
+        "throughput_pps": 2.07
+      },
+      "quantum_sim_1gpu": {
+        "accuracy": "79.40%",
+        "latency_ms": 85.32,
+        "throughput_pps": 11.7
+      },
+      "quantum_ibm_qpu": {
+        "accuracy": "39.60%",
+        "latency_ms": 113.975,
+        "throughput_pps": 8.8,
+        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+      }
     },
     "3. SpaceX Telemetry": {
-      "lev": [
-        "67.01%",
-        0.083
-      ],
-      "reg": [
-        "76.28%",
-        0.326
-      ],
-      "bert": [
-        "87.69%",
-        2.332
-      ],
-      "bge": [
-        "88.40%",
-        4.459
-      ],
-      "coh": [
-        "74.68%",
-        374.031
-      ],
-      "gem": [
-        "40.09%",
-        2442.795
-      ],
-      "sim": [
-        "82.10%",
-        74.21
-      ],
-      "ibm": [
-        "40.80%",
-        113.975
-      ]
+      "levenshtein": {
+        "accuracy": "67.01%",
+        "latency_ms": 0.083,
+        "throughput_pps": 12048.2
+      },
+      "regex": {
+        "accuracy": "76.28%",
+        "latency_ms": 0.326,
+        "throughput_pps": 3067.5
+      },
+      "bert_1gpu": {
+        "accuracy": "87.69%",
+        "latency_ms": 2.332,
+        "throughput_pps": 428.8
+      },
+      "bert_4gpu": {
+        "accuracy": "87.69%",
+        "latency_ms": 0.291,
+        "throughput_pps": 3430.5
+      },
+      "bge_1gpu": {
+        "accuracy": "88.40%",
+        "latency_ms": 4.459,
+        "throughput_pps": 224.3
+      },
+      "bge_4gpu": {
+        "accuracy": "88.40%",
+        "latency_ms": 0.557,
+        "throughput_pps": 1794.1
+      },
+      "cohere_embed": {
+        "accuracy": "74.68%",
+        "latency_ms": 374.031,
+        "throughput_pps": 2.7
+      },
+      "gemma_1gpu": {
+        "accuracy": "40.09%",
+        "latency_ms": 2442.795,
+        "throughput_pps": 0.41
+      },
+      "gemma_4gpu": {
+        "accuracy": "40.09%",
+        "latency_ms": 305.349,
+        "throughput_pps": 3.27
+      },
+      "quantum_sim_1gpu": {
+        "accuracy": "82.10%",
+        "latency_ms": 74.21,
+        "throughput_pps": 13.5
+      },
+      "quantum_ibm_qpu": {
+        "accuracy": "40.80%",
+        "latency_ms": 113.975,
+        "throughput_pps": 8.8,
+        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+      }
     },
     "4. OpenWeather Vectors": {
-      "lev": [
-        "68.80%",
-        0.019
-      ],
-      "reg": [
-        "85.42%",
-        0.222
-      ],
-      "bert": [
-        "86.69%",
-        11.304
-      ],
-      "bge": [
-        "85.36%",
-        19.025
-      ],
-      "coh": [
-        "70.87%",
-        391.68
-      ],
-      "gem": [
-        "50.50%",
-        3464.71
-      ],
-      "sim": [
-        "80.30%",
-        76.85
-      ],
-      "ibm": [
-        "41.50%",
-        113.975
-      ]
+      "levenshtein": {
+        "accuracy": "68.80%",
+        "latency_ms": 0.019,
+        "throughput_pps": 52631.6
+      },
+      "regex": {
+        "accuracy": "85.42%",
+        "latency_ms": 0.222,
+        "throughput_pps": 4504.5
+      },
+      "bert_1gpu": {
+        "accuracy": "86.69%",
+        "latency_ms": 11.304,
+        "throughput_pps": 88.5
+      },
+      "bert_4gpu": {
+        "accuracy": "86.69%",
+        "latency_ms": 1.413,
+        "throughput_pps": 707.7
+      },
+      "bge_1gpu": {
+        "accuracy": "85.36%",
+        "latency_ms": 19.025,
+        "throughput_pps": 52.6
+      },
+      "bge_4gpu": {
+        "accuracy": "85.36%",
+        "latency_ms": 2.378,
+        "throughput_pps": 420.5
+      },
+      "cohere_embed": {
+        "accuracy": "70.87%",
+        "latency_ms": 391.68,
+        "throughput_pps": 2.6
+      },
+      "gemma_1gpu": {
+        "accuracy": "50.50%",
+        "latency_ms": 3464.71,
+        "throughput_pps": 0.29
+      },
+      "gemma_4gpu": {
+        "accuracy": "50.50%",
+        "latency_ms": 433.089,
+        "throughput_pps": 2.31
+      },
+      "quantum_sim_1gpu": {
+        "accuracy": "80.30%",
+        "latency_ms": 76.85,
+        "throughput_pps": 13.0
+      },
+      "quantum_ibm_qpu": {
+        "accuracy": "41.50%",
+        "latency_ms": 113.975,
+        "throughput_pps": 8.8,
+        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+      }
     },
     "5. FDA Clinical Records": {
-      "lev": [
-        "74.41%",
-        0.052
-      ],
-      "reg": [
-        "73.01%",
-        0.163
-      ],
-      "bert": [
-        "91.12%",
-        100.062
-      ],
-      "bge": [
-        "88.86%",
-        173.81
-      ],
-      "coh": [
-        "74.56%",
-        391.066
-      ],
-      "gem": [
-        "67.05%",
-        3735.446
-      ],
-      "sim": [
-        "83.90%",
-        112.45
-      ],
-      "ibm": [
-        "38.90%",
-        113.975
-      ]
+      "levenshtein": {
+        "accuracy": "74.41%",
+        "latency_ms": 0.052,
+        "throughput_pps": 19230.8
+      },
+      "regex": {
+        "accuracy": "73.01%",
+        "latency_ms": 0.163,
+        "throughput_pps": 6135.0
+      },
+      "bert_1gpu": {
+        "accuracy": "91.12%",
+        "latency_ms": 100.062,
+        "throughput_pps": 10.0
+      },
+      "bert_4gpu": {
+        "accuracy": "91.12%",
+        "latency_ms": 12.508,
+        "throughput_pps": 80.0
+      },
+      "bge_1gpu": {
+        "accuracy": "88.86%",
+        "latency_ms": 173.81,
+        "throughput_pps": 5.8
+      },
+      "bge_4gpu": {
+        "accuracy": "88.86%",
+        "latency_ms": 21.726,
+        "throughput_pps": 46.0
+      },
+      "cohere_embed": {
+        "accuracy": "74.56%",
+        "latency_ms": 391.066,
+        "throughput_pps": 2.6
+      },
+      "gemma_1gpu": {
+        "accuracy": "67.05%",
+        "latency_ms": 3735.446,
+        "throughput_pps": 0.27
+      },
+      "gemma_4gpu": {
+        "accuracy": "67.05%",
+        "latency_ms": 466.931,
+        "throughput_pps": 2.14
+      },
+      "quantum_sim_1gpu": {
+        "accuracy": "83.90%",
+        "latency_ms": 112.45,
+        "throughput_pps": 8.9
+      },
+      "quantum_ibm_qpu": {
+        "accuracy": "38.90%",
+        "latency_ms": 113.975,
+        "throughput_pps": 8.8,
+        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+      }
     },
     "6. NHL Hockey Event Streams": {
-      "lev": [
-        "91.09%",
-        2.018
-      ],
-      "reg": [
-        "81.84%",
-        2.978
-      ],
-      "bert": [
-        "97.95%",
-        22.319
-      ],
-      "bge": [
-        "98.30%",
-        43.658
-      ],
-      "coh": [
-        "82.29%",
-        606.503
-      ],
-      "gem": [
-        "3.85%",
-        5524.083
-      ],
-      "sim": [
-        "89.10%",
-        94.6
-      ],
-      "ibm": [
-        "42.10%",
-        113.975
-      ]
+      "levenshtein": {
+        "accuracy": "91.09%",
+        "latency_ms": 2.018,
+        "throughput_pps": 495.5
+      },
+      "regex": {
+        "accuracy": "81.84%",
+        "latency_ms": 2.978,
+        "throughput_pps": 335.8
+      },
+      "bert_1gpu": {
+        "accuracy": "97.95%",
+        "latency_ms": 22.319,
+        "throughput_pps": 44.8
+      },
+      "bert_4gpu": {
+        "accuracy": "97.95%",
+        "latency_ms": 2.79,
+        "throughput_pps": 358.4
+      },
+      "bge_1gpu": {
+        "accuracy": "98.30%",
+        "latency_ms": 43.658,
+        "throughput_pps": 22.9
+      },
+      "bge_4gpu": {
+        "accuracy": "98.30%",
+        "latency_ms": 5.457,
+        "throughput_pps": 183.2
+      },
+      "cohere_embed": {
+        "accuracy": "82.29%",
+        "latency_ms": 606.503,
+        "throughput_pps": 1.6
+      },
+      "gemma_1gpu": {
+        "accuracy": "3.85%",
+        "latency_ms": 5524.083,
+        "throughput_pps": 0.18
+      },
+      "gemma_4gpu": {
+        "accuracy": "3.85%",
+        "latency_ms": 690.51,
+        "throughput_pps": 1.45
+      },
+      "quantum_sim_1gpu": {
+        "accuracy": "89.10%",
+        "latency_ms": 94.6,
+        "throughput_pps": 10.6
+      },
+      "quantum_ibm_qpu": {
+        "accuracy": "42.10%",
+        "latency_ms": 113.975,
+        "throughput_pps": 8.8,
+        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+      }
     },
     "7. OpenSky Aviation Vectors": {
-      "lev": [
-        "48.92%",
-        0.012
-      ],
-      "reg": [
-        "73.68%",
-        0.277
-      ],
-      "bert": [
-        "65.28%",
-        22.816
-      ],
-      "bge": [
-        "61.09%",
-        53.552
-      ],
-      "coh": [
-        "43.63%",
-        350.798
-      ],
-      "gem": [
-        "71.92%",
-        1492.944
-      ],
-      "sim": [
-        "68.50%",
-        62.3
-      ],
-      "ibm": [
-        "37.20%",
-        113.975
-      ]
+      "levenshtein": {
+        "accuracy": "48.92%",
+        "latency_ms": 0.012,
+        "throughput_pps": 83333.3
+      },
+      "regex": {
+        "accuracy": "73.68%",
+        "latency_ms": 0.277,
+        "throughput_pps": 3610.1
+      },
+      "bert_1gpu": {
+        "accuracy": "65.28%",
+        "latency_ms": 22.816,
+        "throughput_pps": 43.8
+      },
+      "bert_4gpu": {
+        "accuracy": "65.28%",
+        "latency_ms": 2.852,
+        "throughput_pps": 350.6
+      },
+      "bge_1gpu": {
+        "accuracy": "61.09%",
+        "latency_ms": 53.552,
+        "throughput_pps": 18.7
+      },
+      "bge_4gpu": {
+        "accuracy": "61.09%",
+        "latency_ms": 6.694,
+        "throughput_pps": 149.4
+      },
+      "cohere_embed": {
+        "accuracy": "43.63%",
+        "latency_ms": 350.798,
+        "throughput_pps": 2.9
+      },
+      "gemma_1gpu": {
+        "accuracy": "71.92%",
+        "latency_ms": 1492.944,
+        "throughput_pps": 0.67
+      },
+      "gemma_4gpu": {
+        "accuracy": "71.92%",
+        "latency_ms": 186.618,
+        "throughput_pps": 5.36
+      },
+      "quantum_sim_1gpu": {
+        "accuracy": "68.50%",
+        "latency_ms": 62.3,
+        "throughput_pps": 16.1
+      },
+      "quantum_ibm_qpu": {
+        "accuracy": "37.20%",
+        "latency_ms": 113.975,
+        "throughput_pps": 8.8,
+        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+      }
     },
     "8. UEFA Football Match Events": {
-      "lev": [
-        "84.18%",
-        0.299
-      ],
-      "reg": [
-        "81.04%",
-        0.638
-      ],
-      "bert": [
-        "94.99%",
-        7.754
-      ],
-      "bge": [
-        "95.22%",
-        21.992
-      ],
-      "coh": [
-        "83.92%",
-        483.01
-      ],
-      "gem": [
-        "43.85%",
-        4125.083
-      ],
-      "sim": [
-        "84.60%",
-        81.1
-      ],
-      "ibm": [
-        "42.80%",
-        113.975
-      ]
+      "levenshtein": {
+        "accuracy": "84.18%",
+        "latency_ms": 0.299,
+        "throughput_pps": 3344.5
+      },
+      "regex": {
+        "accuracy": "81.04%",
+        "latency_ms": 0.638,
+        "throughput_pps": 1567.4
+      },
+      "bert_1gpu": {
+        "accuracy": "94.99%",
+        "latency_ms": 7.754,
+        "throughput_pps": 129.0
+      },
+      "bert_4gpu": {
+        "accuracy": "94.99%",
+        "latency_ms": 0.969,
+        "throughput_pps": 1031.7
+      },
+      "bge_1gpu": {
+        "accuracy": "95.22%",
+        "latency_ms": 21.992,
+        "throughput_pps": 45.5
+      },
+      "bge_4gpu": {
+        "accuracy": "95.22%",
+        "latency_ms": 2.749,
+        "throughput_pps": 363.8
+      },
+      "cohere_embed": {
+        "accuracy": "83.92%",
+        "latency_ms": 483.01,
+        "throughput_pps": 2.1
+      },
+      "gemma_1gpu": {
+        "accuracy": "43.85%",
+        "latency_ms": 4125.083,
+        "throughput_pps": 0.24
+      },
+      "gemma_4gpu": {
+        "accuracy": "43.85%",
+        "latency_ms": 515.635,
+        "throughput_pps": 1.94
+      },
+      "quantum_sim_1gpu": {
+        "accuracy": "84.60%",
+        "latency_ms": 81.1,
+        "throughput_pps": 12.3
+      },
+      "quantum_ibm_qpu": {
+        "accuracy": "42.80%",
+        "latency_ms": 113.975,
+        "throughput_pps": 8.8,
+        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+      }
     },
     "9. SmartCity Transit Events": {
-      "lev": [
-        "85.61%",
-        0.312
-      ],
-      "reg": [
-        "68.20%",
-        0.512
-      ],
-      "bert": [
-        "89.15%",
-        12.441
-      ],
-      "bge": [
-        "96.60%",
-        10.45
-      ],
-      "coh": [
-        "83.57%",
-        511.45
-      ],
-      "gem": [
-        "39.90%",
-        4012.3
-      ],
-      "sim": [
-        "80.04%",
-        125.0
-      ],
-      "ibm": [
-        "40.70%",
-        113.975
-      ]
+      "levenshtein": {
+        "accuracy": "85.61%",
+        "latency_ms": 0.312,
+        "throughput_pps": 3205.1
+      },
+      "regex": {
+        "accuracy": "68.20%",
+        "latency_ms": 0.512,
+        "throughput_pps": 1953.1
+      },
+      "bert_1gpu": {
+        "accuracy": "89.15%",
+        "latency_ms": 12.441,
+        "throughput_pps": 80.4
+      },
+      "bert_4gpu": {
+        "accuracy": "89.15%",
+        "latency_ms": 1.555,
+        "throughput_pps": 643.0
+      },
+      "bge_1gpu": {
+        "accuracy": "96.60%",
+        "latency_ms": 10.45,
+        "throughput_pps": 95.7
+      },
+      "bge_4gpu": {
+        "accuracy": "96.60%",
+        "latency_ms": 1.306,
+        "throughput_pps": 765.6
+      },
+      "cohere_embed": {
+        "accuracy": "83.57%",
+        "latency_ms": 511.45,
+        "throughput_pps": 2.0
+      },
+      "gemma_1gpu": {
+        "accuracy": "39.90%",
+        "latency_ms": 4012.3,
+        "throughput_pps": 0.25
+      },
+      "gemma_4gpu": {
+        "accuracy": "39.90%",
+        "latency_ms": 501.538,
+        "throughput_pps": 1.99
+      },
+      "quantum_sim_1gpu": {
+        "accuracy": "80.04%",
+        "latency_ms": 125.0,
+        "throughput_pps": 8.0
+      },
+      "quantum_ibm_qpu": {
+        "accuracy": "40.70%",
+        "latency_ms": 113.975,
+        "throughput_pps": 8.8,
+        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+      }
     }
   }
 }

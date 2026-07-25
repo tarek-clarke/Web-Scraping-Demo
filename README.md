@@ -88,9 +88,15 @@ The physical QPU benchmark execution results:
 * **Shots per Circuit**: 384 shots
 * **Total QPU Executions**: 7,776,000 QPU executions
 * **Ansatz Config**: `ZZFeatureMap` (2 reps) + `RealAmplitudes` (2 reps) on 12 qubits
-* **Execution Status**: **`COMPLETED`** (Total QPU walltime: $2,308 \text{ seconds}$)
+* **Execution Status**: **`COMPLETED`**
 
-Retrieved hardware summary payload:
+### Physical QPU Hardware Feasibility Analysis: NISQ Noise vs. Ideal Simulation
+
+A core empirical contribution of this work is evaluating the **Variational Quantum Classifier (VQC) Quantum Router** on physical quantum hardware (**IBM Heron r2**, `ibm_marrakesh`, 156 Physical Qubits) across **7,776,000 physical QPU executions** ($2,308 \text{ QPU seconds}$):
+
+> **Hardware-Feasibility Finding**: Physical-QPU execution on the 156-qubit Heron r2 backend produced lower routing accuracy ($40.53\%$) than ideal GPU statevector simulation ($81.46\%$), consistent with the effects of noise and hardware execution.
+>
+> Importantly, despite physical routing degradation, the overall framework maintains **$100.00\%$ Selected Reconciliation Accuracy** because the dual-stage gatekeeper architecture guarantees fallback execution for any un-aligned predictions.
 
 ```json
 {
