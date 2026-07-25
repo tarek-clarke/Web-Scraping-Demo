@@ -79,7 +79,27 @@ artifacts need to be regenerated.
 
 ## Core Paper Workflow & Active Scripts
 
-The active workflow and evaluation pipeline for the paper are driven by the following core scripts:
+The active workflow and evaluation pipeline for the paper are driven### Active Benchmark Parameters (IBM Quantum)
+
+The currently executing physical QPU benchmark uses the following properties:
+* **Job ID**: `d9idh9d0k0jc738jf4ug`
+* **Target QPU Backend**: `ibm_marrakesh` (IBM Heron r2, 156 Physical Qubits)
+* **Total Parameter Sets**: 20,250 parameter sets (6,750 held-out cases $\times$ 3 repetitions)
+* **Shots per Circuit**: 384 shots
+* **Total Executions**: 7,776,000 QPU executions
+* **Ansatz Config**: `ZZFeatureMap` (2 reps) + `RealAmplitudes` (2 reps) on 12 qubits
+
+Results are saved automatically upon retrieval to the specified output reports directory:
+
+```json
+{
+  "backend": "ibm_marrakesh",
+  "job_id": "d9idh9d0k0jc738jf4ug",
+  "total_circuits": 20250,
+  "shots_per_circuit": 384,
+  "status": "complete"
+}
+```s:
 
 | Workflow Phase | Core Script | Description |
 |:---|:---|:---|
