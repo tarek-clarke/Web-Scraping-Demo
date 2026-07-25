@@ -5,6 +5,7 @@ from .regex_rec import RegexReconciler
 from .bert_rec import BERTReconciler
 from .gemma_e4b_rec import GemmaE2BReconciler
 from .nemotron_rec import NemotronReconciler
+from .cohere_rec import CohereReconciler
 
 class ReconciliationEngine:
     def __init__(self, hardware_profile: str = "cpu", batch_size: int = 4):
@@ -15,6 +16,7 @@ class ReconciliationEngine:
             "bert": BERTReconciler(hardware_profile, batch_size),
             "gemma_e2b": GemmaE2BReconciler(hardware_profile, batch_size),
             "nemotron": NemotronReconciler(hardware_profile, batch_size),
+            "cohere": CohereReconciler(),
         }
 
     def reconcile(self, original: Dict, drifted: Dict, method: str) -> Dict:

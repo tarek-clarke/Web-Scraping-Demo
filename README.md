@@ -273,9 +273,10 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | Levenshtein | 75.57% | 0.392ms | 0.000J | 0.00mg |
 | Regex | 80.15% | 0.637ms | 0.000J | 0.00mg |
 | BERT | 88.63% | 35.596ms | 0.001J | 105.70mg |
+| Cohere Embed (embed-english-v3.0) | 74.34% | 451.342ms | 0.005J | 654.10mg |
 | Gemma 4 E2B (4-bit) | 41.89% | 3938.093ms | 0.080J | 11421.21mg |
 | Quantum Router (Sim - MI250X Aer GPU) | 92.78% | 3.327ms | 9.290J | 11490.87mg |
-| Quantum Router (IBM QPU - ibm_fez) | **38.69%** | **0.0156ms** | **9.290J** | **11490.87mg** |
+| Quantum Router (IBM QPU - ibm_fez) | **38.93%** | **0.0180ms** | **9.290J** | **11490.87mg** |
 | Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 ### Global Strategy Comparison Summary

@@ -56,12 +56,13 @@ class MatrixRunner:
             self.chaos_methods = [m for m in self.chaos_methods if m not in set(skip_chaos_methods)]
 
         skip = set(skip_reconcilers or [])
-        all_reconcilers = ["levenshtein", "regex", "bert", "gemma_e2b"]
+        all_reconcilers = ["levenshtein", "regex", "bert", "gemma_e2b", "cohere"]
         self.reconcilers = [r for r in all_reconcilers if r not in skip]
 
         all_phases = [
             ("fast", ["levenshtein", "regex"]),
             ("bert", ["bert"]),
+            ("cohere", ["cohere"]),
             ("gemma", ["gemma_e2b"]),
             ("quantum", ["quantum_routed"]),
         ]
