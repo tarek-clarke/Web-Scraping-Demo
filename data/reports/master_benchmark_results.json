@@ -96,6 +96,52 @@
       "hardware": "Local CPU (16 Cores)"
     }
   },
+  "classical_routers": {
+    "dataset_summary": {
+      "total_records": 31500,
+      "num_apis": 9,
+      "candidate_routes": [
+        "levenshtein",
+        "regex",
+        "bert",
+        "bge",
+        "cohere",
+        "gemma_e2b",
+        "abstain"
+      ],
+      "route_distribution": {
+        "levenshtein": 16245,
+        "bert": 4608,
+        "regex": 7825,
+        "bge": 2822
+      }
+    },
+    "logistic_regression_cpu": {
+      "mean_routing_accuracy": 68.8,
+      "std_routing_accuracy": 0.74,
+      "ci_95_routing_accuracy": [
+        67.35,
+        70.25
+      ],
+      "macro_f1": 61.16,
+      "mean_reconciliation_accuracy": 100.0,
+      "inference_latency_ms_per_packet": 0.00014,
+      "leave_one_api_out_acc": 62.4
+    },
+    "gradient_boosted_cpu": {
+      "model_type": "RandomForestClassifier",
+      "mean_routing_accuracy": 79.34,
+      "std_routing_accuracy": 0.62,
+      "ci_95_routing_accuracy": [
+        78.12,
+        80.56
+      ],
+      "macro_f1": 79.5,
+      "mean_reconciliation_accuracy": 100.0,
+      "inference_latency_ms_per_packet": 0.00877,
+      "leave_one_api_out_acc": 68.23
+    }
+  },
   "api_specific_breakdown": {
     "1. OpenF1 Telemetry": {
       "levenshtein": {
@@ -620,50 +666,726 @@
       }
     }
   },
-  "classical_routers": {
-    "dataset_summary": {
-      "total_records": 31500,
-      "num_apis": 9,
-      "candidate_routes": [
-        "levenshtein",
-        "regex",
-        "bert",
-        "bge",
-        "cohere",
-        "gemma_e2b",
-        "abstain"
-      ],
-      "route_distribution": {
-        "levenshtein": 16245,
-        "bert": 4608,
-        "regex": 7825,
-        "bge": 2822
+  "api_specific_chaos_tables": {
+    "1. OpenF1 Telemetry": {
+      "json_manip": {
+        "levenshtein": {
+          "accuracy": "78.20%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "85.10%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "87.32%",
+          "latency_ms": 12.72
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "94.87%",
+          "latency_ms": 450.543
+        },
+        "gemma": {
+          "accuracy": "51.20%",
+          "latency_ms": 3938.093
+        }
+      },
+      "qwen": {
+        "levenshtein": {
+          "accuracy": "74.10%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "79.40%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "91.40%",
+          "latency_ms": 7.224
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "80.21%",
+          "latency_ms": 441.626
+        },
+        "gemma": {
+          "accuracy": "40.80%",
+          "latency_ms": 3938.093
+        }
+      },
+      "schema_alter": {
+        "levenshtein": {
+          "accuracy": "74.40%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "75.95%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "96.09%",
+          "latency_ms": 44.179
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "78.56%",
+          "latency_ms": 446.559
+        },
+        "gemma": {
+          "accuracy": "33.67%",
+          "latency_ms": 3938.093
+        }
       }
     },
-    "logistic_regression_cpu": {
-      "mean_routing_accuracy": 68.8,
-      "std_routing_accuracy": 0.74,
-      "ci_95_routing_accuracy": [
-        67.35,
-        70.25
-      ],
-      "macro_f1": 61.16,
-      "mean_reconciliation_accuracy": 100.0,
-      "inference_latency_ms_per_packet": 0.00014,
-      "leave_one_api_out_acc": 62.4
+    "2. Finnhub Financial Feeds": {
+      "json_manip": {
+        "levenshtein": {
+          "accuracy": "78.20%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "85.10%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "76.03%",
+          "latency_ms": 12.173
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "83.98%",
+          "latency_ms": 363.461
+        },
+        "gemma": {
+          "accuracy": "51.20%",
+          "latency_ms": 3938.093
+        }
+      },
+      "qwen": {
+        "levenshtein": {
+          "accuracy": "74.10%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "79.40%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "80.77%",
+          "latency_ms": 8.132
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "68.46%",
+          "latency_ms": 368.209
+        },
+        "gemma": {
+          "accuracy": "40.80%",
+          "latency_ms": 3938.093
+        }
+      },
+      "schema_alter": {
+        "levenshtein": {
+          "accuracy": "74.40%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "75.95%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "85.95%",
+          "latency_ms": 76.439
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "64.48%",
+          "latency_ms": 384.168
+        },
+        "gemma": {
+          "accuracy": "33.67%",
+          "latency_ms": 3938.093
+        }
+      }
     },
-    "gradient_boosted_cpu": {
-      "model_type": "RandomForestClassifier",
-      "mean_routing_accuracy": 79.34,
-      "std_routing_accuracy": 0.62,
-      "ci_95_routing_accuracy": [
-        78.12,
-        80.56
-      ],
-      "macro_f1": 79.5,
-      "mean_reconciliation_accuracy": 100.0,
-      "inference_latency_ms_per_packet": 0.00877,
-      "leave_one_api_out_acc": 68.23
+    "3. SpaceX Telemetry": {
+      "json_manip": {
+        "levenshtein": {
+          "accuracy": "78.20%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "85.10%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "86.62%",
+          "latency_ms": 3.048
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "95.75%",
+          "latency_ms": 361.44
+        },
+        "gemma": {
+          "accuracy": "51.20%",
+          "latency_ms": 3938.093
+        }
+      },
+      "qwen": {
+        "levenshtein": {
+          "accuracy": "74.10%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "79.40%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "89.04%",
+          "latency_ms": 3.811
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "70.76%",
+          "latency_ms": 358.976
+        },
+        "gemma": {
+          "accuracy": "40.80%",
+          "latency_ms": 3938.093
+        }
+      },
+      "schema_alter": {
+        "levenshtein": {
+          "accuracy": "74.40%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "75.95%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "86.52%",
+          "latency_ms": 23.263
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "54.25%",
+          "latency_ms": 363.106
+        },
+        "gemma": {
+          "accuracy": "33.67%",
+          "latency_ms": 3938.093
+        }
+      }
+    },
+    "4. OpenWeather Vectors": {
+      "json_manip": {
+        "levenshtein": {
+          "accuracy": "78.20%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "85.10%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "80.64%",
+          "latency_ms": 4.451
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "88.35%",
+          "latency_ms": 367.061
+        },
+        "gemma": {
+          "accuracy": "51.20%",
+          "latency_ms": 3938.093
+        }
+      },
+      "qwen": {
+        "levenshtein": {
+          "accuracy": "74.10%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "79.40%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "87.23%",
+          "latency_ms": 3.19
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "77.64%",
+          "latency_ms": 360.746
+        },
+        "gemma": {
+          "accuracy": "40.80%",
+          "latency_ms": 3938.093
+        }
+      },
+      "schema_alter": {
+        "levenshtein": {
+          "accuracy": "74.40%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "75.95%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "86.71%",
+          "latency_ms": 41.186
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "50.33%",
+          "latency_ms": 370.872
+        },
+        "gemma": {
+          "accuracy": "33.67%",
+          "latency_ms": 3938.093
+        }
+      }
+    },
+    "5. FDA Clinical Records": {
+      "json_manip": {
+        "levenshtein": {
+          "accuracy": "78.20%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "85.10%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "94.06%",
+          "latency_ms": 104.982
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "95.06%",
+          "latency_ms": 387.393
+        },
+        "gemma": {
+          "accuracy": "51.20%",
+          "latency_ms": 3938.093
+        }
+      },
+      "qwen": {
+        "levenshtein": {
+          "accuracy": "74.10%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "79.40%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "90.71%",
+          "latency_ms": 92.443
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "77.56%",
+          "latency_ms": 386.784
+        },
+        "gemma": {
+          "accuracy": "40.80%",
+          "latency_ms": 3938.093
+        }
+      },
+      "schema_alter": {
+        "levenshtein": {
+          "accuracy": "74.40%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "75.95%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "81.82%",
+          "latency_ms": 324.006
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "48.48%",
+          "latency_ms": 393.452
+        },
+        "gemma": {
+          "accuracy": "33.67%",
+          "latency_ms": 3938.093
+        }
+      }
+    },
+    "6. NHL Hockey Event Streams": {
+      "json_manip": {
+        "levenshtein": {
+          "accuracy": "78.20%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "85.10%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "98.40%",
+          "latency_ms": 31.683
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "98.92%",
+          "latency_ms": 583.615
+        },
+        "gemma": {
+          "accuracy": "51.20%",
+          "latency_ms": 3938.093
+        }
+      },
+      "qwen": {
+        "levenshtein": {
+          "accuracy": "74.10%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "79.40%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "98.17%",
+          "latency_ms": 50.93
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "90.70%",
+          "latency_ms": 586.981
+        },
+        "gemma": {
+          "accuracy": "40.80%",
+          "latency_ms": 3938.093
+        }
+      },
+      "schema_alter": {
+        "levenshtein": {
+          "accuracy": "74.40%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "75.95%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "98.34%",
+          "latency_ms": 48.362
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "59.68%",
+          "latency_ms": 591.113
+        },
+        "gemma": {
+          "accuracy": "33.67%",
+          "latency_ms": 3938.093
+        }
+      }
+    },
+    "7. OpenSky Aviation Vectors": {
+      "json_manip": {
+        "levenshtein": {
+          "accuracy": "78.20%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "85.10%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "59.04%",
+          "latency_ms": 32.411
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "55.42%",
+          "latency_ms": 328.644
+        },
+        "gemma": {
+          "accuracy": "51.20%",
+          "latency_ms": 3938.093
+        }
+      },
+      "qwen": {
+        "levenshtein": {
+          "accuracy": "74.10%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "79.40%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "58.91%",
+          "latency_ms": 51.863
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "43.52%",
+          "latency_ms": 329.597
+        },
+        "gemma": {
+          "accuracy": "40.80%",
+          "latency_ms": 3938.093
+        }
+      },
+      "schema_alter": {
+        "levenshtein": {
+          "accuracy": "74.40%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "75.95%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "65.33%",
+          "latency_ms": 76.383
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "30.12%",
+          "latency_ms": 328.119
+        },
+        "gemma": {
+          "accuracy": "33.67%",
+          "latency_ms": 3938.093
+        }
+      }
+    },
+    "8. UEFA Football Match Events": {
+      "json_manip": {
+        "levenshtein": {
+          "accuracy": "78.20%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "85.10%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "96.13%",
+          "latency_ms": 9.577
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "96.19%",
+          "latency_ms": 489.037
+        },
+        "gemma": {
+          "accuracy": "51.20%",
+          "latency_ms": 3938.093
+        }
+      },
+      "qwen": {
+        "levenshtein": {
+          "accuracy": "74.10%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "79.40%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "94.01%",
+          "latency_ms": 48.4
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "88.08%",
+          "latency_ms": 476.735
+        },
+        "gemma": {
+          "accuracy": "40.80%",
+          "latency_ms": 3938.093
+        }
+      },
+      "schema_alter": {
+        "levenshtein": {
+          "accuracy": "74.40%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "75.95%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "95.52%",
+          "latency_ms": 7.998
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "69.78%",
+          "latency_ms": 465.077
+        },
+        "gemma": {
+          "accuracy": "33.67%",
+          "latency_ms": 3938.093
+        }
+      }
+    },
+    "9. SmartCity Transit Events": {
+      "json_manip": {
+        "levenshtein": {
+          "accuracy": "78.20%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "85.10%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "97.21%",
+          "latency_ms": 2.68
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "97.00%",
+          "latency_ms": 537.985
+        },
+        "gemma": {
+          "accuracy": "51.20%",
+          "latency_ms": 3938.093
+        }
+      },
+      "qwen": {
+        "levenshtein": {
+          "accuracy": "74.10%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "79.40%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "97.43%",
+          "latency_ms": 5.894
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "86.15%",
+          "latency_ms": 530.548
+        },
+        "gemma": {
+          "accuracy": "40.80%",
+          "latency_ms": 3938.093
+        }
+      },
+      "schema_alter": {
+        "levenshtein": {
+          "accuracy": "74.40%",
+          "latency_ms": 0.392
+        },
+        "regex": {
+          "accuracy": "75.95%",
+          "latency_ms": 0.637
+        },
+        "bert": {
+          "accuracy": "95.79%",
+          "latency_ms": 2.096
+        },
+        "bge": {
+          "accuracy": "87.70%",
+          "latency_ms": 37.766
+        },
+        "cohere": {
+          "accuracy": "68.76%",
+          "latency_ms": 540.227
+        },
+        "gemma": {
+          "accuracy": "33.67%",
+          "latency_ms": 3938.093
+        }
+      }
     }
   }
 }
