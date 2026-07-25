@@ -272,8 +272,9 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Levenshtein** | Local CPU | N/A | 75.57% | 0.392 ms | N/A | 0.000 J | 0.00 mg |
 | **Regex** | Local CPU | N/A | 80.15% | 0.637 ms | N/A | 0.000 J | 0.00 mg |
-| **BERT / BGE (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 87.70% | 37.766 ms | 18.883 ms | 0.001 J | 108.60 mg |
-| **BERT / BGE (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 87.70% | 4.720 ms | 0.590 ms | 0.001 J | 108.60 mg |
+| **BERT (MiniLM-L6-v2)** | Local CPU | N/A | 88.63% | 35.596 ms | N/A | 0.001 J | 105.70 mg |
+| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 87.70% | 37.766 ms | 18.883 ms | 0.001 J | 108.60 mg |
+| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 87.70% | 4.720 ms | 0.590 ms | 0.001 J | 108.60 mg |
 | **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 74.35% | 455.943 ms | N/A | 0.005 J | 660.80 mg |
 | **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 41.89% | 3938.093 ms | 1969.047 ms | 0.080 J | 11421.21 mg |
 | **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 41.89% | 492.261 ms | 61.532 ms | 0.080 J | 11421.21 mg |
