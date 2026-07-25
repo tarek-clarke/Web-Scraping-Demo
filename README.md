@@ -297,6 +297,39 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 > [!NOTE]
 > **Energy Metrics Interpretation**: Classical reconcilers (Levenshtein and Regex) execute strictly on CPU threads using parallel processes. Because the integrated hardware profiling tools measure active GPU-specific accelerator energy consumption (e.g. Instinct MI250X GCD power state probing), these CPU-bound tasks are reported as `0.000J` in the GPU-focused energy comparison matrix.
 
+### Reconciler Performance Breakdown by Chaos Method (Global Summary)
+
+| Reconciler | Chaos Mutation Type | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: |
+| **Levenshtein** | JSON Structural (Dropped/Null Keys) | Local CPU | N/A | 48.33% | 0.866 ms | N/A |
+| **Levenshtein** | Qwen Semantic Schema Alteration | Local CPU | N/A | 94.59% | 0.263 ms | N/A |
+| **Levenshtein** | Syntactic Field Truncation/Drift | Local CPU | N/A | 35.53% | 0.370 ms | N/A |
+| **Regex** | JSON Structural (Dropped/Null Keys) | Local CPU | N/A | 83.26% | 0.297 ms | N/A |
+| **Regex** | Qwen Semantic Schema Alteration | Local CPU | N/A | 80.84% | 0.197 ms | N/A |
+| **Regex** | Syntactic Field Truncation/Drift | Local CPU | N/A | 82.28% | 0.198 ms | N/A |
+| **BERT (MiniLM - 1 GPU Card)** | JSON Structural (Dropped/Null Keys) | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 85.88% | 22.470 ms | 11.235 ms |
+| **BERT (MiniLM - 1 GPU Card)** | Qwen Semantic Schema Alteration | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 87.49% | 28.200 ms | 14.100 ms |
+| **BERT (MiniLM - 1 GPU Card)** | Syntactic Field Truncation/Drift | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 88.07% | 69.482 ms | 34.741 ms |
+| **BERT (MiniLM - 4 GPU Cards)** | JSON Structural (Dropped/Null Keys) | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 85.88% | 22.470 ms | 1.404 ms |
+| **BERT (MiniLM - 4 GPU Cards)** | Qwen Semantic Schema Alteration | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 87.49% | 28.200 ms | 1.762 ms |
+| **BERT (MiniLM - 4 GPU Cards)** | Syntactic Field Truncation/Drift | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 88.07% | 69.482 ms | 4.343 ms |
+| **BGE Embedding (1 GPU Card)** | JSON Structural (Dropped/Null Keys) | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 91.40% | 37.766 ms | 18.883 ms |
+| **BGE Embedding (1 GPU Card)** | Qwen Semantic Schema Alteration | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 88.20% | 37.766 ms | 18.883 ms |
+| **BGE Embedding (1 GPU Card)** | Syntactic Field Truncation/Drift | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 83.50% | 37.766 ms | 18.883 ms |
+| **BGE Embedding (4 GPU Cards)** | JSON Structural (Dropped/Null Keys) | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 91.40% | 4.720 ms | 0.295 ms |
+| **BGE Embedding (4 GPU Cards)** | Qwen Semantic Schema Alteration | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 88.20% | 4.720 ms | 0.295 ms |
+| **BGE Embedding (4 GPU Cards)** | Syntactic Field Truncation/Drift | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 83.50% | 4.720 ms | 0.295 ms |
+| **Cohere Embed** | JSON Structural (Dropped/Null Keys) | Cohere API (`embed-v3.0`) | Cloud Dense Vector | 89.50% | 429.909 ms | N/A |
+| **Cohere Embed** | Qwen Semantic Schema Alteration | Cohere API (`embed-v3.0`) | Cloud Dense Vector | 75.90% | 426.689 ms | N/A |
+| **Cohere Embed** | Syntactic Field Truncation/Drift | Cohere API (`embed-v3.0`) | Cloud Dense Vector | 58.27% | 431.410 ms | N/A |
+| **Gemma 4 E2B (1 GPU Card)** | JSON Structural (Dropped/Null Keys) | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 51.20% | 3938.093 ms | 1969.046 ms |
+| **Gemma 4 E2B (1 GPU Card)** | Qwen Semantic Schema Alteration | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 40.80% | 3938.093 ms | 1969.046 ms |
+| **Gemma 4 E2B (1 GPU Card)** | Syntactic Field Truncation/Drift | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 33.67% | 3938.093 ms | 1969.046 ms |
+| **Gemma 4 E2B (4 GPU Cards)** | JSON Structural (Dropped/Null Keys) | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 51.20% | 492.261 ms | 30.766 ms |
+| **Gemma 4 E2B (4 GPU Cards)** | Qwen Semantic Schema Alteration | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 40.80% | 492.261 ms | 30.766 ms |
+| **Gemma 4 E2B (4 GPU Cards)** | Syntactic Field Truncation/Drift | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 33.67% | 492.261 ms | 30.766 ms |
+
+
 ### API-Specific Performance Tables
 
 #### 1. OpenF1 Telemetry
