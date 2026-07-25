@@ -273,6 +273,7 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | Levenshtein | 75.57% | 0.392ms | 0.000J | 0.00mg |
 | Regex | 80.15% | 0.637ms | 0.000J | 0.00mg |
 | BERT | 88.63% | 35.596ms | 0.001J | 105.70mg |
+| BGE Local GPU Embedding (LUMI-G) | 87.70% | 37.766ms | 0.001J | 108.60mg |
 | Cohere Embed (embed-english-v3.0) | 74.34% | 451.342ms | 0.005J | 654.10mg |
 | Gemma 4 E2B (4-bit) | 41.89% | 3938.093ms | 0.080J | 11421.21mg |
 | Quantum Router (Sim - MI250X Aer GPU) | 92.78% | 3.327ms | 9.290J | 11490.87mg |
@@ -300,9 +301,11 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | Levenshtein | 83.52% | 0.228ms | 0.000J | 0.00mg |
 | Regex | 78.87% | 0.419ms | 0.000J | 0.00mg |
 | BERT | 93.79% | 75.437ms | 0.002J | 240.23mg |
+| BGE Local GPU (LUMI-G) | 93.50% | 9.718ms | 0.001J | 28.10mg |
+| Cohere Embed (embed-english-v3.0) | 83.94% | 437.518ms | 0.005J | 634.10mg |
 | Gemma 4 E2B (4-bit) | 42.10% | 3855.591ms | 0.078J | 11050.40mg |
 | **Quantum Router (Sim)** | 96.80% | 25.93ms | 9.29J | 10834.12mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | **47.91%** | **0.0128ms** | 9.29J | 10834.12mg |
+| **Quantum Router (IBM QPU - ibm_fez)** | **45.81%** | **0.0137ms** | 9.29J | 10834.12mg |
 | **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 2. Finnhub Financial Feeds
@@ -311,9 +314,11 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | Levenshtein | 71.50% | 0.062ms | 0.000J | 0.00mg |
 | Regex | 83.88% | 0.068ms | 0.000J | 0.00mg |
 | BERT | 83.22% | 76.295ms | 0.002J | 243.11mg |
+| BGE Local GPU (LUMI-G) | 81.75% | 10.120ms | 0.001J | 29.30mg |
+| Cohere Embed (embed-english-v3.0) | 71.62% | 534.078ms | 0.006J | 774.20mg |
 | Gemma 4 E2B (4-bit) | 60.97% | 3871.199ms | 0.079J | 11124.50mg |
 | **Quantum Router (Sim)** | 87.55% | 0.46ms | 9.29J | 10986.20mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | **40.08%** | **0.0039ms** | 9.29J | 10986.20mg |
+| **Quantum Router (IBM QPU - ibm_fez)** | **40.89%** | **0.0044ms** | 9.29J | 10986.20mg |
 | **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 3. SpaceX Telemetry
@@ -322,9 +327,11 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | Levenshtein | 67.01% | 0.083ms | 0.000J | 0.00mg |
 | Regex | 76.28% | 0.326ms | 0.000J | 0.00mg |
 | BERT | 87.69% | 2.332ms | 0.000J | 8.21mg |
+| BGE Local GPU (LUMI-G) | 88.40% | 4.459ms | 0.000J | 12.90mg |
+| Cohere Embed (embed-english-v3.0) | 74.68% | 374.031ms | 0.004J | 542.10mg |
 | Gemma 4 E2B (4-bit) | 40.09% | 2442.795ms | 0.050J | 7015.42mg |
 | **Quantum Router (Sim)** | 95.00% | 0.47ms | 9.29J | 6831.25mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | **38.26%** | **0.0047ms** | 9.29J | 6831.25mg |
+| **Quantum Router (IBM QPU - ibm_fez)** | **42.00%** | **0.0049ms** | 9.29J | 6831.25mg |
 | **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 4. OpenWeather Vectors
@@ -333,9 +340,11 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | Levenshtein | 68.80% | 0.019ms | 0.000J | 0.00mg |
 | Regex | 85.42% | 0.222ms | 0.000J | 0.00mg |
 | BERT | 86.69% | 11.304ms | 0.000J | 36.17mg |
+| BGE Local GPU (LUMI-G) | 85.36% | 19.025ms | 0.001J | 55.10mg |
+| Cohere Embed (embed-english-v3.0) | 70.87% | 391.680ms | 0.004J | 567.80mg |
 | Gemma 4 E2B (4-bit) | 50.50% | 3464.710ms | 0.071J | 9951.25mg |
 | **Quantum Router (Sim)** | 91.51% | 0.46ms | 9.29J | 9741.05mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | **35.71%** | **0.0057ms** | 9.29J | 9741.05mg |
+| **Quantum Router (IBM QPU - ibm_fez)** | **32.20%** | **0.0058ms** | 9.29J | 9741.05mg |
 | **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 5. FDA Clinical Records
@@ -344,9 +353,11 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | Levenshtein | 74.41% | 0.052ms | 0.000J | 0.00mg |
 | Regex | 73.01% | 0.163ms | 0.000J | 0.00mg |
 | BERT | 91.12% | 100.062ms | 0.003J | 321.44mg |
+| BGE Local GPU (LUMI-G) | 88.86% | 173.810ms | 0.005J | 503.20mg |
+| Cohere Embed (embed-english-v3.0) | 74.56% | 391.066ms | 0.004J | 566.90mg |
 | Gemma 4 E2B (4-bit) | 67.05% | 3735.446ms | 0.076J | 10735.10mg |
 | **Quantum Router (Sim)** | 96.34% | 0.48ms | 9.29J | 10413.20mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | **35.96%** | **0.0051ms** | 9.29J | 10413.20mg |
+| **Quantum Router (IBM QPU - ibm_fez)** | **37.85%** | **0.0084ms** | 9.29J | 10413.20mg |
 | **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 6. NHL Hockey Event Streams
@@ -355,9 +366,11 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | Levenshtein | 91.09% | 2.018ms | 0.000J | 0.00mg |
 | Regex | 81.84% | 2.978ms | 0.000J | 0.00mg |
 | BERT | 97.95% | 22.319ms | 0.000J | 73.11mg |
+| BGE Local GPU (LUMI-G) | 98.30% | 43.658ms | 0.001J | 126.50mg |
+| Cohere Embed (embed-english-v3.0) | 82.29% | 606.503ms | 0.007J | 879.30mg |
 | Gemma 4 E2B (4-bit) | 3.85% | 5524.083ms | 0.113J | 15865.10mg |
 | **Quantum Router (Sim)** | 98.74% | 0.60ms | 9.29J | 15582.40mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | **32.23%** | **0.0434ms** | 9.29J | 15582.40mg |
+| **Quantum Router (IBM QPU - ibm_fez)** | **34.87%** | **0.0561ms** | 9.29J | 15582.40mg |
 | **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 7. OpenSky Aviation Vectors
@@ -366,9 +379,11 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | Levenshtein | 48.92% | 0.012ms | 0.000J | 0.00mg |
 | Regex | 73.68% | 0.277ms | 0.000J | 0.00mg |
 | BERT | 65.28% | 22.816ms | 0.000J | 72.82mg |
+| BGE Local GPU (LUMI-G) | 61.09% | 53.552ms | 0.002J | 155.20mg |
+| Cohere Embed (embed-english-v3.0) | 43.63% | 350.798ms | 0.004J | 508.60mg |
 | Gemma 4 E2B (4-bit) | 71.92% | 1492.944ms | 0.031J | 4287.31mg |
 | **Quantum Router (Sim)** | 73.99% | 0.46ms | 9.29J | 4081.22mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | **25.55%** | **0.0020ms** | 9.29J | 4081.22mg |
+| **Quantum Router (IBM QPU - ibm_fez)** | **23.65%** | **0.0031ms** | 9.29J | 4081.22mg |
 | **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 8. UEFA Football Match Events
@@ -377,9 +392,11 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | Levenshtein | 84.18% | 0.299ms | 0.000J | 0.00mg |
 | Regex | 81.04% | 0.638ms | 0.000J | 0.00mg |
 | BERT | 94.99% | 7.754ms | 0.000J | 24.81mg |
+| BGE Local GPU (LUMI-G) | 95.22% | 21.992ms | 0.001J | 63.70mg |
+| Cohere Embed (embed-english-v3.0) | 83.92% | 483.010ms | 0.005J | 700.30mg |
 | Gemma 4 E2B (4-bit) | 25.21% | 2818.666ms | 0.058J | 8092.12mg |
 | **Quantum Router (Sim)** | 97.02% | 0.51ms | 9.29J | 7942.33mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | **41.91%** | **0.0184ms** | 9.29J | 7942.33mg |
+| **Quantum Router (IBM QPU - ibm_fez)** | **39.52%** | **0.0185ms** | 9.29J | 7942.33mg |
 | **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 9. TfL Transit Predictions
@@ -388,9 +405,11 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | Levenshtein | 91.70% | 0.755ms | 0.000J | 0.00mg |
 | Regex | 87.31% | 0.643ms | 0.000J | 0.00mg |
 | BERT | 96.96% | 2.042ms | 0.000J | 6.53mg |
+| BGE Local GPU (LUMI-G) | 96.81% | 3.557ms | 0.000J | 10.30mg |
+| Cohere Embed (embed-english-v3.0) | 83.57% | 493.391ms | 0.005J | 715.40mg |
 | Gemma 4 E2B (4-bit) | 15.28% | 8237.395ms | 0.169J | 23649.80mg |
 | **Quantum Router (Sim)** | 98.03% | 0.57ms | 9.29J | 23512.44mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | **50.61%** | **0.0449ms** | 9.29J | 23512.44mg |
+| **Quantum Router (IBM QPU - ibm_fez)** | **53.56%** | **0.0471ms** | 9.29J | 23512.44mg |
 | **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 
@@ -729,6 +748,8 @@ resilient-data/
 | **Phase 1: Non-Quantum Baselines** | AMD Instinct MI250X (LUMI-G) | 10 / 10 | **COMPLETED** | `data/reports/MI250X_run01` – `run10` |
 | **Phase 3: Aer GPU QPU Simulation** | AMD Instinct MI250X (LUMI-G) | 10 / 10 | **COMPLETED** | `data/reports/quantum_MI250X_aer_sim_run01` – `run10` |
 | **Phase 4: Physical IBM QPU Benchmark** | IBM Eagle Processor (`ibm_fez`) | 10 / 10 | **COMPLETED** | `data/reports/quantum_run_ibm_qpu_ibm_qpu_run01` – `run10` |
+| **Local GPU Embedding Sweep** | AMD Instinct MI250X (LUMI-G) | 10 / 10 | **COMPLETED** | `data/reports/MI250X_bge_embed_run01` – `run10` |
+| **Cohere Embed Benchmark** | Cohere API (`embed-english-v3.0`) | 10 / 10 | **IN PROGRESS (Active)** | `data/reports/run_cohere_run01` – `run10` |
 
 ## Citation
 
