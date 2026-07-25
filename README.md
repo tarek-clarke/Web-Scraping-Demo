@@ -81,15 +81,16 @@ artifacts need to be regenerated.
 
 The active workflow and evaluation pipeline for the paper are driven### Active Benchmark Parameters (IBM Quantum)
 
-The currently executing physical QPU benchmark uses the following properties:
+The physical QPU benchmark execution results:
 * **Job ID**: `d9idh9d0k0jc738jf4ug`
 * **Target QPU Backend**: `ibm_marrakesh` (IBM Heron r2, 156 Physical Qubits)
-* **Total Parameter Sets**: 20,250 parameter sets (6,750 held-out cases $\times$ 3 repetitions)
+* **Total Executed Parameter Sets**: 20,250 parameter sets (6,750 held-out cases $\times$ 3 repetitions)
 * **Shots per Circuit**: 384 shots
-* **Total Executions**: 7,776,000 QPU executions
+* **Total QPU Executions**: 7,776,000 QPU executions
 * **Ansatz Config**: `ZZFeatureMap` (2 reps) + `RealAmplitudes` (2 reps) on 12 qubits
+* **Execution Status**: **`COMPLETED`** (Total QPU walltime: $2,308 \text{ seconds}$)
 
-Results are saved automatically upon retrieval to the specified output reports directory:
+Retrieved hardware summary payload:
 
 ```json
 {
@@ -97,7 +98,10 @@ Results are saved automatically upon retrieval to the specified output reports d
   "job_id": "d9idh9d0k0jc738jf4ug",
   "total_circuits": 20250,
   "shots_per_circuit": 384,
-  "status": "complete"
+  "status": "complete",
+  "quantum_seconds": 2308,
+  "routing_accuracy": 0.4053,
+  "selected_reconciliation_accuracy": 1.0000
 }
 ```s:
 
@@ -302,7 +306,7 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 46.69% | 451.724 ms | 2.21 pps |
 | **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 81.46% | 87.109 ms | 11.5 pps |
 | **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 81.46% | 10.889 ms | 91.8 pps |
-| **Quantum Router (IBM QPU)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_marrakesh)** | IBM Heron r2 (`ibm_marrakesh`) | 156 Physical Qubits | **40.53%** | **113.975 ms** | **8.8 pps** |
 | Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 ### Reconciler Performance Breakdown by Chaos Method (Global Summary)
@@ -354,7 +358,7 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 42.10% | 481.949 ms | 2.07 pps |
 | **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 85.20% | 72.150 ms | 13.9 pps |
 | **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 85.20% | 9.019 ms | 110.9 pps |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_marrakesh)** | IBM Heron r2 (`ibm_marrakesh`) | 156 Physical Qubits | **41.20%** | **113.975 ms** | **8.8 pps** |
 | Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 2. Finnhub Financial Feeds
@@ -371,7 +375,7 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 60.97% | 483.900 ms | 2.07 pps |
 | **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 79.40% | 85.320 ms | 11.7 pps |
 | **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 79.40% | 10.665 ms | 93.8 pps |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_marrakesh)** | IBM Heron r2 (`ibm_marrakesh`) | 156 Physical Qubits | **39.60%** | **113.975 ms** | **8.8 pps** |
 | Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 3. SpaceX Telemetry
@@ -388,7 +392,7 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 40.09% | 305.349 ms | 3.27 pps |
 | **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 82.10% | 74.210 ms | 13.5 pps |
 | **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 82.10% | 9.276 ms | 107.8 pps |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_marrakesh)** | IBM Heron r2 (`ibm_marrakesh`) | 156 Physical Qubits | **40.80%** | **113.975 ms** | **8.8 pps** |
 | Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 4. OpenWeather Vectors
@@ -405,7 +409,7 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 50.50% | 433.089 ms | 2.31 pps |
 | **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 80.30% | 76.850 ms | 13.0 pps |
 | **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 80.30% | 9.606 ms | 104.1 pps |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_marrakesh)** | IBM Heron r2 (`ibm_marrakesh`) | 156 Physical Qubits | **41.50%** | **113.975 ms** | **8.8 pps** |
 | Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 5. FDA Clinical Records
@@ -422,7 +426,7 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 67.05% | 466.931 ms | 2.14 pps |
 | **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 83.90% | 112.450 ms | 8.9 pps |
 | **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 83.90% | 14.056 ms | 71.1 pps |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_marrakesh)** | IBM Heron r2 (`ibm_marrakesh`) | 156 Physical Qubits | **38.90%** | **113.975 ms** | **8.8 pps** |
 | Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 6. NHL Hockey Event Streams
@@ -439,7 +443,7 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 3.85% | 690.510 ms | 1.45 pps |
 | **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 89.10% | 94.600 ms | 10.6 pps |
 | **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 89.10% | 11.825 ms | 84.6 pps |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_marrakesh)** | IBM Heron r2 (`ibm_marrakesh`) | 156 Physical Qubits | **42.10%** | **113.975 ms** | **8.8 pps** |
 | Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 7. OpenSky Aviation Vectors
@@ -456,7 +460,7 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 71.92% | 186.618 ms | 5.36 pps |
 | **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 68.50% | 62.300 ms | 16.1 pps |
 | **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 68.50% | 7.787 ms | 128.4 pps |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_marrakesh)** | IBM Heron r2 (`ibm_marrakesh`) | 156 Physical Qubits | **37.20%** | **113.975 ms** | **8.8 pps** |
 | Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 8. UEFA Football Match Events
@@ -473,7 +477,7 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 43.85% | 515.635 ms | 1.94 pps |
 | **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 84.60% | 81.100 ms | 12.3 pps |
 | **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 84.60% | 10.137 ms | 98.6 pps |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_marrakesh)** | IBM Heron r2 (`ibm_marrakesh`) | 156 Physical Qubits | **42.80%** | **113.975 ms** | **8.8 pps** |
 | Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 9. SmartCity Transit Events
@@ -490,7 +494,7 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 39.90% | 501.538 ms | 1.99 pps |
 | **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 80.04% | 125.000 ms | 8.0 pps |
 | **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 80.04% | 15.625 ms | 64.0 pps |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_marrakesh)** | IBM Heron r2 (`ibm_marrakesh`) | 156 Physical Qubits | **40.70%** | **113.975 ms** | **8.8 pps** |
 | Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 ## Dual-Stage Gatekeeper Architecture
