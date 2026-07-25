@@ -52,13 +52,13 @@
     "gemma_1gpu": {
       "accuracy": "46.69%",
       "latency_ms": 3613.795,
-      "throughput_pps": 0.28,
+      "throughput_pps": 0.3,
       "hardware": "1 Full Physical MI250X Card"
     },
     "gemma_4gpu": {
       "accuracy": "46.69%",
       "latency_ms": 451.724,
-      "throughput_pps": 2.21,
+      "throughput_pps": 2.2,
       "hardware": "4 Full Physical MI250X Cards"
     },
     "quantum_router_sim_1gpu": {
