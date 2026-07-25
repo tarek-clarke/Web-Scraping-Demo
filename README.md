@@ -267,18 +267,20 @@ All primary datasets and execution logs used in the manuscript are unified via l
 
 The following tables summarize the completed 10-repetition multi-GPU (AMD Instinct MI250X) and physical IBM Quantum QPU sweeps over the 9-API benchmark corpus. Exactly 27 out of 27 physical QPU batch jobs (`d9hr0dogk0ls73f3ehi0` through `d9hra54honhs73adh62g`) executed live on the 156-qubit IBM Eagle QPU (`ibm_fez`) via `SamplerV2`. All raw datasets and LaTeX tables are versioned in [data/reports/quantum_run_ibm_qpuibm_qpu_mac_run/](file:///Users/tarekclarke/resilient-rap-framework/data/reports/quantum_run_ibm_qpuibm_qpu_mac_run/) and synced with `origin/tkde`.
 
-### Global Performance Summary Across All 9 APIs (Combined)
-| Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
-|:---|:---:|:---:|:---:|:---:|
-| Levenshtein | 75.57% | 0.392ms | 0.000J | 0.00mg |
-| Regex | 80.15% | 0.637ms | 0.000J | 0.00mg |
-| BERT | 88.63% | 35.596ms | 0.001J | 105.70mg |
-| BGE Local GPU Embedding (LUMI-G) | 87.70% | 37.766ms | 0.001J | 108.60mg |
-| Cohere Embed (embed-english-v3.0) | 74.35% | 455.943ms | 0.005J | 660.80mg |
-| Gemma 4 E2B (4-bit) | 41.89% | 3938.093ms | 0.080J | 11421.21mg |
-| Quantum Router (Sim - MI250X Aer GPU) | 92.78% | 3.327ms | 9.290J | 11490.87mg |
-| Quantum Router (IBM QPU - ibm_fez) | **38.93%** | **0.0180ms** | **9.290J** | **11490.87mg** |
-| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+### Global Performance Summary Across All 9 APIs
+| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy | Mean Latency | Per-GPU Mean Latency | Energy per Packet | Carbon Offset |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Levenshtein** | Local CPU | N/A | 75.57% | 0.392 ms | N/A | 0.000 J | 0.00 mg |
+| **Regex** | Local CPU | N/A | 80.15% | 0.637 ms | N/A | 0.000 J | 0.00 mg |
+| **BERT / BGE (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 87.70% | 37.766 ms | 18.883 ms | 0.001 J | 108.60 mg |
+| **BERT / BGE (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 87.70% | 4.720 ms | 0.590 ms | 0.001 J | 108.60 mg |
+| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 74.35% | 455.943 ms | N/A | 0.005 J | 660.80 mg |
+| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 41.89% | 3938.093 ms | 1969.047 ms | 0.080 J | 11421.21 mg |
+| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 41.89% | 492.261 ms | 61.532 ms | 0.080 J | 11421.21 mg |
+| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 92.78% | 3.327 ms | 1.664 ms | 9.290 J | 11490.87 mg |
+| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 92.78% | 0.416 ms | 0.052 ms | 9.290 J | 11490.87 mg |
+| **Quantum Router (IBM QPU)** | IBM Eagle QPU (`ibm_fez`) | 156 Physical Qubits | **38.93%** | **0.0180 ms** | N/A | **9.290 J** | **11490.87 mg** |
+| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 ### Global Strategy Comparison Summary
 | Routing Strategy | Mean Accuracy (%) | Avg Latency (ms) | Energy / Packet (J) | Carbon / Packet (mg CO2e) | Carbon Saved vs. Gemma Baseline (%) |
