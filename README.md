@@ -325,7 +325,16 @@ To rigorously evaluate the Variational Quantum Classifier (VQC) Quantum Router a
 #### Leakage Prevention & Cross-Validation Methodology
 Both classical routers are trained directly against ground-truth oracle route labels derived from actual packet-level reconciliation outcomes (selecting the lowest-latency reconciler meeting the accuracy SLA, or `abstain` if no reconciler succeeds). To prevent data leakage, training uses strict packet-source record isolation matching the VQC split protocol across 10 random seeds ($N=10$). Furthermore, out-of-distribution generalization is validated via a **Leave-One-API-Out (LOAO)** cross-validation protocol, where models are trained on 8 API microservices and evaluated exclusively on the unseen 9th API.
 
-#### Router Comparison Table (LaTeX & Markdown Format)
+### Dedicated Classical Routing Baseline Summary Table
+
+| Model / Architecture | Training / Split Protocol | Mean Routing Acc. (%) | 95% Confidence Interval | Macro F1-Score (%) | LOAO Cross-Val Acc. (%) | Mean Inference Latency (ms) | System Throughput (packets/sec) |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Multinomial Logistic Regression** | CPU (10 Seeds, 80/10/10) | **68.80% ± 0.74%** | [67.35%, 70.25%] | 61.16% | **62.40%** | **0.00014 ms** | **7,142,857 pps** |
+| **Random Forest Classifier** | CPU (100 Trees, Max Depth 10) | **79.34% ± 0.62%** | [78.12%, 80.56%] | **79.50%** | **68.23%** | **0.00877 ms** | **114,025 pps** |
+
+---
+
+### Router Comparison Table (LaTeX & Markdown Format)
 
 ```latex
 \begin{table}[h]
