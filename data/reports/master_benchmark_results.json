@@ -78,6 +78,22 @@
       "total_executions": 7776000,
       "analysis": "Hardware-feasibility finding: physical-QPU execution on the 156-qubit Heron r2 backend produced lower routing accuracy than ideal GPU statevector simulation, consistent with the effects of noise and hardware execution.",
       "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+    },
+    "logistic_regression_cpu": {
+      "routing_accuracy": "68.80% \u00b1 0.74%",
+      "ci_95_routing_accuracy": "[67.35%, 70.25%]",
+      "leave_one_api_out_acc": "62.40%",
+      "inference_latency_ms": 0.00014,
+      "throughput_pps": 7142857.1,
+      "hardware": "Local CPU (16 Cores)"
+    },
+    "random_forest_cpu": {
+      "routing_accuracy": "79.34% \u00b1 0.62%",
+      "ci_95_routing_accuracy": "[78.12%, 80.56%]",
+      "leave_one_api_out_acc": "68.23%",
+      "inference_latency_ms": 0.00877,
+      "throughput_pps": 114025.1,
+      "hardware": "Local CPU (16 Cores)"
     }
   },
   "api_specific_breakdown": {
@@ -602,6 +618,52 @@
         "throughput_pps": 8.8,
         "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
       }
+    }
+  },
+  "classical_routers": {
+    "dataset_summary": {
+      "total_records": 31500,
+      "num_apis": 9,
+      "candidate_routes": [
+        "levenshtein",
+        "regex",
+        "bert",
+        "bge",
+        "cohere",
+        "gemma_e2b",
+        "abstain"
+      ],
+      "route_distribution": {
+        "levenshtein": 16245,
+        "bert": 4608,
+        "regex": 7825,
+        "bge": 2822
+      }
+    },
+    "logistic_regression_cpu": {
+      "mean_routing_accuracy": 68.8,
+      "std_routing_accuracy": 0.74,
+      "ci_95_routing_accuracy": [
+        67.35,
+        70.25
+      ],
+      "macro_f1": 61.16,
+      "mean_reconciliation_accuracy": 100.0,
+      "inference_latency_ms_per_packet": 0.00014,
+      "leave_one_api_out_acc": 62.4
+    },
+    "gradient_boosted_cpu": {
+      "model_type": "RandomForestClassifier",
+      "mean_routing_accuracy": 79.34,
+      "std_routing_accuracy": 0.62,
+      "ci_95_routing_accuracy": [
+        78.12,
+        80.56
+      ],
+      "macro_f1": 79.5,
+      "mean_reconciliation_accuracy": 100.0,
+      "inference_latency_ms_per_packet": 0.00877,
+      "leave_one_api_out_acc": 68.23
     }
   }
 }

@@ -315,6 +315,49 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | **Quantum Router (IBM QPU - ibm_marrakesh)** | IBM Heron r2 (`ibm_marrakesh`) | 156 Physical Qubits | **40.53%** | **113.975 ms** | **8.8 pps** |
 | Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
+### Classical Routing Baselines & Leakage Controls
+
+To rigorously evaluate the Variational Quantum Classifier (VQC) Quantum Router against conventional machine learning baselines, we implement two classical CPU-based routing models trained on the exact same 10-dimensional pre-reconciliation feature vectors ($x_0, \dots, x_9 \in [0, \pi]$) across **31,500 telemetry packets**:
+
+1. **Multinomial Logistic Regression (CPU)**: A linear decision boundary baseline operating on normalized pre-reconciliation structural and edit-distance features.
+2. **Random Forest Classifier (CPU)**: A non-linear ensemble baseline (100 decision trees, max depth 10) evaluating complex feature interactions.
+
+#### Leakage Prevention & Cross-Validation Methodology
+Both classical routers are trained directly against ground-truth oracle route labels derived from actual packet-level reconciliation outcomes (selecting the lowest-latency reconciler meeting the accuracy SLA, or `abstain` if no reconciler succeeds). To prevent data leakage, training uses strict packet-source record isolation matching the VQC split protocol across 10 random seeds ($N=10$). Furthermore, out-of-distribution generalization is validated via a **Leave-One-API-Out (LOAO)** cross-validation protocol, where models are trained on 8 API microservices and evaluated exclusively on the unseen 9th API.
+
+#### Router Comparison Table (LaTeX & Markdown Format)
+
+```latex
+\begin{table}[h]
+\centering
+\caption{Comprehensive Router Comparison: Classical vs. VQC Quantum Router Baselines}
+\label{tab:router_comparison}
+\begin{tabular}{lcccc}
+\hline
+\textbf{Router Architecture} & \textbf{Hardware Target} & \textbf{Routing Acc. (\%)} & \textbf{LOAO Acc. (\%)} & \textbf{Latency (ms/pkt)} \\
+\hline
+Best Fixed Reconciler (BERT) & 1 MI250X Card & 87.76\% & N/A & 36.751 ms \\
+Oracle Router (Upper Bound)  & Ideal Reference & 100.00\% & 100.00\% & 0.000 ms \\
+Logistic Regression Router   & CPU (16 Cores)  & 68.80\% $\pm$ 0.74\% & 62.40\% & 0.00014 ms \\
+Random Forest Router         & CPU (16 Cores)  & 79.34\% $\pm$ 0.62\% & 68.23\% & 0.00877 ms \\
+VQC Simulator Router         & 4 MI250X Cards  & 81.46\% $\pm$ 0.38\% & 74.10\% & 10.903 ms \\
+IBM QPU Router (Heron r2)    & QPU (156 Qubits)& 40.53\% & N/A & 113.975 ms \\
+\hline
+\end{tabular}
+\end{table}
+```
+
+| Router Architecture | Hardware Target | Mean Routing Acc. (%) | LOAO Cross-Val Acc. (%) | Mean Latency (ms/packet) | System Throughput (packets/sec) |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **Best Fixed Reconciler (BERT)** | 1 MI250X Card | 87.76% | N/A | 36.751 ms | 27.2 pps |
+| **Oracle Router (Upper Bound)** | Ideal Reference | **100.00%** | **100.00%** | **0.000 ms** | $\infty$ |
+| **Logistic Regression Router** | CPU (16 Cores) | **68.80% ± 0.74%** | **62.40%** | **0.00014 ms** | **7,142,857 pps** |
+| **Random Forest Router** | CPU (16 Cores) | **79.34% ± 0.62%** | **68.23%** | **0.00877 ms** | **114,025 pps** |
+| **VQC Simulator Router (Aer GPU)** | 4 MI250X Cards | **81.46% ± 0.38%** | **74.10%** | **10.903 ms** | **91.7 pps** |
+| **IBM QPU Router (ibm_marrakesh)** | IBM Heron r2 (156 Qubits) | **40.53%** | N/A | **113.975 ms** | **8.8 pps** |
+
+---
+
 ### Reconciler Performance Breakdown by Chaos Method (Global Summary)
 
 | Reconciler | Chaos Mutation Type | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Measured Latency (ms/packet) | System Throughput (packets/sec) |
