@@ -274,7 +274,7 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | Regex | 80.15% | 0.637ms | 0.000J | 0.00mg |
 | BERT | 88.63% | 35.596ms | 0.001J | 105.70mg |
 | BGE Local GPU Embedding (LUMI-G) | 87.70% | 37.766ms | 0.001J | 108.60mg |
-| Cohere Embed (embed-english-v3.0) | 74.34% | 451.342ms | 0.005J | 654.10mg |
+| Cohere Embed (embed-english-v3.0) | 74.35% | 455.943ms | 0.005J | 660.80mg |
 | Gemma 4 E2B (4-bit) | 41.89% | 3938.093ms | 0.080J | 11421.21mg |
 | Quantum Router (Sim - MI250X Aer GPU) | 92.78% | 3.327ms | 9.290J | 11490.87mg |
 | Quantum Router (IBM QPU - ibm_fez) | **38.93%** | **0.0180ms** | **9.290J** | **11490.87mg** |
@@ -749,7 +749,7 @@ resilient-data/
 | **Phase 3: Aer GPU QPU Simulation** | AMD Instinct MI250X (LUMI-G) | 10 / 10 | **COMPLETED** | `data/reports/quantum_MI250X_aer_sim_run01` – `run10` |
 | **Phase 4: Physical IBM QPU Benchmark** | IBM Eagle Processor (`ibm_fez`) | 10 / 10 | **COMPLETED** | `data/reports/quantum_run_ibm_qpu_ibm_qpu_run01` – `run10` |
 | **Local GPU Embedding Sweep** | AMD Instinct MI250X (LUMI-G) | 10 / 10 | **COMPLETED** | `data/reports/MI250X_bge_embed_run01` – `run10` |
-| **Cohere Embed Benchmark** | Cohere API (`embed-english-v3.0`) | 10 / 10 | **IN PROGRESS (Active)** | `data/reports/run_cohere_run01` – `run10` |
+| **Cohere Embed Benchmark** | Cohere API (`embed-english-v3.0`) | 10 / 10 | **COMPLETED** | `data/reports/run_cohere_run01` – `run10` |
 
 ## Citation
 
