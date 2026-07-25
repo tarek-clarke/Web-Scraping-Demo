@@ -727,7 +727,7 @@ resilient-data/
 |:---|:---|:---:|:---:|:---|
 | **Phase 1: Non-Quantum Baselines** | AMD Instinct MI250X (LUMI-G) | 10 / 10 | **COMPLETED** | `data/reports/MI250X_run01` – `run10` |
 | **Phase 3: Aer GPU QPU Simulation** | AMD Instinct MI250X (LUMI-G) | 10 / 10 | **COMPLETED** | `data/reports/quantum_MI250X_aer_sim_run01` – `run10` |
-| **Phase 4: Physical IBM QPU Benchmark** | IBM Eagle Processor (`ibm_fez`) | 3 / 10 | **IN PROGRESS (Active)** | `data/reports/quantum_run_ibm_qpu_ibm_qpu_run01` – `run03` |
+| **Phase 4: Physical IBM QPU Benchmark** | IBM Eagle Processor (`ibm_fez`) | 10 / 10 | **COMPLETED** | `data/reports/quantum_run_ibm_qpu_ibm_qpu_run01` – `run10` |
 
 ## Citation
 
