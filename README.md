@@ -99,7 +99,7 @@ To evaluate the Variational Quantum Classifier (VQC) Quantum Router against conv
 
 ### Dedicated Classical Routing Baseline Summary Table
 
-| Model / Architecture | Training / Split Protocol | Mean Routing Acc. (%) | 95% Confidence Interval | Macro F1-Score (%) | LOAO Cross-Val Acc. (%) | Mean Inference Latency (ms) | System Throughput (packets/sec) |
+| Model / Architecture | Training / Split Protocol | Mean Routing-Selection Acc. (%) | 95% Confidence Interval | Macro F1-Score (%) | LOAO Cross-Val Acc. (%) | Mean Inference Latency (ms) | Derived batch-amortized evaluation rate (pps) |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Multinomial Logistic Regression** | CPU (10 Seeds, 80/10/10) | **68.80% ± 0.74%** | [68.27%, 69.33%] | 61.16% | **62.40%** | **0.00014 ms** | **7,142,857.1 pps** |
 | **Random Forest Classifier** | CPU (100 Trees, Max Depth 10) | **79.34% ± 0.62%** | [78.90%, 79.78%] | **79.50%** | **68.23%** | **0.00877 ms** | **114,025.1 pps** |
@@ -111,30 +111,28 @@ To evaluate the Variational Quantum Classifier (VQC) Quantum Router against conv
 ```latex
 \begin{table}[h]
 \centering
-\caption{Comprehensive Router Comparison: Classical vs. VQC Quantum Router Baselines}
-\label{tab:router_comparison}
+\caption{Router Selection Baselines Comparison: Classical vs. VQC Quantum Router Models}
+\label{tab:router_selection_comparison}
 \begin{tabular}{lcccc}
 \hline
-\textbf{Router Architecture} & \textbf{Hardware Target} & \textbf{Routing Acc. (\%)} & \textbf{LOAO Acc. (\%)} & \textbf{Latency (ms/pkt)} \\
+\textbf{Router Selection Architecture} & \textbf{Hardware Target} & \textbf{Routing-Selection Acc. (\%)} & \textbf{LOAO Acc. (\%)} & \textbf{Inference Latency (ms)} \\
 \hline
-Best Fixed Reconciler (BERT) & 1 MI250X Card & 87.76% & N/A & 36.751 ms \\
 Oracle Router (Upper Bound)  & Ideal Reference & 100.00\% & 100.00\% & 0.000 ms \\
 Logistic Regression Router   & CPU (16 Cores)  & 68.80\% $\pm$ 0.74\% & 62.40\% & 0.00014 ms \\
 Random Forest Router         & CPU (16 Cores)  & 79.34\% $\pm$ 0.62\% & 68.23\% & 0.00877 ms \\
-VQC Simulator Router         & 4 MI250X Cards  & 81.46% & 74.10\% & 10.889 ms \\
-IBM QPU Router (Heron r2)    & QPU (156 Qubits)& 40.53% & N/A & 113.975 ms \\
+VQC Simulator Router         & 4 MI250X Cards  & 81.46\% & N/A & 10.889 ms \\
+IBM QPU Router (Heron r2)    & QPU (156 Qubits)& 40.53\% & N/A & 113.975 ms \\
 \hline
 \end{tabular}
 \end{table}
 ```
 
-| Router Architecture | Hardware Target | Mean Routing Acc. (%) | LOAO Cross-Val Acc. (%) | Mean Latency (ms/packet) | System Throughput (packets/sec) |
+| Router Selection Architecture | Hardware Target | Mean Routing-Selection Acc. (%) | LOAO Cross-Val Acc. (%) | Mean Inference Latency (ms/packet) | Derived batch-amortized evaluation rate (pps) |
 | :--- | :--- | :---: | :---: | :---: | :---: |
-| **Best Fixed Reconciler (BERT)** | 1 MI250X Card | 87.76% | N/A | 36.751 ms | 27.2 pps |
 | **Oracle Router (Upper Bound)** | Ideal Reference | **100.00%** | **100.00%** | **0.000 ms** | $\infty$ |
 | **Logistic Regression Router** | CPU (16 Cores) | **68.80% ± 0.74%** | **62.40%** | **0.00014 ms** | **7,142,857.1 pps** |
 | **Random Forest Router** | CPU (16 Cores) | **79.34% ± 0.62%** | **68.23%** | **0.00877 ms** | **114,025.1 pps** |
-| **VQC Simulator Router (Aer GPU)** | 4 MI250X Cards | **81.46%** | **74.10%** | **10.889 ms** | **91.8 pps** |
+| **VQC Simulator Router (Aer GPU)** | 4 MI250X Cards | **81.46%** | N/A | **10.889 ms** | **91.8 pps** |
 | **IBM QPU Router (ibm_marrakesh)** | IBM Heron r2 (156 Qubits) | **40.53%** | N/A | **113.975 ms** | **8.8 pps** |
 
 ---
@@ -307,7 +305,7 @@ To support reproducibility across all baseline models, classical classifiers, an
 5. **Timing Metric Definitions**:
    - *Single-Packet Latency*: Measured wall-clock response time for processing a single packet.
    - *Batch-Normalized QPU Timing*: QPU execution walltime divided across total parameter sets ($113.975 \text{ ms/packet}$).
-   - *System Throughput*: Computed via $\text{pps} = \frac{1000.0}{\text{Measured Latency (ms)}}$.
+   - *Derived Batch-Amortized Evaluation Rate*: Computed via $\text{pps} = \frac{1000.0}{\text{Inference Latency (ms)}}$ for classical router evaluation, representing model decision throughput rather than end-to-end stream reconciliation pipeline throughput.
 
 ---
 
