@@ -42,6 +42,7 @@ vlq_submit_sweep*.sh
 vlq_submit_run*.py
 vlq_submit_run*.sh
 *lexis_token*
-*qaas_token*
-configs/vlq_*.json
+# Large workload jsonl files
+data/training/*.jsonl
+!data/training/*.jsonl.gz
 .venv/
