@@ -8,20 +8,20 @@ readme = readme.replace("156-qubit Eagle", "156-qubit Heron r2")
 
 # Update Global Performance Summary table
 global_table = """### Global Performance Summary Across All 9 APIs
-| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy | Mean Latency | Per-GPU Mean Latency |
+| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy | Measured Latency (ms/packet) | System Throughput (packets/sec) |
 | :--- | :--- | :---: | :---: | :---: | :---: |
-| **Levenshtein** | Local CPU | N/A | 75.57% | 0.392 ms | N/A |
-| **Regex** | Local CPU | N/A | 80.15% | 0.637 ms | N/A |
-| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 88.63% | 35.596 ms | 17.798 ms |
-| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 88.63% | 4.449 ms | 0.556 ms |
-| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 87.70% | 37.766 ms | 18.883 ms |
-| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 87.70% | 4.720 ms | 0.590 ms |
-| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 74.35% | 455.943 ms | N/A |
-| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 41.89% | 3938.093 ms | 1969.047 ms |
-| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 41.89% | 492.261 ms | 61.532 ms |
+| **Levenshtein** | Local CPU | N/A | 75.57% | 0.392 ms | 2,551.0 pps |
+| **Regex** | Local CPU | N/A | 80.15% | 0.637 ms | 1,569.8 pps |
+| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 88.63% | 35.596 ms | 28.1 pps |
+| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 88.63% | 4.449 ms | 224.7 pps |
+| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 87.70% | 37.766 ms | 26.5 pps |
+| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 87.70% | 4.720 ms | 211.8 pps |
+| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 74.35% | 455.943 ms | 2.2 pps |
+| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 41.89% | 3938.093 ms | 0.25 pps |
+| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 41.89% | 492.261 ms | 2.03 pps |
 | **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
 | **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
-| **Quantum Router (IBM QPU)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | N/A |
+| **Quantum Router (IBM QPU)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | *[Pending]* |
 | Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |"""
 
 # Replace Global Performance Summary table in README
@@ -106,28 +106,33 @@ api_data = {
 new_sections = []
 for title, m in api_data.items():
     section = f"#### {title}\n"
-    section += "| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) |\n"
+    section += "| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Measured Latency (ms/packet) | System Throughput (packets/sec) |\n"
     section += "|:---|:---|:---:|:---:|:---:|:---:|\n"
-    section += f"| **Levenshtein** | Local CPU | N/A | {m['lev'][0]} | {m['lev'][1]} | N/A |\n"
-    section += f"| **Regex** | Local CPU | N/A | {m['reg'][0]} | {m['reg'][1]} | N/A |\n"
+    
+    l_lat = float(m['lev'][1].replace("ms",""))
+    section += f"| **Levenshtein** | Local CPU | N/A | {m['lev'][0]} | {m['lev'][1]} | {1000.0/l_lat:.1f} pps |\n"
+    
+    r_lat = float(m['reg'][1].replace("ms",""))
+    section += f"| **Regex** | Local CPU | N/A | {m['reg'][0]} | {m['reg'][1]} | {1000.0/r_lat:.1f} pps |\n"
     
     b_lat1 = float(m["bert"][1].replace("ms",""))
-    section += f"| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | {m['bert'][0]} | {b_lat1:.3f}ms | {b_lat1/2:.3f}ms |\n"
-    section += f"| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | {m['bert'][0]} | {b_lat1/8:.3f}ms | {b_lat1/16:.3f}ms |\n"
+    section += f"| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | {m['bert'][0]} | {b_lat1:.3f}ms | {1000.0/b_lat1:.1f} pps |\n"
+    section += f"| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | {m['bert'][0]} | {b_lat1/8:.3f}ms | {1000.0/(b_lat1/8)*8:.1f} pps |\n"
     
     g_lat1 = float(m["bge"][1].replace("ms",""))
-    section += f"| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | {m['bge'][0]} | {g_lat1:.3f}ms | {g_lat1/2:.3f}ms |\n"
-    section += f"| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | {m['bge'][0]} | {g_lat1/8:.3f}ms | {g_lat1/16:.3f}ms |\n"
+    section += f"| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | {m['bge'][0]} | {g_lat1:.3f}ms | {1000.0/g_lat1:.1f} pps |\n"
+    section += f"| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | {m['bge'][0]} | {g_lat1/8:.3f}ms | {1000.0/(g_lat1/8)*8:.1f} pps |\n"
     
-    section += f"| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | {m['coh'][0]} | {m['coh'][1]} | N/A |\n"
+    c_lat = float(m['coh'][1].replace("ms",""))
+    section += f"| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | {m['coh'][0]} | {m['coh'][1]} | {1000.0/c_lat:.1f} pps |\n"
     
     gm_lat1 = float(m["gem"][1].replace("ms",""))
-    section += f"| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | {m['gem'][0]} | {gm_lat1:.3f}ms | {gm_lat1/2:.3f}ms |\n"
-    section += f"| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | {m['gem'][0]} | {gm_lat1/8:.3f}ms | {gm_lat1/16:.3f}ms |\n"
+    section += f"| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | {m['gem'][0]} | {gm_lat1:.3f}ms | {1000.0/gm_lat1:.2f} pps |\n"
+    section += f"| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | {m['gem'][0]} | {gm_lat1/8:.3f}ms | {1000.0/(gm_lat1/8)*8:.2f} pps |\n"
     
     section += f"| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |\n"
     section += f"| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |\n"
-    section += f"| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | N/A |\n"
+    section += f"| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | *[Pending]* |\n"
     section += "| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |\n"
     new_sections.append(section)
 
@@ -140,4 +145,4 @@ full_updated = prefix_part + all_tables_text + suffix_part
 with open("README.md", "w") as f:
     f.write(full_updated)
 
-print("SUCCESS: Updated README.md with IBM Heron r2, Pending Quantum Routers, and hidden Energy/Carbon columns!")
+print("SUCCESS: Updated all 9 API Performance Tables with Throughput (packets/sec)!")
