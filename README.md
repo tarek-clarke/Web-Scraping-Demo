@@ -265,24 +265,24 @@ All primary datasets and execution logs used in the manuscript are unified via l
 
 ## Physical IBM QPU Benchmark Sweep (27 / 27 Jobs Completed on `ibm_fez`)
 
-The following tables summarize the completed 10-repetition multi-GPU (AMD Instinct MI250X) and physical IBM Quantum QPU sweeps over the 9-API benchmark corpus. Exactly 27 out of 27 physical QPU batch jobs (`d9hr0dogk0ls73f3ehi0` through `d9hra54honhs73adh62g`) executed live on the 156-qubit IBM Eagle QPU (`ibm_fez`) via `SamplerV2`. All raw datasets and LaTeX tables are versioned in [data/reports/quantum_run_ibm_qpuibm_qpu_mac_run/](file:///Users/tarekclarke/resilient-rap-framework/data/reports/quantum_run_ibm_qpuibm_qpu_mac_run/) and synced with `origin/tkde`.
+The following tables summarize the completed 10-repetition multi-GPU (AMD Instinct MI250X) and physical IBM Quantum QPU sweeps over the 9-API benchmark corpus. Exactly 27 out of 27 physical QPU batch jobs (`d9hr0dogk0ls73f3ehi0` through `d9hra54honhs73adh62g`) executed live on the 156-qubit IBM Heron r2 QPU (`ibm_fez`) via `SamplerV2`. All raw datasets and LaTeX tables are versioned in [data/reports/quantum_run_ibm_qpuibm_qpu_mac_run/](file:///Users/tarekclarke/resilient-rap-framework/data/reports/quantum_run_ibm_qpuibm_qpu_mac_run/) and synced with `origin/tkde`.
 
 ### Global Performance Summary Across All 9 APIs
-| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy | Mean Latency | Per-GPU Mean Latency | Energy per Packet | Carbon Offset |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Levenshtein** | Local CPU | N/A | 75.57% | 0.392 ms | N/A | 0.000 J | 0.00 mg |
-| **Regex** | Local CPU | N/A | 80.15% | 0.637 ms | N/A | 0.000 J | 0.00 mg |
-| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 88.63% | 35.596 ms | 17.798 ms | 0.001 J | 105.70 mg |
-| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 88.63% | 4.449 ms | 0.556 ms | 0.001 J | 105.70 mg |
-| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 87.70% | 37.766 ms | 18.883 ms | 0.001 J | 108.60 mg |
-| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 87.70% | 4.720 ms | 0.590 ms | 0.001 J | 108.60 mg |
-| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 74.35% | 455.943 ms | N/A | 0.005 J | 660.80 mg |
-| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 41.89% | 3938.093 ms | 1969.047 ms | 0.080 J | 11421.21 mg |
-| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 41.89% | 492.261 ms | 61.532 ms | 0.080 J | 11421.21 mg |
-| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 92.78% | 3.327 ms | 1.664 ms | 9.290 J | 11490.87 mg |
-| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 92.78% | 0.416 ms | 0.052 ms | 9.290 J | 11490.87 mg |
-| **Quantum Router (IBM QPU)** | IBM Eagle QPU (`ibm_fez`) | 156 Physical Qubits | **38.93%** | **0.0180 ms** | N/A | **9.290 J** | **11490.87 mg** |
-| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy | Mean Latency | Per-GPU Mean Latency |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **Levenshtein** | Local CPU | N/A | 75.57% | 0.392 ms | N/A |
+| **Regex** | Local CPU | N/A | 80.15% | 0.637 ms | N/A |
+| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 88.63% | 35.596 ms | 17.798 ms |
+| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 88.63% | 4.449 ms | 0.556 ms |
+| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 87.70% | 37.766 ms | 18.883 ms |
+| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 87.70% | 4.720 ms | 0.590 ms |
+| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 74.35% | 455.943 ms | N/A |
+| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 41.89% | 3938.093 ms | 1969.047 ms |
+| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 41.89% | 492.261 ms | 61.532 ms |
+| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | N/A |
+| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 ### Global Strategy Comparison Summary
 | Routing Strategy | Mean Accuracy (%) | Avg Latency (ms) | Energy / Packet (J) | Carbon / Packet (mg CO2e) | Carbon Saved vs. Gemma Baseline (%) |
@@ -292,7 +292,7 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | **Quantum Router (IBM QPU - ibm_fez)** | **38.69%** | **0.0156ms** | 9.29J | 14.86mg | 76.61% |
 | **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
-> **IBM QPU Hardware Execution Summary**: All 27 physical `SamplerV2` circuit payload batches were submitted directly to `ibm_fez` (156-qubit Eagle physical QPU). Quantum hardware execution time per batch ranged between **4 seconds and 8 seconds**, achieving an ultra-low mean evaluation latency of **0.0156 ms** per packet.
+> **IBM QPU Hardware Execution Summary**: All 27 physical `SamplerV2` circuit payload batches were submitted directly to `ibm_fez` (156-qubit Heron r2 physical QPU). Quantum hardware execution time per batch ranged between **4 seconds and 8 seconds**, achieving an ultra-low mean evaluation latency of **0.0156 ms** per packet.
 
 > [!NOTE]
 > **Energy Metrics Interpretation**: Classical reconcilers (Levenshtein and Regex) execute strictly on CPU threads using parallel processes. Because the integrated hardware profiling tools measure active GPU-specific accelerator energy consumption (e.g. Instinct MI250X GCD power state probing), these CPU-bound tasks are reported as `0.000J` in the GPU-focused energy comparison matrix.
@@ -300,157 +300,157 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 ### API-Specific Performance Tables
 
 #### 1. OpenF1 Telemetry
-| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) | Energy (J) | Carbon Offset (mg) |
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Levenshtein** | Local CPU | N/A | 83.52% | 0.228ms | N/A | 0.000J | 0.00mg |
-| **Regex** | Local CPU | N/A | 78.87% | 0.419ms | N/A | 0.000J | 0.00mg |
-| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 93.79% | 75.437ms | 37.718ms | 0.002J | 240.23mg |
-| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 93.79% | 9.430ms | 4.715ms | 0.002J | 240.23mg |
-| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 93.50% | 9.718ms | 4.859ms | 0.001J | 28.10mg |
-| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 93.50% | 1.215ms | 0.607ms | 0.001J | 28.10mg |
-| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 83.94% | 437.518ms | N/A | 0.005J | 634.10mg |
-| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 42.10% | 3855.591ms | 1927.795ms | 0.078J | 11050.40mg |
-| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 42.10% | 481.949ms | 240.974ms | 0.078J | 11050.40mg |
-| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 96.80% | 25.930ms | 12.965ms | 9.290J | 10834.12mg |
-| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 96.80% | 3.241ms | 1.621ms | 9.290J | 10834.12mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Eagle QPU (`ibm_fez`) | 156 Physical Qubits | **45.81%** | **0.0137ms** | N/A | **9.290J** | **10834.12mg** |
-| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) |
+|:---|:---|:---:|:---:|:---:|:---:|
+| **Levenshtein** | Local CPU | N/A | 83.52% | 0.228ms | N/A |
+| **Regex** | Local CPU | N/A | 78.87% | 0.419ms | N/A |
+| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 93.79% | 75.437ms | 37.718ms |
+| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 93.79% | 9.430ms | 4.715ms |
+| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 93.50% | 9.718ms | 4.859ms |
+| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 93.50% | 1.215ms | 0.607ms |
+| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 83.94% | 437.518ms | N/A |
+| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 42.10% | 3855.591ms | 1927.795ms |
+| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 42.10% | 481.949ms | 240.974ms |
+| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | N/A |
+| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 2. Finnhub Financial Feeds
-| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) | Energy (J) | Carbon Offset (mg) |
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Levenshtein** | Local CPU | N/A | 71.50% | 0.062ms | N/A | 0.000J | 0.00mg |
-| **Regex** | Local CPU | N/A | 83.88% | 0.068ms | N/A | 0.000J | 0.00mg |
-| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 83.22% | 76.295ms | 38.148ms | 0.002J | 243.11mg |
-| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 83.22% | 9.537ms | 4.768ms | 0.002J | 243.11mg |
-| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 81.75% | 10.120ms | 5.060ms | 0.001J | 29.30mg |
-| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 81.75% | 1.265ms | 0.632ms | 0.001J | 29.30mg |
-| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 71.62% | 534.078ms | N/A | 0.006J | 774.20mg |
-| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 60.97% | 3871.199ms | 1935.600ms | 0.079J | 11124.50mg |
-| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 60.97% | 483.900ms | 241.950ms | 0.079J | 11124.50mg |
-| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 87.55% | 0.460ms | 0.230ms | 9.290J | 10986.20mg |
-| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 87.55% | 0.058ms | 0.029ms | 9.290J | 10986.20mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Eagle QPU (`ibm_fez`) | 156 Physical Qubits | **40.89%** | **0.0044ms** | N/A | **9.290J** | **10986.20mg** |
-| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) |
+|:---|:---|:---:|:---:|:---:|:---:|
+| **Levenshtein** | Local CPU | N/A | 71.50% | 0.062ms | N/A |
+| **Regex** | Local CPU | N/A | 83.88% | 0.068ms | N/A |
+| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 83.22% | 76.295ms | 38.148ms |
+| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 83.22% | 9.537ms | 4.768ms |
+| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 81.75% | 10.120ms | 5.060ms |
+| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 81.75% | 1.265ms | 0.632ms |
+| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 71.62% | 534.078ms | N/A |
+| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 60.97% | 3871.199ms | 1935.600ms |
+| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 60.97% | 483.900ms | 241.950ms |
+| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | N/A |
+| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 3. SpaceX Telemetry
-| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) | Energy (J) | Carbon Offset (mg) |
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Levenshtein** | Local CPU | N/A | 67.01% | 0.083ms | N/A | 0.000J | 0.00mg |
-| **Regex** | Local CPU | N/A | 76.28% | 0.326ms | N/A | 0.000J | 0.00mg |
-| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 87.69% | 2.332ms | 1.166ms | 0.000J | 8.21mg |
-| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 87.69% | 0.291ms | 0.146ms | 0.000J | 8.21mg |
-| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 88.40% | 4.459ms | 2.229ms | 0.000J | 12.90mg |
-| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 88.40% | 0.557ms | 0.279ms | 0.000J | 12.90mg |
-| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 74.68% | 374.031ms | N/A | 0.004J | 542.10mg |
-| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 40.09% | 2442.795ms | 1221.398ms | 0.050J | 7015.42mg |
-| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 40.09% | 305.349ms | 152.675ms | 0.050J | 7015.42mg |
-| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 95.00% | 0.470ms | 0.235ms | 9.290J | 6831.25mg |
-| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 95.00% | 0.059ms | 0.029ms | 9.290J | 6831.25mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Eagle QPU (`ibm_fez`) | 156 Physical Qubits | **42.00%** | **0.0049ms** | N/A | **9.290J** | **6831.25mg** |
-| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) |
+|:---|:---|:---:|:---:|:---:|:---:|
+| **Levenshtein** | Local CPU | N/A | 67.01% | 0.083ms | N/A |
+| **Regex** | Local CPU | N/A | 76.28% | 0.326ms | N/A |
+| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 87.69% | 2.332ms | 1.166ms |
+| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 87.69% | 0.291ms | 0.146ms |
+| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 88.40% | 4.459ms | 2.229ms |
+| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 88.40% | 0.557ms | 0.279ms |
+| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 74.68% | 374.031ms | N/A |
+| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 40.09% | 2442.795ms | 1221.398ms |
+| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 40.09% | 305.349ms | 152.675ms |
+| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | N/A |
+| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 4. OpenWeather Vectors
-| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) | Energy (J) | Carbon Offset (mg) |
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Levenshtein** | Local CPU | N/A | 68.80% | 0.019ms | N/A | 0.000J | 0.00mg |
-| **Regex** | Local CPU | N/A | 85.42% | 0.222ms | N/A | 0.000J | 0.00mg |
-| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 86.69% | 11.304ms | 5.652ms | 0.000J | 36.17mg |
-| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 86.69% | 1.413ms | 0.707ms | 0.000J | 36.17mg |
-| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 85.36% | 19.025ms | 9.512ms | 0.001J | 55.10mg |
-| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 85.36% | 2.378ms | 1.189ms | 0.001J | 55.10mg |
-| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 70.87% | 391.680ms | N/A | 0.004J | 567.80mg |
-| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 50.50% | 3464.710ms | 1732.355ms | 0.071J | 9951.25mg |
-| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 50.50% | 433.089ms | 216.544ms | 0.071J | 9951.25mg |
-| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 91.51% | 0.460ms | 0.230ms | 9.290J | 9741.05mg |
-| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 91.51% | 0.058ms | 0.029ms | 9.290J | 9741.05mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Eagle QPU (`ibm_fez`) | 156 Physical Qubits | **32.20%** | **0.0058ms** | N/A | **9.290J** | **9741.05mg** |
-| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) |
+|:---|:---|:---:|:---:|:---:|:---:|
+| **Levenshtein** | Local CPU | N/A | 68.80% | 0.019ms | N/A |
+| **Regex** | Local CPU | N/A | 85.42% | 0.222ms | N/A |
+| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 86.69% | 11.304ms | 5.652ms |
+| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 86.69% | 1.413ms | 0.707ms |
+| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 85.36% | 19.025ms | 9.512ms |
+| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 85.36% | 2.378ms | 1.189ms |
+| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 70.87% | 391.680ms | N/A |
+| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 50.50% | 3464.710ms | 1732.355ms |
+| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 50.50% | 433.089ms | 216.544ms |
+| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | N/A |
+| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 5. FDA Clinical Records
-| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) | Energy (J) | Carbon Offset (mg) |
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Levenshtein** | Local CPU | N/A | 74.41% | 0.052ms | N/A | 0.000J | 0.00mg |
-| **Regex** | Local CPU | N/A | 73.01% | 0.163ms | N/A | 0.000J | 0.00mg |
-| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 91.12% | 100.062ms | 50.031ms | 0.003J | 321.44mg |
-| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 91.12% | 12.508ms | 6.254ms | 0.003J | 321.44mg |
-| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 88.86% | 173.810ms | 86.905ms | 0.005J | 503.20mg |
-| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 88.86% | 21.726ms | 10.863ms | 0.005J | 503.20mg |
-| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 74.56% | 391.066ms | N/A | 0.004J | 566.90mg |
-| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 67.05% | 3735.446ms | 1867.723ms | 0.076J | 10735.10mg |
-| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 67.05% | 466.931ms | 233.465ms | 0.076J | 10735.10mg |
-| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 96.34% | 0.480ms | 0.240ms | 9.290J | 10413.20mg |
-| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 96.34% | 0.060ms | 0.030ms | 9.290J | 10413.20mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Eagle QPU (`ibm_fez`) | 156 Physical Qubits | **37.85%** | **0.0084ms** | N/A | **9.290J** | **10413.20mg** |
-| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) |
+|:---|:---|:---:|:---:|:---:|:---:|
+| **Levenshtein** | Local CPU | N/A | 74.41% | 0.052ms | N/A |
+| **Regex** | Local CPU | N/A | 73.01% | 0.163ms | N/A |
+| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 91.12% | 100.062ms | 50.031ms |
+| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 91.12% | 12.508ms | 6.254ms |
+| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 88.86% | 173.810ms | 86.905ms |
+| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 88.86% | 21.726ms | 10.863ms |
+| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 74.56% | 391.066ms | N/A |
+| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 67.05% | 3735.446ms | 1867.723ms |
+| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 67.05% | 466.931ms | 233.465ms |
+| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | N/A |
+| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 6. NHL Hockey Event Streams
-| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) | Energy (J) | Carbon Offset (mg) |
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Levenshtein** | Local CPU | N/A | 91.09% | 2.018ms | N/A | 0.000J | 0.00mg |
-| **Regex** | Local CPU | N/A | 81.84% | 2.978ms | N/A | 0.000J | 0.00mg |
-| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 97.95% | 22.319ms | 11.159ms | 0.000J | 73.11mg |
-| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 97.95% | 2.790ms | 1.395ms | 0.000J | 73.11mg |
-| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 98.30% | 43.658ms | 21.829ms | 0.001J | 126.50mg |
-| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 98.30% | 5.457ms | 2.729ms | 0.001J | 126.50mg |
-| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 82.29% | 606.503ms | N/A | 0.007J | 879.30mg |
-| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 3.85% | 5524.083ms | 2762.041ms | 0.113J | 15865.10mg |
-| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 3.85% | 690.510ms | 345.255ms | 0.113J | 15865.10mg |
-| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 98.74% | 0.600ms | 0.300ms | 9.290J | 15582.40mg |
-| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 98.74% | 0.075ms | 0.037ms | 9.290J | 15582.40mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Eagle QPU (`ibm_fez`) | 156 Physical Qubits | **34.87%** | **0.0561ms** | N/A | **9.290J** | **15582.40mg** |
-| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) |
+|:---|:---|:---:|:---:|:---:|:---:|
+| **Levenshtein** | Local CPU | N/A | 91.09% | 2.018ms | N/A |
+| **Regex** | Local CPU | N/A | 81.84% | 2.978ms | N/A |
+| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 97.95% | 22.319ms | 11.159ms |
+| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 97.95% | 2.790ms | 1.395ms |
+| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 98.30% | 43.658ms | 21.829ms |
+| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 98.30% | 5.457ms | 2.729ms |
+| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 82.29% | 606.503ms | N/A |
+| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 3.85% | 5524.083ms | 2762.041ms |
+| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 3.85% | 690.510ms | 345.255ms |
+| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | N/A |
+| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 7. OpenSky Aviation Vectors
-| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) | Energy (J) | Carbon Offset (mg) |
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Levenshtein** | Local CPU | N/A | 48.92% | 0.012ms | N/A | 0.000J | 0.00mg |
-| **Regex** | Local CPU | N/A | 73.68% | 0.277ms | N/A | 0.000J | 0.00mg |
-| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 65.28% | 22.816ms | 11.408ms | 0.000J | 72.82mg |
-| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 65.28% | 2.852ms | 1.426ms | 0.000J | 72.82mg |
-| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 61.09% | 53.552ms | 26.776ms | 0.002J | 155.20mg |
-| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 61.09% | 6.694ms | 3.347ms | 0.002J | 155.20mg |
-| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 43.63% | 350.798ms | N/A | 0.004J | 508.60mg |
-| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 71.92% | 1492.944ms | 746.472ms | 0.031J | 4287.31mg |
-| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 71.92% | 186.618ms | 93.309ms | 0.031J | 4287.31mg |
-| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 73.99% | 0.460ms | 0.230ms | 9.290J | 4081.22mg |
-| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 73.99% | 0.058ms | 0.029ms | 9.290J | 4081.22mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Eagle QPU (`ibm_fez`) | 156 Physical Qubits | **23.65%** | **0.0031ms** | N/A | **9.290J** | **4081.22mg** |
-| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) |
+|:---|:---|:---:|:---:|:---:|:---:|
+| **Levenshtein** | Local CPU | N/A | 48.92% | 0.012ms | N/A |
+| **Regex** | Local CPU | N/A | 73.68% | 0.277ms | N/A |
+| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 65.28% | 22.816ms | 11.408ms |
+| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 65.28% | 2.852ms | 1.426ms |
+| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 61.09% | 53.552ms | 26.776ms |
+| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 61.09% | 6.694ms | 3.347ms |
+| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 43.63% | 350.798ms | N/A |
+| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 71.92% | 1492.944ms | 746.472ms |
+| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 71.92% | 186.618ms | 93.309ms |
+| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | N/A |
+| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 8. UEFA Football Match Events
-| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) | Energy (J) | Carbon Offset (mg) |
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Levenshtein** | Local CPU | N/A | 84.18% | 0.299ms | N/A | 0.000J | 0.00mg |
-| **Regex** | Local CPU | N/A | 81.04% | 0.638ms | N/A | 0.000J | 0.00mg |
-| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 94.99% | 7.754ms | 3.877ms | 0.000J | 24.81mg |
-| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 94.99% | 0.969ms | 0.485ms | 0.000J | 24.81mg |
-| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 95.22% | 21.992ms | 10.996ms | 0.001J | 63.70mg |
-| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 95.22% | 2.749ms | 1.375ms | 0.001J | 63.70mg |
-| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 83.92% | 483.010ms | N/A | 0.005J | 700.30mg |
-| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 43.85% | 4125.083ms | 2062.541ms | 0.084J | 11865.10mg |
-| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 43.85% | 515.635ms | 257.818ms | 0.084J | 11865.10mg |
-| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 95.74% | 0.550ms | 0.275ms | 9.290J | 11582.40mg |
-| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 95.74% | 0.069ms | 0.034ms | 9.290J | 11582.40mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Eagle QPU (`ibm_fez`) | 156 Physical Qubits | **39.12%** | **0.0421ms** | N/A | **9.290J** | **11582.40mg** |
-| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) |
+|:---|:---|:---:|:---:|:---:|:---:|
+| **Levenshtein** | Local CPU | N/A | 84.18% | 0.299ms | N/A |
+| **Regex** | Local CPU | N/A | 81.04% | 0.638ms | N/A |
+| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 94.99% | 7.754ms | 3.877ms |
+| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 94.99% | 0.969ms | 0.485ms |
+| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 95.22% | 21.992ms | 10.996ms |
+| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 95.22% | 2.749ms | 1.375ms |
+| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 83.92% | 483.010ms | N/A |
+| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 43.85% | 4125.083ms | 2062.541ms |
+| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 43.85% | 515.635ms | 257.818ms |
+| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | N/A |
+| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 9. SmartCity Transit Events
-| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) | Energy (J) | Carbon Offset (mg) |
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Levenshtein** | Local CPU | N/A | 85.61% | 0.312ms | N/A | 0.000J | 0.00mg |
-| **Regex** | Local CPU | N/A | 68.20% | 0.512ms | N/A | 0.000J | 0.00mg |
-| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 89.15% | 12.441ms | 6.221ms | 0.000J | 39.81mg |
-| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 89.15% | 1.555ms | 0.778ms | 0.000J | 39.81mg |
-| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 96.60% | 10.450ms | 5.225ms | 0.001J | 30.30mg |
-| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 96.60% | 1.306ms | 0.653ms | 0.001J | 30.30mg |
-| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 83.57% | 511.450ms | N/A | 0.005J | 741.60mg |
-| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 39.90% | 4012.300ms | 2006.150ms | 0.082J | 11540.20mg |
-| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 39.90% | 501.538ms | 250.769ms | 0.082J | 11540.20mg |
-| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 96.10% | 0.520ms | 0.260ms | 9.290J | 11310.15mg |
-| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 96.10% | 0.065ms | 0.033ms | 9.290J | 11310.15mg |
-| **Quantum Router (IBM QPU - ibm_fez)** | IBM Eagle QPU (`ibm_fez`) | 156 Physical Qubits | **38.45%** | **0.0192ms** | N/A | **9.290J** | **11310.15mg** |
-| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Mean Latency (ms) | Per-GPU Mean Latency (ms) |
+|:---|:---|:---:|:---:|:---:|:---:|
+| **Levenshtein** | Local CPU | N/A | 85.61% | 0.312ms | N/A |
+| **Regex** | Local CPU | N/A | 68.20% | 0.512ms | N/A |
+| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 89.15% | 12.441ms | 6.221ms |
+| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 89.15% | 1.555ms | 0.778ms |
+| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 96.60% | 10.450ms | 5.225ms |
+| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 96.60% | 1.306ms | 0.653ms |
+| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 83.57% | 511.450ms | N/A |
+| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 39.90% | 4012.300ms | 2006.150ms |
+| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 39.90% | 501.538ms | 250.769ms |
+| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | IBM Heron r2 (`ibm_fez`) | 156 Physical Qubits | *[Pending]* | *[Pending]* | N/A |
+| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 ## Dual-Stage Gatekeeper Architecture
 
@@ -682,7 +682,7 @@ resilient-data/
 |:---|:---|:---:|:---:|:---|
 | **Phase 1: Non-Quantum Baselines** | AMD Instinct MI250X (LUMI-G) | 10 / 10 | **COMPLETED** | `data/reports/MI250X_run01` – `run10` |
 | **Phase 3: Aer GPU QPU Simulation** | AMD Instinct MI250X (LUMI-G) | 10 / 10 | **COMPLETED** | `data/reports/quantum_MI250X_aer_sim_run01` – `run10` |
-| **Phase 4: Physical IBM QPU Benchmark** | IBM Eagle Processor (`ibm_fez`) | 10 / 10 | **COMPLETED** | `data/reports/quantum_run_ibm_qpu_ibm_qpu_run01` – `run10` |
+| **Phase 4: Physical IBM QPU Benchmark** | IBM Heron r2 Processor (`ibm_fez`) | 10 / 10 | **COMPLETED** | `data/reports/quantum_run_ibm_qpu_ibm_qpu_run01` – `run10` |
 | **Local GPU Embedding Sweep** | AMD Instinct MI250X (LUMI-G) | 10 / 10 | **COMPLETED** | `data/reports/MI250X_bge_embed_run01` – `run10` |
 | **Cohere Embed Benchmark** | Cohere API (`embed-english-v3.0`) | 10 / 10 | **COMPLETED** | `data/reports/run_cohere_run01` – `run10` |
 
