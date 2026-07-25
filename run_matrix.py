@@ -60,20 +60,19 @@ def main():
     detector = HardwareDetector()
     hardware = detector.detect()
 
-    prober = VRAMProber(hardware['type'])
-    vram_info = prober.probe()
-
-    print(f"GPU Model: {hardware['model']}")
-    print(f"Hardware Type: {hardware['type']}")
-    print(f"CPU: {hardware.get('cpu', 'N/A')}")
-    print(f"Motherboard: {hardware.get('motherboard', 'N/A')}")
-    print(f"Total VRAM: {hardware['vram_gb']} GB")
-    print(f"Free VRAM: {vram_info['free_gb']:.2f} GB")
-    print(f"Driver: {hardware.get('driver', 'N/A')}")
-    print(f"OS: {hardware['os']}")
-    print(f"Concurrent Runs: {vram_info['concurrent_runs']}")
-    print(f"Batch Size: {vram_info['batch_size']}")
-    print(f"Iterations: {args.repetitions}\n")
+    gpu_count = hardware.get("gpu_count", 1)
+    print(f"========================================================================")
+    print(f"=== HARDWARE ACCELERATOR PROFILING ===")
+    print(f"GPU Model:           {hardware['model']}")
+    print(f"Active GPU Devices:  {gpu_count}x GPU Device(s)")
+    print(f"Hardware Driver:     {hardware['type'].upper()} ({hardware.get('driver', 'N/A')})")
+    print(f"CPU Model:           {hardware.get('cpu', 'N/A')}")
+    print(f"Total Combined VRAM: {hardware['vram_gb']} GB")
+    print(f"Free Available VRAM: {vram_info['free_gb']:.2f} GB")
+    print(f"Operating System:    {hardware['os']}")
+    print(f"Batch Size:          {vram_info['batch_size']}")
+    print(f"Iterations per API:  {args.repetitions}")
+    print(f"========================================================================\n")
 
     packets_file = args.packets_file
     if not os.path.exists(packets_file):
