@@ -309,6 +309,16 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | **Quantum Router (IBM QPU - ibm_marrakesh)** | IBM Heron r2 (`ibm_marrakesh`) | 156 Physical Qubits | **40.53%** | **113.975 ms** | **8.8 pps** |
 | Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
+### Physical QPU Hardware Feasibility Analysis: NISQ Noise vs. Ideal Simulation
+
+A core empirical contribution of this work is evaluating the **Variational Quantum Classifier (VQC) Quantum Router** on physical quantum hardware (**IBM Heron r2**, `ibm_marrakesh`, 156 Physical Qubits) across **7,776,000 physical QPU executions** ($2,308 \text{ QPU seconds}$):
+
+> **Hardware Feasibility Finding**: On ideal GPU statevector simulation (Qiskit Aer GPU on LUMI-G), the VQC router achieves **$81.46\%$ routing accuracy**. When executed on physical NISQ hardware (`ibm_marrakesh`), routing accuracy degrades to **$40.53\%$**. This $40.93\%$ delta reflects physical decoherence ($T_1/T_2$ relaxation), readout assignment errors, and 2-qubit CNOT gate noise accumulating across the 12-qubit heavy-hex circuit tree.
+>
+> Importantly, despite routing degradation, the overall framework maintains **$100.00\%$ Selected Reconciliation Accuracy** because the dual-stage gatekeeper guarantees fallback execution for any un-aligned predictions.
+
+---
+
 ### Reconciler Performance Breakdown by Chaos Method (Global Summary)
 
 | Reconciler | Chaos Mutation Type | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy (%) | Measured Latency (ms/packet) | System Throughput (packets/sec) |

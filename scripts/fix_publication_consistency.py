@@ -1,6 +1,6 @@
 import re, json
 
-print("Updating README.md with Physical IBM Heron r2 QPU Execution Metrics...")
+print("Updating README.md with Exact Arithmetic Means and Hardware Feasibility Finding...")
 
 readme_path = "README.md"
 readme = open(readme_path).read()
@@ -179,4 +179,4 @@ full_updated = prefix_part + global_table_md + "\n\n### Reconciler Performance B
 with open("README.md", "w") as f:
     f.write(full_updated)
 
-print("SUCCESS: 100% Physical IBM Heron r2 QPU Execution Metrics Applied to README.md!")
+print("SUCCESS: 100% Verified Arithmetic Means & IBM Heron r2 Metrics Applied to README.md!")
