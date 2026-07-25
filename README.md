@@ -46,7 +46,7 @@ The physical QPU benchmark execution results from IBM Quantum Platform:
 * **Held-out Workload**: 20,250 parameter sets (6,750 held-out cases × 3 repetitions)
 * **Shots per Circuit**: 384 shots
 * **Total QPU Executions**: 7,776,000 physical QPU executions
-* **Total QPU Walltime**: 2,308 QPU seconds
+* **Total QPU execution time**: 2,308 s
 * **Ansatz Config**: `ZZFeatureMap` (2 reps) + `RealAmplitudes` (2 reps) on 12 qubits
 * **Execution Status**: **`COMPLETED`**
 
@@ -72,9 +72,11 @@ A core empirical contribution of this work is evaluating the Variational Quantum
 
 ---
 
-## Global Performance Summary Across All 9 APIs
+## Reconciliation Baselines Performance (Across 9 APIs)
 
-| Reconciler / Router | Acceleration / Hardware Target | GPU Allocation | Mean Accuracy | Measured Latency (ms/packet) | System Throughput (packets/sec) |
+Evaluates end-to-end telemetry stream reconciliation accuracy and processing latency for individual candidate reconcilers across 9 microservice APIs:
+
+| Reconciler Baseline | Acceleration / Hardware Target | GPU Allocation | Mean Reconciliation Acc. (%) | Measured Latency (ms/packet) | System Throughput (packets/sec) |
 | :--- | :--- | :---: | :---: | :---: | :---: |
 | **Levenshtein** | Local CPU | N/A | 75.00% | 0.343 ms | 2917.3 pps |
 | **Regex** | Local CPU | N/A | 78.02% | 0.623 ms | 1606.3 pps |
@@ -85,10 +87,6 @@ A core empirical contribution of this work is evaluating the Variational Quantum
 | **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 74.34% | 453.348 ms | 2.2 pps |
 | **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 46.69% | 3613.795 ms | 0.30 pps |
 | **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 46.69% | 451.724 ms | 2.20 pps |
-| **Quantum Router (Sim - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 81.46% | 87.109 ms | 11.5 pps |
-| **Quantum Router (Sim - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 81.46% | 10.889 ms | 91.8 pps |
-| **Quantum Router (IBM QPU - ibm_marrakesh)** | IBM Heron r2 (`ibm_marrakesh`) | 156 Physical Qubits | **40.53%** | **113.975 ms** | **8.8 pps** |
-| Quantum Router (VLQ QPU) | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 ---
 
@@ -103,8 +101,8 @@ To evaluate the Variational Quantum Classifier (VQC) Quantum Router against conv
 
 | Model / Architecture | Training / Split Protocol | Mean Routing Acc. (%) | 95% Confidence Interval | Macro F1-Score (%) | LOAO Cross-Val Acc. (%) | Mean Inference Latency (ms) | System Throughput (packets/sec) |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Multinomial Logistic Regression** | CPU (10 Seeds, 80/10/10) | **68.80% ± 0.74%** | [67.35%, 70.25%] | 61.16% | **62.40%** | **0.00014 ms** | **7,142,857.1 pps** |
-| **Random Forest Classifier** | CPU (100 Trees, Max Depth 10) | **79.34% ± 0.62%** | [78.12%, 80.56%] | **79.50%** | **68.23%** | **0.00877 ms** | **114,025.1 pps** |
+| **Multinomial Logistic Regression** | CPU (10 Seeds, 80/10/10) | **68.80% ± 0.74%** | [68.27%, 69.33%] | 61.16% | **62.40%** | **0.00014 ms** | **7,142,857.1 pps** |
+| **Random Forest Classifier** | CPU (100 Trees, Max Depth 10) | **79.34% ± 0.62%** | [78.90%, 79.78%] | **79.50%** | **68.23%** | **0.00877 ms** | **114,025.1 pps** |
 
 ---
 
@@ -300,12 +298,12 @@ IBM QPU Router (Heron r2)    & QPU (156 Qubits)& 40.53% & N/A & 113.975 ms \\
 
 ## Reproducibility & Benchmark Methodology
 
-To ensure 100% scientific reproducibility across all baseline models, classical classifiers, and quantum hardware executions:
+To support reproducibility across all baseline models, classical classifiers, and quantum hardware executions:
 
 1. **Aggregation Rule**: All global metrics represent an **unweighted macro-average across 9 microservice APIs**.
 2. **Evaluation Protocol (10-Seed Sweep)**: Simulator and classical models are trained and evaluated across 10 random seeds ($N=10$) with 80/10/10 packet-identity splits.
 3. **Data Leakage Controls**: Packets are grouped strictly by source record identity prior to splitting. Generalization is further evaluated via Leave-One-API-Out (LOAO) cross-validation where models train on 8 APIs and test exclusively on the 9th unseen API.
-4. **Physical QPU Workload Protocol**: Physical QPU execution is performed under a single frozen PUB payload on **IBM Heron r2** (`ibm_marrakesh`, 156 physical qubits) comprising 20,250 circuits (6,750 held-out cases × 3 repetitions) executed at 384 shots per circuit (7,776,000 total QPU executions, Job ID `d9idh9d0k0jc738jf4ug`).
+4. **Physical QPU Workload Protocol**: Physical QPU execution is performed under a single frozen QPU payload on **IBM Heron r2** (`ibm_marrakesh`, 156 physical qubits) comprising 20,250 circuits (6,750 held-out cases × 3 repetitions) executed at 384 shots per circuit (7,776,000 total QPU executions, Job ID `d9idh9d0k0jc738jf4ug`).
 5. **Timing Metric Definitions**:
    - *Single-Packet Latency*: Measured wall-clock response time for processing a single packet.
    - *Batch-Normalized QPU Timing*: QPU execution walltime divided across total parameter sets ($113.975 \text{ ms/packet}$).

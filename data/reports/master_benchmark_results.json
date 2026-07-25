@@ -77,22 +77,22 @@
       "qpu_seconds": 2308,
       "total_executions": 7776000,
       "analysis": "Hardware-feasibility finding: physical-QPU execution on the 156-qubit Heron r2 backend produced lower routing accuracy than ideal GPU statevector simulation, consistent with the effects of noise and hardware execution.",
-      "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+      "note": "Shared batch-normalized QPU execution measurement across consolidated QPU workload"
     },
     "logistic_regression_cpu": {
       "routing_accuracy": "68.80% \u00b1 0.74%",
-      "ci_95_routing_accuracy": "[67.35%, 70.25%]",
+      "ci_95_routing_accuracy": "[68.27%, 69.33%]",
       "leave_one_api_out_acc": "62.40%",
       "inference_latency_ms": 0.00014,
-      "throughput_pps": 7142857.1,
+      "batch_amortized_eval_pps": 7142857.1,
       "hardware": "Local CPU (16 Cores)"
     },
     "random_forest_cpu": {
       "routing_accuracy": "79.34% \u00b1 0.62%",
-      "ci_95_routing_accuracy": "[78.12%, 80.56%]",
+      "ci_95_routing_accuracy": "[78.90%, 79.78%]",
       "leave_one_api_out_acc": "68.23%",
       "inference_latency_ms": 0.00877,
-      "throughput_pps": 114025.1,
+      "batch_amortized_eval_pps": 114025.1,
       "hardware": "Local CPU (16 Cores)"
     }
   },
@@ -120,8 +120,8 @@
       "mean_routing_accuracy": 68.8,
       "std_routing_accuracy": 0.74,
       "ci_95_routing_accuracy": [
-        67.35,
-        70.25
+        68.27,
+        69.33
       ],
       "macro_f1": 61.16,
       "mean_reconciliation_accuracy": 100.0,
@@ -133,8 +133,8 @@
       "mean_routing_accuracy": 79.34,
       "std_routing_accuracy": 0.62,
       "ci_95_routing_accuracy": [
-        78.12,
-        80.56
+        78.9,
+        79.78
       ],
       "macro_f1": 79.5,
       "mean_reconciliation_accuracy": 100.0,
@@ -198,7 +198,7 @@
         "accuracy": "41.20%",
         "latency_ms": 113.975,
         "throughput_pps": 8.8,
-        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+        "note": "Shared batch-normalized QPU execution measurement across consolidated QPU workload"
       }
     },
     "2. Finnhub Financial Feeds": {
@@ -256,7 +256,7 @@
         "accuracy": "39.60%",
         "latency_ms": 113.975,
         "throughput_pps": 8.8,
-        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+        "note": "Shared batch-normalized QPU execution measurement across consolidated QPU workload"
       }
     },
     "3. SpaceX Telemetry": {
@@ -314,7 +314,7 @@
         "accuracy": "40.80%",
         "latency_ms": 113.975,
         "throughput_pps": 8.8,
-        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+        "note": "Shared batch-normalized QPU execution measurement across consolidated QPU workload"
       }
     },
     "4. OpenWeather Vectors": {
@@ -372,7 +372,7 @@
         "accuracy": "41.50%",
         "latency_ms": 113.975,
         "throughput_pps": 8.8,
-        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+        "note": "Shared batch-normalized QPU execution measurement across consolidated QPU workload"
       }
     },
     "5. FDA Clinical Records": {
@@ -430,7 +430,7 @@
         "accuracy": "38.90%",
         "latency_ms": 113.975,
         "throughput_pps": 8.8,
-        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+        "note": "Shared batch-normalized QPU execution measurement across consolidated QPU workload"
       }
     },
     "6. NHL Hockey Event Streams": {
@@ -488,7 +488,7 @@
         "accuracy": "42.10%",
         "latency_ms": 113.975,
         "throughput_pps": 8.8,
-        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+        "note": "Shared batch-normalized QPU execution measurement across consolidated QPU workload"
       }
     },
     "7. OpenSky Aviation Vectors": {
@@ -546,7 +546,7 @@
         "accuracy": "37.20%",
         "latency_ms": 113.975,
         "throughput_pps": 8.8,
-        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+        "note": "Shared batch-normalized QPU execution measurement across consolidated QPU workload"
       }
     },
     "8. UEFA Football Match Events": {
@@ -604,7 +604,7 @@
         "accuracy": "42.80%",
         "latency_ms": 113.975,
         "throughput_pps": 8.8,
-        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+        "note": "Shared batch-normalized QPU execution measurement across consolidated QPU workload"
       }
     },
     "9. SmartCity Transit Events": {
@@ -662,7 +662,7 @@
         "accuracy": "40.70%",
         "latency_ms": 113.975,
         "throughput_pps": 8.8,
-        "note": "Shared batch-normalized QPU execution measurement across consolidated PUB workload"
+        "note": "Shared batch-normalized QPU execution measurement across consolidated QPU workload"
       }
     }
   },
