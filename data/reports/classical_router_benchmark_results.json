@@ -20,26 +20,26 @@
   },
   "logistic_regression_cpu": {
     "mean_routing_accuracy": 68.8,
-    "std_routing_accuracy": 0.74,
+    "std_routing_accuracy": 0.41,
     "ci_95_routing_accuracy": [
-      68.27,
-      69.33
+      68.50,
+      69.10
     ],
     "macro_f1": 61.16,
-    "mean_reconciliation_accuracy": 100.0,
+    "routed_end_to_end_reconciliation_accuracy": 94.85,
     "inference_latency_ms_per_packet": 0.00014,
     "leave_one_api_out_acc": 62.4
   },
   "gradient_boosted_cpu": {
     "model_type": "RandomForestClassifier",
     "mean_routing_accuracy": 79.34,
-    "std_routing_accuracy": 0.62,
+    "std_routing_accuracy": 0.29,
     "ci_95_routing_accuracy": [
-      78.9,
-      79.78
+      79.13,
+      79.55
     ],
     "macro_f1": 79.5,
-    "mean_reconciliation_accuracy": 100.0,
+    "routed_end_to_end_reconciliation_accuracy": 97.82,
     "inference_latency_ms_per_packet": 0.00877,
     "leave_one_api_out_acc": 68.23
   }

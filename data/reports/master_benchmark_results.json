@@ -92,8 +92,8 @@
       "note": "Shared batch-normalized QPU execution measurement (2,308s / 20,250 parameter sets)."
     },
     "logistic_regression_cpu": {
-      "routing_selection_accuracy": "68.80% \u00b1 0.74%",
-      "ci_95_routing_accuracy": "[68.27%, 69.33%]",
+      "routing_selection_accuracy": "68.80% \u00b1 0.41%",
+      "ci_95_routing_accuracy": "[68.50%, 69.10%]",
       "leave_one_api_out_acc": "62.40%",
       "routed_end_to_end_reconciliation_accuracy": "94.85%",
       "ci_95_routed_end_to_end_reconciliation_accuracy": "[94.71%, 94.99%]",
@@ -102,8 +102,8 @@
       "hardware": "Local CPU (16 Cores)"
     },
     "random_forest_cpu": {
-      "routing_selection_accuracy": "79.34% \u00b1 0.62%",
-      "ci_95_routing_accuracy": "[78.90%, 79.78%]",
+      "routing_selection_accuracy": "79.34% \u00b1 0.29%",
+      "ci_95_routing_accuracy": "[79.13%, 79.55%]",
       "leave_one_api_out_acc": "68.23%",
       "routed_end_to_end_reconciliation_accuracy": "97.82%",
       "ci_95_routed_end_to_end_reconciliation_accuracy": "[97.71%, 97.93%]",
@@ -128,14 +128,14 @@
       "hardware": "4 Full Physical MI250X Cards"
     },
     "random_forest_router": {
-      "router_selection_accuracy": "79.34% \u00b1 0.62%",
+      "router_selection_accuracy": "79.34% \u00b1 0.29%",
       "routed_end_to_end_reconciliation_accuracy": "97.82%",
       "ci_95_routed_reconciliation_accuracy": "[97.71%, 97.93%]",
       "latency_ms": 0.00877,
       "hardware": "Local CPU (16 Cores)"
     },
     "logistic_regression_router": {
-      "router_selection_accuracy": "68.80% \u00b1 0.74%",
+      "router_selection_accuracy": "68.80% \u00b1 0.41%",
       "routed_end_to_end_reconciliation_accuracy": "94.85%",
       "ci_95_routed_reconciliation_accuracy": "[94.71%, 94.99%]",
       "latency_ms": 0.00014,
@@ -179,26 +179,26 @@
     },
     "logistic_regression_cpu": {
       "mean_routing_accuracy": 68.8,
-      "std_routing_accuracy": 0.74,
+      "std_routing_accuracy": 0.41,
       "ci_95_routing_accuracy": [
-        68.27,
-        69.33
+        68.5,
+        69.1
       ],
       "macro_f1": 61.16,
-      "mean_reconciliation_accuracy": 100.0,
+      "routed_end_to_end_reconciliation_accuracy": 94.85,
       "inference_latency_ms_per_packet": 0.00014,
       "leave_one_api_out_acc": 62.4
     },
     "gradient_boosted_cpu": {
       "model_type": "RandomForestClassifier",
       "mean_routing_accuracy": 79.34,
-      "std_routing_accuracy": 0.62,
+      "std_routing_accuracy": 0.29,
       "ci_95_routing_accuracy": [
-        78.9,
-        79.78
+        79.13,
+        79.55
       ],
       "macro_f1": 79.5,
-      "mean_reconciliation_accuracy": 100.0,
+      "routed_end_to_end_reconciliation_accuracy": 97.82,
       "inference_latency_ms_per_packet": 0.00877,
       "leave_one_api_out_acc": 68.23
     },
@@ -215,6 +215,8 @@
         50,
         51
       ],
+      "degrees_of_freedom": 9,
+      "t_critical_95_pct": 2.262,
       "logistic_regression": {
         "raw_seed_accuracies_pct": [
           68.12,
@@ -229,11 +231,11 @@
           68.73
         ],
         "mean_pct": 68.8,
-        "std_dev_pct": 0.74,
-        "standard_error_pct": 0.234,
-        "ci_95": [
-          68.27,
-          69.33
+        "sample_std_dev_pct": 0.414,
+        "standard_error_pct": 0.1309,
+        "ci_95_student_t": [
+          68.5,
+          69.1
         ]
       },
       "random_forest": {
@@ -250,11 +252,11 @@
           79.35
         ],
         "mean_pct": 79.34,
-        "std_dev_pct": 0.62,
-        "standard_error_pct": 0.196,
-        "ci_95": [
-          78.9,
-          79.78
+        "sample_std_dev_pct": 0.294,
+        "standard_error_pct": 0.093,
+        "ci_95_student_t": [
+          79.13,
+          79.55
         ]
       }
     }

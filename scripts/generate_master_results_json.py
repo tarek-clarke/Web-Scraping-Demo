@@ -1,7 +1,7 @@
 import json, glob, csv
 from collections import defaultdict
 
-print("Rebuilding Master Consolidated Benchmark JSON with 95% CIs for every reconciliation figure (Hosseini removed)...")
+print("Rebuilding Master Consolidated Benchmark JSON with exact t-distribution CIs, correct SDs, and obsolete field replacement...")
 
 # 1. Raw API Metrics
 raw_api_data = {
@@ -74,7 +74,7 @@ for api_name, raw_m in raw_api_data.items():
     }
     api_specific_breakdown[api_name] = api_obj
 
-# 2. Programmatically Recompute Global Summary with 95% CIs
+# 2. Programmatically Recompute Global Summary
 model_keys = ["levenshtein", "regex", "bert_1gpu", "bert_4gpu", "bge_1gpu", "bge_4gpu", "cohere_embed", "gemma_1gpu", "gemma_4gpu", "quantum_sim_1gpu", "quantum_ibm_qpu"]
 recomputed_global = {}
 hw_map = {
@@ -131,26 +131,28 @@ classical_data = json.load(open(classical_path))
 
 seed_details = {
     "seeds": [42, 43, 44, 45, 46, 47, 48, 49, 50, 51],
+    "degrees_of_freedom": 9,
+    "t_critical_95_pct": 2.262,
     "logistic_regression": {
         "raw_seed_accuracies_pct": [68.12, 69.45, 68.30, 69.05, 68.75, 69.20, 68.50, 69.10, 68.80, 68.73],
         "mean_pct": 68.80,
-        "std_dev_pct": 0.74,
-        "standard_error_pct": 0.234,
-        "ci_95": [68.27, 69.33]
+        "sample_std_dev_pct": 0.414,
+        "standard_error_pct": 0.1309,
+        "ci_95_student_t": [68.50, 69.10]
     },
     "random_forest": {
         "raw_seed_accuracies_pct": [79.15, 79.80, 78.95, 79.40, 79.25, 79.70, 78.90, 79.55, 79.35, 79.35],
         "mean_pct": 79.34,
-        "std_dev_pct": 0.62,
-        "standard_error_pct": 0.196,
-        "ci_95": [78.90, 79.78]
+        "sample_std_dev_pct": 0.294,
+        "standard_error_pct": 0.0930,
+        "ci_95_student_t": [79.13, 79.55]
     }
 }
 classical_data["raw_per_seed_appendix"] = seed_details
 
 recomputed_global["logistic_regression_cpu"] = {
-    "routing_selection_accuracy": "68.80% ± 0.74%",
-    "ci_95_routing_accuracy": "[68.27%, 69.33%]",
+    "routing_selection_accuracy": "68.80% ± 0.41%",
+    "ci_95_routing_accuracy": "[68.50%, 69.10%]",
     "leave_one_api_out_acc": "62.40%",
     "routed_end_to_end_reconciliation_accuracy": "94.85%",
     "ci_95_routed_end_to_end_reconciliation_accuracy": "[94.71%, 94.99%]",
@@ -160,8 +162,8 @@ recomputed_global["logistic_regression_cpu"] = {
 }
 
 recomputed_global["random_forest_cpu"] = {
-    "routing_selection_accuracy": "79.34% ± 0.62%",
-    "ci_95_routing_accuracy": "[78.90%, 79.78%]",
+    "routing_selection_accuracy": "79.34% ± 0.29%",
+    "ci_95_routing_accuracy": "[79.13%, 79.55%]",
     "leave_one_api_out_acc": "68.23%",
     "routed_end_to_end_reconciliation_accuracy": "97.82%",
     "ci_95_routed_end_to_end_reconciliation_accuracy": "[97.71%, 97.93%]",
@@ -187,14 +189,14 @@ routed_pipeline_summary = {
         "hardware": "4 Full Physical MI250X Cards"
     },
     "random_forest_router": {
-        "router_selection_accuracy": "79.34% ± 0.62%",
+        "router_selection_accuracy": "79.34% ± 0.29%",
         "routed_end_to_end_reconciliation_accuracy": "97.82%",
         "ci_95_routed_reconciliation_accuracy": "[97.71%, 97.93%]",
         "latency_ms": 0.00877,
         "hardware": "Local CPU (16 Cores)"
     },
     "logistic_regression_router": {
-        "router_selection_accuracy": "68.80% ± 0.74%",
+        "router_selection_accuracy": "68.80% ± 0.41%",
         "routed_end_to_end_reconciliation_accuracy": "94.85%",
         "ci_95_routed_reconciliation_accuracy": "[94.71%, 94.99%]",
         "latency_ms": 0.00014,
@@ -237,4 +239,4 @@ output_path = "data/reports/master_benchmark_results.json"
 with open(output_path, "w") as f:
     json.dump(master_data, f, indent=2)
 
-print(f"SUCCESS: Exported Master Consolidated JSON with 95% CIs to {output_path}!")
+print(f"SUCCESS: Exported Master Consolidated JSON with exact t-distribution CIs to {output_path}!")
