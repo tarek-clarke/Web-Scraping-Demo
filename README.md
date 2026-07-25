@@ -265,17 +265,17 @@ All primary datasets and execution logs used in the manuscript are unified via l
 
 ## Physical IBM QPU Benchmark Sweep (27 / 27 Jobs Completed on `ibm_fez`)
 
-The following tables summarize the completed 10-repetition multi-GPU (AMD Instinct MI250X) and physical IBM Quantum QPU sweeps over the 9-API benchmark corpus. Exactly 27 out of 27 physical QPU batch jobs (`d9hr0dogk0ls73f3ehi0` through `d9hra54honhs73adh62g`) have executed on the 156-qubit IBM Eagle QPU (`ibm_fez`) via `SamplerV2`. All datasets are versioned in [data/reports/quantum_run_ibm_qpuibm_qpu_mac_run/](file:///Users/tarekclarke/resilient-rap-framework/data/reports/quantum_run_ibm_qpuibm_qpu_mac_run/) and synced with `origin/tkde`.
+The following tables summarize the completed 10-repetition multi-GPU (AMD Instinct MI250X) and physical IBM Quantum QPU sweeps over the 9-API benchmark corpus. Exactly 27 out of 27 physical QPU batch jobs (`d9hr0dogk0ls73f3ehi0` through `d9hra54honhs73adh62g`) executed live on the 156-qubit IBM Eagle QPU (`ibm_fez`) via `SamplerV2`. All raw datasets and LaTeX tables are versioned in [data/reports/quantum_run_ibm_qpuibm_qpu_mac_run/](file:///Users/tarekclarke/resilient-rap-framework/data/reports/quantum_run_ibm_qpuibm_qpu_mac_run/) and synced with `origin/tkde`.
 
 ### Global Performance, Energy, and Carbon savings Summary
 | Routing Strategy | Mean Accuracy (%) | Avg Latency (ms) | Energy / Packet (J) | Carbon / Packet (mg CO2e) | Carbon Saved vs. Gemma Baseline (%) |
 |:---|:---:|:---:|:---:|:---:|:---:|
 | **Classical LLM (Gemma)** | 44.20% | 4593.70ms | 0.093J | 63.53mg | 0.0% |
 | **Quantum Router (Sim - MI250X Aer GPU)**  | 92.00% | 3.05ms | 9.29J | 14.86mg | 76.61% |
-| **Quantum Router (IBM QPU - ibm_fez)** | 45.29% | 0.028ms | 9.29J | 14.86mg | 76.61% |
+| **Quantum Router (IBM QPU - ibm_fez)** | **38.69%** | **0.0156ms** | 9.29J | 14.86mg | 76.61% |
 | **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
-> **IBM QPU Execution Summary**: All 27 physical `SamplerV2` circuit payload batches were submitted to `ibm_fez` (156-qubit Eagle physical QPU). Quantum hardware execution time per batch ranged between **4 seconds and 8 seconds**, demonstrating real-time low-latency telemetry routing on physical quantum processors.
+> **IBM QPU Hardware Execution Summary**: All 27 physical `SamplerV2` circuit payload batches were submitted directly to `ibm_fez` (156-qubit Eagle physical QPU). Quantum hardware execution time per batch ranged between **4 seconds and 8 seconds**, achieving an ultra-low mean evaluation latency of **0.0156 ms** per packet.
 
 > [!NOTE]
 > **Energy Metrics Interpretation**: Classical reconcilers (Levenshtein and Regex) execute strictly on CPU threads using parallel processes. Because the integrated hardware profiling tools measure active GPU-specific accelerator energy consumption (e.g. Instinct MI250X GCD power state probing), these CPU-bound tasks are reported as `0.000J` in the GPU-focused energy comparison matrix.
@@ -290,8 +290,8 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | BERT | 93.79% | 75.437ms | 0.002J | 240.23mg |
 | Gemma-4B | 42.10% | 3855.591ms | 0.078J | 11050.40mg |
 | **Quantum Router (Sim)** | 96.80% | 25.93ms | 9.29J | 10834.12mg |
-| **Quantum Router (IBM_QPU)** | 35.81% | 0.010ms | 9.29J | 10834.12mg |
-| **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | **47.91%** | **0.0128ms** | 9.29J | 10834.12mg |
+| **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 2. Finnhub Financial Feeds
 | Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
@@ -301,8 +301,8 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | BERT | 83.22% | 76.295ms | 0.002J | 243.11mg |
 | Gemma-4B | 60.97% | 3871.199ms | 0.079J | 11124.50mg |
 | **Quantum Router (Sim)** | 87.55% | 0.46ms | 9.29J | 10986.20mg |
-| **Quantum Router (IBM_QPU)** | 27.84% | 0.003ms | 9.29J | 10986.20mg |
-| **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | **40.08%** | **0.0039ms** | 9.29J | 10986.20mg |
+| **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 3. SpaceX Telemetry
 | Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
@@ -312,8 +312,8 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | BERT | 87.69% | 2.332ms | 0.000J | 8.21mg |
 | Gemma-4B | 40.09% | 2442.795ms | 0.050J | 7015.42mg |
 | **Quantum Router (Sim)** | 95.00% | 0.47ms | 9.29J | 6831.25mg |
-| **Quantum Router (IBM_QPU)** | 26.91% | 0.006ms | 9.29J | 6831.25mg |
-| **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | **38.26%** | **0.0047ms** | 9.29J | 6831.25mg |
+| **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 4. OpenWeather Vectors
 | Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
@@ -323,8 +323,8 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | BERT | 86.69% | 11.304ms | 0.000J | 36.17mg |
 | Gemma-4B | 50.50% | 3464.710ms | 0.071J | 9951.25mg |
 | **Quantum Router (Sim)** | 91.51% | 0.46ms | 9.29J | 9741.05mg |
-| **Quantum Router (IBM_QPU)** | 25.95% | 0.004ms | 9.29J | 9741.05mg |
-| **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | **35.71%** | **0.0057ms** | 9.29J | 9741.05mg |
+| **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 5. FDA Clinical Records
 | Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
@@ -334,8 +334,8 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | BERT | 91.12% | 100.062ms | 0.003J | 321.44mg |
 | Gemma-4B | 67.05% | 3735.446ms | 0.076J | 10735.10mg |
 | **Quantum Router (Sim)** | 96.34% | 0.48ms | 9.29J | 10413.20mg |
-| **Quantum Router (IBM_QPU)** | 29.79% | 0.007ms | 9.29J | 10413.20mg |
-| **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | **35.96%** | **0.0051ms** | 9.29J | 10413.20mg |
+| **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 6. NHL Hockey Event Streams
 | Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
@@ -345,8 +345,8 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | BERT | 97.95% | 22.319ms | 0.000J | 73.11mg |
 | Gemma-4B | 3.85% | 5524.083ms | 0.113J | 15865.10mg |
 | **Quantum Router (Sim)** | 98.74% | 0.60ms | 9.29J | 15582.40mg |
-| **Quantum Router (IBM_QPU)** | 72.35% | 0.113ms | 9.29J | 15582.40mg |
-| **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | **32.23%** | **0.0434ms** | 9.29J | 15582.40mg |
+| **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 7. OpenSky Aviation Vectors
 | Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
@@ -356,8 +356,8 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | BERT | 65.28% | 22.816ms | 0.000J | 72.82mg |
 | Gemma-4B | 71.92% | 1492.944ms | 0.031J | 4287.31mg |
 | **Quantum Router (Sim)** | 73.99% | 0.46ms | 9.29J | 4081.22mg |
-| **Quantum Router (IBM_QPU)** | 41.84% | 0.004ms | 9.29J | 4081.22mg |
-| **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | **25.55%** | **0.0020ms** | 9.29J | 4081.22mg |
+| **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 8. UEFA Football Match Events
 | Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
@@ -367,8 +367,8 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | BERT | 94.99% | 7.754ms | 0.000J | 24.81mg |
 | Gemma-4B | 25.21% | 2818.666ms | 0.058J | 8092.12mg |
 | **Quantum Router (Sim)** | 97.02% | 0.51ms | 9.29J | 7942.33mg |
-| **Quantum Router (IBM_QPU)** | 71.44% | 0.035ms | 9.29J | 7942.33mg |
-| **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | **41.91%** | **0.0184ms** | 9.29J | 7942.33mg |
+| **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 #### 9. TfL Transit Predictions
 | Reconciler / Router | Mean Accuracy (%) | Avg Latency (ms) | Energy (J) | Carbon Offset (mg) |
@@ -378,8 +378,8 @@ The following tables summarize the completed 10-repetition multi-GPU (AMD Instin
 | BERT | 96.96% | 2.042ms | 0.000J | 6.53mg |
 | Gemma-4B | 15.28% | 8237.395ms | 0.169J | 23649.80mg |
 | **Quantum Router (Sim)** | 98.03% | 0.57ms | 9.29J | 23512.44mg |
-| **Quantum Router (IBM_QPU)** | 75.67% | 0.071ms | 9.29J | 23512.44mg |
-| **Quantum Router (VLQ_QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| **Quantum Router (IBM QPU - ibm_fez)** | **50.61%** | **0.0449ms** | 9.29J | 23512.44mg |
+| **Quantum Router (VLQ QPU)** | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 
 

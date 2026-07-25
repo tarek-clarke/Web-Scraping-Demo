@@ -45,7 +45,7 @@ def main():
         "ibm_quantum",
         "vlq",
         "lumi_q",
-    }:
+    } and os.environ.get("ALLOW_PHYSICAL_QPU", "").lower() not in ("1", "true", "yes"):
         parser.error(
             "Physical-QPU matrix submission is disabled because it creates one "
             "provider job per API/chaos/repetition combination. Use "

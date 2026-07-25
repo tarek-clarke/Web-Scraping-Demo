@@ -6,10 +6,16 @@ import numpy as np
 from typing import Any, Dict, List, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
-from ..chaos.injector import ChaosInjector
-from ..reconciliation.engine import ReconciliationEngine
-from ..routing.schema_fast_path import packet_schemas_match
-from ..telemetry.logger import TelemetryLogger
+try:
+    from ..chaos.injector import ChaosInjector
+    from ..reconciliation.engine import ReconciliationEngine
+    from ..routing.schema_fast_path import packet_schemas_match
+    from ..telemetry.logger import TelemetryLogger
+except (ImportError, ValueError):
+    from src.chaos.injector import ChaosInjector
+    from src.reconciliation.engine import ReconciliationEngine
+    from src.routing.schema_fast_path import packet_schemas_match
+    from src.telemetry.logger import TelemetryLogger
 
 class MatrixRunner:
     def __init__(self, hardware_profile: Dict, concurrent_runs: int = 1, batch_size: int = 4,
@@ -508,7 +514,18 @@ class MatrixRunner:
 
         with self._results_lock:
             self._progress_count += 1
-            print(f"    [{self._progress_count}/{self._progress_total}] {api}/{chaos_method}/{reconciler} done ({total_time:.0f}ms, acc={acc:.2f})")
+            print(f"    [{self._progress_count}/{self._progress_total}] {api}/{chaos_method}/{reconciler} done ({total_time:.0f}ms, acc={acc:.2f})", flush=True)
+
+            try:
+                live_csv_path = self.output_dir / "live_matrix_results.csv"
+                file_exists = live_csv_path.exists()
+                with open(live_csv_path, mode="a", encoding="utf-8") as f:
+                    if not file_exists:
+                        f.write("progress,phase,api,chaos_method,reconciler,iteration,accuracy,avg_latency_ms,total_time_ms,throughput_pps\n")
+                    f.write(f"{self._progress_count},{phase},{api},{chaos_method},{reconciler},{iteration},{acc:.4f},{result['avg_latency_ms']:.4f},{total_time:.2f},{throughput:.2f}\n")
+                    f.flush()
+            except Exception:
+                pass
 
         return result
 
