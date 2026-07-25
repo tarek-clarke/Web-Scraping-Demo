@@ -117,7 +117,7 @@ To evaluate the Variational Quantum Classifier (VQC) Quantum Router against conv
 \hline
 \textbf{Router Selection Architecture} & \textbf{Hardware Target} & \textbf{Routing-Selection Acc. (\%)} & \textbf{LOAO Acc. (\%)} & \textbf{Inference Latency (ms)} \\
 \hline
-Oracle Router (Upper Bound)  & Ideal Reference & 100.00\% & 100.00\% & 0.000 ms \\
+Theoretical Oracle Router (upper bound)  & Ideal Reference & 100.00\% & 100.00\% & 0.000 ms \\
 Logistic Regression Router   & CPU (16 Cores)  & 68.80\% $\pm$ 0.74\% & 62.40\% & 0.00014 ms \\
 Random Forest Router         & CPU (16 Cores)  & 79.34\% $\pm$ 0.62\% & 68.23\% & 0.00877 ms \\
 VQC Simulator Router         & 4 MI250X Cards  & 81.46\% & N/A & 10.889 ms \\
@@ -129,7 +129,7 @@ IBM QPU Router (Heron r2)    & QPU (156 Qubits)& 40.53\% & N/A & 113.975 ms \\
 
 | Router Selection Architecture | Hardware Target | Mean Routing-Selection Acc. (%) | LOAO Cross-Val Acc. (%) | Mean Inference Latency (ms/packet) | Derived batch-amortized evaluation rate (pps) |
 | :--- | :--- | :---: | :---: | :---: | :---: |
-| **Oracle Router (Upper Bound)** | Ideal Reference | **100.00%** | **100.00%** | **0.000 ms** | $\infty$ |
+| **Theoretical Oracle Router (upper bound)** | Ideal Reference | **100.00%** | **100.00%** | **0.000 ms** | $\infty$ |
 | **Logistic Regression Router** | CPU (16 Cores) | **68.80% ± 0.74%** | **62.40%** | **0.00014 ms** | **7,142,857.1 pps** |
 | **Random Forest Router** | CPU (16 Cores) | **79.34% ± 0.62%** | **68.23%** | **0.00877 ms** | **114,025.1 pps** |
 | **VQC Simulator Router (Aer GPU)** | 4 MI250X Cards | **81.46%** | N/A | **10.889 ms** | **91.8 pps** |
