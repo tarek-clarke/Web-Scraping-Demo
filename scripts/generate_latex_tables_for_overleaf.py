@@ -3,10 +3,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-def generate_tight_latex_file_with_tikz():
+def generate_complete_overleaf_doc():
     latex_content = r"""% ==============================================================================
-% Resilient RAP Framework - Publication-Ready LaTeX Tables & TikZ Flowchart
-% Suitable for IEEE / ACM / TKDE Paper Submission in Overleaf
+% Resilient RAP Framework - Complete Overleaf Paper Snippets & Tables
+% Includes: Corrected Manuscript Paragraph, TikZ Flowchart & 8 Benchmark Tables
+% Target Paper: Quantum-Assisted Telemetry Stream Reconciliation at Scale
 % ==============================================================================
 
 \documentclass[journal]{IEEEtran}
@@ -54,11 +55,18 @@ def generate_tight_latex_file_with_tikz():
 
 \begin{document}
 
-\title{Resilient RAP Framework: End-to-End Architecture, Workflow Flowchart \& Publication Tables}
+\title{Resilient RAP Framework: Manuscript Text, TikZ Flowchart \& Publication Tables}
 \maketitle
 
 % ==============================================================================
-% SECTION 1: END-TO-END SYSTEM WORKFLOW FLOWCHART (TIKZ)
+% SECTION 1: MANUSCRIPT METHODOLOGY TEXT (QPU EXECUTION DETAILS)
+% ==============================================================================
+\section{Quantum Circuit Measurement \& Execution Protocol}
+
+At the end of the circuit, measurement is restricted to qubits 10 and 11, condensing into a 2-bit classical string $b_1 b_0 \in \{00, 01, 10, 11\}$ to enable multi-class decision routing~\cite{P_rez_Salinas_2020}. Each circuit was executed on physical QPUs using $N_{\text{shots}} = 384$ per parameter set across 20,250 evaluated parameter sets (6,750 held-out cases $\times$ 3 repetitions, totaling 7,776,000 physical QPU executions over 2,308 QPU seconds on the 156-qubit IBM Heron r2 backend \texttt{ibm\_marrakesh}, Job ID \texttt{d9idh9d0k0jc738jf4ug}) to construct the target probability distribution across classes.
+
+% ==============================================================================
+% SECTION 2: END-TO-END SYSTEM WORKFLOW FLOWCHART (TIKZ)
 % ==============================================================================
 \section{End-to-End System Workflow Architecture}
 
@@ -127,7 +135,7 @@ def generate_tight_latex_file_with_tikz():
 \end{figure}
 
 % ==============================================================================
-% SECTION 2: PUBLICATION TABLES
+% SECTION 3: PUBLICATION TABLES
 % ==============================================================================
 \section{Benchmark Publication Tables}
 
@@ -244,7 +252,7 @@ def generate_tight_latex_file_with_tikz():
 \end{table}
 
 % ------------------------------------------------------------------------------
-% Table 6: Statistical Significance & Effect Sizes
+% Table 6: Statistical Significance \& Effect Sizes
 % ------------------------------------------------------------------------------
 \begin{table}[t]
 \centering
@@ -318,7 +326,7 @@ def generate_tight_latex_file_with_tikz():
     with open(output_path, "w") as f:
         f.write(latex_content)
 
-    print(f"SUCCESS: Exported TikZ flowchart & publication tables to {output_path}")
+    print(f"SUCCESS: Exported complete Overleaf document with manuscript text, TikZ flowchart & tables to {output_path}")
 
 if __name__ == "__main__":
-    generate_tight_latex_file_with_tikz()
+    generate_complete_overleaf_doc()
