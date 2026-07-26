@@ -3,10 +3,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-def generate_tight_latex_file():
+def generate_tight_latex_file_with_tikz():
     latex_content = r"""% ==============================================================================
-% Resilient RAP Framework - Tight, Column-Width-Optimized LaTeX Tables for Overleaf
-% Fits single-column & double-column conference/journal templates (IEEE, ACM, TKDE)
+% Resilient RAP Framework - Publication-Ready LaTeX Tables & TikZ Flowchart
+% Suitable for IEEE / ACM / TKDE Paper Submission in Overleaf
 % ==============================================================================
 
 \documentclass[journal]{IEEEtran}
@@ -17,17 +17,126 @@ def generate_tight_latex_file():
 \usepackage{graphicx}
 \usepackage{xcolor}
 
+% TikZ Package and Libraries for End-to-End Workflow Flowchart
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc}
+
+\tikzset{
+    stage/.style={
+        rectangle,
+        rounded corners=3pt,
+        draw=blue!80!black,
+        fill=blue!5,
+        thick,
+        minimum width=6.5cm,
+        minimum height=0.9cm,
+        align=center,
+        font=\small\sffamily
+    },
+    branch/.style={
+        rectangle,
+        rounded corners=2pt,
+        draw=orange!80!black,
+        fill=orange!10,
+        thick,
+        minimum width=2.1cm,
+        minimum height=1.0cm,
+        align=center,
+        font=\scriptsize\sffamily
+    },
+    line/.style={
+        draw,
+        -Stealth,
+        thick,
+        color=blue!70!black
+    }
+}
+
 \begin{document}
 
-\title{Resilient RAP Framework: Column-Width-Optimized Publication Tables}
+\title{Resilient RAP Framework: End-to-End Architecture, Workflow Flowchart \& Publication Tables}
 \maketitle
+
+% ==============================================================================
+% SECTION 1: END-TO-END SYSTEM WORKFLOW FLOWCHART (TIKZ)
+% ==============================================================================
+\section{End-to-End System Workflow Architecture}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=0.6cm and 0.3cm]
+
+    % Stage 1 Node
+    \node (s1) [stage] {
+        \textbf{Stage 1: Multi-Domain Telemetry Ingestion}\\
+        \scriptsize Real-World API Traces (9 Microservices: OpenF1, Finnhub, SpaceX, etc.)
+    };
+
+    % Stage 2 Node
+    \node (s2) [stage, below=of s1] {
+        \textbf{Stage 2: Chaos Perturbation Engine}\\
+        \scriptsize 3 Drift Families: Structural (\texttt{json\_manip}), LLM Reformulation (\texttt{qwen}), Syntactic (\texttt{schema\_alter})
+    };
+
+    % Stage 3 Node
+    \node (s3) [stage, below=of s2] {
+        \textbf{Stage 3: Feature Extraction \& Oracle Construction}\\
+        \scriptsize 10D Pre-Reconciliation Features ($x_0 \dots x_9$) \& Cost-Aware Ground-Truth Oracle Labels
+    };
+
+    % Stage 4 Multi-Branch Nodes
+    \node (s4b) [branch, below=0.7cm of s3] {
+        \textbf{Stage 4b: VQC Aer GPU}\\
+        \tiny 12-Qubit Statevector Sim\\
+        \tiny 4x AMD MI250X GPUs
+    };
+
+    \node (s4a) [branch, left=0.3cm of s4b] {
+        \textbf{Stage 4a: Classical CPU}\\
+        \tiny Logistic Reg. \& RF\\
+        \tiny 16-Core x86\_64 CPU
+    };
+
+    \node (s4c) [branch, right=0.3cm of s4b] {
+        \textbf{Stage 4c: IBM QPU}\\
+        \tiny Heron r2 (156 Qubits)\\
+        \tiny 7.776M Executions
+    };
+
+    % Stage 5 Node
+    \node (s5) [stage, below=0.8cm of s4b] {
+        \textbf{Stage 5: Master Report Consolidation \& Sync}\\
+        \scriptsize Statistical Significance (McNemar, Bootstrap, Wilcoxon) \& Overleaf Sync
+    };
+
+    % Connections
+    \draw [line] (s1) -- (s2);
+    \draw [line] (s2) -- (s3);
+
+    \draw [line] (s3.south) -| (s4a.north);
+    \draw [line] (s3.south) -- (s4b.north);
+    \draw [line] (s3.south) -| (s4c.north);
+
+    \draw [line] (s4a.south) |- (s5.north);
+    \draw [line] (s4b.south) -- (s5.north);
+    \draw [line] (s4c.south) |- (s5.north);
+
+\end{tikzpicture}
+\caption{End-to-End System Workflow Diagram for the Resilient RAP Framework.}
+\label{fig:workflow_flowchart}
+\end{figure}
+
+% ==============================================================================
+% SECTION 2: PUBLICATION TABLES
+% ==============================================================================
+\section{Benchmark Publication Tables}
 
 % ------------------------------------------------------------------------------
 % Table 1: Hardware Targets
 % ------------------------------------------------------------------------------
 \begin{table}[t]
 \centering
-\caption{Hardware Execution & Acceleration Targets.}
+\caption{Hardware Execution \& Acceleration Targets.}
 \label{tab:hardware_targets}
 \resizebox{\columnwidth}{!}{%
 \begin{tabular}{llll}
@@ -139,7 +248,7 @@ def generate_tight_latex_file():
 % ------------------------------------------------------------------------------
 \begin{table}[t]
 \centering
-\caption{Statistical Significance & Effect Size Measures (VQC vs. RF).}
+\caption{Statistical Significance \& Effect Size Measures (VQC vs. RF).}
 \label{tab:statistical_significance}
 \resizebox{\columnwidth}{!}{%
 \begin{tabular}{lcccc}
@@ -175,7 +284,7 @@ def generate_tight_latex_file():
 \end{table}
 
 % ------------------------------------------------------------------------------
-% Table 8: Microservice Domain Breakdown (Compact)
+% Table 8: Microservice Domain Breakdown
 % ------------------------------------------------------------------------------
 \begin{table}[t]
 \centering
@@ -209,7 +318,7 @@ def generate_tight_latex_file():
     with open(output_path, "w") as f:
         f.write(latex_content)
 
-    print(f"SUCCESS: Exported tight, column-width-optimized LaTeX tables to {output_path}")
+    print(f"SUCCESS: Exported TikZ flowchart & publication tables to {output_path}")
 
 if __name__ == "__main__":
-    generate_tight_latex_file()
+    generate_tight_latex_file_with_tikz()
