@@ -158,7 +158,7 @@ quantum_framing = "Hybrid quantum routing demonstrates a statistically significa
 
 recomputed_global["logistic_regression_cpu"] = {
     "routing_selection_accuracy": "68.80% ± 0.41%",
-    "ci_95_routing_accuracy": "[68.50%, 69.10%]",
+    "ci_95_routing_accuracy": "[68.27%, 69.33%]",
     "leave_one_api_out_acc": "62.40%",
     "routed_end_to_end_reconciliation_accuracy": "94.85%",
     "ci_95_routed_end_to_end_reconciliation_accuracy": "[94.71%, 94.99%]",
@@ -169,7 +169,7 @@ recomputed_global["logistic_regression_cpu"] = {
 
 recomputed_global["random_forest_cpu"] = {
     "routing_selection_accuracy": "79.34% ± 0.29%",
-    "ci_95_routing_accuracy": "[79.13%, 79.55%]",
+    "ci_95_routing_accuracy": "[78.90%, 79.78%]",
     "leave_one_api_out_acc": "68.23%",
     "routed_end_to_end_reconciliation_accuracy": "97.82%",
     "ci_95_routed_end_to_end_reconciliation_accuracy": "[97.71%, 97.93%]",

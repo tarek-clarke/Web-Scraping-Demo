@@ -22,8 +22,8 @@
     "mean_routing_accuracy": 68.8,
     "std_routing_accuracy": 0.41,
     "ci_95_routing_accuracy": [
-      68.50,
-      69.10
+      68.27,
+      69.33
     ],
     "macro_f1": 61.16,
     "routed_end_to_end_reconciliation_accuracy": 94.85,
@@ -35,8 +35,8 @@
     "mean_routing_accuracy": 79.34,
     "std_routing_accuracy": 0.29,
     "ci_95_routing_accuracy": [
-      79.13,
-      79.55
+      78.90,
+      79.78
     ],
     "macro_f1": 79.5,
     "routed_end_to_end_reconciliation_accuracy": 97.82,

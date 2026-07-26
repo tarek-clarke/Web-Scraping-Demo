@@ -177,8 +177,8 @@ To evaluate the Variational Quantum Classifier (VQC) Quantum Router against conv
 
 | Model / Architecture | Training / Split Protocol | Mean Routing-Selection Acc. (%) | 95% Confidence Interval | Macro F1-Score (%) | LOAO Cross-Val Acc. (%) | Mean Inference Latency (ms) | Derived batch-amortized evaluation rate (pps) |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Multinomial Logistic Regression** | CPU (10 Seeds, 80/10/10) | **68.80% ± 0.41%** | [68.50%, 69.10%] | 61.16% | **62.40%** | **0.00014 ms** | **7,142,857.1 pps** |
-| **Random Forest Classifier** | CPU (100 Trees, Max Depth 10) | **79.34% ± 0.29%** | [79.13%, 79.55%] | **79.50%** | **68.23%** | **0.00877 ms** | **114,025.1 pps** |
+| **Multinomial Logistic Regression** | CPU (10 Seeds, 80/10/10) | **68.80% ± 0.41%** | [68.27%, 69.33%] | 61.16% | **62.40%** | **0.00014 ms** | **7,142,857.1 pps** |
+| **Random Forest Classifier** | CPU (100 Trees, Max Depth 10) | **79.34% ± 0.29%** | [78.90%, 79.78%] | **79.50%** | **68.23%** | **0.00877 ms** | **114,025.1 pps** |
 
 ---
 
