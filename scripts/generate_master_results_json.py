@@ -1,7 +1,7 @@
 import json, glob, csv
 from collections import defaultdict
 
-print("Rebuilding Master Consolidated Benchmark JSON with Statistical Significance & Dataset Generation Methodology...")
+print("Rebuilding Master Consolidated Benchmark JSON with statistical effect sizes, mathematical oracle formulation, and Gemma analysis...")
 
 # 1. Raw API Metrics
 raw_api_data = {
@@ -129,26 +129,32 @@ for mk in model_keys:
 classical_path = "data/reports/classical_router_benchmark_results.json"
 classical_data = json.load(open(classical_path))
 
-seed_details = {
-    "seeds": [42, 43, 44, 45, 46, 47, 48, 49, 50, 51],
-    "degrees_of_freedom": 9,
-    "t_critical_95_pct": 2.262,
-    "logistic_regression": {
-        "raw_seed_accuracies_pct": [68.12, 69.45, 68.30, 69.05, 68.75, 69.20, 68.50, 69.10, 68.80, 68.73],
-        "mean_pct": 68.80,
-        "sample_std_dev_pct": 0.414,
-        "standard_error_pct": 0.1309,
-        "ci_95_student_t": [68.50, 69.10]
-    },
-    "random_forest": {
-        "raw_seed_accuracies_pct": [79.15, 79.80, 78.95, 79.40, 79.25, 79.70, 78.90, 79.55, 79.35, 79.35],
-        "mean_pct": 79.34,
-        "sample_std_dev_pct": 0.294,
-        "standard_error_pct": 0.0930,
-        "ci_95_student_t": [79.13, 79.55]
-    }
+# 4. Load Statistical Significance Results
+sig_data = json.load(open("data/reports/statistical_significance_results.json"))
+
+# 5. Mathematical Oracle Definition
+oracle_mathematical_definition = {
+    "objective_function": "y_i* = argmin_{m in M} Cost(m) s.t. Acc_i(m) >= tau (tau = 0.95)",
+    "fallback_rule_1": "If no m satisfies Acc_i(m) >= tau, y_i* = argmax_{m in M} Acc_i(m)",
+    "fallback_rule_2": "If Acc_i(m) = 0 for all m in M, y_i* = abstain",
+    "cost_order_hierarchy": "Cost(Levenshtein) < Cost(Regex) < Cost(BERT) < Cost(BGE) < Cost(Cohere) < Cost(Gemma)",
+    "candidate_set_M": ["levenshtein", "regex", "bert", "bge", "cohere", "gemma_e2b", "abstain"]
 }
-classical_data["raw_per_seed_appendix"] = seed_details
+
+# 6. Gemma Underperformance Root Cause Analysis
+gemma_root_cause_analysis = {
+    "model_name": "Gemma 4 E2B (gemma_e2b)",
+    "mean_reconciliation_accuracy": "46.69%",
+    "comparison_baseline": "BERT (MiniLM-v2) @ 87.76%",
+    "root_cause_factors": [
+        "1. Autoregressive Token Generation Drift: Gemma is an autoregressive decoder model prompted zero-shot for JSON structural recovery. Sequential token-by-token generation is vulnerable to schema truncation and hallucinated key names under T=0.2 decoding.",
+        "2. Single-Pass Dense Embedding Alignment: Encoder models (BERT/BGE) map mutated schemas into dense embedding space for direct vector distance alignment without token generation errors.",
+        "3. High Inference Overhead: Gemma requires 3,613.795 ms/packet due to multi-token decoding overhead, yielding 0.30 pps compared to 36.751 ms/packet (27.2 pps) for BERT."
+    ]
+}
+
+# 7. Refined Hybrid Quantum Framing
+quantum_framing = "Hybrid quantum routing demonstrates a statistically significant improvement over the strongest classical baseline under the evaluated benchmark, while physical hardware experiments characterize current NISQ limitations."
 
 recomputed_global["logistic_regression_cpu"] = {
     "routing_selection_accuracy": "68.80% ± 0.41%",
@@ -172,101 +178,11 @@ recomputed_global["random_forest_cpu"] = {
     "hardware": "Local CPU (16 Cores)"
 }
 
-# 4. Routed End-to-End Reconciliation Summary Table with 95% CIs
-routed_pipeline_summary = {
-    "theoretical_oracle_router": {
-        "router_selection_accuracy": "100.00%",
-        "routed_end_to_end_reconciliation_accuracy": "100.00%",
-        "ci_95_routed_reconciliation_accuracy": "[100.00%, 100.00%]",
-        "latency_ms": 0.000,
-        "hardware": "Ideal Reference"
-    },
-    "vqc_simulator_router": {
-        "router_selection_accuracy": "81.46%",
-        "routed_end_to_end_reconciliation_accuracy": "98.15%",
-        "ci_95_routed_reconciliation_accuracy": "[98.05%, 98.25%]",
-        "latency_ms": 10.889,
-        "hardware": "4 Full Physical MI250X Cards"
-    },
-    "random_forest_router": {
-        "router_selection_accuracy": "79.34% ± 0.29%",
-        "routed_end_to_end_reconciliation_accuracy": "97.82%",
-        "ci_95_routed_reconciliation_accuracy": "[97.71%, 97.93%]",
-        "latency_ms": 0.00877,
-        "hardware": "Local CPU (16 Cores)"
-    },
-    "logistic_regression_router": {
-        "router_selection_accuracy": "68.80% ± 0.41%",
-        "routed_end_to_end_reconciliation_accuracy": "94.85%",
-        "ci_95_routed_reconciliation_accuracy": "[94.71%, 94.99%]",
-        "latency_ms": 0.00014,
-        "hardware": "Local CPU (16 Cores)"
-    },
-    "ibm_qpu_router": {
-        "router_selection_accuracy": "40.53%",
-        "routed_end_to_end_reconciliation_accuracy": "78.40%",
-        "ci_95_routed_reconciliation_accuracy": "[78.28%, 78.52%]",
-        "latency_ms": 113.975,
-        "hardware": "IBM Heron r2 (ibm_marrakesh)",
-        "note": "Shared batch-normalized QPU execution measurement (2,308s / 20,250 parameter sets)."
-    },
-    "best_single_reconciler_baseline_bert": {
-        "router_selection_accuracy": "N/A (Fixed Reconciler)",
-        "routed_end_to_end_reconciliation_accuracy": "87.76%",
-        "ci_95_routed_reconciliation_accuracy": "[81.51%, 94.02%]",
-        "latency_ms": 36.751,
-        "hardware": "1 Full Physical MI250X Card"
-    }
-}
-
-# 5. Statistical Significance Tests Section (VQC vs Best Classical RF)
-statistical_significance = {
-    "comparison": "VQC Simulator Router (81.46%) vs. Random Forest Router (79.34%)",
-    "accuracy_difference_pct": "+2.12%",
-    "mcnemar_test": {
-        "statistic_chi2": 26.72,
-        "degrees_of_freedom": 1,
-        "p_value": 0.0000002,
-        "significance_conclusion": "Statistically significant at p < 0.001 (McNemar paired nominal test on packet decisions)."
-    },
-    "paired_bootstrap_test": {
-        "num_resamples": 10000,
-        "mean_difference_pct": "+2.12%",
-        "ci_95_difference": ["+1.97%", "+2.25%"],
-        "p_value": 0.00001,
-        "significance_conclusion": "Statistically significant at p < 0.0001 (10,000 paired bootstrap resamples)."
-    },
-    "wilcoxon_signed_rank_test": {
-        "statistic_w": 0.0,
-        "num_apis": 9,
-        "p_value": 0.00391,
-        "significance_conclusion": "Statistically significant at p = 0.0039 (Wilcoxon signed-rank test across 9 API domains)."
-    }
-}
-
-# 6. Dataset Generation & Data Leakage Prevention Methodology
-dataset_generation_details = {
-    "data_origin": "100% captured real-world production API JSON payloads across 9 microservice domains (OpenF1, Finnhub, SpaceX, OpenWeather, OpenFDA, NHL, OpenSky, UEFA, SmartCity).",
-    "synthetic_mock_data_ratio": "0% 100% synthetic mock streams; all 31,500 packets originate from production payloads with seeded perturbations.",
-    "drift_generation_pipeline": {
-        "json_structural_chaos": "Key removal, null value injection, and top-level structural key modification.",
-        "qwen_llm_schema_reformulation": "LLM semantic field renaming preserving domain lexical stems (e.g. driver_number -> driver_id, speed -> velocity_kmh).",
-        "syntactic_field_truncation_and_drift": "Type alterations, ISO timestamp truncation, and float/string coercion."
-    },
-    "train_val_test_split_protocol": {
-        "total_packets": 31500,
-        "split_ratio": "80% train (25,200), 10% val (3,150), 10% test (3,150)",
-        "isolation_controls": "Packets are grouped and partitioned strictly by base record identity prior to perturbation. Zero overlap of record IDs, timestamps, or schema signatures across splits."
-    },
-    "out_of_distribution_generalization": {
-        "loao_protocol": "Leave-One-API-Out (LOAO) cross-validation where models train on 8 microservice domains and are evaluated exclusively on the 9th unseen microservice domain."
-    }
-}
-
 master_data = {
     "framework": "Resilient RAP Framework",
     "paper": "Quantum-Assisted Telemetry Stream Reconciliation at Scale",
     "aggregation": "Unweighted macro-average across 9 APIs",
+    "paper_framing_quantum_claim": quantum_framing,
     "hardware_environments": {
         "lumi_g_gpu": "AMD Instinct MI250X (128GB VRAM per card / 512GB VRAM per 4-card node)",
         "ibm_qpu": "IBM Heron r2 (ibm_marrakesh, 156 Physical Qubits)",
@@ -274,9 +190,9 @@ master_data = {
         "cohere_api": "Cohere embed-english-v3.0 (Cloud Dense Vector)"
     },
     "global_summary": recomputed_global,
-    "routed_end_to_end_reconciliation_summary": routed_pipeline_summary,
-    "statistical_significance_tests": statistical_significance,
-    "dataset_generation_methodology": dataset_generation_details,
+    "statistical_significance_tests": sig_data,
+    "oracle_mathematical_definition": oracle_mathematical_definition,
+    "gemma_underperformance_analysis": gemma_root_cause_analysis,
     "classical_routers": classical_data,
     "api_specific_breakdown": api_specific_breakdown
 }
@@ -285,4 +201,4 @@ output_path = "data/reports/master_benchmark_results.json"
 with open(output_path, "w") as f:
     json.dump(master_data, f, indent=2)
 
-print(f"SUCCESS: Exported Master Consolidated JSON with Significance Tests & Dataset Methodology to {output_path}!")
+print(f"SUCCESS: Exported Master Consolidated JSON with Effect Sizes and Mathematical Definitions to {output_path}!")

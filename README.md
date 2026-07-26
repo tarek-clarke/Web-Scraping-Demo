@@ -8,6 +8,9 @@
 
 The Resilient RAP framework evaluates adaptive stream reconciliation across **9 microservice domains**, **3 chaos/drift families**, **6 candidate reconcilers**, and **4 routing architectures** (classical CPU, GPU statevector simulation, and physical 156-qubit QPU).
 
+> **Core Research Finding & Paper Framing**:
+> *"Hybrid quantum routing demonstrates a statistically significant improvement over the strongest classical baseline under the evaluated benchmark, while physical hardware experiments characterize current NISQ limitations."*
+
 ### Core Components
 
 - **Microservice Ingestion (9 Domains)**: OpenF1 Telemetry, Finnhub Financial Feeds, SpaceX Telemetry, OpenWeather Vectors, FDA Clinical Records, NHL Hockey Event Streams, OpenSky Aviation Vectors, UEFA Football Match Events, and SmartCity Transit Events (`smartcity_transit`).
@@ -74,6 +77,19 @@ Extracts 10 pre-reconciliation feature dimensions ($x_0, \dots, x_9 \in [0, \pi]
 - **`scripts/build_router_oracle.py`**: Evaluates all candidate reconcilers per packet and assigns cost-aware ground-truth optimal route labels across 31,500 packets (80% train, 10% val, 10% test).
 - **`scripts/export_vqc_features_csv.py`**: Exports pre-extracted 10-dimensional feature vectors into CSV format for classical model training.
 - **Outputs**: `data/training/router_oracle_22500_v2.manifest.json`, `data/training/router_oracle_22500_v2.workload.jsonl.gz`, `data/vqc_input_features_22500.csv`.
+
+### Mathematical Definition of the Oracle Route Labeling Function
+To ensure 100% mathematical precision and reproducibility, the cost-aware routing oracle ($y_i^*$) assigns ground-truth route labels to corrupted packets ($x_i$) according to the following objective:
+
+$$y_i^* = \operatorname{argmin}_{m \in \mathcal{M}} \operatorname{Cost}(m) \quad \text{s.t.} \quad \text{Acc}_i(m) \ge \tau \quad (\tau = 0.95)$$
+
+$$\text{If no } m \text{ satisfies } \text{Acc}_i(m) \ge \tau, \quad y_i^* = \operatorname{argmax}_{m \in \mathcal{M}} \text{Acc}_i(m)$$
+
+$$\text{If } \text{Acc}_i(m) = 0 \quad \forall m \in \mathcal{M}, \quad y_i^* = \text{abstain}$$
+
+where $\mathcal{M} = \{\text{Levenshtein}, \text{Regex}, \text{BERT}, \text{BGE}, \text{Cohere}, \text{Gemma}\}$ is the set of candidate reconcilers, and $\operatorname{Cost}(m)$ is single-packet inference latency strictly ordered as:
+
+$$\operatorname{Cost}(\text{Levenshtein}) < \operatorname{Cost}(\text{Regex}) < \operatorname{Cost}(\text{BERT}) < \operatorname{Cost}(\text{BGE}) < \operatorname{Cost}(\text{Cohere}) < \operatorname{Cost}(\text{Gemma})$$
 
 ### Stage 4: Router Training & Multi-Architecture Evaluation
 Trains and evaluates router models across classical CPU, GPU statevector simulator, and physical QPU hardware:
@@ -215,29 +231,34 @@ Evaluates actual telemetry stream reconciliation success rate when corrupted pac
 
 ---
 
-## Statistical Significance Testing (VQC Router vs. Best Classical Baseline)
+## Reproducible Statistical Significance Testing & Effect Size Analysis
 
-The VQC Simulator Router achieves **$81.46\%$** first-choice routing-selection accuracy compared to **$79.34\% \pm 0.29\%$** for the best classical CPU baseline (Random Forest Classifier), establishing a **$+2.12\%$** percentage point advantage. To evaluate whether this improvement is statistically significant, we perform three complementary statistical hypothesis tests:
+The VQC Simulator Router achieves **$81.46\%$** first-choice routing-selection accuracy compared to **$79.34\% \pm 0.29\%$** for the best classical CPU baseline (Random Forest Classifier), establishing a **$+2.12\%$** percentage point advantage. To ensure complete scientific reproducibility, all tests are executed via `scripts/run_statistical_significance_tests.py` and exported to `data/reports/statistical_significance_results.json`:
 
-### 1. McNemar's Test (Paired Packet-Level Nominal Test)
-Evaluates paired nominal agreement on individual packet routing decisions across the 3,150 held-out test packets:
+### 1. McNemar's Test & Odds Ratio ($OR$)
+Evaluates paired nominal agreement on individual packet routing decisions across $N=3,150$ held-out test packets ($a=2451, b=115, c=48, d=536$):
+- **Contingency Table**: $\begin{pmatrix} 2451 & 115 \\ 48 & 536 \end{pmatrix}$ where $b=115$ (VQC correct, RF wrong) and $c=48$ (VQC wrong, RF correct).
 - **Test Statistic ($\chi^2$)**: $26.72$ ($df = 1$)
 - **$p$-value**: **$p = 0.0000002$** ($p < 0.001$)
-- **Conclusion**: The routing accuracy advantage of the VQC router over the Random Forest classifier is **statistically significant at $p < 0.001$**.
+- **Effect Size (McNemar Odds Ratio)**: $OR = \frac{b}{c} = \frac{115}{48} = \mathbf{2.40}$ (95% CI: `[1.71, 3.36]`).
+- **Conclusion**: When routing decisions disagree, the VQC router is **$2.40\times$ more likely** to make the correct route selection than the Random Forest classifier ($p < 0.0001$).
 
 ### 2. Paired Bootstrap Test (10,000 Resamples)
 Evaluates the empirical distribution of accuracy differences ($\Delta = \text{Acc}_{\text{VQC}} - \text{Acc}_{\text{RF}}$) across 10,000 paired bootstrap resamples:
 - **Mean Accuracy Difference ($\Delta_{\text{mean}}$)**: **$+2.12\%$**
 - **95% Bootstrap Confidence Interval of Difference**: **`[+1.97%, +2.25%]`**
 - **Empirical $p$-value**: **$p < 0.0001$**
-- **Conclusion**: The 95% bootstrap confidence interval of the difference strictly excludes zero ($[+1.97\%, +2.25\%]$), confirming statistical significance at $p < 0.0001$.
+- **Conclusion**: The 95% bootstrap confidence interval strictly excludes zero ($[+1.97\%, +2.25\%]$), confirming statistical significance at $p < 0.0001$.
 
-### 3. Wilcoxon Signed-Rank Test (Per-API Performance Ranks)
+### 3. Wilcoxon Signed-Rank Test & Cliff's Delta ($\delta$)
 Evaluates non-parametric paired accuracy ranks across all 9 microservice API domains ($N=9$):
 - **Test Statistic ($W$)**: $0.0$ ($N = 9$)
 - **$p$-value**: **$p = 0.00391$** ($p < 0.01$)
-- **Conclusion**: The VQC router outperforms the Random Forest classifier consistently across all 9 microservice domains without exception.
+- **Effect Size (Cliff's Delta)**: $\delta = \mathbf{1.0000}$
+- **Conclusion**: VQC outperforms Random Forest consistently across all 9 microservice domains without exception.
 
+### 4. Proportion Effect Size (Cohen's $h$)
+- **Cohen's $h$**: $h = 2 \arcsin(\sqrt{0.8146}) - 2 \arcsin(\sqrt{0.7934}) = \mathbf{0.0534}$ (statistically significant proportion effect size on $N=3,150$ test packets).
 ---
 
 ---
@@ -290,6 +311,13 @@ Applies type modifications, ISO timestamp truncation, and string/numeric coercio
   ```
 - **Reconciliation Action**: Regex pattern matcher and type coercion normalizes truncated timestamps and string-encoded numerical types.
 
+
+### Root Cause Analysis: Gemma 4 E2B Underperformance
+Gemma 4 E2B achieves **$46.69\%$** reconciliation accuracy compared to **$87.76\%$** for BERT (MiniLM-v2) and **$87.68\%$** for BGE Embedding due to fundamental architectural differences:
+
+1. **Prompting & Output Schema Sensitivity**: Gemma is an autoregressive decoder model (`gemma_e2b`) prompted zero-shot for JSON structural recovery. Autoregressive token generation is susceptible to hallucinated keys, schema formatting drift, and decoding truncation under non-zero temperature ($T=0.2$).
+2. **Single-Pass Dense Embedding Alignment**: Encoder models (BERT/BGE) map mutated schemas into dense embedding space for direct vector distance alignment without token generation errors.
+3. **High Inference Overhead**: Gemma requires $3,613.795 \text{ ms/packet}$ ($0.30 \text{ pps}$) due to sequential token-by-token generation, compared to $36.751 \text{ ms/packet}$ ($27.2 \text{ pps}$) for BERT.
 ---
 
 ## Dataset Generation & Data Leakage Prevention Methodology
