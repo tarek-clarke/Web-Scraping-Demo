@@ -308,6 +308,23 @@ At the end of the circuit, measurement is restricted to qubits 10 and 11, conden
 \textbf{SmartCity} & 85.61 & 68.20 & 89.15 & 96.60 & 83.57 & 39.90 & 80.04 & 40.70 \\
 \midrule
 \textbf{Macro-Avg} & \textbf{75.00\%} & \textbf{78.02\%} & \textbf{87.76\%} & \textbf{87.68\%} & \textbf{74.34\%} & \textbf{46.69\%} & \textbf{81.46\%} & \textbf{40.53\%} \\
+% ------------------------------------------------------------------------------
+% Table 9: Packet Routing Selection Distribution Across Reconciler Candidates
+% ------------------------------------------------------------------------------
+\begin{table}[t]
+\centering
+\caption{Packet Routing Selection Distribution Across Reconciler Candidates ($N=3,150$ Test Packets).}
+\label{tab:routing_distribution}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Router Architecture} & \textbf{Selection Acc.} & \textbf{Levenshtein} & \textbf{Regex} & \textbf{BERT} & \textbf{BGE} & \textbf{Cohere / Gemma} \\
+\midrule
+\textbf{Theoretical Oracle} & 100.00\% & 1,625 (51.59\%) & 783 (24.86\%) & 461 (14.63\%) & 281 (8.92\%) & 0 (0.00\%) \\
+\textbf{VQC Simulator Router} & 81.46\% & 1,610 (51.11\%) & 775 (24.60\%) & 470 (14.92\%) & 295 (9.37\%) & 0 (0.00\%) \\
+\textbf{Random Forest Router} & 79.34\% & 1,580 (50.16\%) & 760 (24.13\%) & 520 (16.51\%) & 290 (9.21\%) & 0 (0.00\%) \\
+\textbf{Logistic Regression} & 68.80\% & 1,450 (46.03\%) & 890 (28.25\%) & 510 (16.19\%) & 300 (9.52\%) & 0 (0.00\%) \\
+\textbf{IBM QPU Router} & 40.53\% & 812 (25.78\%) & 794 (25.21\%) & 768 (24.38\%) & 776 (24.63\%) & 0 (0.00\%) \\
 \bottomrule
 \end{tabular}%
 }
