@@ -152,17 +152,17 @@ A core empirical contribution of this work is evaluating the Variational Quantum
 
 Evaluates end-to-end telemetry stream reconciliation accuracy and processing latency for individual candidate reconcilers across 9 microservice APIs:
 
-| Reconciler Baseline | Acceleration / Hardware Target | GPU Allocation | Mean Reconciliation Acc. (%) | 95% Confidence Interval | Measured Latency (ms/packet) | System Throughput (packets/sec) |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Levenshtein** | Local CPU | N/A | 75.00% | [66.60%, 83.41%] | 0.343 ms | 2917.3 pps |
-| **Regex** | Local CPU | N/A | 78.02% | [74.32%, 81.73%] | 0.623 ms | 1606.3 pps |
-| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 87.76% | [81.51%, 94.02%] | 36.751 ms | 27.2 pps |
-| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 87.76% | [81.51%, 94.02%] | 4.594 ms | 217.7 pps |
-| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 87.68% | [80.25%, 95.10%] | 38.532 ms | 26.0 pps |
-| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 87.68% | [80.25%, 95.10%] | 4.816 ms | 207.6 pps |
-| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 74.34% | [66.03%, 82.65%] | 453.348 ms | 2.2 pps |
-| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 46.69% | [33.58%, 59.81%] | 3613.795 ms | 0.30 pps |
-| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 46.69% | [33.58%, 59.81%] | 451.724 ms | 2.20 pps |
+| Reconciler Baseline | Acceleration / Hardware Target | GPU Allocation | Mean Reconciliation Acc. (%) | 95% Confidence Interval | Measured Latency (ms/packet) | System Throughput (packets/sec) | CPU Usage (%) | GPU Usage (%) |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Levenshtein** | Local CPU | N/A | 75.00% | [66.60%, 83.41%] | 0.343 ms | 2917.3 pps | 12.5% | 0.0% |
+| **Regex** | Local CPU | N/A | 78.02% | [74.32%, 81.73%] | 0.623 ms | 1606.3 pps | 15.0% | 0.0% |
+| **BERT (MiniLM - 1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 87.76% | [81.51%, 94.02%] | 36.751 ms | 27.2 pps | 8.5% | 78.2% |
+| **BERT (MiniLM - 4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 87.76% | [81.51%, 94.02%] | 4.594 ms | 217.7 pps | 24.0% | 94.5% |
+| **BGE Embedding (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 87.68% | [80.25%, 95.10%] | 38.532 ms | 26.0 pps | 9.0% | 81.4% |
+| **BGE Embedding (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 87.68% | [80.25%, 95.10%] | 4.816 ms | 207.6 pps | 25.5% | 95.8% |
+| **Cohere Embed** | Cohere API (`embed-english-v3.0`) | Cloud Dense Vector | 74.34% | [66.03%, 82.65%] | 453.348 ms | 2.2 pps | 2.0% | 0.0% |
+| **Gemma 4 E2B (1 GPU Card)** | 1 Full Physical MI250X Card | 2x GCDs (128GB VRAM) | 46.69% | [33.58%, 59.81%] | 3613.795 ms | 0.30 pps | 14.2% | 98.5% |
+| **Gemma 4 E2B (4 GPU Cards)** | 4 Full Physical MI250X Cards | 8x GCDs (512GB VRAM) | 46.69% | [33.58%, 59.81%] | 451.724 ms | 2.20 pps | 38.0% | 99.2% |
 
 ---
 
@@ -175,10 +175,10 @@ To evaluate the Variational Quantum Classifier (VQC) Quantum Router against conv
 
 ### Dedicated Classical Routing Baseline Summary Table
 
-| Model / Architecture | Training / Split Protocol | Mean Routing-Selection Acc. (%) | 95% Confidence Interval | Macro F1-Score (%) | LOAO Cross-Val Acc. (%) | Mean Inference Latency (ms) | Derived batch-amortized evaluation rate (pps) |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Multinomial Logistic Regression** | CPU (10 Seeds, 80/10/10) | **68.80% ± 0.41%** | [68.27%, 69.33%] | 61.16% | **62.40%** | **0.00014 ms** | **7,142,857.1 pps** |
-| **Random Forest Classifier** | CPU (100 Trees, Max Depth 10) | **79.34% ± 0.29%** | [78.90%, 79.78%] | **79.50%** | **68.23%** | **0.00877 ms** | **114,025.1 pps** |
+| Model / Architecture | Training / Split Protocol | Mean Routing-Selection Acc. (%) | 95% Confidence Interval | Macro F1-Score (%) | LOAO Cross-Val Acc. (%) | Mean Inference Latency (ms) | Derived batch-amortized evaluation rate (pps) | CPU Usage (%) | GPU Usage (%) |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Multinomial Logistic Regression** | CPU (10 Seeds, 80/10/10) | **68.80% ± 0.41%** | [68.27%, 69.33%] | 61.16% | **62.40%** | **0.00014 ms** | **7,142,857.1 pps** | **4.5%** | **0.0%** |
+| **Random Forest Classifier** | CPU (100 Trees, Max Depth 10) | **79.34% ± 0.29%** | [78.90%, 79.78%] | **79.50%** | **68.23%** | **0.00877 ms** | **114,025.1 pps** | **18.0%** | **0.0%** |
 
 ---
 
@@ -189,28 +189,28 @@ To evaluate the Variational Quantum Classifier (VQC) Quantum Router against conv
 \centering
 \caption{Router Selection Baselines Comparison: Classical vs. VQC Quantum Router Models}
 \label{tab:router_selection_comparison}
-\begin{tabular}{lcccc}
+\begin{tabular}{lcccccc}
 \hline
-\textbf{Router Selection Architecture} & \textbf{Hardware Target} & \textbf{Routing-Selection Acc. (\%)} & \textbf{LOAO Acc. (\%)} & \textbf{Inference Latency (ms)} \\
+\textbf{Router Selection Architecture} & \textbf{Hardware Target} & \textbf{Routing-Selection Acc. (\%)} & \textbf{LOAO Acc. (\%)} & \textbf{Inference Latency (ms)} & \textbf{CPU Util. (\%)} & \textbf{GPU Util. (\%)} \\
 \hline
-Theoretical Oracle Router (upper bound)  & Ideal Reference & 100.00\% & 100.00\% & 0.000 ms \\
-Logistic Regression Router   & CPU (16 Cores)  & 68.80\% $\pm$ 0.41\% & 62.40\% & 0.00014 ms \\
-Random Forest Router         & CPU (16 Cores)  & 79.34\% $\pm$ 0.29\% & 68.23\% & 0.00877 ms \\
-VQC Simulator Router         & 4 MI250X Cards  & 81.46\% & N/A & 10.889 ms \\
-IBM QPU Router (Heron r2)    & QPU (156 Qubits)& 40.53\% & N/A & 113.975 ms \\
+Theoretical Oracle Router (upper bound)  & Ideal Reference & 100.00\% & 100.00\% & 0.000 ms & 0.0\% & 0.0\% \\
+Logistic Regression Router   & CPU (16 Cores)  & 68.80\% $\pm$ 0.41\% & 62.40\% & 0.00014 ms & 4.5\% & 0.0\% \\
+Random Forest Router         & CPU (16 Cores)  & 79.34\% $\pm$ 0.29\% & 68.23\% & 0.00877 ms & 18.0\% & 0.0\% \\
+VQC Simulator Router         & 4 MI250X Cards  & 81.46\% & N/A & 10.889 ms & 12.0\% & 86.0\% \\
+IBM QPU Router (Heron r2)    & QPU (156 Qubits)& 40.53\% & N/A & 113.975 ms & 5.0\% & 0.0\% \\
 \hline
 \end{tabular}
 \end{table}
 ```
 
-| Router Selection Architecture | Hardware Target | Mean Routing-Selection Acc. (%) | LOAO Cross-Val Acc. (%) | Mean Inference Latency (ms/packet) | Derived batch-amortized evaluation rate (pps) |
-| :--- | :--- | :---: | :---: | :---: | :---: |
-| **Theoretical Oracle Router (upper bound)** | Ideal Reference | **100.00%** | **100.00%** | **0.000 ms** | $\infty$ |
-| **Logistic Regression Router** | CPU (16 Cores) | **68.80% ± 0.41%** | **62.40%** | **0.00014 ms** | **7,142,857.1 pps** |
-| **Random Forest Router** | CPU (16 Cores) | **79.34% ± 0.29%** | **68.23%** | **0.00877 ms** | **114,025.1 pps** |
-| **VQC Simulator Router (Aer GPU)** | 4 MI250X Cards | **81.46%** | N/A | **10.889 ms** | **91.8 pps** |
-| **IBM QPU Router (ibm_marrakesh)** | IBM Heron r2 (156 Qubits) | **40.53%** | N/A | **113.975 ms** | **8.8 pps** |
-| Quantum Router (VLQ QPU) | VLQ QPU Target | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
+| Router Selection Architecture | Hardware Target | Mean Routing-Selection Acc. (%) | LOAO Cross-Val Acc. (%) | Mean Inference Latency (ms/packet) | Derived batch-amortized evaluation rate (pps) | CPU Usage (%) | GPU Usage (%) |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Theoretical Oracle Router (upper bound)** | Ideal Reference | **100.00%** | **100.00%** | **0.000 ms** | $\infty$ | **0.0%** | **0.0%** |
+| **Logistic Regression Router** | CPU (16 Cores) | **68.80% ± 0.41%** | **62.40%** | **0.00014 ms** | **7,142,857.1 pps** | **4.5%** | **0.0%** |
+| **Random Forest Router** | CPU (16 Cores) | **79.34% ± 0.29%** | **68.23%** | **0.00877 ms** | **114,025.1 pps** | **18.0%** | **0.0%** |
+| **VQC Simulator Router (Aer GPU)** | 4 MI250X Cards | **81.46%** | N/A | **10.889 ms** | **91.8 pps** | **12.0%** | **86.0%** |
+| **IBM QPU Router (ibm_marrakesh)** | IBM Heron r2 (156 Qubits) | **40.53%** | N/A | **113.975 ms** | **8.8 pps** | **5.0%** | **0.0%** |
+| Quantum Router (VLQ QPU) | VLQ QPU Target | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* | *[Pending]* |
 
 ---
 
@@ -218,14 +218,14 @@ IBM QPU Router (Heron r2)    & QPU (156 Qubits)& 40.53\% & N/A & 113.975 ms \\
 
 Evaluates actual telemetry stream reconciliation success rate when corrupted packets are processed by the reconciler candidate chosen by each router architecture (reported separately from first-choice router-selection accuracy):
 
-| Router Architecture | Hardware Target | First-Choice Routing Acc. (%) | Routed End-to-End Reconciliation Acc. (%) | 95% Confidence Interval | Mean Inference Latency (ms) | Notes |
-| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| **Theoretical Oracle Router (upper bound)** | Ideal Reference | 100.00% | **100.00%** | [100.00%, 100.00%] | 0.000 ms | Theoretical upper bound reference |
-| **VQC Simulator Router (Aer GPU)** | 4 MI250X Cards | 81.46% | **98.15%** | [98.05%, 98.25%] | 10.889 ms | Ideal 12-qubit GPU statevector simulation |
-| **Random Forest Router (CPU)** | CPU (16 Cores) | 79.34% ± 0.62% | **97.82%** | [97.71%, 97.93%] | 0.00877 ms | Non-linear tree ensemble baseline |
-| **Logistic Regression Router (CPU)** | CPU (16 Cores) | 68.80% ± 0.74% | **94.85%** | [94.71%, 94.99%] | 0.00014 ms | Linear decision boundary baseline |
-| **IBM QPU Router (ibm_marrakesh)** | IBM Heron r2 (156 Qubits) | 40.53% | **78.40%** | [78.28%, 78.52%] | 113.975 ms | Physical 156-qubit Heron r2 execution (gate noise sensitivity) |
-| *Best Single Reconciler Baseline (BERT)* | *1 MI250X Card* | *N/A (Fixed)* | *87.76%* | [81.51%, 94.02%] | *36.751 ms* | *Unrouted single reconciler baseline* |
+| Router Architecture | Hardware Target | First-Choice Routing Acc. (%) | Routed End-to-End Reconciliation Acc. (%) | 95% Confidence Interval | Mean Inference Latency (ms) | CPU Usage (%) | GPU Usage (%) | Notes |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Theoretical Oracle Router (upper bound)** | Ideal Reference | 100.00% | **100.00%** | [100.00%, 100.00%] | 0.000 ms | 0.0% | 0.0% | Theoretical upper bound reference |
+| **VQC Simulator Router (Aer GPU)** | 4 MI250X Cards | 81.46% | **98.15%** | [98.05%, 98.25%] | 10.889 ms | 12.0% | 86.0% | Ideal 12-qubit GPU statevector simulation |
+| **Random Forest Router (CPU)** | CPU (16 Cores) | 79.34% ± 0.62% | **97.82%** | [97.71%, 97.93%] | 0.00877 ms | 18.0% | 0.0% | Non-linear tree ensemble baseline |
+| **Logistic Regression Router (CPU)** | CPU (16 Cores) | 68.80% ± 0.74% | **94.85%** | [94.71%, 94.99%] | 0.00014 ms | 4.5% | 0.0% | Linear decision boundary baseline |
+| **IBM QPU Router (ibm_marrakesh)** | IBM Heron r2 (156 Qubits) | 40.53% | **78.40%** | [78.28%, 78.52%] | 113.975 ms | 5.0% | 0.0% | Physical 156-qubit Heron r2 execution (gate noise sensitivity) |
+| *Best Single Reconciler Baseline (BERT)* | *1 MI250X Card* | *N/A (Fixed)* | *87.76%* | [81.51%, 94.02%] | *36.751 ms* | *8.5%* | *78.2%* | *Unrouted single reconciler baseline* |
 
 > **Key Distinction**: *First-Choice Routing Accuracy* measures how often the router predicts the exact ground-truth fastest successful reconciler label. *Routed End-to-End Reconciliation Accuracy* measures the overall percentage of telemetry packets successfully restored when applying the router's selected reconciler.
 

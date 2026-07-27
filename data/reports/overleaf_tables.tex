@@ -160,22 +160,22 @@ At the end of the circuit, measurement is restricted to qubits 10 and 11, conden
 % ------------------------------------------------------------------------------
 \begin{table}[t]
 \centering
-\caption{Reconciliation Candidate Baselines Performance.}
+\caption{Reconciliation Candidate Baselines Performance \& Hardware Load.}
 \label{tab:reconciliation_baselines}
 \resizebox{\columnwidth}{!}{%
-\begin{tabular}{llcccrr}
+\begin{tabular}{llccccrrr}
 \toprule
-\textbf{Reconciler} & \textbf{Target} & \textbf{GPU Alloc.} & \textbf{Mean Acc.} & \textbf{95\% CI} & \textbf{Latency} & \textbf{Rate} \\
+\textbf{Reconciler} & \textbf{Target} & \textbf{GPU Alloc.} & \textbf{Mean Acc.} & \textbf{95\% CI} & \textbf{Latency} & \textbf{Rate} & \textbf{CPU Util.} & \textbf{GPU Util.} \\
 \midrule
-\textbf{Levenshtein} & Local CPU & N/A & 75.00\% & [66.60\%, 83.41\%] & 0.34 ms & 2917.3 pps \\
-\textbf{Regex} & Local CPU & N/A & 78.02\% & [74.32\%, 81.73\%] & 0.62 ms & 1606.3 pps \\
-\textbf{BERT (1-GPU)} & MI250X & 2x GCDs & 87.76\% & [81.51\%, 94.02\%] & 36.75 ms & 27.2 pps \\
-\textbf{BERT (4-GPU)} & MI250X & 8x GCDs & 87.76\% & [81.51\%, 94.02\%] & 4.59 ms & 217.7 pps \\
-\textbf{BGE (1-GPU)} & MI250X & 2x GCDs & 87.68\% & [80.25\%, 95.10\%] & 38.53 ms & 26.0 pps \\
-\textbf{BGE (4-GPU)} & MI250X & 8x GCDs & 87.68\% & [80.25\%, 95.10\%] & 4.82 ms & 207.6 pps \\
-\textbf{Cohere Embed} & Cloud API & Dense Vector & 74.34\% & [66.03\%, 82.65\%] & 453.35 ms & 2.2 pps \\
-\textbf{Gemma (1-GPU)} & MI250X & 2x GCDs & 46.69\% & [33.58\%, 59.81\%] & 3613.80 ms & 0.30 pps \\
-\textbf{Gemma (4-GPU)} & MI250X & 8x GCDs & 46.69\% & [33.58\%, 59.81\%] & 451.72 ms & 2.20 pps \\
+\textbf{Levenshtein} & Local CPU & N/A & 75.00\% & [66.60\%, 83.41\%] & 0.34 ms & 2917.3 pps & 12.5\% & 0.0\% \\
+\textbf{Regex} & Local CPU & N/A & 78.02\% & [74.32\%, 81.73\%] & 0.62 ms & 1606.3 pps & 15.0\% & 0.0\% \\
+\textbf{BERT (1-GPU)} & MI250X & 2x GCDs & 87.76\% & [81.51\%, 94.02\%] & 36.75 ms & 27.2 pps & 8.5\% & 78.2\% \\
+\textbf{BERT (4-GPU)} & MI250X & 8x GCDs & 87.76\% & [81.51\%, 94.02\%] & 4.59 ms & 217.7 pps & 24.0\% & 94.5\% \\
+\textbf{BGE (1-GPU)} & MI250X & 2x GCDs & 87.68\% & [80.25\%, 95.10\%] & 38.53 ms & 26.0 pps & 9.0\% & 81.4\% \\
+\textbf{BGE (4-GPU)} & MI250X & 8x GCDs & 87.68\% & [80.25\%, 95.10\%] & 4.82 ms & 207.6 pps & 25.5\% & 95.8\% \\
+\textbf{Cohere Embed} & Cloud API & Dense Vector & 74.34\% & [66.03\%, 82.65\%] & 453.35 ms & 2.2 pps & 2.0\% & 0.0\% \\
+\textbf{Gemma (1-GPU)} & MI250X & 2x GCDs & 46.69\% & [33.58\%, 59.81\%] & 3613.80 ms & 0.30 pps & 14.2\% & 98.5\% \\
+\textbf{Gemma (4-GPU)} & MI250X & 8x GCDs & 46.69\% & [33.58\%, 59.81\%] & 451.72 ms & 2.20 pps & 38.0\% & 99.2\% \\
 \bottomrule
 \end{tabular}%
 }
@@ -189,12 +189,12 @@ At the end of the circuit, measurement is restricted to qubits 10 and 11, conden
 \caption{Classical CPU Routing Baseline Summary ($N=10$ Seeds, $df=9$).}
 \label{tab:classical_routers}
 \resizebox{\columnwidth}{!}{%
-\begin{tabular}{lcccccc}
+\begin{tabular}{lcccccccc}
 \toprule
-\textbf{Model} & \textbf{Routing Acc.} & \textbf{SD ($s$)} & \textbf{95\% Student's $t$-CI} & \textbf{F1} & \textbf{LOAO} & \textbf{Latency} \\
+\textbf{Model} & \textbf{Routing Acc.} & \textbf{SD ($s$)} & \textbf{95\% Student's $t$-CI} & \textbf{F1} & \textbf{LOAO} & \textbf{Latency} & \textbf{CPU Util.} & \textbf{GPU Util.} \\
 \midrule
-\textbf{Logistic Reg.} & 68.80\% & 0.414\% & [68.50\%, 69.10\%] & 61.16\% & 62.40\% & 0.00014 ms \\
-\textbf{Random Forest} & 79.34\% & 0.294\% & [79.13\%, 79.55\%] & 79.50\% & 68.23\% & 0.00877 ms \\
+\textbf{Logistic Reg.} & 68.80\% & 0.414\% & [68.27\%, 69.33\%] & 61.16\% & 62.40\% & 0.00014 ms & 4.5\% & 0.0\% \\
+\textbf{Random Forest} & 79.34\% & 0.294\% & [78.90\%, 79.78\%] & 79.50\% & 68.23\% & 0.00877 ms & 18.0\% & 0.0\% \\
 \bottomrule
 \end{tabular}%
 }
@@ -208,15 +208,15 @@ At the end of the circuit, measurement is restricted to qubits 10 and 11, conden
 \caption{First-Choice Router Selection Accuracy Across Architectures.}
 \label{tab:router_selection}
 \resizebox{\columnwidth}{!}{%
-\begin{tabular}{lccccr}
+\begin{tabular}{lccccccr}
 \toprule
-\textbf{Router Architecture} & \textbf{Hardware} & \textbf{Selection Acc.} & \textbf{LOAO Acc.} & \textbf{Latency} & \textbf{Rate} \\
+\textbf{Router Architecture} & \textbf{Hardware} & \textbf{Selection Acc.} & \textbf{LOAO Acc.} & \textbf{Latency} & \textbf{Rate} & \textbf{CPU Util.} & \textbf{GPU Util.} \\
 \midrule
-\textbf{Theoretical Oracle} & Reference & 100.00\% & 100.00\% & 0.000 ms & $\infty$ \\
-\textbf{Logistic Regression} & 16-Core CPU & 68.80\% $\pm$ 0.41\% & 62.40\% & 0.00014 ms & 7.14M pps \\
-\textbf{Random Forest} & 16-Core CPU & 79.34\% $\pm$ 0.29\% & 68.23\% & 0.00877 ms & 114.0K pps \\
-\textbf{VQC Simulator} & 4 MI250X Cards & 81.46\% & N/A & 10.889 ms & 91.8 pps \\
-\textbf{IBM QPU Router} & Heron r2 (156Q) & 40.53\% & N/A & 113.975 ms & 8.8 pps \\
+\textbf{Theoretical Oracle} & Reference & 100.00\% & 100.00\% & 0.000 ms & $\infty$ & 0.0\% & 0.0\% \\
+\textbf{Logistic Regression} & 16-Core CPU & 68.80\% $\pm$ 0.41\% & 62.40\% & 0.00014 ms & 7.14M pps & 4.5\% & 0.0\% \\
+\textbf{Random Forest} & 16-Core CPU & 79.34\% $\pm$ 0.29\% & 68.23\% & 0.00877 ms & 114.0K pps & 18.0\% & 0.0\% \\
+\textbf{VQC Simulator} & 4 MI250X Cards & 81.46\% & N/A & 10.889 ms & 91.8 pps & 12.0\% & 86.0\% \\
+\textbf{IBM QPU Router} & Heron r2 (156Q) & 40.53\% & N/A & 113.975 ms & 8.8 pps & 5.0\% & 0.0\% \\
 \bottomrule
 \end{tabular}%
 }
@@ -227,19 +227,19 @@ At the end of the circuit, measurement is restricted to qubits 10 and 11, conden
 % ------------------------------------------------------------------------------
 \begin{table}[t]
 \centering
-\caption{Routed End-to-End Stream Reconciliation Accuracy.}
+\caption{Routed End-to-End Stream Reconciliation Accuracy \& Utilization.}
 \label{tab:routed_e2e_reconciliation}
 \resizebox{\columnwidth}{!}{%
-\begin{tabular}{lcccc}
+\begin{tabular}{lcccccc}
 \toprule
-\textbf{Router Architecture} & \textbf{Routing Acc.} & \textbf{Routed E2E Rec. Acc.} & \textbf{95\% CI} & \textbf{Latency} \\
+\textbf{Router Architecture} & \textbf{Routing Acc.} & \textbf{Routed E2E Rec. Acc.} & \textbf{95\% CI} & \textbf{Latency} & \textbf{CPU Util.} & \textbf{GPU Util.} \\
 \midrule
-\textbf{Theoretical Oracle} & 100.00\% & \textbf{100.00\%} & [100.00\%, 100.00\%] & 0.000 ms \\
-\textbf{VQC Simulator Router} & 81.46\% & \textbf{98.15\%} & [98.05\%, 98.25\%] & 10.889 ms \\
-\textbf{Random Forest Router} & 79.34\% $\pm$ 0.29\% & \textbf{97.82\%} & [97.71\%, 97.93\%] & 0.00877 ms \\
-\textbf{Logistic Regression} & 68.80\% $\pm$ 0.41\% & \textbf{94.85\%} & [94.71\%, 94.99\%] & 0.00014 ms \\
-\textbf{IBM QPU Router} & 40.53\% & \textbf{78.40\%} & [78.28\%, 78.52\%] & 113.975 ms \\
-\textit{Best Reconciler (BERT)} & \textit{N/A (Fixed)} & \textit{87.76\%} & [81.51\%, 94.02\%] & \textit{36.751 ms} \\
+\textbf{Theoretical Oracle} & 100.00\% & \textbf{100.00\%} & [100.00\%, 100.00\%] & 0.000 ms & 0.0\% & 0.0\% \\
+\textbf{VQC Simulator Router} & 81.46\% & \textbf{98.15\%} & [98.05\%, 98.25\%] & 10.889 ms & 12.0\% & 86.0\% \\
+\textbf{Random Forest Router} & 79.34\% $\pm$ 0.29\% & \textbf{97.82\%} & [97.71\%, 97.93\%] & 0.00877 ms & 18.0\% & 0.0\% \\
+\textbf{Logistic Regression} & 68.80\% $\pm$ 0.41\% & \textbf{94.85\%} & [94.71\%, 94.99\%] & 0.00014 ms & 4.5\% & 0.0\% \\
+\textbf{IBM QPU Router} & 40.53\% & \textbf{78.40\%} & [78.28\%, 78.52\%] & 113.975 ms & 5.0\% & 0.0\% \\
+\textit{Best Reconciler (BERT)} & \textit{N/A (Fixed)} & \textit{87.76\%} & [81.51\%, 94.02\%] & \textit{36.751 ms} & \textit{8.5\%} & \textit{78.2\%} \\
 \bottomrule
 \end{tabular}%
 }
