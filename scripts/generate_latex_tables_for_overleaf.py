@@ -226,7 +226,7 @@ The output qubits are mapped as follows:
     \texttt{00} & Class 0 & Levenshtein & Lightweight String Edit & Near-zero compute cost for simple typos. \\
     \texttt{01} & Class 1 & Regex & Pattern-based Rule Match & Fast CPU execution for casing/structural shifts. \\
     \texttt{10} & Class 2 & \texttt{all-MiniLM-L6-v2} & Dense Embedding Similarity & High-accuracy contextual match for renaming. \\
-    \texttt{11} & Class 3 & \texttt{gemma\_e2b} / Cohere & Dense Vector / LLM Fallback & High-capability fallback for complex drift. \\
+    \texttt{11} & Class 3 & \texttt{gemma\_e2b} / \texttt{bge-base-en-v1.5} / Cohere & Dense Vector / LLM Fallback & High-capability fallback for complex drift. \\
     \hline
   \end{tabular}%
   }
