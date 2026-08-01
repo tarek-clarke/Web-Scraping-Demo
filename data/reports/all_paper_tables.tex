@@ -144,6 +144,15 @@ Modern Reproducible Analytical Pipelines (RAP) suffer from severe processing bot
 }
 \end{table}
 
+\subsection{Cross-Platform Benchmarking Protocol \& Methodological Consistency}
+To ensure rigorous methodological comparability between the AMD Instinct MI250X (ROCm 6.0) and NVIDIA GH200 Grace Hopper (CUDA 12.8) evaluation environments, all software dependencies, precision modes, and batching constraints were held strictly invariant:
+\begin{enumerate}
+    \item \textbf{Software Stack \& Framework Native Execution}: Models were executed using native backend stacks—ROCm/HIP on AMD MI250X and native CUDA/cuDNN on NVIDIA GH200—over identical higher-level software versions (PyTorch, Hugging Face \texttt{transformers}, \texttt{sentence-transformers}, and Qiskit Aer GPU).
+    \item \textbf{Batch Size}: All streaming telemetry benchmarks enforced a strict real-time single-packet batch size ($B=1$) to reflect live microservice SLA bounds.
+    \item \textbf{Precision Settings}: Transformer encoders (\texttt{all-MiniLM-L6-v2} and \texttt{bge-base-en-v1.5}) were evaluated under FP16 mixed-precision, Gemma was loaded under 4-bit NF4 quantization, and VQC Aer simulator runs utilized double-precision (FP64) statevector evaluation across both architectures.
+    \item \textbf{Power \& Thermal Profiling}: Both platforms operated under standard vendor persistence modes at factory TDP limits (700W for GH200; 560W per MI250X board). Dual warmup iterations were executed prior to metric logging to completely isolate GPU kernel compilation cold starts.
+\end{enumerate}
+
 % ==============================================================================
 % SECTION 3: VQC FEATURE & OUTPUT MAPPING TABLES
 % ==============================================================================
