@@ -53,7 +53,7 @@ PY
 
 "${PYTHON_BIN[@]}" -u scripts/build_router_oracle.py \
     --packets-file data/ingested/telemetry_clean_bench_22500.json \
-    --output data/training/router_oracle_22500_v4.jsonl \
+    --output "${ORACLE:-data/training/router_oracle_22500_v4_${LUMI_GPU_PROFILE//-/_}.jsonl}" \
     --max-packets-per-api 2500 \
     --chunk-size 64 \
     --batch-size 64 \

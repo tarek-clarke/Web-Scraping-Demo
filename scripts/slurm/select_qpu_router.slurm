@@ -33,9 +33,9 @@ else
 fi
 
 python3 -u scripts/train_qpu_router.py select \
-    --oracle data/training/router_oracle_22500_v4.jsonl \
-    --candidates-dir data/training/qpu_router_multistart_v4 \
-    --model-output configs/quantum_router_v4.json \
+    --oracle "${ORACLE:-data/training/router_oracle_22500_v4_${LUMI_GPU_PROFILE//-/_}.jsonl}" \
+    --candidates-dir "data/training/qpu_router_multistart_v4_${LUMI_GPU_PROFILE//-/_}" \
+    --model-output "configs/quantum_router_v4_${LUMI_GPU_PROFILE//-/_}.json" \
     --expected-starts 10 \
     --backend aer_gpu \
     --evaluation-shots 2048 \

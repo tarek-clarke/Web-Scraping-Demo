@@ -33,13 +33,13 @@ export HF_DATASETS_CACHE="${HF_HOME}/datasets"
 export TRANSFORMERS_CACHE="${HF_HOME}/transformers"
 mkdir -p "$HF_DATASETS_CACHE" "$TRANSFORMERS_CACHE"
 
-ORACLE="${ORACLE:-data/training/router_oracle_22500_v4.jsonl}"
+ORACLE="${ORACLE:-data/training/router_oracle_22500_v4_${PROFILE//-/_}.jsonl}"
 DEPENDENCY_ARGS=()
 if [ ! -s "$ORACLE" ]; then
     ORACLE_JOB="$(sbatch --parsable \
         --partition="$LUMI_PARTITION" --gpus-per-node="$LUMI_GCDS" \
         --cpus-per-task="$LUMI_CPUS" --mem="$LUMI_MEM" \
-        --export=ALL,PROJECT_ROOT="$PROJECT_ROOT",LUMI_GPU_PROFILE="$PROFILE" \
+        --export=ALL,PROJECT_ROOT="$PROJECT_ROOT",LUMI_GPU_PROFILE="$PROFILE",ORACLE="$ORACLE" \
         scripts/slurm/build_router_oracle.slurm)"
     DEPENDENCY_ARGS=(--dependency="afterok:${ORACLE_JOB}")
     echo "Oracle job:    $ORACLE_JOB (runs once; resumable)"
@@ -48,12 +48,12 @@ fi
 TRAIN_JOB="$(sbatch --parsable "${DEPENDENCY_ARGS[@]}" \
     --partition="$LUMI_PARTITION" --gpus-per-node="$LUMI_GCDS" \
     --cpus-per-task="$LUMI_CPUS" --mem="$LUMI_MEM" \
-    --export=ALL,PROJECT_ROOT="$PROJECT_ROOT",LUMI_GPU_PROFILE="$PROFILE" \
+    --export=ALL,PROJECT_ROOT="$PROJECT_ROOT",LUMI_GPU_PROFILE="$PROFILE",ORACLE="$ORACLE" \
     scripts/slurm/submit_train.slurm)"
 SELECT_JOB="$(sbatch --parsable --dependency="afterok:${TRAIN_JOB}" \
     --partition="$LUMI_PARTITION" --gpus-per-node=1 \
     --cpus-per-task=8 --mem=64G \
-    --export=ALL,PROJECT_ROOT="$PROJECT_ROOT",LUMI_GPU_PROFILE="$PROFILE" \
+    --export=ALL,PROJECT_ROOT="$PROJECT_ROOT",LUMI_GPU_PROFILE="$PROFILE",ORACLE="$ORACLE" \
     scripts/slurm/select_qpu_router.slurm)"
 
 echo "LUMI profile:   $PROFILE ($LUMI_GCDS Slurm GPUs/GCDs)"
