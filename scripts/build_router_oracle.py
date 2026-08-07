@@ -244,7 +244,7 @@ def build_samples(
 
 
 def require_accelerator(methods: Sequence[str], allow_cpu: bool) -> Dict[str, object]:
-    gpu_methods = {"bert", "gemma_e2b"}
+    gpu_methods = {"minilm", "gemma_e2b", "bge", "cross_encoder"}
     needs_gpu = bool(gpu_methods.intersection(methods))
     diagnostics: Dict[str, object] = {"required": needs_gpu, "allow_cpu": allow_cpu}
     if not needs_gpu:
@@ -277,7 +277,7 @@ def require_accelerator(methods: Sequence[str], allow_cpu: bool) -> Dict[str, ob
 
     if not diagnostics["cuda_available"] and not allow_cpu:
         raise RuntimeError(
-            "BERT/Gemma oracle generation requires a GPU/ROCm device. "
+                "GPU reconcilers require a GPU/ROCm device. "
             "No accelerator was detected and CPU fallback is disabled."
         )
     return diagnostics
@@ -294,21 +294,14 @@ def reconcile_chunk(
     outputs: Dict[str, List[dict]] = {}
     for method in methods:
         started = time.perf_counter()
-        if method == "bert":
+        if method == "minilm":
             results = engine.reconcile_bert_batch(pairs)
         elif method == "gemma_e2b":
             results = engine.reconcile_gemma_batch(pairs)
         elif method == "levenshtein":
             results = engine.reconcile_levenshtein_batch(pairs)
         else:
-            results = [
-                engine.reconcile(
-                    {"data": original},
-                    {"data": drifted},
-                    method,
-                )
-                for original, drifted in pairs
-            ]
+            results = engine.reconcile_semantic_batch(method, pairs)
         if len(results) != len(records):
             raise RuntimeError(
                 f"{method} returned {len(results)} results for {len(records)} records"
@@ -487,12 +480,16 @@ def main() -> None:
         hardware_profile=hardware_profile,
         batch_size=args.batch_size,
     )
-    if "bert" in args.methods and engine.reconcilers["bert"].model is None:
+    if "minilm" in args.methods and engine.reconcilers.get("minilm") is None:
+        engine.reconcilers["minilm"] = engine._factories["minilm"]()
+    if "minilm" in args.methods and engine.reconcilers["minilm"].model is None:
         raise RuntimeError(
             "MiniLM failed to load on the requested accelerator; refusing to "
             "create oracle labels from the mock/zero-output fallback."
         )
     if "gemma_e2b" in args.methods:
+        if engine.reconcilers.get("gemma_e2b") is None:
+            engine.reconcilers["gemma_e2b"] = engine._factories["gemma_e2b"]()
         gemma_manager = engine.reconcilers["gemma_e2b"]._get_manager()
         if not gemma_manager or not gemma_manager.is_loaded:
             raise RuntimeError(

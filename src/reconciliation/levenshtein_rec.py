@@ -1,7 +1,29 @@
 import time
 from typing import Dict, List, Tuple
-import Levenshtein
 import multiprocessing
+
+try:
+    import Levenshtein as _levenshtein
+
+    def _distance(left: str, right: str) -> int:
+        return _levenshtein.distance(left, right)
+except ModuleNotFoundError:
+    # Keep the exact same edit-distance definition on minimal HPC containers
+    # that do not ship python-Levenshtein.
+    def _distance(left: str, right: str) -> int:
+        if len(left) < len(right):
+            left, right = right, left
+        previous = list(range(len(right) + 1))
+        for i, left_char in enumerate(left, 1):
+            current = [i]
+            for j, right_char in enumerate(right, 1):
+                current.append(min(
+                    current[-1] + 1,
+                    previous[j] + 1,
+                    previous[j - 1] + (left_char != right_char),
+                ))
+            previous = current
+        return previous[-1]
 
 def _reconcile_single_pair(args: Tuple[Dict, Dict]) -> Dict:
     original, drifted = args
@@ -27,7 +49,7 @@ def _reconcile_single_pair(args: Tuple[Dict, Dict]) -> Dict:
         best_dist = float('inf')
         
         for dk in drift_keys:
-            dist = Levenshtein.distance(ok, dk)
+            dist = _distance(ok, dk)
             if dist < best_dist:
                 best_dist = dist
                 best_match = dk

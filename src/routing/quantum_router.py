@@ -1,7 +1,7 @@
 """
 quantum_router.py — Quantum-accelerated packet router for resilient-rap-framework.
 
-Selects the optimal reconciler (levenshtein, regex, bert, or gemma_e2b)
+Selects one of the eight versioned reconciliation paths
 for each drifted data packet using Variational Quantum Classifier (VQC)
 circuits or, optionally, QAOA-based batch optimization.
 
@@ -56,13 +56,7 @@ class QuantumRouter:
         Optional path to a JSON file with pre-trained VQC parameters.
     """
 
-    RECONCILER_CLASSES: Dict[int, str] = {
-        0: "levenshtein",
-        1: "regex",
-        2: "bert",
-        3: "gemma_e2b",
-        4: "nemotron",
-    }
+    RECONCILER_CLASSES: Dict[int, str] = dict(enumerate(DEFAULT_CLASS_NAMES))
 
     _shared_backends: Dict[str, object] = {}
     _backend_lock: Optional[object] = None
@@ -88,13 +82,10 @@ class QuantumRouter:
         self.shots: int = shots
         self.feature_count: int = feature_count
         
-        self.num_classes: int = 3
-        if enable_gemma:
-            self.num_classes = 4
-        if enable_nemotron:
-            self.num_classes = 5
-            
-        self.num_output_qubits: int = 3 if self.num_classes > 4 else 2
+        # The versioned paper protocol always uses all eight three-bit states.
+        # Legacy four-class artifacts are rejected by RouterModel.load().
+        self.num_classes: int = len(DEFAULT_CLASS_NAMES)
+        self.num_output_qubits: int = 3
         self.circuit_reps: int = DEFAULT_REPS
         self.class_names: Tuple[str, ...] = tuple(
             self.RECONCILER_CLASSES[index] for index in range(self.num_classes)
@@ -224,11 +215,6 @@ class QuantumRouter:
         QuantumCircuit
             Parameterised circuit ready for parameter binding.
         """
-        if self.num_classes != len(DEFAULT_CLASS_NAMES):
-            raise ValueError(
-                "The paper QPU protocol is a four-class, 12-qubit router. "
-                "Train a separate versioned circuit before changing the class set."
-            )
         expected_weights = self.circuit_reps * (
             self.feature_count + self.num_output_qubits
         )
@@ -381,11 +367,12 @@ class QuantumRouter:
         class_idx: int = int(best_bitstring, 2)
         confidence: float = counts[best_bitstring] / self.shots
 
-        # Clamp to valid classes
         if class_idx >= self.num_classes:
-            class_idx = 2  # Default to BERT for out-of-range
+            raise RuntimeError(
+                f"Measured class {class_idx} is outside the {self.num_classes}-class protocol"
+            )
 
-        reconciler: str = self.RECONCILER_CLASSES[class_idx]
+        reconciler: str = self.class_names[class_idx]
 
         self.last_telemetry = {
             "qpu_execution_time_ms": exec_time_ms if is_ibm else 0.0,
@@ -576,8 +563,10 @@ class QuantumRouter:
             class_idx = int(best_bitstring, 2)
             confidence = counts[best_bitstring] / self.shots
             if class_idx >= self.num_classes:
-                class_idx = 2  # Default to BERT
-            reconciler = self.RECONCILER_CLASSES[class_idx]
+                raise RuntimeError(
+                    f"Measured class {class_idx} is outside the {self.num_classes}-class protocol"
+                )
+            reconciler = self.class_names[class_idx]
             results.append((reconciler, confidence))
 
         ibm_usage = ibm_metrics.get("usage", {}) if is_ibm else {}

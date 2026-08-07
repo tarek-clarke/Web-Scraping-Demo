@@ -59,7 +59,7 @@ def host_observation(
 ) -> Dict[str, object]:
     """Return client-side metrics without mislabelling them as QPU energy."""
     usage = resource.getrusage(resource.RUSAGE_SELF)
-    return {
+    row = {
         "event": event,
         "observed_at": utc_now(),
         "host": socket.gethostname(),
@@ -956,7 +956,7 @@ def enrich_prediction(
     selected = str(decoded["class_name"])
     selected_metrics = record["method_metrics"][selected]
     probabilities = list(decoded["probabilities"])
-    return {
+    row = {
         "record_id": record["record_id"],
         "repetition": repetition,
         "api": record["api"],
@@ -970,10 +970,6 @@ def enrich_prediction(
         "routing_decision_match": selected == record["oracle_method"],
         "confidence": float(decoded["confidence"]),
         "shots": int(decoded["shots"]),
-        "p_levenshtein": probabilities[0],
-        "p_regex": probabilities[1],
-        "p_bert": probabilities[2],
-        "p_gemma_e2b": probabilities[3],
         "selected_reconciliation_accuracy": float(selected_metrics["accuracy"]),
         "selected_reconciliation_latency_ms": float(selected_metrics["latency_ms"]),
         "oracle_reconciliation_accuracy": float(
@@ -982,6 +978,9 @@ def enrich_prediction(
         "counts": dict(counts),
         "features": record["features"],
     }
+    for index, name in enumerate(DEFAULT_CLASS_NAMES):
+        row[f"p_{name}"] = probabilities[index]
+    return row
 
 
 def metrics_for_rows(rows: Sequence[dict]) -> Dict[str, object]:
@@ -1067,14 +1066,12 @@ def write_decision_csv(path: Path, rows: Sequence[dict]) -> None:
         "routing_decision_match",
         "confidence",
         "shots",
-        "p_levenshtein",
-        "p_regex",
-        "p_bert",
-        "p_gemma_e2b",
         "selected_reconciliation_accuracy",
         "selected_reconciliation_latency_ms",
         "oracle_reconciliation_accuracy",
     ] + [f"feature_{index}" for index in range(10)]
+    probability_fields = [f"p_{name}" for name in DEFAULT_CLASS_NAMES]
+    fields[fields.index("selected_reconciliation_accuracy"):fields.index("selected_reconciliation_accuracy")] = probability_fields
     with path.open("w", encoding="utf-8", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)
         writer.writeheader()

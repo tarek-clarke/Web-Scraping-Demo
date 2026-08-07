@@ -16,28 +16,44 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 cd "$PROJECT_ROOT"
 
-module load LUMI/25.09
-module load partition/G
-module load rocm/6.3.4
-module load cray-python/3.11.7
+# Keep model and tokenizer caches on the project scratch filesystem.
+CACHE_ROOT="${PROJECT_ROOT}/.cache"
+export XDG_CACHE_HOME="$CACHE_ROOT"
+export HF_HOME="${CACHE_ROOT}/huggingface"
+export HF_DATASETS_CACHE="${HF_HOME}/datasets"
+export TRANSFORMERS_CACHE="${HF_HOME}/transformers"
+mkdir -p "$HF_DATASETS_CACHE" "$TRANSFORMERS_CACHE"
 
-if [ -f "$PROJECT_ROOT/.venv/bin/activate" ]; then
-    source "$PROJECT_ROOT/.venv/bin/activate"
-elif [ -f "$PROJECT_ROOT/.venv-lumi/bin/activate" ]; then
-    source "$PROJECT_ROOT/.venv-lumi/bin/activate"
-elif [ -f "/scratch/project_465002996/clarketa/vlq-env/bin/activate" ]; then
-    source "/scratch/project_465002996/clarketa/vlq-env/bin/activate"
-else
-    echo "ERROR: No compatible virtual environment found"
+module purge
+module use /appl/local/laifs/modules
+module load lumi-aif-singularity-bindings
+
+LUMI_SIF="${LUMI_SIF:-/appl/local/laifs/containers/lumi-multitorch-u24r70f21m50t210-20260731_122833/lumi-multitorch-full-u24r70f21m50t210-20260731_122833.sif}"
+if [ ! -r "$LUMI_SIF" ]; then
+    echo "ERROR: LUMI ROCm container not readable: $LUMI_SIF" >&2
     exit 1
 fi
+PYTHON_BIN=(singularity run "$LUMI_SIF" python)
 
 export HF_TORCH_DTYPE=bfloat16
 export TOKENIZERS_PARALLELISM=false
 
-python3 -u scripts/build_router_oracle.py \
+EXPECTED_GCDS=2
+[ "${LUMI_GPU_PROFILE:-single}" = "full-node" ] && EXPECTED_GCDS=8
+if [ "${SLURM_GPUS_ON_NODE:-}" != "$EXPECTED_GCDS" ]; then
+    echo "ERROR: expected $EXPECTED_GCDS LUMI GCDs for profile ${LUMI_GPU_PROFILE:-single}, got '${SLURM_GPUS_ON_NODE:-unset}'" >&2
+    exit 1
+fi
+"${PYTHON_BIN[@]}" - <<'PY'
+import torch
+if not torch.cuda.is_available():
+    raise SystemExit("ERROR: GPU oracle requested but torch.cuda.is_available() is false")
+print(f"LUMI accelerator preflight: {torch.cuda.device_count()} visible device(s)")
+PY
+
+"${PYTHON_BIN[@]}" -u scripts/build_router_oracle.py \
     --packets-file data/ingested/telemetry_clean_bench_22500.json \
-    --output data/training/router_oracle_22500_v2.jsonl \
+    --output data/training/router_oracle_22500_v3.jsonl \
     --max-packets-per-api 2500 \
     --chunk-size 64 \
     --batch-size 64 \

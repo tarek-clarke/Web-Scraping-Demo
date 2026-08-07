@@ -10,8 +10,29 @@ from __future__ import annotations
 import math
 from typing import Any, Dict, List, Tuple
 
-import Levenshtein
 import numpy as np
+
+try:
+    import Levenshtein as _levenshtein
+
+    def _edit_distance(left: str, right: str) -> int:
+        return _levenshtein.distance(left, right)
+except ModuleNotFoundError:
+    # Exact dynamic-programming fallback for minimal HPC containers.
+    def _edit_distance(left: str, right: str) -> int:
+        if len(left) < len(right):
+            left, right = right, left
+        previous = list(range(len(right) + 1))
+        for i, left_char in enumerate(left, 1):
+            current = [i]
+            for j, right_char in enumerate(right, 1):
+                current.append(min(
+                    current[-1] + 1,
+                    previous[j] + 1,
+                    previous[j - 1] + (left_char != right_char),
+                ))
+            previous = current
+        return previous[-1]
 
 
 # Ordinal encoding map for known data sources.
@@ -316,7 +337,7 @@ class FeatureExtractor:
 
         best_distances: List[int] = []
         for ka in keys_a:
-            min_dist = min(Levenshtein.distance(ka, kb) for kb in keys_b)
+            min_dist = min(_edit_distance(ka, kb) for kb in keys_b)
             best_distances.append(min_dist)
 
         mean_dist = sum(best_distances) / len(best_distances)

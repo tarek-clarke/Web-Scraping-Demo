@@ -42,11 +42,24 @@ fi
 # Export environment vars
 export IS_LUMI=1
 
+EXPECTED_GCDS=2
+[ "${LUMI_GPU_PROFILE:-single}" = "full-node" ] && EXPECTED_GCDS=8
+if [ "${SLURM_GPUS_ON_NODE:-}" != "$EXPECTED_GCDS" ]; then
+    echo "ERROR: expected $EXPECTED_GCDS LUMI GCDs for profile ${LUMI_GPU_PROFILE:-single}, got '${SLURM_GPUS_ON_NODE:-unset}'" >&2
+    exit 1
+fi
+python3 - <<'PY'
+import torch
+if not torch.cuda.is_available():
+    raise SystemExit("ERROR: GPU training requested but torch.cuda.is_available() is false")
+print(f"LUMI accelerator preflight: {torch.cuda.device_count()} visible device(s)")
+PY
+
 # Train one independent start per GPU.  The array therefore uses up to ten
 # GPUs concurrently without sharing optimizer state between starts.
 python3 -u scripts/train_qpu_router.py train \
-    --oracle data/training/router_oracle_22500_v2.jsonl \
-    --output-dir data/training/qpu_router_multistart_v2 \
+    --oracle data/training/router_oracle_22500_v3.jsonl \
+    --output-dir data/training/qpu_router_multistart_v3 \
     --start-index "$SLURM_ARRAY_TASK_ID" \
     --backend aer_gpu \
     --training-shots 512 \

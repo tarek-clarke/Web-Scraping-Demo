@@ -5,6 +5,12 @@ from .regex_rec import RegexReconciler
 from .bert_rec import BERTReconciler
 from .gemma_e4b_rec import GemmaE2BReconciler
 from .nemotron_rec import NemotronReconciler
+from .semantic_reconcilers import (
+    BGEReconciler,
+    CohereEmbedV4Reconciler,
+    CrossEncoderReconciler,
+    SchemaRegistryReconciler,
+)
 
 class ReconciliationEngine:
     def __init__(self, hardware_profile: str = "cpu", batch_size: int = 4):
@@ -12,12 +18,19 @@ class ReconciliationEngine:
         self.reconcilers = {
             "levenshtein": LevenshteinReconciler(),
             "regex": RegexReconciler(),
-            "bert": BERTReconciler(hardware_profile, batch_size),
-            "gemma_e2b": GemmaE2BReconciler(hardware_profile, batch_size),
-            "nemotron": NemotronReconciler(hardware_profile, batch_size),
+            "schema_registry": SchemaRegistryReconciler(),
+        }
+        self._factories = {
+            "minilm": lambda: BERTReconciler(hardware_profile, batch_size),
+            "gemma_e2b": lambda: GemmaE2BReconciler(hardware_profile, batch_size),
+            "bge": lambda: BGEReconciler(hardware_profile, batch_size),
+            "cohere_embed_v4": lambda: CohereEmbedV4Reconciler(hardware_profile, batch_size),
+            "cross_encoder": lambda: CrossEncoderReconciler(hardware_profile, batch_size),
         }
 
     def reconcile(self, original: Dict, drifted: Dict, method: str) -> Dict:
+        if method not in self.reconcilers and method in self._factories:
+            self.reconcilers[method] = self._factories[method]()
         if method not in self.reconcilers:
             raise ValueError(f"Unknown method: {method}")
 
@@ -38,11 +51,14 @@ class ReconciliationEngine:
         }
 
     def reconcile_bert_batch(self, pairs: List[Tuple[Dict, Dict]]) -> List[Dict]:
-        bert = self.reconcilers.get("bert")
+        bert = self.reconcilers.get("minilm")
+        if bert is None:
+            self.reconcilers["minilm"] = self._factories["minilm"]()
+            bert = self.reconcilers["minilm"]
         if bert and hasattr(bert, "reconcile_batch"):
             return bert.reconcile_batch(pairs)
         return [
-            self.reconcile({"data": orig}, {"data": drift}, "bert")
+            self.reconcile({"data": orig}, {"data": drift}, "minilm")
             for orig, drift in pairs
         ]
 
@@ -63,6 +79,16 @@ class ReconciliationEngine:
             self.reconcile({"data": orig}, {"data": drift}, "gemma_e2b")
             for orig, drift in pairs
         ]
+
+    def reconcile_semantic_batch(self, method: str, pairs: List[Tuple[Dict, Dict]]) -> List[Dict]:
+        if method not in self.reconcilers and method in self._factories:
+            self.reconcilers[method] = self._factories[method]()
+        if method not in self.reconcilers:
+            raise ValueError(f"Unknown semantic method: {method}")
+        reconciler = self.reconcilers[method]
+        if hasattr(reconciler, "reconcile_batch"):
+            return reconciler.reconcile_batch(pairs)
+        return [self.reconcile({"data": orig}, {"data": drift}, method) for orig, drift in pairs]
 
     def reconcile_nemotron_batch(self, pairs: List[Tuple[Dict, Dict]], progress_cb=None) -> List[Dict]:
         nemotron = self.reconcilers.get("nemotron")
@@ -88,16 +114,11 @@ class ReconciliationEngine:
         reconciler_name, confidence = router.route_packet(features)
         routing_latency_ms = (time.perf_counter() - start_time) * 1000
         
-        # Policy: Drop gemma_e2b from routing UNLESS routing confidence is very low (< 0.40),
-        # which indicates high ambiguity and justifies using the slower LLM reconciler.
-        if reconciler_name == "gemma_e2b" and confidence >= 0.40:
-            reconciler_name = "bert"
-            
         # Reconcile using selected reconciler
         rec_result = self.reconcile(original, drifted, reconciler_name)
         
         # Determine optimal reconciler (lowest-latency satisfying 95% accuracy SLA)
-        optimal_reconciler = "bert"
+        optimal_reconciler = "minilm"
         try:
             lev_res = self.reconcilers["levenshtein"].reconcile(original_data, drifted_data)
             if lev_res.get("accuracy", 0.0) >= 0.95:

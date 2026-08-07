@@ -8,8 +8,8 @@ describe the circuit that was executed on the QPU.
 This module is the single source of truth for:
 
 * the 10 feature parameters;
-* the shallow 12-qubit unitary;
-* the two measured output qubits and four class encoding;
+* the shallow 13-qubit unitary;
+* the three measured output qubits and eight-state class encoding;
 * model artifact validation; and
 * provider-independent decoding.
 
@@ -31,9 +31,18 @@ from typing import Dict, Iterable, List, Mapping, Sequence, Tuple
 import numpy as np
 
 
-MODEL_SCHEMA_VERSION = 2
-CIRCUIT_ID = "rap-tree-vqc-12q-v2"
-DEFAULT_CLASS_NAMES = ("levenshtein", "regex", "bert", "gemma_e2b")
+MODEL_SCHEMA_VERSION = 3
+CIRCUIT_ID = "rap-tree-vqc-13q-v3"
+DEFAULT_CLASS_NAMES = (
+    "levenshtein",
+    "regex",
+    "minilm",
+    "gemma_e2b",
+    "bge",
+    "cohere_embed_v4",
+    "schema_registry",
+    "cross_encoder",
+)
 DEFAULT_FEATURE_COUNT = 10
 DEFAULT_REPS = 2
 IBM_MAX_EXECUTIONS = 10_000_000
@@ -50,16 +59,16 @@ def logical_qubit_count(feature_count: int, num_classes: int) -> int:
 
 
 def _tree_edges(feature_count: int, output_qubits: Sequence[int]) -> List[Tuple[int, int]]:
-    """Return the fixed degree-3 fan-in tree used by the 10+2 model.
+    """Return the fixed degree-3 fan-in tree used by the 10+3 model.
 
     Its maximum logical degree is three, which maps naturally to IBM's
     heavy-hex fabric while remaining shallow on VLQ's star-connected system.
     """
-    if feature_count != 10 or len(output_qubits) != 2:
+    if feature_count != 10 or len(output_qubits) != 3:
         raise ValueError(
-            f"{CIRCUIT_ID} requires exactly 10 feature and 2 output qubits"
+            f"{CIRCUIT_ID} requires exactly 10 feature and 3 output qubits"
         )
-    left, right = output_qubits
+    left, middle, right = output_qubits
     return [
         (0, 1),
         (2, 3),
@@ -70,8 +79,9 @@ def _tree_edges(feature_count: int, output_qubits: Sequence[int]) -> List[Tuple[
         (7, 8),
         (6, 9),
         (8, 9),
-        (9, right),
+        (9, middle),
         (left, right),
+        (middle, right),
     ]
 
 
@@ -92,9 +102,9 @@ def build_unitary_circuit(
         raise ValueError("reps must be at least one")
     num_outputs = output_qubit_count(num_classes)
     num_qubits = feature_count + num_outputs
-    if num_qubits != 12:
+    if num_qubits != 13:
         raise ValueError(
-            f"{CIRCUIT_ID} is the four-class 12-qubit protocol; requested "
+            f"{CIRCUIT_ID} is the eight-state 13-qubit protocol; requested "
             f"{feature_count} features and {num_classes} classes ({num_qubits} qubits)"
         )
 
@@ -144,7 +154,7 @@ def build_measured_circuit(
     num_classes: int = len(DEFAULT_CLASS_NAMES),
     reps: int = DEFAULT_REPS,
 ):
-    """Return the canonical circuit with frozen weights and two output bits."""
+    """Return the canonical circuit with frozen weights and three output bits."""
     circuit, feature_parameters, weight_parameters, output_qubits = (
         build_unitary_circuit(
             feature_count=feature_count,
