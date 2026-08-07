@@ -17,8 +17,8 @@ class TestFeatureExtractor(unittest.TestCase):
         self.assertTrue(np.all(features >= 0))
         self.assertTrue(np.all(features <= math.pi))
         
-        # openf1 is 0.25 -> scaled by pi
-        self.assertAlmostEqual(features[9], 0.25 * math.pi)
+        # openf1 is the first of nine active sources: 0.10 -> scaled by pi
+        self.assertAlmostEqual(features[9], 0.10 * math.pi)
 
 if __name__ == "__main__":
     unittest.main()
