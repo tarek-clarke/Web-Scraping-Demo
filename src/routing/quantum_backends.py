@@ -97,12 +97,19 @@ class IBMQuantumBackend(QuantumBackend):
                 except Exception:
                     pass
 
-            # 4. Try loading ibm_quantum_platform channel generally
+            # 4. Try loading ibm_quantum / ibm_quantum_platform channel generally
             if service is None:
-                try:
-                    service = QiskitRuntimeService(channel="ibm_quantum_platform", instance=self.instance)
-                except Exception:
-                    pass
+                token = os.environ.get("QISKIT_IBM_TOKEN")
+                for ch in ["ibm_quantum_platform", "ibm_quantum"]:
+                    try:
+                        if token:
+                            service = QiskitRuntimeService(channel=ch, token=token)
+                        else:
+                            service = QiskitRuntimeService(channel=ch)
+                        if service:
+                            break
+                    except Exception:
+                        pass
 
             if service is None:
                 raise ValueError("Could not initialize QiskitRuntimeService on any channel. Please check your credentials.")

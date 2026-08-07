@@ -83,21 +83,41 @@ class GemmaE2BReconciler:
             coerced_pairs.append((orig, drift))
         pairs = coerced_pairs
         
-        for i, (orig, drift) in enumerate(pairs):
-            if progress_cb:
-                progress_cb(i, total)
+        # Sub-batching into self.batch_size chunks for GPU batch generation
+        chunk_size = max(1, self.batch_size)
+        for chunk_idx in range(0, total, chunk_size):
+            chunk_pairs = pairs[chunk_idx:chunk_idx + chunk_size]
+            batch_messages = []
+            for orig, drift in chunk_pairs:
+                batch_messages.append([{
+                    "role": "user",
+                    "content": (
+                        f"Map original fields to drifted fields.\n"
+                        f"Original: {json.dumps(orig)}\n"
+                        f"Drifted: {json.dumps(drift)}\n"
+                        f"Output ONLY: {{\"original\": \"drifted\"}}"
+                    )
+                }])
 
-            parsed = self._infer(orig, drift)
-            mapped = [(k, v) for k, v in parsed.items()]
-            unmapped = [k for k in orig.keys() if k not in parsed]
-            accuracy = len(mapped) / len(orig.keys()) if orig.keys() else 0.0
-            results.append({
-                "accuracy": accuracy,
-                "latency_ms": 0.0,
-                "mapped_fields": mapped,
-                "unmapped_fields": unmapped,
-                "batch_size": self.batch_size
-            })
+            responses = manager.generate_batch_responses(batch_messages, max_new_tokens=256, temperature=0.1, top_p=0.8)
+            
+            for offset, (orig, drift) in enumerate(chunk_pairs):
+                idx = chunk_idx + offset
+                if progress_cb:
+                    progress_cb(idx, total)
+                
+                resp_text = responses[offset] if offset < len(responses) else ""
+                parsed = self._parse_json(resp_text)
+                mapped = [(k, v) for k, v in parsed.items()]
+                unmapped = [k for k in orig.keys() if k not in parsed]
+                accuracy = len(mapped) / len(orig.keys()) if orig.keys() else 0.0
+                results.append({
+                    "accuracy": accuracy,
+                    "latency_ms": 0.0,
+                    "mapped_fields": mapped,
+                    "unmapped_fields": unmapped,
+                    "batch_size": self.batch_size
+                })
 
         total_time = (time.perf_counter() - start) * 1000
         per_packet = total_time / len(pairs) if pairs else 0

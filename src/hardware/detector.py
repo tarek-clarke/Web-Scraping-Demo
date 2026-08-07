@@ -131,15 +131,39 @@ class HardwareDetector:
 
     def _detect_amd(self) -> Dict:
         try:
+            gpu_count = 1
+            try:
+                import torch
+                if hasattr(torch, "cuda") and torch.cuda.is_available():
+                    gpu_count = torch.cuda.device_count()
+                elif hasattr(torch, "hip") and torch.hip.is_available():
+                    gpu_count = torch.cuda.device_count()
+            except Exception:
+                pass
+
             result = subprocess.run(
                 ["rocm-smi", "--showproductname"],
                 capture_output=True, text=True
             )
             output = result.stdout
             if "MI250X" in output or "MI200" in output:
-                return {"type": "rocm", "vram_gb": 128, "model": "MI250X"}
+                vram_per_gpu = 64
+                total_vram = vram_per_gpu * max(1, gpu_count)
+                return {
+                    "type": "rocm",
+                    "vram_gb": total_vram,
+                    "vram_per_gpu_gb": vram_per_gpu,
+                    "gpu_count": max(1, gpu_count),
+                    "model": f"{max(1, gpu_count)}x AMD Instinct MI250X" if gpu_count > 1 else "AMD Instinct MI250X (1x GCD)"
+                }
             elif "7900XT" in output or "RX 7900" in output:
-                return {"type": "rocm", "vram_gb": 20, "model": "7900XT"}
-        except:
+                return {
+                    "type": "rocm",
+                    "vram_gb": 20 * max(1, gpu_count),
+                    "vram_per_gpu_gb": 20,
+                    "gpu_count": max(1, gpu_count),
+                    "model": f"{max(1, gpu_count)}x Radeon RX 7900XT" if gpu_count > 1 else "Radeon RX 7900XT"
+                }
+        except Exception:
             pass
-        return {"type": "cpu", "vram_gb": 0, "model": "CPU"}
+        return {"type": "cpu", "vram_gb": 0, "gpu_count": 0, "model": "CPU"}

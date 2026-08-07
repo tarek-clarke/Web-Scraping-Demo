@@ -158,19 +158,29 @@ class QuantumRouter:
                             f"Underlying error: {exc}"
                         ) from exc
                     print(f"[Aer GPU] Confirmed GPU execution device(s): {available_devices}")
-                elif self.backend_name == "ibm_quantum":
+                elif self.backend_name.startswith("ibm_"):
                     from qiskit_ibm_runtime import QiskitRuntimeService  # type: ignore[import-untyped]
 
                     token = os.getenv("QISKIT_IBM_TOKEN") or os.getenv("IBM_QUANTUM_TOKEN")
-                    channel = os.getenv("QISKIT_IBM_CHANNEL") or "ibm_quantum_platform"
+                    channel = os.getenv("QISKIT_IBM_CHANNEL") or "ibm_cloud"
                     instance = os.getenv("QISKIT_IBM_INSTANCE")
 
-                    service = QiskitRuntimeService(token=token, channel=channel, instance=instance)
-                    self._backend = service.least_busy(
-                        simulator=False,
-                        operational=True,
-                        min_num_qubits=self.feature_count + self.num_output_qubits
-                    )
+                    if token:
+                        service = QiskitRuntimeService(channel=channel, token=token, instance=instance)
+                    else:
+                        try:
+                            service = QiskitRuntimeService(channel=channel)
+                        except Exception:
+                            service = QiskitRuntimeService()
+
+                    if self.backend_name in ["ibm_quantum", "auto"]:
+                        self._backend = service.least_busy(
+                            simulator=False,
+                            operational=True,
+                            min_num_qubits=self.feature_count + self.num_output_qubits
+                        )
+                    else:
+                        self._backend = service.backend(self.backend_name)
                 else:
                     from qiskit_aer import AerSimulator  # type: ignore[import-untyped]
 

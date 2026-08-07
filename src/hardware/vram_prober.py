@@ -6,16 +6,18 @@ class VRAMProber:
         self.hardware_type = hardware_type
     
     def _calculate_batch_size(self, free_gb: float) -> int:
-        if free_gb >= 200:
+        if free_gb >= 128:
+            return 256
+        elif free_gb >= 60:
+            return 128
+        elif free_gb >= 30:
             return 64
-        elif free_gb >= 80:
-            return 32
-        elif free_gb >= 32:
-            return 16
         elif free_gb >= 16:
-            return 8
+            return 32
+        elif free_gb >= 8:
+            return 16
         else:
-            return 4
+            return 8
 
     def probe(self) -> Dict:
         if self.hardware_type == "cuda":

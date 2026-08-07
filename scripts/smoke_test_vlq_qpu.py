@@ -253,6 +253,12 @@ def main():
             if not token:
                 raise RuntimeError("Empty token returned.")
             print(f"  ✓ Token obtained in {elapsed:.1f}s  (length: {len(token)} chars)")
+            try:
+                with open(token_path, "w") as tf:
+                    tf.write(token)
+                print(f"  ✓ Token cached to {token_path}")
+            except Exception as cache_err:
+                print(f"  Warning: Could not save token cache: {cache_err}")
             results["auth"] = "PASS"
         except Exception as e:
             print(f"  ✗ Authentication failed: {e}")

@@ -195,6 +195,64 @@ class LLMManager:
             print(f"[LLM] Generation error: {e}")
             return ""
 
+    def generate_batch_responses(
+        self,
+        batch_messages: List[List[Dict[str, str]]],
+        max_new_tokens: Optional[int] = None,
+        temperature: float = 0.1,
+        top_p: float = 0.8,
+        do_sample: bool = False,
+    ) -> List[str]:
+        if not self.is_loaded:
+            if not self.load():
+                return [""] * len(batch_messages)
+        if not batch_messages:
+            return []
+
+        try:
+            import torch
+
+            old_padding_side = self.tokenizer.padding_side
+            self.tokenizer.padding_side = "left"
+
+            prompts = [
+                self.tokenizer.apply_chat_template(
+                    msgs, tokenize=False, add_generation_prompt=True
+                )
+                for msgs in batch_messages
+            ]
+            inputs = self.tokenizer(prompts, return_tensors="pt", padding=True)
+            if self.device in ("cuda", "mps"):
+                inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
+
+            gen_kwargs: Dict[str, Any] = {
+                "max_new_tokens": max_new_tokens or 256,
+                "do_sample": do_sample,
+                "pad_token_id": self.tokenizer.pad_token_id,
+                "eos_token_id": self.tokenizer.eos_token_id,
+            }
+            if do_sample:
+                gen_kwargs["temperature"] = temperature
+                gen_kwargs["top_p"] = top_p
+
+            with torch.no_grad():
+                outputs = self.model.generate(**inputs, **gen_kwargs)
+
+            responses = []
+            prefix_len = inputs["input_ids"].shape[1]
+            for i, output in enumerate(outputs):
+                res = self.tokenizer.decode(output[prefix_len:], skip_special_tokens=True)
+                responses.append(res.strip())
+
+            self.tokenizer.padding_side = old_padding_side
+            return responses
+        except Exception as e:
+            print(f"[LLM] Batch generation error ({e}), falling back to single generation...")
+            responses = []
+            for msgs in batch_messages:
+                responses.append(self.generate_response(msgs, max_new_tokens=max_new_tokens, temperature=temperature, top_p=top_p, do_sample=do_sample))
+            return responses
+
     def generate_stream(
         self,
         messages: List[Dict[str, str]],

@@ -1,6 +1,6 @@
 import re
 import time
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 class RegexReconciler:
     def __init__(self):
@@ -65,3 +65,12 @@ class RegexReconciler:
             "unmapped_fields": unmapped,
             "batch_size": 1
         }
+
+    def reconcile_batch(self, pairs: List[Tuple[Dict, Dict]]) -> List[Dict]:
+        start = time.perf_counter()
+        results = [self.reconcile(orig, drift) for orig, drift in pairs]
+        total_time = (time.perf_counter() - start) * 1000
+        per_packet = total_time / len(pairs) if pairs else 0
+        for r in results:
+            r["latency_ms"] = per_packet
+        return results

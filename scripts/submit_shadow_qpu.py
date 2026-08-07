@@ -101,12 +101,13 @@ def main():
 
         if token:
             os.environ["QISKIT_IBM_TOKEN"] = token
-            if len(token) == 44 or token.startswith("ApiKey-"):
-                os.environ["QISKIT_IBM_CHANNEL"] = "ibm_cloud"
-                if "QISKIT_IBM_INSTANCE" not in os.environ:
-                    os.environ["QISKIT_IBM_INSTANCE"] = "crn:v1:bluemix:public:quantum-computing:us-east:a/139dcf0745314450af23aa33e3f8029a:d626fe8a-08ca-47ab-9412-7a93f954e2b0::"
-            else:
-                os.environ["QISKIT_IBM_CHANNEL"] = "ibm_quantum_platform"
+            if "QISKIT_IBM_CHANNEL" not in os.environ:
+                if len(token) == 44 or token.startswith("ApiKey-"):
+                    os.environ["QISKIT_IBM_CHANNEL"] = "ibm_cloud"
+                    if "QISKIT_IBM_INSTANCE" not in os.environ:
+                        os.environ["QISKIT_IBM_INSTANCE"] = "crn:v1:bluemix:public:quantum-computing:us-east:a/139dcf0745314450af23aa33e3f8029a:d626fe8a-08ca-47ab-9412-7a93f954e2b0::"
+                else:
+                    os.environ["QISKIT_IBM_CHANNEL"] = "ibm_quantum"
 
         print(f"[Init] Initializing router backend '{args.backend}'...")
         try:
