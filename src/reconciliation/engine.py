@@ -88,6 +88,30 @@ class ReconciliationEngine:
             for orig, drift in pairs
         ]
 
+    def release_method(self, method: str) -> None:
+        """Unload a model and release accelerator memory after its full pass."""
+        reconciler = self.reconcilers.pop(method, None)
+        manager = getattr(reconciler, "_llm", None)
+        if manager is not None:
+            manager.unload()
+        model = getattr(reconciler, "model", None)
+        if model is not None:
+            try:
+                del model
+                reconciler.model = None
+            except Exception:
+                pass
+        try:
+            import gc
+            import torch
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                if hasattr(torch.cuda, "ipc_collect"):
+                    torch.cuda.ipc_collect()
+        except Exception:
+            pass
+
     def reconcile_semantic_batch(self, method: str, pairs: List[Tuple[Dict, Dict]]) -> List[Dict]:
         if method not in self.reconcilers and method in self._factories:
             self.reconcilers[method] = self._factories[method]()

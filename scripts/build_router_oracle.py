@@ -292,7 +292,11 @@ def reconcile_chunk(
         (record["original_data"], record["drifted_data"]) for record in records
     ]
     outputs: Dict[str, List[dict]] = {}
+    llm_methods = {"minilm", "gemma_e2b", "bge", "cross_encoder", "qwen_1_5b", "smollm2_1_7b", "phi4_mini"}
+    previous_llm_method = None
     for method in methods:
+        if previous_llm_method is not None:
+            engine.release_method(previous_llm_method)
         started = time.perf_counter()
         if method == "minilm":
             results = engine.reconcile_bert_batch(pairs)
@@ -307,11 +311,17 @@ def reconcile_chunk(
                 f"{method} returned {len(results)} results for {len(records)} records"
             )
         outputs[method] = results
+        if method in llm_methods:
+            previous_llm_method = method
+        else:
+            previous_llm_method = None
         elapsed = time.perf_counter() - started
         print(
             f"  {method}: {len(records)} records in {elapsed:.2f}s",
             flush=True,
         )
+    if previous_llm_method is not None:
+        engine.release_method(previous_llm_method)
     return outputs
 
 
@@ -487,6 +497,8 @@ def main() -> None:
             "MiniLM failed to load on the requested accelerator; refusing to "
             "create oracle labels from the mock/zero-output fallback."
         )
+    if "minilm" in args.methods:
+        engine.release_method("minilm")
     if "gemma_e2b" in args.methods:
         if engine.reconcilers.get("gemma_e2b") is None:
             engine.reconcilers["gemma_e2b"] = engine._factories["gemma_e2b"]()
@@ -496,6 +508,7 @@ def main() -> None:
                 "Gemma failed to load on the requested accelerator; refusing "
                 "to create incomplete oracle labels."
             )
+        engine.release_method("gemma_e2b")
     label_counts: Counter[str] = Counter()
     started = time.time()
     with output_path.open(mode, encoding="utf-8") as stream:
