@@ -25,7 +25,6 @@ class ReconciliationEngine:
             "gemma_e2b": lambda: GemmaE2BReconciler(hardware_profile, batch_size, model_env="GEMMA_MODEL_ID", default_model_id="google/gemma-4-E2B-it"),
             "qwen_1_5b": lambda: GemmaE2BReconciler(hardware_profile, batch_size, model_env="QWEN_MODEL_ID", default_model_id="Qwen/Qwen2.5-1.5B-Instruct"),
             "smollm2_1_7b": lambda: GemmaE2BReconciler(hardware_profile, batch_size, model_env="SMOLLM2_MODEL_ID", default_model_id="HuggingFaceTB/SmolLM2-1.7B-Instruct"),
-            "phi4_mini": lambda: GemmaE2BReconciler(hardware_profile, batch_size, model_env="PHI4_MODEL_ID", default_model_id="microsoft/Phi-4-mini-instruct"),
             "bge": lambda: BGEReconciler(hardware_profile, batch_size),
             "cohere_embed_v4": lambda: CohereEmbedV4Reconciler(hardware_profile, batch_size),
             "cross_encoder": lambda: CrossEncoderReconciler(hardware_profile, batch_size),

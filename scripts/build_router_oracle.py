@@ -41,6 +41,10 @@ from src.chaos.json_chaos import JSONChaos
 from src.chaos.qwen_chaos import QwenChaos
 from src.chaos.schema_chaos import SchemaChaos
 from src.reconciliation.engine import ReconciliationEngine
+from src.reconciliation.mapping_metrics import (
+    derive_ground_truth_mapping,
+    exact_mapping_metrics,
+)
 from src.routing.canonical_vqc import DEFAULT_CLASS_NAMES
 from src.routing.feature_extractor import FeatureExtractor
 from src.routing.schema_fast_path import schemas_match
@@ -221,6 +225,9 @@ def build_samples(
                         "drift_generation_attempts": used_attempts,
                         "original_data": packet.get("data", {}),
                         "drifted_data": drifted_data,
+                        "ground_truth_mapping": derive_ground_truth_mapping(
+                            packet.get("data", {}), drifted_data
+                        ),
                         "features": features.astype(float).tolist(),
                     }
                 )
@@ -244,7 +251,7 @@ def build_samples(
 
 
 def require_accelerator(methods: Sequence[str], allow_cpu: bool) -> Dict[str, object]:
-    gpu_methods = {"minilm", "gemma_e2b", "bge", "cross_encoder", "qwen_1_5b", "smollm2_1_7b", "phi4_mini"}
+    gpu_methods = {"minilm", "gemma_e2b", "bge", "cross_encoder", "qwen_1_5b", "smollm2_1_7b"}
     needs_gpu = bool(gpu_methods.intersection(methods))
     diagnostics: Dict[str, object] = {"required": needs_gpu, "allow_cpu": allow_cpu}
     if not needs_gpu:
@@ -292,7 +299,7 @@ def reconcile_chunk(
         (record["original_data"], record["drifted_data"]) for record in records
     ]
     outputs: Dict[str, List[dict]] = {}
-    llm_methods = {"minilm", "gemma_e2b", "bge", "cross_encoder", "qwen_1_5b", "smollm2_1_7b", "phi4_mini"}
+    llm_methods = {"minilm", "gemma_e2b", "bge", "cross_encoder", "qwen_1_5b", "smollm2_1_7b"}
     previous_llm_method = None
     for method in methods:
         if previous_llm_method is not None:
@@ -300,7 +307,7 @@ def reconcile_chunk(
         started = time.perf_counter()
         if method == "minilm":
             results = engine.reconcile_bert_batch(pairs)
-        elif method in {"gemma_e2b", "qwen_1_5b", "smollm2_1_7b", "phi4_mini"}:
+        elif method in {"gemma_e2b", "qwen_1_5b", "smollm2_1_7b"}:
             results = engine.reconcile_llm_batch(method, pairs)
         elif method == "levenshtein":
             results = engine.reconcile_levenshtein_batch(pairs)
@@ -323,6 +330,32 @@ def reconcile_chunk(
     if previous_llm_method is not None:
         engine.release_method(previous_llm_method)
     return outputs
+
+
+def preflight_methods(
+    engine: ReconciliationEngine,
+    record: dict,
+    methods: Sequence[str],
+) -> Dict[str, object]:
+    """Execute every configured method once and reject silent fallbacks."""
+    print("=== All-method preflight ===", flush=True)
+    outputs = reconcile_chunk(engine, [record], methods)
+    report: Dict[str, object] = {}
+    for method in methods:
+        result = outputs[method][0]
+        latency = float(result.get("latency_ms", -1.0))
+        if not np.isfinite(latency) or latency < 0:
+            raise RuntimeError(f"{method} returned invalid latency: {latency}")
+        if not isinstance(result.get("mapped_fields"), (list, tuple, dict)):
+            raise RuntimeError(f"{method} returned invalid mapped_fields")
+        metrics = exact_mapping_metrics(
+            record["ground_truth_mapping"],
+            result.get("mapped_fields", []),
+            result.get("unmapped_fields", []),
+        )
+        report[method] = {"latency_ms": latency, **metrics}
+        print(f"  PASS {method}: exact accuracy={metrics['accuracy']:.3f}", flush=True)
+    return report
 
 
 def choose_oracle(
@@ -400,6 +433,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--allow-cpu", action="store_true")
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--shard-index", type=int, default=0)
+    parser.add_argument("--num-shards", type=int, default=1)
+    parser.add_argument("--preflight-only", action="store_true")
     parser.add_argument(
         "--prepare-only",
         action="store_true",
@@ -420,6 +456,8 @@ def main() -> None:
         raise SystemExit("--chunk-size and --batch-size must be positive")
     if not 0.0 <= args.accuracy_sla <= 1.0:
         raise SystemExit("--accuracy-sla must be in [0, 1]")
+    if args.num_shards < 1 or not 0 <= args.shard_index < args.num_shards:
+        raise SystemExit("Require 0 <= --shard-index < --num-shards")
 
     packets_path = (REPO_ROOT / args.packets_file).resolve()
     output_path = (REPO_ROOT / args.output).resolve()
@@ -437,6 +475,17 @@ def main() -> None:
         max_attempts=args.max_drift_attempts,
         max_records=args.max_records,
     )
+    all_record_count = len(records)
+    records = [
+        record for index, record in enumerate(records)
+        if index % args.num_shards == args.shard_index
+    ]
+    workload_summary.update({
+        "unsharded_records": all_record_count,
+        "shard_index": args.shard_index,
+        "num_shards": args.num_shards,
+        "shard_records": len(records),
+    })
     with workload_path.open("w", encoding="utf-8") as stream:
         for record in records:
             stream.write(json.dumps(record, separators=(",", ":")) + "\n")
@@ -465,6 +514,9 @@ def main() -> None:
         "accelerator": accelerator,
         "git": git_metadata(),
         "status": "prepared" if args.prepare_only else "running",
+        "metric_definition": "exact top-level source-to-target field decision accuracy",
+        "shard_index": args.shard_index,
+        "num_shards": args.num_shards,
     }
     manifest_path.write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",
@@ -490,25 +542,18 @@ def main() -> None:
         hardware_profile=hardware_profile,
         batch_size=args.batch_size,
     )
-    if "minilm" in args.methods and engine.reconcilers.get("minilm") is None:
-        engine.reconcilers["minilm"] = engine._factories["minilm"]()
-    if "minilm" in args.methods and engine.reconcilers["minilm"].model is None:
-        raise RuntimeError(
-            "MiniLM failed to load on the requested accelerator; refusing to "
-            "create oracle labels from the mock/zero-output fallback."
+    preflight_report = preflight_methods(engine, records[0], args.methods)
+    manifest["preflight"] = preflight_report
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    if args.preflight_only:
+        manifest.update({"status": "preflight_complete", "completed_at": utc_now()})
+        manifest_path.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
-    if "minilm" in args.methods:
-        engine.release_method("minilm")
-    if "gemma_e2b" in args.methods:
-        if engine.reconcilers.get("gemma_e2b") is None:
-            engine.reconcilers["gemma_e2b"] = engine._factories["gemma_e2b"]()
-        gemma_manager = engine.reconcilers["gemma_e2b"]._get_manager()
-        if not gemma_manager or not gemma_manager.is_loaded:
-            raise RuntimeError(
-                "Gemma failed to load on the requested accelerator; refusing "
-                "to create incomplete oracle labels."
-            )
-        engine.release_method("gemma_e2b")
+        print("All-method preflight complete; full oracle was not started.")
+        return
     label_counts: Counter[str] = Counter()
     started = time.time()
     with output_path.open(mode, encoding="utf-8") as stream:
@@ -523,8 +568,14 @@ def main() -> None:
                 method_metrics = {}
                 for method in args.methods:
                     result = reconciled[method][position]
+                    exact = exact_mapping_metrics(
+                        record["ground_truth_mapping"],
+                        result.get("mapped_fields", []),
+                        result.get("unmapped_fields", []),
+                    )
                     method_metrics[method] = {
-                        "accuracy": float(result["accuracy"]),
+                        **exact,
+                        "native_score": float(result.get("accuracy", 0.0)),
                         "latency_ms": float(result["latency_ms"]),
                         "mapped_fields": result.get("mapped_fields", []),
                         "unmapped_fields": result.get("unmapped_fields", []),

@@ -31,6 +31,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from src.routing.canonical_vqc import (
+    ABSTAIN_CLASS_NAME,
     CIRCUIT_ID,
     DEFAULT_CLASS_NAMES,
     RouterModel,
@@ -959,7 +960,8 @@ def enrich_prediction(
     counts: Mapping[str, int],
 ) -> dict:
     selected = str(decoded["class_name"])
-    selected_metrics = record["method_metrics"][selected]
+    dispatched = "schema_registry" if selected == ABSTAIN_CLASS_NAME else selected
+    selected_metrics = record["method_metrics"][dispatched]
     probabilities = list(decoded["probabilities"])
     row = {
         "record_id": record["record_id"],
@@ -971,9 +973,13 @@ def enrich_prediction(
         "oracle_method": record.get("oracle_method", "bert"),
         "oracle_label": int(record.get("oracle_label", DEFAULT_CLASS_NAMES.index(record.get("oracle_method", "bert")) if record.get("oracle_method") in DEFAULT_CLASS_NAMES else 2)),
         "selected_method": selected,
+        "dispatched_method": dispatched,
         "selected_label": int(decoded["class_index"]),
         "routing_decision_match": selected == record["oracle_method"],
         "confidence": float(decoded["confidence"]),
+        "abstain": bool(decoded.get("abstain", False)),
+        "invalid_shots": int(decoded.get("invalid_shots", 0)),
+        "invalid_state_rate": float(decoded.get("invalid_state_rate", 0.0)),
         "shots": int(decoded["shots"]),
         "selected_reconciliation_accuracy": float(selected_metrics["accuracy"]),
         "selected_reconciliation_latency_ms": float(selected_metrics["latency_ms"]),
@@ -1014,6 +1020,10 @@ def metrics_for_rows(rows: Sequence[dict]) -> Dict[str, object]:
         "mean_confidence": float(
             np.mean([float(row["confidence"]) for row in rows])
         ),
+        "abstain_rate": float(np.mean([bool(row.get("abstain")) for row in rows])),
+        "mean_invalid_state_rate": float(
+            np.mean([float(row.get("invalid_state_rate", 0.0)) for row in rows])
+        ),
         "mean_selected_reconciliation_accuracy": float(
             np.mean(
                 [float(row["selected_reconciliation_accuracy"]) for row in rows]
@@ -1023,7 +1033,13 @@ def metrics_for_rows(rows: Sequence[dict]) -> Dict[str, object]:
             np.mean([float(row["oracle_reconciliation_accuracy"]) for row in rows])
         ),
         "gpu_dispatch_rate": float(
-            np.mean([int(row["selected_label"]) >= 2 for row in rows])
+            np.mean([
+                row.get("dispatched_method") in {
+                    "minilm", "gemma_e2b", "bge", "cross_encoder",
+                    "qwen_1_5b", "smollm2_1_7b",
+                }
+                for row in rows
+            ])
         ),
         "prediction_counts": dict(Counter(row["selected_method"] for row in rows)),
         "oracle_counts": dict(Counter(row["oracle_method"] for row in rows)),

@@ -30,10 +30,11 @@ class GemmaE2BReconciler:
                 load_in_4bit=_os.environ.get("HF_LOAD_4BIT", "").lower() in ("1", "true", "yes"),
                 load_in_8bit=_os.environ.get("HF_LOAD_8BIT", "").lower() in ("1", "true", "yes"),
             )
-        elif not self._llm.is_loaded:
+        if not self._llm.is_loaded:
             # LLMManager instances are shared by model ID; oracle passes
             # deliberately unload them between methods to cap VRAM use.
-            self._llm.load()
+            if not self._llm.load():
+                raise RuntimeError(f"Failed to load local LLM: {self.default_model_id}")
         return self._llm
 
     def _parse_json(self, text: str) -> Dict[str, str]:
@@ -70,11 +71,7 @@ class GemmaE2BReconciler:
     def reconcile_batch(self, pairs: List[Tuple[Dict, Dict]], progress_cb=None) -> List[Dict]:
         manager = self._get_manager()
         if not manager or not manager.is_loaded:
-            return [{
-                "accuracy": 0.0, "latency_ms": 0.0,
-                "mapped_fields": [], "unmapped_fields": list(pairs[i][0].keys()) if isinstance(pairs[i][0], dict) else [],
-                "batch_size": self.batch_size
-            } for i in range(len(pairs))]
+            raise RuntimeError(f"Local LLM is not loaded: {self.default_model_id}")
 
         start = time.perf_counter()
         results = []

@@ -44,11 +44,13 @@ DEFAULT_CLASS_NAMES = (
     "cross_encoder",
     "qwen_1_5b",
     "smollm2_1_7b",
-    "phi4_mini",
 )
 DEFAULT_FEATURE_COUNT = 10
 DEFAULT_REPS = 2
 IBM_MAX_EXECUTIONS = 10_000_000
+ABSTAIN_CLASS_NAME = "abstain"
+ABSTAIN_CLASS_INDEX = len(DEFAULT_CLASS_NAMES)
+ROUTING_OUTPUT_SHAPE = len(DEFAULT_CLASS_NAMES) + 1
 
 
 def output_qubit_count(num_classes: int) -> int:
@@ -188,14 +190,14 @@ def build_measured_circuit(
 
 
 def qnn_interpret(output_qubits: Sequence[int]):
-    """Create the full-register-to-routing-class interpretation for training."""
+    """Map six unused four-bit states to one explicit abstention outcome."""
     qubits = tuple(int(q) for q in output_qubits)
 
     def interpret(bitstring_as_int: int) -> int:
         class_index = 0
         for classical_position, qubit in enumerate(qubits):
             class_index |= ((int(bitstring_as_int) >> qubit) & 1) << classical_position
-        return class_index
+        return class_index if class_index < len(DEFAULT_CLASS_NAMES) else ABSTAIN_CLASS_INDEX
 
     return interpret
 
@@ -232,18 +234,26 @@ def counts_to_prediction(
     if total <= 0:
         raise ValueError("Cannot decode empty QPU counts")
     probabilities = np.zeros(len(class_names), dtype=float)
+    invalid_shots = 0
     for raw_bits, count in counts.items():
         bits = str(raw_bits).replace(" ", "")
         class_index = int(bits, 2)
         if class_index < len(class_names):
             probabilities[class_index] += int(count) / total
+        else:
+            invalid_shots += int(count)
+    invalid_state_rate = invalid_shots / total
     class_index = int(np.argmax(probabilities))
+    abstain = invalid_state_rate >= float(probabilities[class_index])
     return {
-        "class_index": class_index,
-        "class_name": class_names[class_index],
-        "confidence": float(probabilities[class_index]),
+        "class_index": ABSTAIN_CLASS_INDEX if abstain else class_index,
+        "class_name": ABSTAIN_CLASS_NAME if abstain else class_names[class_index],
+        "confidence": invalid_state_rate if abstain else float(probabilities[class_index]),
         "probabilities": probabilities.tolist(),
         "shots": total,
+        "abstain": abstain,
+        "invalid_shots": invalid_shots,
+        "invalid_state_rate": invalid_state_rate,
     }
 
 

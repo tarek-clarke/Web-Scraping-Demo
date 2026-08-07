@@ -6,7 +6,7 @@
 
 ## Overview
 
-The Resilient RAP framework evaluates adaptive stream reconciliation across **9 microservice domains**, **3 chaos/drift families**, **6 candidate reconcilers**, and **4 routing architectures** (classical CPU, GPU statevector simulation, and physical 156-qubit QPU).
+The Resilient RAP framework evaluates adaptive stream reconciliation across **9 microservice domains**, **3 chaos/drift families**, **10 candidate reconcilers**, and classical, GPU-simulated, and physical-QPU routing architectures.
 
 > **Core Research Finding & Paper Framing**:
 > *"Hybrid quantum routing demonstrates a statistically significant improvement over the strongest classical baseline under the evaluated benchmark, while physical hardware experiments characterize current NISQ limitations."*
@@ -18,14 +18,82 @@ The Resilient RAP framework evaluates adaptive stream reconciliation across **9 
   1. *JSON Structural*: Dropped/null keys and key modification.
   2. *LLM-Generated Schema Reformulation (Qwen)*: LLM semantic field renaming preserving lexical stems.
   3. *Syntactic Field Truncation/Drift*: Type alterations and field truncation.
-- **Reconciliation Engine (6 Candidates)**: Levenshtein, Regex, BERT (MiniLM-v2), BGE Embedding, Cohere Embed (`embed-english-v3.0`), and Gemma 4 E2B (`gemma_e2b`).
+- **Reconciliation Engine (10 Candidates)**: Levenshtein, Regex, MiniLM, Gemma 4 E2B, BGE, Cohere Embed v4, schema registry, cross-encoder, Qwen 2.5 1.5B, and SmolLM2 1.7B.
 - **Routing Architectures**:
   1. *Multinomial Logistic Regression (CPU)*: Linear decision boundary baseline.
   2. *Random Forest Classifier (CPU)*: Non-linear tree ensemble baseline (100 trees, max depth 10).
-  3. *VQC Simulator Router (Aer GPU)*: 12-qubit Variational Quantum Classifier on AMD Instinct MI250X GPUs.
-  4. *IBM QPU Router (Physical Hardware)*: 12-qubit VQC executed on 156-qubit IBM Heron r2 (`ibm_marrakesh`).
+  3. *VQC Simulator Router (Aer GPU)*: 14-qubit Variational Quantum Classifier on AMD Instinct MI250X GPUs.
+  4. *Physical QPU Router*: the same frozen 14-qubit circuit on IBM Heron r2 and the 24-qubit VLQ target.
 - **Aggregation Protocol**: Unweighted macro-average across 9 microservice APIs.
 - **Instrumentation**: Power and execution profiling capabilities (`EnergyTracker`) for hardware monitoring.
+
+---
+
+## Active v4 Rerun Protocol
+
+The active rerun starts from the committed 22,500-packet, nine-API corpus and produces 31,500 drift records: training identities receive one deterministic chaos family, while validation and test identities receive all three. Existing result tables later in this README describe the archived 12-qubit experiment and must not be mixed with v4 results; the reporting scripts replace them after the v4 runs complete.
+
+### Ten routing choices
+
+The canonical class order is fixed in `src/routing/canonical_vqc.py` and in every model artifact:
+
+| Label | Reconciler | Execution tier |
+|---:|---|---|
+| 0 | `levenshtein` | CPU |
+| 1 | `regex` | CPU |
+| 2 | `minilm` | Local GPU |
+| 3 | `gemma_e2b` | Local GPU |
+| 4 | `bge` | Local GPU |
+| 5 | `cohere_embed_v4` | Cohere API |
+| 6 | `schema_registry` | CPU |
+| 7 | `cross_encoder` | Local GPU |
+| 8 | `qwen_1_5b` | Local GPU |
+| 9 | `smollm2_1_7b` | Local GPU |
+
+These ten choices require four measured output bits. The canonical circuit therefore uses 10 feature qubits plus 4 output qubits, for 14 logical qubits total. It fits both the 24-qubit VLQ QPU and IBM's 156-qubit Heron r2 backend without changing the logical circuit.
+
+### Comparable ground-truth accuracy
+
+Every chaos record now stores an injected `ground_truth_mapping` containing one expected decision for each original field: the exact drifted target field, or `null` when the field was intentionally dropped. Every reconciler is scored with the same definition:
+
+$$\operatorname{Acc}(m)=\frac{\text{exactly correct mapped or unmapped source-field decisions}}{\text{original source fields}}.$$
+
+The oracle also records exact-record match, mapping precision, recall, and F1. A reconciler's native edit-distance or semantic-similarity score is retained as `native_score`, but it is never used as cross-method accuracy or to choose the oracle label.
+
+### Unused quantum states and abstention
+
+Four output bits represent 16 raw states, but only states 0--9 identify reconcilers. States 10--15 are aggregated into an explicit `abstain` outcome rather than silently discarded or clamped to a valid class. Simulator and physical-QPU reports include `invalid_shots`, `invalid_state_rate`, and `abstain_rate`. If the aggregate invalid-state probability exceeds the probability of every valid class, the raw router decision is recorded as `abstain` and dispatch fails safely to the deterministic CPU `schema_registry` reconciler. Reports retain both `selected_method=abstain` and `dispatched_method=schema_registry`, so the fallback cannot inflate routing-selection accuracy while its end-to-end reconciliation result remains measurable.
+
+### Fail-fast preflight
+
+Before any full oracle pass, each worker executes one real record through all ten methods. The run stops immediately if a model cannot load, a cloud credential is missing, a CPU fallback occurs where an accelerator is required, or a method returns malformed mappings or latency. A smoke-test report is written into each shard manifest.
+
+To run only that validation locally or in an already configured accelerator environment:
+
+```bash
+python3 scripts/build_router_oracle.py \
+  --output data/training/router_oracle_preflight.jsonl \
+  --max-records 1 \
+  --preflight-only
+```
+
+### LUMI one-card and four-card runs
+
+`single` requests two LUMI GCDs, which constitute one physical MI250X card. `full-node` requests eight GCDs, or four physical MI250X cards. The oracle job launches one isolated worker per GCD, assigns each worker a deterministic disjoint record shard, and merges only after all shards complete. This is real data-parallel execution; merely allocating the devices is not treated as multi-GPU use.
+
+From the LUMI project checkout, with `COHERE_API_KEY` exported in the submitting shell:
+
+```bash
+# One physical MI250X card / two concurrent GCD workers
+LUMI_GPU_PROFILE=single bash scripts/slurm/submit_qpu_training_pipeline.sh
+
+# Four physical MI250X cards / eight concurrent GCD workers
+LUMI_GPU_PROFILE=full-node bash scripts/slurm/submit_qpu_training_pipeline.sh
+```
+
+Each command builds a profile-specific oracle, launches 10 independent VQC optimizer starts, and selects the best model only after every start succeeds. Ten starts address optimizer initialization sensitivity; they are not presented as ten independent datasets. Final claims should use the untouched held-out test split, per-API breakdowns, class balance, abstention rate, and confidence intervals across explicitly repeated experimental runs.
+
+The physical-QPU stage is deliberately separate. No QPU job is submitted by either LUMI command; only the selected, frozen 14-qubit model should be submitted to IBM or VLQ.
 
 ---
 
@@ -35,7 +103,7 @@ The Resilient RAP framework evaluates adaptive stream reconciliation across **9 
 | :--- | :--- | :---: | :--- |
 | **LUMI-G (EuroHPC)** | AMD Instinct MI250X (ROCm) | 4 Cards / 8 GCDs (512GB VRAM) | BERT, BGE, Gemma & Qiskit Aer GPU Simulation |
 | **IBM Quantum Platform** | IBM Heron r2 (`ibm_marrakesh`) | 156 Physical Qubits | Physical QPU Execution Payload (`d9idh9d0k0jc738jf4ug`) |
-| **Cohere Cloud API** | `embed-english-v3.0` | Cloud Dense Vector API | Remote Vector Representation Baseline |
+| **Cohere Cloud API** | `embed-v4.0` | Cloud Dense Vector API | Remote Vector Representation Baseline |
 | **Local Host** | 16-Core x86_64 CPU | System RAM | Classical Routers (Logistic Regression & Random Forest) |
 | **VLQ QPU Platform** | VLQ QPU Target | Remote Cloud QPU | *[Pending (External Platform Unavailable)]* |
 

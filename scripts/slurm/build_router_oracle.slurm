@@ -51,11 +51,45 @@ if not torch.cuda.is_available():
 print(f"LUMI accelerator preflight: {torch.cuda.device_count()} visible device(s)")
 PY
 
-"${PYTHON_BIN[@]}" -u scripts/build_router_oracle.py \
-    --packets-file data/ingested/telemetry_clean_bench_22500.json \
-    --output "${ORACLE:-data/training/router_oracle_22500_v4_${LUMI_GPU_PROFILE//-/_}.jsonl}" \
-    --max-packets-per-api 2500 \
-    --chunk-size 64 \
-    --batch-size 64 \
-    --accuracy-sla 0.95 \
-    --resume
+ORACLE="${ORACLE:-data/training/router_oracle_22500_v4_${LUMI_GPU_PROFILE//-/_}.jsonl}"
+ORACLE_STEM="${ORACLE%.jsonl}"
+PIDS=()
+SHARDS=()
+
+echo "Launching $EXPECTED_GCDS true data-parallel oracle workers (one worker per visible GCD)"
+for ((rank=0; rank<EXPECTED_GCDS; rank++)); do
+    SHARD="${ORACLE_STEM}.part_${rank}.jsonl"
+    SHARDS+=("$SHARD")
+    (
+        export ROCR_VISIBLE_DEVICES="$rank"
+        export HIP_VISIBLE_DEVICES="$rank"
+        export CUDA_VISIBLE_DEVICES="$rank"
+        export RAP_CPU_WORKERS="$(( SLURM_CPUS_PER_TASK / EXPECTED_GCDS ))"
+        "${PYTHON_BIN[@]}" -u scripts/build_router_oracle.py \
+            --packets-file data/ingested/telemetry_clean_bench_22500.json \
+            --output "$SHARD" \
+            --max-packets-per-api 2500 \
+            --chunk-size 31500 \
+            --batch-size 64 \
+            --accuracy-sla 0.95 \
+            --num-shards "$EXPECTED_GCDS" \
+            --shard-index "$rank" \
+            --resume
+    ) >"router_oracle_${SLURM_JOB_ID}_part_${rank}.out" \
+      2>"router_oracle_${SLURM_JOB_ID}_part_${rank}.err" &
+    PIDS+=("$!")
+done
+
+FAILED=0
+for pid in "${PIDS[@]}"; do
+    wait "$pid" || FAILED=1
+done
+if [ "$FAILED" -ne 0 ]; then
+    echo "ERROR: at least one oracle shard failed; final output was not created" >&2
+    exit 1
+fi
+
+"${PYTHON_BIN[@]}" scripts/merge_router_oracle_shards.py \
+    --output "$ORACLE" \
+    --expected-records 31500 \
+    --shards "${SHARDS[@]}"

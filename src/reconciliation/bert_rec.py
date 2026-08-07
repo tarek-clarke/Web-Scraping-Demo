@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 
 class BERTReconciler:
     def __init__(self, hardware_profile: str = "cpu", batch_size: int = 4):
+        self.hardware_profile = hardware_profile
         self.device = "cuda" if hardware_profile in ["cuda", "rocm"] else "cpu"
         self.batch_size = batch_size
         self.model = None
@@ -52,8 +53,10 @@ class BERTReconciler:
             else:
                 raise RuntimeError("Download failed")
         except Exception as e:
-            print(f"BERT model unavailable ({e}), using mock embedding generator")
-            self._init_mock_embedder()
+            raise RuntimeError(
+                "MiniLM could not load; benchmark mock embeddings and silent CPU "
+                f"fallback are disabled: {e}"
+            ) from e
 
     def _download_bert(self, result_queue):
         try:

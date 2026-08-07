@@ -28,10 +28,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from src.routing.canonical_vqc import (
+    ABSTAIN_CLASS_INDEX,
     CIRCUIT_ID,
     DEFAULT_CLASS_NAMES,
     DEFAULT_FEATURE_COUNT,
     DEFAULT_REPS,
+    ROUTING_OUTPUT_SHAPE,
     build_unitary_circuit,
     model_from_weights,
     qnn_interpret,
@@ -198,7 +200,7 @@ def create_qnn(
         input_params=feature_parameters,
         weight_params=weight_parameters,
         interpret=qnn_interpret(output_qubits),
-        output_shape=len(DEFAULT_CLASS_NAMES),
+        output_shape=ROUTING_OUTPUT_SHAPE,
         pass_manager=pass_manager,
     )
     return qnn, len(weight_parameters), device
@@ -216,13 +218,13 @@ def probabilities(qnn, features: np.ndarray, weights: np.ndarray) -> np.ndarray:
     output = np.asarray(qnn.forward(features, weights), dtype=float)
     if output.ndim == 3 and output.shape[1] == 1:
         output = output[:, 0, :]
-    if output.shape != (len(features), len(DEFAULT_CLASS_NAMES)):
+    if output.shape != (len(features), ROUTING_OUTPUT_SHAPE):
         raise RuntimeError(f"Unexpected QNN output shape: {output.shape}")
     row_sums = output.sum(axis=1, keepdims=True)
     return np.divide(
         output,
         row_sums,
-        out=np.full_like(output, 1.0 / len(DEFAULT_CLASS_NAMES)),
+        out=np.full_like(output, 1.0 / ROUTING_OUTPUT_SHAPE),
         where=row_sums > 0,
     )
 
@@ -247,9 +249,15 @@ def classification_metrics(
     )
     selected_reconciliation_accuracies: List[float] = []
     oracle_reconciliation_accuracies: List[float] = []
+    dispatched_methods: List[str] = []
     for record, predicted_label in zip(records, predicted):
-        selected_method = DEFAULT_CLASS_NAMES[int(predicted_label)]
+        selected_method = (
+            DEFAULT_CLASS_NAMES[int(predicted_label)]
+            if int(predicted_label) < len(DEFAULT_CLASS_NAMES)
+            else "schema_registry"
+        )
         oracle_method = record["oracle_method"]
+        dispatched_methods.append(selected_method)
         selected_reconciliation_accuracies.append(
             float(record["method_metrics"][selected_method]["accuracy"])
         )
@@ -275,6 +283,7 @@ def classification_metrics(
         "confusion_matrix": matrix.astype(int).tolist(),
         "label_counts": dict(Counter(int(value) for value in truth)),
         "prediction_counts": dict(Counter(int(value) for value in predicted)),
+        "abstain_rate": float(np.mean(predicted == ABSTAIN_CLASS_INDEX)),
         "mean_confidence": float(np.mean(confidence)),
         "mean_selected_reconciliation_accuracy": float(
             np.mean(selected_reconciliation_accuracies)
@@ -282,7 +291,13 @@ def classification_metrics(
         "mean_oracle_reconciliation_accuracy": float(
             np.mean(oracle_reconciliation_accuracies)
         ),
-        "gpu_dispatch_rate": float(np.mean(predicted >= 2)),
+        "gpu_dispatch_rate": float(np.mean([
+            method in {
+                "minilm", "gemma_e2b", "bge", "cross_encoder",
+                "qwen_1_5b", "smollm2_1_7b",
+            }
+            for method in dispatched_methods
+        ])),
     }
 
 

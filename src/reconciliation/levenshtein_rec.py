@@ -1,6 +1,7 @@
 import time
 from typing import Dict, List, Tuple
 import multiprocessing
+import os
 
 try:
     import Levenshtein as _levenshtein
@@ -77,7 +78,8 @@ class LevenshteinReconciler:
 
     def reconcile_batch(self, pairs: List[Tuple[Dict, Dict]]) -> List[Dict]:
         """Parallelise batch Levenshtein reconciliation across all available CPU cores."""
-        num_workers = min(multiprocessing.cpu_count(), len(pairs))
+        configured = int(os.environ.get("RAP_CPU_WORKERS", multiprocessing.cpu_count()))
+        num_workers = min(configured, len(pairs))
         if num_workers <= 1:
             return [self.reconcile(orig, drift) for orig, drift in pairs]
         
