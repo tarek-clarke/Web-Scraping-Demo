@@ -244,7 +244,7 @@ def build_samples(
 
 
 def require_accelerator(methods: Sequence[str], allow_cpu: bool) -> Dict[str, object]:
-    gpu_methods = {"minilm", "gemma_e2b", "bge", "cross_encoder"}
+    gpu_methods = {"minilm", "gemma_e2b", "bge", "cross_encoder", "qwen_1_5b", "smollm2_1_7b", "phi4_mini"}
     needs_gpu = bool(gpu_methods.intersection(methods))
     diagnostics: Dict[str, object] = {"required": needs_gpu, "allow_cpu": allow_cpu}
     if not needs_gpu:
@@ -296,8 +296,8 @@ def reconcile_chunk(
         started = time.perf_counter()
         if method == "minilm":
             results = engine.reconcile_bert_batch(pairs)
-        elif method == "gemma_e2b":
-            results = engine.reconcile_gemma_batch(pairs)
+        elif method in {"gemma_e2b", "qwen_1_5b", "smollm2_1_7b", "phi4_mini"}:
+            results = engine.reconcile_llm_batch(method, pairs)
         elif method == "levenshtein":
             results = engine.reconcile_levenshtein_batch(pairs)
         else:

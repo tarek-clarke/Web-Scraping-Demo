@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Multi-start training and selection for the canonical 12-qubit router.
+"""Multi-start training and selection for the canonical 14-qubit router.
 
 Training is simulator-only.  Physical QPU minutes are reserved for the frozen
 held-out evaluation.  Run independent starts in parallel (for example as a
@@ -551,11 +551,11 @@ def build_parser() -> argparse.ArgumentParser:
     train = subparsers.add_parser("train", help="Train one independent start")
     train.add_argument(
         "--oracle",
-        default="data/training/router_oracle_22500_v2.jsonl",
+        default="data/training/router_oracle_22500_v4.jsonl",
     )
     train.add_argument(
         "--output-dir",
-        default="data/training/qpu_router_multistart_v2",
+        default="data/training/qpu_router_multistart_v4",
     )
     train.add_argument("--start-index", type=int, required=True)
     train.add_argument(
@@ -583,15 +583,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     select.add_argument(
         "--oracle",
-        default="data/training/router_oracle_22500_v2.jsonl",
+        default="data/training/router_oracle_22500_v4.jsonl",
     )
     select.add_argument(
         "--candidates-dir",
-        default="data/training/qpu_router_multistart_v2",
+        default="data/training/qpu_router_multistart_v4",
     )
     select.add_argument(
         "--model-output",
-        default="configs/quantum_router_v2.json",
+        default="configs/quantum_router_v4.json",
     )
     select.add_argument("--expected-starts", type=int, default=10)
     select.add_argument(

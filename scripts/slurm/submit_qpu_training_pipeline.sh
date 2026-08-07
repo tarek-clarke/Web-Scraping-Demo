@@ -33,7 +33,7 @@ export HF_DATASETS_CACHE="${HF_HOME}/datasets"
 export TRANSFORMERS_CACHE="${HF_HOME}/transformers"
 mkdir -p "$HF_DATASETS_CACHE" "$TRANSFORMERS_CACHE"
 
-ORACLE="${ORACLE:-data/training/router_oracle_22500_v3.jsonl}"
+ORACLE="${ORACLE:-data/training/router_oracle_22500_v4.jsonl}"
 DEPENDENCY_ARGS=()
 if [ ! -s "$ORACLE" ]; then
     ORACLE_JOB="$(sbatch --parsable \

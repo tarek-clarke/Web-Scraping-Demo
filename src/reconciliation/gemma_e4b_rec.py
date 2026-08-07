@@ -7,17 +7,22 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent.parent
 
 class GemmaE2BReconciler:
-    def __init__(self, hardware_profile: str = "cpu", batch_size: int = 4, llm_manager=None):
+    def __init__(self, hardware_profile: str = "cpu", batch_size: int = 4, llm_manager=None,
+                 model_env: str = "GEMMA_MODEL_ID", default_model_id: str = "google/gemma-4-E2B-it",
+                 max_new_tokens: int = 64):
         self.batch_size = batch_size
         self.hardware_profile = hardware_profile
         self._llm = llm_manager
         self._own_manager = llm_manager is None
+        self.model_env = model_env
+        self.default_model_id = default_model_id
+        self.max_new_tokens = max_new_tokens
 
     def _get_manager(self):
         if self._llm is None:
             from ..inference.llm_manager import LLMManager
             import os as _os
-            model_id = _os.environ.get("GEMMA_MODEL_ID", _os.environ.get("HF_MODEL_ID", "google/gemma-4-E2B-it"))
+            model_id = _os.environ.get(self.model_env, _os.environ.get("HF_MODEL_ID", self.default_model_id))
             device = "cuda" if self.hardware_profile in ("cuda", "rocm") else "mps" if self.hardware_profile == "silicon" else "cpu"
             self._llm = LLMManager(
                 model_id=model_id,
@@ -55,7 +60,7 @@ class GemmaE2BReconciler:
                 f"Output ONLY: {{\"original\": \"drifted\"}}"
             )
         }]
-        response = manager.generate_response(messages, max_new_tokens=256, temperature=0.1, top_p=0.8)
+        response = manager.generate_response(messages, max_new_tokens=self.max_new_tokens, temperature=0.0, top_p=1.0)
         return self._parse_json(response)
 
     def reconcile_batch(self, pairs: List[Tuple[Dict, Dict]], progress_cb=None) -> List[Dict]:
@@ -99,7 +104,7 @@ class GemmaE2BReconciler:
                     )
                 }])
 
-            responses = manager.generate_batch_responses(batch_messages, max_new_tokens=256, temperature=0.1, top_p=0.8)
+            responses = manager.generate_batch_responses(batch_messages, max_new_tokens=self.max_new_tokens, temperature=0.0, top_p=1.0)
             
             for offset, (orig, drift) in enumerate(chunk_pairs):
                 idx = chunk_idx + offset

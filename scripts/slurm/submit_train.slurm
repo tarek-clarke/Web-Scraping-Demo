@@ -58,8 +58,8 @@ PY
 # Train one independent start per GPU.  The array therefore uses up to ten
 # GPUs concurrently without sharing optimizer state between starts.
 python3 -u scripts/train_qpu_router.py train \
-    --oracle data/training/router_oracle_22500_v3.jsonl \
-    --output-dir data/training/qpu_router_multistart_v3 \
+    --oracle data/training/router_oracle_22500_v4.jsonl \
+    --output-dir data/training/qpu_router_multistart_v4 \
     --start-index "$SLURM_ARRAY_TASK_ID" \
     --backend aer_gpu \
     --training-shots 512 \
