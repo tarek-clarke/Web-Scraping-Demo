@@ -34,8 +34,9 @@ export TRANSFORMERS_CACHE="${HF_HOME}/transformers"
 mkdir -p "$HF_DATASETS_CACHE" "$TRANSFORMERS_CACHE"
 
 ORACLE="${ORACLE:-data/training/router_oracle_22500_v4_${PROFILE//-/_}.jsonl}"
+MANIFEST="${ORACLE%.jsonl}.manifest.json"
 DEPENDENCY_ARGS=()
-if [ ! -s "$ORACLE" ]; then
+if [ ! -s "$ORACLE" ] || ! grep -q '"status": "complete"' "$MANIFEST" 2>/dev/null; then
     ORACLE_JOB="$(sbatch --parsable \
         --partition="$LUMI_PARTITION" --gpus-per-node="$LUMI_GCDS" \
         --cpus-per-task="$LUMI_CPUS" --mem="$LUMI_MEM" \
