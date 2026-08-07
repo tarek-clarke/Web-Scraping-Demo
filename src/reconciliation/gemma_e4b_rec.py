@@ -30,6 +30,10 @@ class GemmaE2BReconciler:
                 load_in_4bit=_os.environ.get("HF_LOAD_4BIT", "").lower() in ("1", "true", "yes"),
                 load_in_8bit=_os.environ.get("HF_LOAD_8BIT", "").lower() in ("1", "true", "yes"),
             )
+        elif not self._llm.is_loaded:
+            # LLMManager instances are shared by model ID; oracle passes
+            # deliberately unload them between methods to cap VRAM use.
+            self._llm.load()
         return self._llm
 
     def _parse_json(self, text: str) -> Dict[str, str]:
