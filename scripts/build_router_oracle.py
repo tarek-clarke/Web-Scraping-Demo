@@ -97,7 +97,11 @@ def git_metadata() -> Dict[str, object]:
     return {
         "commit": run("rev-parse", "HEAD"),
         "branch": run("branch", "--show-current"),
-        "dirty": bool(run("status", "--porcelain").strip()),
+        # Generated benchmark artifacts are intentionally untracked. Only
+        # modifications to tracked source invalidate commit provenance.
+        "dirty": bool(
+            run("status", "--porcelain", "--untracked-files=no").strip()
+        ),
     }
 
 
