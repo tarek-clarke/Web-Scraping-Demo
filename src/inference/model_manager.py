@@ -56,7 +56,7 @@ def detect_backend() -> BackendConfig:
         device_name = torch.cuda.get_device_name(0).lower()
         
         # AMD ROCm (LUMI MI250X or other AMD GPUs)
-        if is_lumi or "amd" in device_name or "hip" in device_name or "mi250" in device_name:
+        if getattr(torch.version, "hip", None) or is_lumi or "amd" in device_name or "mi250" in device_name:
             return BackendConfig(
                 device="cuda",
                 dtype=torch.bfloat16,
@@ -68,12 +68,18 @@ def detect_backend() -> BackendConfig:
             )
         
         # NVIDIA CUDA
-        if "nvidia" in device_name:
+        if not getattr(torch.version, "hip", None):
+            requested_attention = os.environ.get("HF_ATTN_IMPL", "sdpa")
+            requested_quantization = os.environ.get("HF_LOAD_4BIT", "").lower() in (
+                "1", "true", "yes"
+            )
             return BackendConfig(
                 device="cuda",
                 dtype=torch.bfloat16,
-                attn_implementation="flash_attention_2",
-                use_bitsandbytes=True,
+                # SDPA is bundled with PyTorch across Hopper and Blackwell.
+                # FlashAttention and 4-bit loading must be explicit experiments.
+                attn_implementation=requested_attention,
+                use_bitsandbytes=requested_quantization,
                 device_map="auto",
                 description="NVIDIA CUDA",
                 platform=platform
@@ -85,7 +91,7 @@ def detect_backend() -> BackendConfig:
             device="mps",
             dtype=torch.float16,
             attn_implementation="sdpa",
-            use_bitsandbytes=True,  # Optional for MPS
+            use_bitsandbytes=False,
             device_map="auto",
             description="Apple Silicon (MPS)",
             platform=platform

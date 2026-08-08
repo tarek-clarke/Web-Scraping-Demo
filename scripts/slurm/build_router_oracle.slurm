@@ -13,7 +13,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
+PROJECT_ROOT="${PROJECT_ROOT:-${SLURM_SUBMIT_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd)}}"
 cd "$PROJECT_ROOT"
 
 # Keep model and tokenizer caches on the project scratch filesystem.
@@ -23,6 +23,13 @@ export HF_HOME="${CACHE_ROOT}/huggingface"
 export HF_DATASETS_CACHE="${HF_HOME}/datasets"
 export TRANSFORMERS_CACHE="${HF_HOME}/transformers"
 mkdir -p "$HF_DATASETS_CACHE" "$TRANSFORMERS_CACHE"
+LUMI_SITE_PACKAGES="${RAP_LUMI_SITE_PACKAGES:-${PROJECT_ROOT}/.runtime/lumi/site-packages}"
+if [ ! -d "$LUMI_SITE_PACKAGES" ]; then
+    echo "ERROR: missing LUMI runtime layer; run bash scripts/bootstrap_lumi_runtime.sh" >&2
+    exit 1
+fi
+export PYTHONPATH="$LUMI_SITE_PACKAGES${PYTHONPATH:+:$PYTHONPATH}"
+export SINGULARITYENV_PYTHONPATH="$PYTHONPATH"
 
 module purge
 module use /appl/local/laifs/modules
@@ -33,6 +40,7 @@ if [ ! -r "$LUMI_SIF" ]; then
     echo "ERROR: LUMI ROCm container not readable: $LUMI_SIF" >&2
     exit 1
 fi
+export LUMI_SIF
 PYTHON_BIN=(singularity run "$LUMI_SIF" python)
 
 export HF_TORCH_DTYPE=bfloat16
@@ -44,6 +52,10 @@ if [ "${SLURM_GPUS_ON_NODE:-}" != "$EXPECTED_GCDS" ]; then
     echo "ERROR: expected $EXPECTED_GCDS LUMI GCDs for profile ${LUMI_GPU_PROFILE:-single}, got '${SLURM_GPUS_ON_NODE:-unset}'" >&2
     exit 1
 fi
+if [ "${SLURM_NTASKS:-}" != "$EXPECTED_GCDS" ]; then
+    echo "ERROR: expected $EXPECTED_GCDS Slurm tasks, got '${SLURM_NTASKS:-unset}'" >&2
+    exit 1
+fi
 "${PYTHON_BIN[@]}" - <<'PY'
 import torch
 if not torch.cuda.is_available():
@@ -53,41 +65,31 @@ PY
 
 ORACLE="${ORACLE:-data/training/router_oracle_22500_v4_${LUMI_GPU_PROFILE//-/_}.jsonl}"
 ORACLE_STEM="${ORACLE%.jsonl}"
-PIDS=()
 SHARDS=()
-
-echo "Launching $EXPECTED_GCDS true data-parallel oracle workers (one worker per visible GCD)"
 for ((rank=0; rank<EXPECTED_GCDS; rank++)); do
-    SHARD="${ORACLE_STEM}.part_${rank}.jsonl"
-    SHARDS+=("$SHARD")
-    (
-        export ROCR_VISIBLE_DEVICES="$rank"
-        export HIP_VISIBLE_DEVICES="$rank"
-        export CUDA_VISIBLE_DEVICES="$rank"
-        export RAP_CPU_WORKERS="$(( SLURM_CPUS_PER_TASK / EXPECTED_GCDS ))"
-        "${PYTHON_BIN[@]}" -u scripts/build_router_oracle.py \
-            --packets-file data/ingested/telemetry_clean_bench_22500.json \
-            --output "$SHARD" \
-            --max-packets-per-api 2500 \
-            --chunk-size 31500 \
-            --batch-size 64 \
-            --accuracy-sla 0.95 \
-            --num-shards "$EXPECTED_GCDS" \
-            --shard-index "$rank" \
-            --resume
-    ) >"router_oracle_${SLURM_JOB_ID}_part_${rank}.out" \
-      2>"router_oracle_${SLURM_JOB_ID}_part_${rank}.err" &
-    PIDS+=("$!")
+    SHARDS+=("${ORACLE_STEM}.part_${rank}.jsonl")
 done
 
-FAILED=0
-for pid in "${PIDS[@]}"; do
-    wait "$pid" || FAILED=1
-done
-if [ "$FAILED" -ne 0 ]; then
-    echo "ERROR: at least one oracle shard failed; final output was not created" >&2
+export PROJECT_ROOT ORACLE
+export ORACLE_SHARDS="$EXPECTED_GCDS"
+GPU_MAP="${SLURM_JOB_GPUS:-}"
+if [[ ! "$GPU_MAP" =~ ^[0-9]+(,[0-9]+)*$ ]]; then
+    echo "ERROR: unsupported SLURM_JOB_GPUS value: '$GPU_MAP'" >&2
     exit 1
 fi
+IFS=',' read -r -a GPU_IDS <<< "$GPU_MAP"
+if [ "${#GPU_IDS[@]}" -ne "$EXPECTED_GCDS" ]; then
+    echo "ERROR: Slurm granted ${#GPU_IDS[@]} GPU IDs for $EXPECTED_GCDS workers" >&2
+    exit 1
+fi
+export RAP_SLURM_GPU_MAP="$GPU_MAP"
+echo "Launching $EXPECTED_GCDS scheduler-bound workers (one Slurm task per GCD)"
+srun \
+    --ntasks="$EXPECTED_GCDS" \
+    --gpus-per-task=1 \
+    --gpu-bind="map_gpu:$GPU_MAP" \
+    --kill-on-bad-exit=1 \
+    bash "$PROJECT_ROOT/scripts/slurm/run_router_oracle_shard.sh"
 
 "${PYTHON_BIN[@]}" scripts/merge_router_oracle_shards.py \
     --output "$ORACLE" \

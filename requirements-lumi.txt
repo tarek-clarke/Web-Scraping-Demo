@@ -1,15 +1,8 @@
-# LUMI HPC Requirements (Python 3.11.7 + lumi-multitorch module)
-# Install with: pip install -r requirements-lumi.txt
+# Generic ROCm dependency superset. The active LUMI workflow keeps these in
+# two isolated runtimes (vendor inference container + .venv-aer-lumi); see README.
+-r requirements-base.txt
+-r requirements-quantum.txt
 
-numpy>=1.24.0,<2.0.0
-pandas>=2.0.0,<3.0.0
-# torch is provided by lumi-multitorch module - DO NOT install via pip
-transformers>=4.36.0,<6.0.0
-sentence-transformers>=2.2.2,<3.0.0
-python-Levenshtein>=0.23.0,<1.0.0
-# pynvml not needed on AMD ROCm
-psutil>=5.9.0,<6.0.0
-# llama-cpp-python not supported on ROCm
-aiohttp>=3.9.0,<4.0.0
-accelerate>=0.20.0,<2.0.0
-# bitsandbytes not supported on ROCm
+# torch is supplied by lumi-multitorch; do not replace its ROCm build via pip.
+# qiskit-aer-gpu-rocm is installed by the validated source-build script.
+# bitsandbytes and llama-cpp-python are intentionally excluded on ROCm.

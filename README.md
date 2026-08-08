@@ -81,9 +81,23 @@ python3 scripts/build_router_oracle.py \
 
 `single` requests two LUMI GCDs, which constitute one physical MI250X card. `full-node` requests eight GCDs, or four physical MI250X cards. The oracle job launches one isolated worker per GCD, assigns each worker a deterministic disjoint record shard, and merges only after all shards complete. This is real data-parallel execution; merely allocating the devices is not treated as multi-GPU use.
 
+GPU isolation is performed by Slurm using the exact GPU IDs granted in `SLURM_JOB_GPUS` (`srun --gpus-per-task=1 --gpu-bind=map_gpu:<allocation>`). No fixed physical GCD IDs are embedded in the scripts. Every task must see exactly one GPU, expose a distinct physical PCI/UUID identity, and complete a real bfloat16 matrix operation before it can load a reconciler.
+
 From the LUMI project checkout, with `COHERE_API_KEY` exported in the submitting shell:
 
 ```bash
+# One-time inference layer; preserves the vendor ROCm/PyTorch container.
+bash scripts/bootstrap_lumi_runtime.sh
+
+# Optional short proof that LUMI exposes a readable, measured GPU power sensor.
+sbatch scripts/slurm/validate_energy_telemetry.slurm
+
+# One-time simulator environment for a fresh checkout.
+bash scripts/bootstrap_lumi_aer_env.sh
+RAP_LUMI_TRAIN_ENV="$PWD/.venv-aer-lumi" \
+  sbatch --export=ALL,PROJECT_DIR="$PWD",RAP_LUMI_TRAIN_ENV="$PWD/.venv-aer-lumi" \
+  scripts/slurm/rebuild_aer_rocm_tkde.slurm
+
 # One physical MI250X card / two concurrent GCD workers
 LUMI_GPU_PROFILE=single bash scripts/slurm/submit_qpu_training_pipeline.sh
 
@@ -91,9 +105,48 @@ LUMI_GPU_PROFILE=single bash scripts/slurm/submit_qpu_training_pipeline.sh
 LUMI_GPU_PROFILE=full-node bash scripts/slurm/submit_qpu_training_pipeline.sh
 ```
 
-Each command builds a profile-specific oracle, launches 10 independent VQC optimizer starts, and selects the best model only after every start succeeds. Ten starts address optimizer initialization sensitivity; they are not presented as ten independent datasets. Final claims should use the untouched held-out test split, per-API breakdowns, class balance, abstention rate, and confidence intervals across explicitly repeated experimental runs.
+Each command builds a profile-specific oracle, launches 10 independent one-GCD VQC optimizer starts, and selects the best model only after every start succeeds. The 2-GCD/8-GCD profile controls the data-parallel reconciler/oracle benchmark; each 14-qubit optimizer stays on one GCD because distributing such a small statevector would add communication overhead without improving the statistical experiment. Ten starts address optimizer initialization sensitivity; they are not presented as ten independent datasets. Final claims should use the untouched held-out test split, per-API breakdowns, class balance, abstention rate, and confidence intervals across explicitly repeated experimental runs.
+
+LUMI intentionally uses two isolated Python runtimes. The ten reconcilers run in the current `lumi-multitorch` Python 3.12 container plus `.runtime/lumi/site-packages`; VQC optimization runs in `.venv-aer-lumi` with the source-built ROCm Aer extension. Compiled extensions are never shared across those runtimes. If a previously validated Aer environment is required, set its absolute path with `RAP_LUMI_TRAIN_ENV` before submission.
 
 The physical-QPU stage is deliberately separate. No QPU job is submitted by either LUMI command; only the selected, frozen 14-qubit model should be submitted to IBM or VLQ.
+
+The VLQ client must also remain isolated because QaaS 0.3.2 pins Qiskit 1.4.x, while the active Aer/IBM workflow uses Qiskit 2.x. Never install QaaS into `.venv-aer-lumi`, `.venv-accelerator`, or the ordinary development environment. Build its Python 3.11 environment once with `bash scripts/bootstrap_vlq_env.sh --skip-smoke-test`, activate it with `source .venv-vlq/bin/activate`, and then run `python scripts/smoke_test_vlq_qpu.py`. The bootstrap runs `pip check` and stops on any mixed-stack dependency conflict.
+
+### NVIDIA B300 and Grace Hopper/Blackwell systems
+
+Use a current NVIDIA NGC PyTorch container rather than installing an arbitrary PyTorch wheel over the provider driver stack. For B300/GB300, use an image with CUDA 13 or newer; `nvcr.io/nvidia/pytorch:26.07-py3` is the recommended baseline for this workflow. B300/GB300-class devices are rejected unless PyTorch reports a CUDA 13 or newer build. The runtime probe records the exact device name, compute capability, CUDA build, driver visibility, memory, Python version, and package versions, so a provider label such as `GH300` does not become the hardware evidence in the paper.
+
+Inside an NVIDIA GPU container, run:
+
+```bash
+git clone --branch tkde https://github.com/tarek-clarke/resilient-rap-framework.git
+cd resilient-rap-framework
+
+# Reuse the container's architecture-matched torch/CUDA stack.
+bash scripts/bootstrap_accelerator_env.sh
+source .venv-accelerator/bin/activate
+
+read -s COHERE_API_KEY
+export COHERE_API_KEY
+
+# Set this too if any selected Hugging Face model requires authenticated access.
+# read -s HF_TOKEN; export HF_TOKEN
+
+# Use b300, gh300, gb300, or another explicit paper-facing hardware label.
+RAP_HARDWARE_TAG=b300 bash scripts/run_accelerator_pipeline.sh
+
+# On the second host, use a distinct tag; the probe records the actual GPU.
+RAP_HARDWARE_TAG=gh300 bash scripts/run_accelerator_pipeline.sh
+```
+
+The bootstrap creates a `--system-site-packages` environment, installs the RAP, quantum, telemetry, and NVIDIA dependencies without replacing the vendor PyTorch build, runs `pip check`, and executes real PyTorch and Aer GPU circuits. It also requires live NVML power and temperature telemetry. It builds Qiskit Aer against the installed CUDA toolkit when a compatible GPU build is not already present; this is required on ARM Grace systems and recommended for B300/GB300. The build automatically targets the detected compute capability, including three-digit `sm_103`. CPU Aer and CPU reconciler fallbacks are forbidden.
+
+The NVIDIA launcher uses all visible GPUs by default. Set `RAP_GPU_WORKERS=1` for a controlled one-GPU run, or set it to the allocated GPU count for data-parallel oracle construction and concurrent independent optimizer starts. Model caches default to the checkout's `.cache` directory; override `RAP_CACHE_ROOT` when the provider exposes a larger persistent volume, and use `RAP_BUILD_TMPDIR` if Aer compilation needs a larger temporary filesystem. Outputs are hardware-tagged and never overwrite the LUMI artifacts. Each run writes a JSON preflight manifest before loading a model; absence of that manifest means the run is not paper-valid.
+
+Dependency checks are workload-specific: `oracle` validates the local/cloud reconcilers, `training` validates Qiskit/Scikit-learn and a real GPU Aer circuit, and `full` validates both. This prevents a valid simulator environment from failing because it intentionally lacks LLM packages, while still stopping every benchmark on a missing dependency in its own execution path.
+
+Every oracle shard, VQC optimizer start, and model-selection pass is wrapped in periodic host telemetry. The workflow writes one-second CSV samples plus a JSON energy summary beside each artifact, then automatically produces an aggregate `.json`, `.csv`, and LaTeX `.tex` energy table. NVIDIA runs require live NVML power and temperature readings; LUMI runs require a readable AMD sysfs power sensor. The summary records the assigned device, sensor source, sample count, measured GPU joules, separately observed CPU joules, and measurement quality. MI250X package power is exposed only through the primary die for each two-GCD card; the collector maps secondary GCDs to the paired card sensor and marks one owner so aggregate tables never double-count that shared reading. If CPU RAPL is unavailable, CPU energy is reported as `unavailable` rather than replaced with a generic TDP. Carbon remains an explicitly estimated value based on measured host energy and the configured grid intensity. Cohere and physical-QPU server-side energy are not observable through their APIs and must not be inferred from these host measurements.
 
 ---
 

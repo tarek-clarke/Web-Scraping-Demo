@@ -13,16 +13,29 @@
 #SBATCH --error=aer_rocm_build_%j.err
 
 set -euo pipefail
-: "${PROJECT_DIR:?PROJECT_DIR must point to the staged repository}"
+PROJECT_DIR="${PROJECT_DIR:-${PROJECT_ROOT:-${SLURM_SUBMIT_DIR:-}}}"
+: "${PROJECT_DIR:?PROJECT_DIR or PROJECT_ROOT must point to the staged repository}"
 
+module purge
 module load LUMI/25.09
 module load partition/G
 module load rocm/6.3.4
 module load cray-python/3.11.7
 # Avoid linking Aer against the Cray compiler/libsci runtime.  The previous
 # build imported successfully but failed at runtime on __cray_sset_HSW.
-module swap PrgEnv-cray PrgEnv-gnu
-source /scratch/project_465002996/clarketa/vlq-env/bin/activate
+if module is-loaded PrgEnv-cray >/dev/null 2>&1; then
+    module swap PrgEnv-cray PrgEnv-gnu
+else
+    module load PrgEnv-gnu
+fi
+module load lumi-CrayPath
+TRAIN_ENV="${RAP_LUMI_TRAIN_ENV:-$PROJECT_DIR/.venv-aer-lumi}"
+if [ ! -f "$TRAIN_ENV/bin/activate" ]; then
+    echo "ERROR: missing $TRAIN_ENV; run scripts/bootstrap_lumi_aer_env.sh first" >&2
+    exit 1
+fi
+source "$TRAIN_ENV/bin/activate"
+echo "Aer build environment: $TRAIN_ENV"
 
 cleanup() {
     python3 -m pip uninstall -y conan >/dev/null 2>&1 || true
@@ -33,8 +46,8 @@ trap cleanup EXIT
 # Conan must exist before we can bootstrap its settings cache.
 python3 -m pip install "conan<2"
 
-# Keep Conan's cache local to this benchmark checkout so we do not mutate the
-# shared VLQ environment while patching in Clang 18 support for ROCm 6.3.4.
+# Keep Conan's cache local to this benchmark checkout so the isolated Aer
+# environment remains reproducible while adding Clang 18 support for ROCm.
 export CONAN_USER_HOME="$PROJECT_DIR/.conan-aer"
 mkdir -p "$CONAN_USER_HOME"
 
@@ -106,7 +119,15 @@ export CMAKE_ARGS="${CMAKE_ARGS:-} -DBLAS_LIBRARIES=${BLAS_SHIM_DIR}/libblas.so 
 # The repository-local installer is the project's known ROCm/gfx90a build recipe.
 # Remove the CPU wheel first; otherwise its import-only guard skips the build.
 python3 -m pip uninstall -y qiskit-aer qiskit-aer-gpu qiskit-aer-gpu-rocm || true
-bash "$PROJECT_DIR/scripts/install_qiskit_aer.sh"
+IS_LUMI=1 RAP_PYTHON_BIN=python3 bash "$PROJECT_DIR/scripts/install_qiskit_aer.sh"
 
 cd "$PROJECT_DIR"
-python3 -c 'import importlib.util; spec = importlib.util.spec_from_file_location("rap_quantum_router", "src/routing/quantum_router.py"); module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module); module.QuantumRouter(backend="aer_gpu")._init_backend(); print("AER_GPU_ROCM_BUILD_AND_PREFLIGHT_OK")'
+python3 -m pip check
+python3 scripts/preflight_accelerator.py \
+    --expected-devices "${SLURM_GPUS_ON_NODE:-1}" \
+    --profile training \
+    --accelerator-runtime aer \
+    --require-aer \
+    --require-router-qnn \
+    --json-output "data/training/preflight_aer_build_${SLURM_JOB_ID}.json"
+echo "AER_GPU_ROCM_BUILD_AND_PREFLIGHT_OK"

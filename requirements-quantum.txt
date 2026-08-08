@@ -1,6 +1,4 @@
-qiskit>=2.4.0,<3.0.0
-qiskit-machine-learning>=0.8.0,<1.0.0
+-r requirements-router-training.txt
 qiskit-optimization>=0.6.0,<1.0.0
-qiskit-algorithms>=0.3.0,<1.0.0
-scikit-learn>=1.3.0,<2.0.0
 qiskit-ibm-runtime>=0.44.1,<1.0.0
+# GPU Aer is platform-specific and is installed by scripts/install_qiskit_aer.sh.

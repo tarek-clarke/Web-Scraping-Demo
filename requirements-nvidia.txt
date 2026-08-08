@@ -1,0 +1,12 @@
+# Install inside a current NVIDIA NGC PyTorch container. The container supplies
+# the architecture-matched CUDA build of torch, cuDNN, NCCL, and Triton.
+-r requirements-base.txt
+-r requirements-quantum.txt
+nvidia-ml-py>=12.570.0,<14.0.0
+
+# Quantization is deliberately opt-in. Install bitsandbytes only when a
+# separately reported quantized experiment sets HF_LOAD_4BIT=1.
+# bitsandbytes>=0.46.0,<1.0.0
+
+# Install/validate CUDA Aer with scripts/install_qiskit_aer.sh. The PyPI GPU
+# wheel is x86_64-only and may not target B300/GB300 or ARM Grace systems.

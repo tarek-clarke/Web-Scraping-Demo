@@ -6,13 +6,13 @@ case "$PROFILE" in
   single)
     LUMI_PARTITION="small-g"
     LUMI_GCDS=2
-    LUMI_CPUS=16
+    LUMI_WORKER_CPUS=8
     LUMI_MEM="128G"
     ;;
   full-node)
     LUMI_PARTITION="standard-g"
     LUMI_GCDS=8
-    LUMI_CPUS=56
+    LUMI_WORKER_CPUS=7
     LUMI_MEM="480G"
     ;;
   *)
@@ -39,7 +39,7 @@ DEPENDENCY_ARGS=()
 if [ ! -s "$ORACLE" ] || ! grep -q '"status": "complete"' "$MANIFEST" 2>/dev/null; then
     ORACLE_JOB="$(sbatch --parsable \
         --partition="$LUMI_PARTITION" --gpus-per-node="$LUMI_GCDS" \
-        --cpus-per-task="$LUMI_CPUS" --mem="$LUMI_MEM" \
+        --ntasks-per-node="$LUMI_GCDS" --cpus-per-task="$LUMI_WORKER_CPUS" --mem="$LUMI_MEM" \
         --export=ALL,PROJECT_ROOT="$PROJECT_ROOT",LUMI_GPU_PROFILE="$PROFILE",ORACLE="$ORACLE" \
         scripts/slurm/build_router_oracle.slurm)"
     DEPENDENCY_ARGS=(--dependency="afterok:${ORACLE_JOB}")
@@ -47,17 +47,17 @@ if [ ! -s "$ORACLE" ] || ! grep -q '"status": "complete"' "$MANIFEST" 2>/dev/nul
 fi
 
 TRAIN_JOB="$(sbatch --parsable "${DEPENDENCY_ARGS[@]}" \
-    --partition="$LUMI_PARTITION" --gpus-per-node="$LUMI_GCDS" \
-    --cpus-per-task="$LUMI_CPUS" --mem="$LUMI_MEM" \
+    --partition=small-g --gpus-per-node=1 \
+    --ntasks-per-node=1 --cpus-per-task=8 --mem=64G \
     --export=ALL,PROJECT_ROOT="$PROJECT_ROOT",LUMI_GPU_PROFILE="$PROFILE",ORACLE="$ORACLE" \
     scripts/slurm/submit_train.slurm)"
 SELECT_JOB="$(sbatch --parsable --dependency="afterok:${TRAIN_JOB}" \
-    --partition="$LUMI_PARTITION" --gpus-per-node=1 \
+    --partition=small-g --gpus-per-node=1 \
     --cpus-per-task=8 --mem=64G \
-    --export=ALL,PROJECT_ROOT="$PROJECT_ROOT",LUMI_GPU_PROFILE="$PROFILE",ORACLE="$ORACLE" \
+    --export=ALL,PROJECT_ROOT="$PROJECT_ROOT",LUMI_GPU_PROFILE="$PROFILE",ORACLE="$ORACLE",RAP_TRAIN_JOB_ID="$TRAIN_JOB" \
     scripts/slurm/select_qpu_router.slurm)"
 
 echo "LUMI profile:   $PROFILE ($LUMI_GCDS Slurm GPUs/GCDs)"
-echo "Training array: $TRAIN_JOB (10 independent starts)"
+echo "Training array: $TRAIN_JOB (10 independent one-GCD starts)"
 echo "Selection job:  $SELECT_JOB (runs only after all starts succeed)"
 echo "No physical-QPU job was submitted."

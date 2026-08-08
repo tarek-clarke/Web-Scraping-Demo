@@ -22,48 +22,73 @@ echo "Node: ${SLURM_NODENAME:-${SLURMD_NODENAME:-unknown}}"
 echo "Start time: $(date)"
 
 # Load modules
+module purge
 module load LUMI/25.09
 module load partition/G
 module load rocm/6.3.4
 module load cray-python/3.11.7
-
-# Activate venv
-if [ -f "$PROJECT_ROOT/.venv/bin/activate" ]; then
-    source "$PROJECT_ROOT/.venv/bin/activate"
-elif [ -f "$PROJECT_ROOT/.venv-lumi/bin/activate" ]; then
-    source "$PROJECT_ROOT/.venv-lumi/bin/activate"
-elif [ -f "/scratch/project_465002996/clarketa/vlq-env/bin/activate" ]; then
-    source "/scratch/project_465002996/clarketa/vlq-env/bin/activate"
+if module is-loaded PrgEnv-cray >/dev/null 2>&1; then
+    module swap PrgEnv-cray PrgEnv-gnu
 else
-    echo "ERROR: No compatible virtual environment found"
+    module load PrgEnv-gnu
+fi
+module load lumi-CrayPath
+
+# Keep the ROCm/Aer environment separate from the Python 3.12 inference
+# container. Compiled extensions from the container runtime layer are not ABI
+# compatible with this Python 3.11 environment.
+TRAIN_ENV="${RAP_LUMI_TRAIN_ENV:-$PROJECT_ROOT/.venv-aer-lumi}"
+if [ ! -f "$TRAIN_ENV/bin/activate" ]; then
+    echo "ERROR: missing isolated LUMI Aer environment: $TRAIN_ENV" >&2
+    echo "Run bash scripts/bootstrap_lumi_aer_env.sh first." >&2
     exit 1
 fi
+source "$TRAIN_ENV/bin/activate"
+echo "Training environment: $TRAIN_ENV"
+python3 -m pip check
 
 # Export environment vars
 export IS_LUMI=1
-
-EXPECTED_GCDS=2
-[ "${LUMI_GPU_PROFILE:-single}" = "full-node" ] && EXPECTED_GCDS=8
-if [ "${SLURM_GPUS_ON_NODE:-}" != "$EXPECTED_GCDS" ]; then
-    echo "ERROR: expected $EXPECTED_GCDS LUMI GCDs for profile ${LUMI_GPU_PROFILE:-single}, got '${SLURM_GPUS_ON_NODE:-unset}'" >&2
+export PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}"
+export RAP_REQUIRE_GPU_TELEMETRY=1
+if [[ ! "${SLURM_JOB_GPUS:-}" =~ ^[0-9]+$ ]]; then
+    echo "ERROR: expected one scheduler-assigned GCD ID, got '${SLURM_JOB_GPUS:-unset}'" >&2
     exit 1
 fi
-python3 - <<'PY'
-import torch
-if not torch.cuda.is_available():
-    raise SystemExit("ERROR: GPU training requested but torch.cuda.is_available() is false")
-print(f"LUMI accelerator preflight: {torch.cuda.device_count()} visible device(s)")
-PY
+export RAP_ASSIGNED_GPU_ID="$SLURM_JOB_GPUS"
 
-# Train one independent start per GPU.  The array therefore uses up to ten
-# GPUs concurrently without sharing optimizer state between starts.
-python3 -u scripts/train_qpu_router.py train \
-    --oracle "${ORACLE:-data/training/router_oracle_22500_v4_${LUMI_GPU_PROFILE//-/_}.jsonl}" \
-    --output-dir "data/training/qpu_router_multistart_v4_${LUMI_GPU_PROFILE//-/_}" \
-    --start-index "$SLURM_ARRAY_TASK_ID" \
-    --backend aer_gpu \
-    --training-shots 512 \
-    --maxiter 200
+EXPECTED_GCDS=1
+if [ "${SLURM_GPUS_ON_NODE:-}" != "$EXPECTED_GCDS" ]; then
+    echo "ERROR: each independent optimizer start requires exactly one LUMI GCD; got '${SLURM_GPUS_ON_NODE:-unset}'" >&2
+    exit 1
+fi
+python3 scripts/preflight_accelerator.py \
+    --expected-devices "$EXPECTED_GCDS" \
+    --profile training \
+    --accelerator-runtime aer \
+    --require-aer \
+    --require-router-qnn \
+    --json-output "data/training/preflight_train_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.json"
+
+if [ "${RAP_PREFLIGHT_ONLY:-0}" = "1" ]; then
+    echo "Training environment preflight complete; optimization was not started."
+    exit 0
+fi
+
+# Train one independent start per GCD. The array can therefore use up to ten
+# GCDs concurrently without pretending a small 14-qubit statevector scales
+# efficiently across an entire multi-GPU node.
+python3 scripts/run_with_energy.py \
+    --csv "data/training/energy_train_${LUMI_GPU_PROFILE//-/_}_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.csv" \
+    --summary "data/training/energy_train_${LUMI_GPU_PROFILE//-/_}_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.json" \
+    --label "lumi-vqc-train-${LUMI_GPU_PROFILE}-${SLURM_ARRAY_TASK_ID}" -- \
+    python3 -u scripts/train_qpu_router.py train \
+        --oracle "${ORACLE:-data/training/router_oracle_22500_v4_${LUMI_GPU_PROFILE//-/_}.jsonl}" \
+        --output-dir "data/training/qpu_router_multistart_v4_${LUMI_GPU_PROFILE//-/_}" \
+        --start-index "$SLURM_ARRAY_TASK_ID" \
+        --backend aer_gpu \
+        --training-shots 512 \
+        --maxiter 200
 
 echo "=== Training Start ${SLURM_ARRAY_TASK_ID} Complete ==="
 echo "End time: $(date)"

@@ -46,3 +46,7 @@ vlq_submit_run*.sh
 data/training/*.jsonl
 !data/training/*.jsonl.gz
 .venv/
+.venv-*/
+.runtime/
+.cache/
+.conan-aer/

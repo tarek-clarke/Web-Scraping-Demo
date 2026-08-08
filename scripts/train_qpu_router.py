@@ -154,7 +154,35 @@ def create_qnn(
         from qiskit_aer import AerSimulator
         from qiskit_aer.primitives import SamplerV2
 
-        simulator = AerSimulator(method="statevector", device="GPU")
+        target_count = 0
+        gpu_names: List[str] = []
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                target_count = int(torch.cuda.device_count())
+                gpu_names = [
+                    torch.cuda.get_device_name(index) for index in range(target_count)
+                ]
+        except (ImportError, RuntimeError):
+            pass
+        if target_count == 0:
+            target_count = int(os.environ.get("SLURM_GPUS_ON_NODE", "0") or 0)
+        if target_count == 0:
+            visible = os.environ.get("CUDA_VISIBLE_DEVICES", "").strip()
+            if visible:
+                target_count = len([item for item in visible.split(",") if item.strip()])
+        if target_count < 1:
+            raise RuntimeError(
+                "Aer GPU training requested but no accelerator allocation was detected"
+            )
+        backend_options = {
+            "method": "statevector",
+            "device": "GPU",
+            "batched_shots_gpu": True,
+            "runtime_parameter_bind_enable": True,
+        }
+        simulator = AerSimulator(**backend_options)
         available = list(simulator.available_devices())
         if "GPU" not in available:
             raise RuntimeError(
@@ -173,8 +201,7 @@ def create_qnn(
             seed=seed,
             options={
                 "backend_options": {
-                    "method": "statevector",
-                    "device": "GPU",
+                    **backend_options,
                 },
                 "run_options": {"seed_simulator": seed},
             },
@@ -185,6 +212,9 @@ def create_qnn(
             seed_transpiler=seed,
         )
         device["available_devices"] = available
+        device["gpu_scope"] = "all_scheduler_visible_devices"
+        device["visible_gpu_count"] = target_count
+        device["gpu_names"] = gpu_names
     elif backend_name == "statevector_cpu":
         from qiskit.primitives import StatevectorSampler
 
