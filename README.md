@@ -115,7 +115,7 @@ The VLQ client must also remain isolated because QaaS 0.3.2 pins Qiskit 1.4.x, w
 
 ### NVIDIA B300 and Grace Hopper/Blackwell systems
 
-Use a current NVIDIA NGC PyTorch container rather than installing an arbitrary PyTorch wheel over the provider driver stack. For B300/GB300, use an image with CUDA 13 or newer; `nvcr.io/nvidia/pytorch:26.07-py3` is the recommended baseline for this workflow. B300/GB300-class devices are rejected unless PyTorch reports a CUDA 13 or newer build. The runtime probe records the exact device name, compute capability, CUDA build, driver visibility, memory, Python version, and package versions, so a provider label such as `GH300` does not become the hardware evidence in the paper.
+Use a current NVIDIA NGC PyTorch container rather than installing an arbitrary PyTorch wheel over the provider driver stack. For B300/GB300, use an image with CUDA 13 or newer; `nvcr.io/nvidia/pytorch:26.07-py3` is the recommended baseline for this workflow. B300/GB300-class devices are rejected unless PyTorch reports a CUDA 13 or newer build. The runtime probe records the exact device name, compute capability, CUDA build, driver visibility, memory, Python version, and package versions, so a provider label such as `GH200` does not become the hardware evidence in the paper.
 
 Inside an NVIDIA GPU container, run:
 
@@ -133,11 +133,11 @@ export COHERE_API_KEY
 # Set this too if any selected Hugging Face model requires authenticated access.
 # read -s HF_TOKEN; export HF_TOKEN
 
-# Use b300, gh300, gb300, or another explicit paper-facing hardware label.
+# Use b300, gh200, gb300, or another explicit paper-facing hardware label.
 RAP_HARDWARE_TAG=b300 bash scripts/run_accelerator_pipeline.sh
 
 # On the second host, use a distinct tag; the probe records the actual GPU.
-RAP_HARDWARE_TAG=gh300 bash scripts/run_accelerator_pipeline.sh
+RAP_HARDWARE_TAG=gh200 bash scripts/run_accelerator_pipeline.sh
 ```
 
 The bootstrap creates a `--system-site-packages` environment, installs the RAP, quantum, telemetry, and NVIDIA dependencies without replacing the vendor PyTorch build, runs `pip check`, and executes real PyTorch and Aer GPU circuits. It also requires live NVML power and temperature telemetry. It builds Qiskit Aer against the installed CUDA toolkit when a compatible GPU build is not already present; this is required on ARM Grace systems and recommended for B300/GB300. The build automatically targets the detected compute capability, including three-digit `sm_103`. CPU Aer and CPU reconciler fallbacks are forbidden.

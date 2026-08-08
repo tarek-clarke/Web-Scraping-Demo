@@ -13,7 +13,6 @@ class HardwareDetector:
         "RTX5090": {"vram_gb": 32, "type": "cuda", "os": ["windows", "linux"]},
         "RTX6000": {"vram_gb": 48, "type": "cuda", "os": ["windows", "linux"]},
         "GH200": {"vram_gb": 96, "type": "cuda", "os": ["linux"]},
-        "GH300": {"vram_gb": 288, "type": "cuda", "os": ["linux"]},
         "GB300": {"vram_gb": 288, "type": "cuda", "os": ["linux"]},
         "B300": {"vram_gb": 288, "type": "cuda", "os": ["linux"]},
         "MI250X": {"vram_gb": 128, "type": "rocm", "os": ["linux"]}
