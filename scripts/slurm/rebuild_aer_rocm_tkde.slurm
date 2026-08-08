@@ -15,6 +15,10 @@
 set -euo pipefail
 PROJECT_DIR="${PROJECT_DIR:-${PROJECT_ROOT:-${SLURM_SUBMIT_DIR:-}}}"
 : "${PROJECT_DIR:?PROJECT_DIR or PROJECT_ROOT must point to the staged repository}"
+PROJECT_ROOT="$PROJECT_DIR"
+export PROJECT_ROOT
+cd "$PROJECT_ROOT"
+source "$PROJECT_ROOT/scripts/lumi_cache_env.sh"
 
 module purge
 module load LUMI/25.09

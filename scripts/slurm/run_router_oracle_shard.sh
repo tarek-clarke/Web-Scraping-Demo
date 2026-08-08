@@ -10,6 +10,7 @@ set -euo pipefail
 : "${RAP_SLURM_GPU_MAP:?The allocation-derived GPU map is required}"
 
 cd "$PROJECT_ROOT"
+source "$PROJECT_ROOT/scripts/lumi_cache_env.sh"
 RANK="$SLURM_PROCID"
 SHARD="${ORACLE%.jsonl}.part_${RANK}.jsonl"
 export RAP_CPU_WORKERS="${SLURM_CPUS_PER_TASK:-1}"

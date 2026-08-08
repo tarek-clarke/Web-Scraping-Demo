@@ -24,14 +24,7 @@ esac
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 cd "$PROJECT_ROOT"
-
-# Keep model and tokenizer caches on the project scratch filesystem.
-CACHE_ROOT="${PROJECT_ROOT}/.cache"
-export XDG_CACHE_HOME="$CACHE_ROOT"
-export HF_HOME="${CACHE_ROOT}/huggingface"
-export HF_DATASETS_CACHE="${HF_HOME}/datasets"
-export TRANSFORMERS_CACHE="${HF_HOME}/transformers"
-mkdir -p "$HF_DATASETS_CACHE" "$TRANSFORMERS_CACHE"
+source "$PROJECT_ROOT/scripts/lumi_cache_env.sh"
 
 ORACLE="${ORACLE:-data/training/router_oracle_22500_v4_${PROFILE//-/_}.jsonl}"
 MANIFEST="${ORACLE%.jsonl}.manifest.json"
