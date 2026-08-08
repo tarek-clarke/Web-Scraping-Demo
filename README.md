@@ -81,7 +81,7 @@ python3 scripts/build_router_oracle.py \
 
 `single` requests two LUMI GCDs, which constitute one physical MI250X card. `full-node` requests eight GCDs, or four physical MI250X cards. The oracle job launches one isolated worker per GCD, assigns each worker a deterministic disjoint record shard, and merges only after all shards complete. This is real data-parallel execution; merely allocating the devices is not treated as multi-GPU use.
 
-GPU isolation is performed by Slurm using the exact GPU IDs granted in `SLURM_JOB_GPUS` (`srun --gpus-per-task=1 --gpu-bind=map_gpu:<allocation>`). No fixed physical GCD IDs are embedded in the scripts. Every task must see exactly one GPU, expose a distinct physical PCI/UUID identity, and complete a real bfloat16 matrix operation before it can load a reconciler.
+GPU isolation is performed by Slurm with one GPU per task and task-local binding (`srun --gpus-per-task=1 --gpu-bind=map_gpu:0,1,...`). The allocation IDs from `SLURM_JOB_GPUS` are retained separately for physical PCI/UUID provenance; on LUMI they may be sparse (for example `0,2`) and are not valid task-local binding ordinals. No fixed physical GCD IDs are embedded in the scripts. Every task must see exactly one GPU, expose a distinct physical PCI/UUID identity, and complete a real bfloat16 matrix operation before it can load a reconciler.
 
 From the LUMI project checkout, with `COHERE_API_KEY` exported in the submitting shell:
 

@@ -83,11 +83,23 @@ if [ "${#GPU_IDS[@]}" -ne "$EXPECTED_GCDS" ]; then
     exit 1
 fi
 export RAP_SLURM_GPU_MAP="$GPU_MAP"
+# Slurm's GPU IDs are node-level allocation identifiers. On LUMI a
+# one-card allocation can legitimately be reported as `0,2`, while the
+# srun step exposes the allocated devices as task-local ordinals `0,1`.
+# Bind by task-local ordinal and retain the allocation IDs separately for
+# physical-device provenance and telemetry mapping.
+LOCAL_GPU_MAP=""
+for ((rank=0; rank<EXPECTED_GCDS; rank++)); do
+    if [ -n "$LOCAL_GPU_MAP" ]; then
+        LOCAL_GPU_MAP+=","
+    fi
+    LOCAL_GPU_MAP+="$rank"
+done
 echo "Launching $EXPECTED_GCDS scheduler-bound workers (one Slurm task per GCD)"
 srun \
     --ntasks="$EXPECTED_GCDS" \
     --gpus-per-task=1 \
-    --gpu-bind="map_gpu:$GPU_MAP" \
+    --gpu-bind="map_gpu:$LOCAL_GPU_MAP" \
     --kill-on-bad-exit=1 \
     bash "$PROJECT_ROOT/scripts/slurm/run_router_oracle_shard.sh"
 

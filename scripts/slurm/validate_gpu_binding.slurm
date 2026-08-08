@@ -44,7 +44,15 @@ if [ "${#GPU_IDS[@]}" -ne "$EXPECTED_GCDS" ]; then
     exit 1
 fi
 
-srun --ntasks="$EXPECTED_GCDS" --gpus-per-task=1 --gpu-bind="map_gpu:$GPU_MAP" \
+LOCAL_GPU_MAP=""
+for ((rank=0; rank<EXPECTED_GCDS; rank++)); do
+    if [ -n "$LOCAL_GPU_MAP" ]; then
+        LOCAL_GPU_MAP+=","
+    fi
+    LOCAL_GPU_MAP+="$rank"
+done
+
+srun --ntasks="$EXPECTED_GCDS" --gpus-per-task=1 --gpu-bind="map_gpu:$LOCAL_GPU_MAP" \
     --kill-on-bad-exit=1 \
     bash "$PROJECT_ROOT/scripts/slurm/run_accelerator_probe.sh"
 
