@@ -14,6 +14,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Mapping
 
+# When invoked as ``python scripts/preflight_accelerator.py``, Python places
+# ``scripts/`` on sys.path rather than the repository root.  Add the root
+# explicitly so package-style imports remain valid under Slurm and containers.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 
 ORACLE_IMPORTS = {
     "numpy": "numpy",
