@@ -23,6 +23,7 @@ esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
+PROJECT_ROOT="$(readlink -f "$PROJECT_ROOT")"
 cd "$PROJECT_ROOT"
 source "$PROJECT_ROOT/scripts/lumi_cache_env.sh"
 RAP_LUMI_PYTHON="${RAP_LUMI_PYTHON:-$PROJECT_ROOT/.runtime/gemma4-venv/bin/python}"
@@ -35,7 +36,7 @@ if [ ! -s "$ORACLE" ] || ! grep -q '"status": "complete"' "$MANIFEST" 2>/dev/nul
     ORACLE_JOB="$(sbatch --parsable \
         --partition="$LUMI_PARTITION" --gpus-per-node="$LUMI_GCDS" \
         --ntasks-per-node="$LUMI_GCDS" --cpus-per-task="$LUMI_WORKER_CPUS" --mem="$LUMI_MEM" \
-        --export=ALL,PROJECT_ROOT="$PROJECT_ROOT",LUMI_GPU_PROFILE="$PROFILE",ORACLE="$ORACLE" \
+        --export=ALL,PROJECT_ROOT="$PROJECT_ROOT",LUMI_GPU_PROFILE="$PROFILE",ORACLE="$ORACLE",RAP_LUMI_PYTHON="$RAP_LUMI_PYTHON" \
         scripts/slurm/build_router_oracle.slurm)"
     DEPENDENCY_ARGS=(--dependency="afterok:${ORACLE_JOB}")
     echo "Oracle job:    $ORACLE_JOB (runs once; resumable)"
