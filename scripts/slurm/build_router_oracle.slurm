@@ -22,8 +22,12 @@ if [ ! -d "$LUMI_SITE_PACKAGES" ]; then
     echo "ERROR: missing LUMI runtime layer; run bash scripts/bootstrap_lumi_runtime.sh" >&2
     exit 1
 fi
-export PYTHONPATH="$LUMI_SITE_PACKAGES${PYTHONPATH:+:$PYTHONPATH}"
-export SINGULARITYENV_PYTHONPATH="$PYTHONPATH"
+if [ -z "${RAP_LUMI_PYTHON:-}" ]; then
+    export PYTHONPATH="$LUMI_SITE_PACKAGES${PYTHONPATH:+:$PYTHONPATH}"
+    export SINGULARITYENV_PYTHONPATH="$PYTHONPATH"
+else
+    unset PYTHONPATH SINGULARITYENV_PYTHONPATH
+fi
 
 module purge
 module use /appl/local/laifs/modules
@@ -35,7 +39,12 @@ if [ ! -r "$LUMI_SIF" ]; then
     exit 1
 fi
 export LUMI_SIF
-PYTHON_BIN=(singularity run "$LUMI_SIF" python)
+PYTHON_BIN=(singularity exec "$LUMI_SIF")
+if [ -n "${RAP_LUMI_PYTHON:-}" ]; then
+    PYTHON_BIN+=("$RAP_LUMI_PYTHON")
+else
+    PYTHON_BIN+=(python)
+fi
 
 export HF_TORCH_DTYPE=bfloat16
 export TOKENIZERS_PARALLELISM=false
@@ -64,7 +73,7 @@ for ((rank=0; rank<EXPECTED_GCDS; rank++)); do
     SHARDS+=("${ORACLE_STEM}.part_${rank}.jsonl")
 done
 
-export PROJECT_ROOT ORACLE
+export PROJECT_ROOT ORACLE RAP_LUMI_PYTHON
 export ORACLE_SHARDS="$EXPECTED_GCDS"
 GPU_MAP="${SLURM_JOB_GPUS:-}"
 if [[ ! "$GPU_MAP" =~ ^[0-9]+(,[0-9]+)*$ ]]; then

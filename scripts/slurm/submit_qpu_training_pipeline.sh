@@ -25,6 +25,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 cd "$PROJECT_ROOT"
 source "$PROJECT_ROOT/scripts/lumi_cache_env.sh"
+RAP_LUMI_PYTHON="${RAP_LUMI_PYTHON:-$PROJECT_ROOT/.runtime/gemma4-venv/bin/python}"
+export RAP_LUMI_PYTHON
 
 ORACLE="${ORACLE:-data/training/router_oracle_22500_v7_10pct_${PROFILE//-/_}.jsonl}"
 MANIFEST="${ORACLE%.jsonl}.manifest.json"

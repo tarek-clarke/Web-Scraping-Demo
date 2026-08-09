@@ -42,7 +42,13 @@ env | sort | sed -n '/GPU/p;/VISIBLE_DEVICES/p'
 # allocation-derived map_gpu binding. Do not replace it with fixed indices:
 # LUMI GCD identifiers are allocation-specific. The preflight records each
 # task's physical PCI/UUID identity so duplicate assignments fail review.
-singularity run "$LUMI_SIF" python scripts/preflight_accelerator.py \
+PYTHON_COMMAND=(singularity exec "$LUMI_SIF")
+if [ -n "${RAP_LUMI_PYTHON:-}" ]; then
+    PYTHON_COMMAND+=("$RAP_LUMI_PYTHON")
+else
+    PYTHON_COMMAND+=(python)
+fi
+"${PYTHON_COMMAND[@]}" scripts/preflight_accelerator.py \
     --expected-devices 1 \
     --profile oracle \
     --require-cohere \
@@ -50,7 +56,7 @@ singularity run "$LUMI_SIF" python scripts/preflight_accelerator.py \
 
 # Gemma generation is independently executed on each 64-GB GCD. Two workers
 # share each physical 128-GB MI250X card and maximize aggregate throughput.
-singularity run "$LUMI_SIF" python scripts/run_with_energy.py \
+"${PYTHON_COMMAND[@]}" scripts/run_with_energy.py \
     --csv "${SHARD%.jsonl}.energy.csv" \
     --summary "${SHARD%.jsonl}.energy_summary.json" \
     --label "lumi-oracle-${LUMI_GPU_PROFILE:-unknown}-shard-${RANK}" -- \
