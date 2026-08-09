@@ -304,6 +304,15 @@ def reconcile_chunk(
     ]
     outputs: Dict[str, List[dict]] = {}
     for method in methods:
+        # The oracle records each method's completed results before moving to
+        # Qwen.  Keeping MiniLM and BGE resident during autoregressive Qwen
+        # generation exhausts a 64-GB MI250X GCD even with a small batch.  The
+        # workload uses one full shard per chunk, so releasing them here does
+        # not cause a reload loop and leaves Qwen its required VRAM headroom.
+        if method == "qwen_1_5b":
+            for resident_method in ("minilm", "bge"):
+                if resident_method in engine.reconcilers:
+                    engine.release_method(resident_method)
         started = time.perf_counter()
         if method == "minilm":
             results = engine.reconcile_bert_batch(pairs)
