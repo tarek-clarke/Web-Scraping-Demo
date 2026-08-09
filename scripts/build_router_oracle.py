@@ -439,7 +439,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--methods",
         nargs="+",
-        choices=[*DEFAULT_CLASS_NAMES, "phi_4_mini"],
+        choices=[*DEFAULT_CLASS_NAMES, "phi_4_mini", "smollm2_1_7b"],
         default=list(DEFAULT_CLASS_NAMES),
     )
     parser.add_argument("--accuracy-sla", type=float, default=0.95)
