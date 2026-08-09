@@ -433,6 +433,33 @@ def read_completed_ids(path: Path) -> set[str]:
     return completed
 
 
+def load_reusable_metrics(path: Path, records: Sequence[dict]) -> Dict[str, dict]:
+    """Load unchanged method measurements from a compatible prior oracle."""
+    expected = {record["record_id"]: record for record in records}
+    reusable: Dict[str, dict] = {}
+    with path.open("r", encoding="utf-8") as stream:
+        for line in stream:
+            if not line.strip():
+                continue
+            prior = json.loads(line)
+            record_id = prior.get("record_id")
+            current = expected.get(record_id)
+            if current is None:
+                continue
+            for key in ("api", "packet_index", "chaos_method", "chaos_seed"):
+                if prior.get(key) != current.get(key):
+                    raise RuntimeError(
+                        f"Reuse oracle mismatch for {record_id}: field {key}"
+                    )
+            reusable[record_id] = dict(prior.get("method_metrics", {}))
+    missing = sorted(set(expected) - set(reusable))
+    if missing:
+        raise RuntimeError(
+            f"Reuse oracle is missing {len(missing)} requested records; first={missing[0]}"
+        )
+    return reusable
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -458,6 +485,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--accuracy-tolerance", type=float, default=0.01)
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--allow-cpu", action="store_true")
+    parser.add_argument(
+        "--reuse-methods-from",
+        default="",
+        help=(
+            "Compatible prior oracle whose unchanged method_metrics are reused. "
+            "Only missing canonical methods are executed; record identity and "
+            "drift provenance are verified before reuse."
+        ),
+    )
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--shard-index", type=int, default=0)
     parser.add_argument("--num-shards", type=int, default=1)
@@ -521,10 +557,31 @@ def main() -> None:
     print(f"Prepared {len(records):,} real schema-drift records")
     print(json.dumps(workload_summary, indent=2, sort_keys=True))
 
+    reuse_path = (
+        (REPO_ROOT / args.reuse_methods_from).resolve()
+        if args.reuse_methods_from
+        else None
+    )
+    reusable_metrics = (
+        load_reusable_metrics(reuse_path, records) if reuse_path else {}
+    )
+    methods_to_run = list(args.methods)
+    if reusable_metrics:
+        methods_to_run = [
+            method
+            for method in args.methods
+            if any(method not in reusable_metrics[record["record_id"]] for record in records)
+        ]
+        print(
+            "Reusing unchanged method metrics; executing only: "
+            + ", ".join(methods_to_run),
+            flush=True,
+        )
+
     accelerator = (
         {"required": False, "skipped": "prepare-only"}
         if args.prepare_only
-        else require_accelerator(args.methods, args.allow_cpu)
+        else require_accelerator(methods_to_run, args.allow_cpu)
     )
     manifest: Dict[str, object] = {
         "created_at": utc_now(),
@@ -535,6 +592,16 @@ def main() -> None:
         "workload_path": str(workload_path),
         "seed": args.seed,
         "methods": args.methods,
+        "methods_executed": methods_to_run,
+        "reuse_oracle": (
+            {
+                "path": str(reuse_path),
+                "sha256": file_sha256(reuse_path),
+                "reused_methods": sorted(set(args.methods) - set(methods_to_run)),
+            }
+            if reuse_path
+            else None
+        ),
         "class_names": list(DEFAULT_CLASS_NAMES),
         "accuracy_sla": args.accuracy_sla,
         "accuracy_tolerance": args.accuracy_tolerance,
@@ -571,7 +638,11 @@ def main() -> None:
         hardware_profile=hardware_profile,
         batch_size=args.batch_size,
     )
-    preflight_report = preflight_methods(engine, records[0], args.methods)
+    preflight_report = (
+        preflight_methods(engine, records[0], methods_to_run)
+        if methods_to_run
+        else {"skipped": "all canonical method metrics were reused"}
+    )
     manifest["preflight"] = preflight_report
     manifest_path.write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
@@ -592,10 +663,16 @@ def main() -> None:
                 f"[{offset + 1:,}-{offset + len(chunk):,}/{len(pending):,}]",
                 flush=True,
             )
-            reconciled = reconcile_chunk(engine, chunk, args.methods)
+            reconciled = reconcile_chunk(engine, chunk, methods_to_run)
             for position, record in enumerate(chunk):
-                method_metrics = {}
-                for method in args.methods:
+                method_metrics = {
+                    method: dict(metrics)
+                    for method, metrics in reusable_metrics.get(
+                        record["record_id"], {}
+                    ).items()
+                    if method in args.methods
+                }
+                for method in methods_to_run:
                     result = reconciled[method][position]
                     exact = exact_mapping_metrics(
                         record["ground_truth_mapping"],
@@ -611,6 +688,11 @@ def main() -> None:
                         "structured_output_valid": result.get("structured_output_valid"),
                         "structured_output_retried": result.get("structured_output_retried"),
                     }
+                missing_methods = sorted(set(args.methods) - set(method_metrics))
+                if missing_methods:
+                    raise RuntimeError(
+                        f"Record {record['record_id']} lacks metrics for {missing_methods}"
+                    )
                 oracle_method, oracle_reason = choose_oracle(
                     method_metrics,
                     accuracy_sla=args.accuracy_sla,

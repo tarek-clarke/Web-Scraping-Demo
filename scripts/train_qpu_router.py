@@ -461,7 +461,7 @@ def classification_metrics(
         "mean_oracle_latency_ms": float(np.mean(oracle_latencies)),
         "gpu_dispatch_rate": float(np.mean([
             method in {
-                "minilm", "gemma_e2b", "bge", "cross_encoder",
+                "minilm", "qwen_1_5b", "bge", "cross_encoder",
                 "qwen_1_5b", "smollm2_1_7b",
             }
             for method in dispatched_methods
@@ -625,9 +625,79 @@ def candidate_rank(candidate: dict) -> Tuple[float, float, float, float, float]:
     )
 
 
+def dense_classical_probabilities(model, records: Sequence[dict]) -> np.ndarray:
+    features, _ = records_to_arrays(records)
+    raw = np.asarray(model.predict_proba(features), dtype=float)
+    dense = np.zeros((len(records), ROUTING_OUTPUT_SHAPE), dtype=float)
+    for source_index, class_index in enumerate(model.classes_):
+        dense[:, int(class_index)] = raw[:, source_index]
+    return dense
+
+
+def blended_metrics(
+    records: Sequence[dict],
+    qpu_probabilities: np.ndarray,
+    classical_probabilities: np.ndarray,
+    qpu_weight: float,
+    *,
+    accuracy_sla: float,
+    accuracy_tolerance: float,
+) -> Tuple[Dict[str, object], np.ndarray]:
+    blended = (
+        float(qpu_weight) * np.asarray(qpu_probabilities, dtype=float)
+        + (1.0 - float(qpu_weight))
+        * np.asarray(classical_probabilities, dtype=float)
+    )
+    blended /= np.maximum(blended.sum(axis=1, keepdims=True), 1e-12)
+    metrics = classification_metrics(
+        records,
+        np.argmax(blended, axis=1),
+        blended,
+        accuracy_sla=accuracy_sla,
+        accuracy_tolerance=accuracy_tolerance,
+    )
+    return metrics, blended
+
+
+def select_maximum_qpu_weight(
+    records: Sequence[dict],
+    qpu_probabilities: np.ndarray,
+    classical_probabilities: np.ndarray,
+    *,
+    accuracy_sla: float,
+    accuracy_tolerance: float,
+    min_reconciliation_accuracy: float,
+    max_accuracy_regret: float,
+    min_acceptable_route_rate: float,
+) -> Tuple[float, Dict[str, object]]:
+    """Choose the largest validation-safe QPU contribution on a fixed grid."""
+    for qpu_weight in np.linspace(1.0, 0.0, 201):
+        metrics, _ = blended_metrics(
+            records,
+            qpu_probabilities,
+            classical_probabilities,
+            float(qpu_weight),
+            accuracy_sla=accuracy_sla,
+            accuracy_tolerance=accuracy_tolerance,
+        )
+        if (
+            float(metrics["mean_selected_reconciliation_accuracy"])
+            >= min_reconciliation_accuracy
+            and float(metrics["mean_accuracy_regret"]) <= max_accuracy_regret
+            and float(metrics["acceptable_route_rate"])
+            >= min_acceptable_route_rate
+        ):
+            return float(qpu_weight), metrics
+    raise RuntimeError(
+        "No validation-safe VQC/classical blend passed the configured quality gate"
+    )
+
+
 def write_latex_selection(path: Path, report: dict) -> None:
     validation = report["validation_metrics"]
     test = report["test_metrics"]
+    qpu_validation = report["qpu_only_validation_metrics"]
+    qpu_test = report["qpu_only_test_metrics"]
     content = (
         "\\begin{table}[t]\n"
         "\\centering\n"
@@ -644,7 +714,10 @@ def write_latex_selection(path: Path, report: dict) -> None:
         f"{100 * test['balanced_accuracy']:.2f} \\\\\n"
         f"Macro-F1 (\\%) & {100 * validation['macro_f1']:.2f} & "
         f"{100 * test['macro_f1']:.2f} \\\\\n"
-        f"Selected reconciliation accuracy (\\%) & "
+        f"QPU-only reconciliation accuracy (\\%) & "
+        f"{100 * qpu_validation['mean_selected_reconciliation_accuracy']:.2f} & "
+        f"{100 * qpu_test['mean_selected_reconciliation_accuracy']:.2f} \\\\\n"
+        f"Hybrid reconciliation accuracy (\\%) & "
         f"{100 * validation['mean_selected_reconciliation_accuracy']:.2f} & "
         f"{100 * test['mean_selected_reconciliation_accuracy']:.2f} \\\\\n"
         f"Acceptable-route rate (\\%) & "
@@ -689,23 +762,73 @@ def run_select(args: argparse.Namespace) -> None:
 
     winner = max(candidates, key=candidate_rank)
     records = load_oracle(oracle_path)
+    train_records = [record for record in records if record["split"] == "train"]
+    validation_records = [
+        record for record in records if record["split"] == "validation"
+    ]
     test_records = [record for record in records if record["split"] == "test"]
-    if not test_records:
-        raise RuntimeError("Oracle has no held-out test records")
+    if not train_records or not validation_records or not test_records:
+        raise RuntimeError("Oracle must contain train, validation, and test records")
     qnn, _, device = create_qnn(
         backend_name=args.backend,
         shots=args.evaluation_shots,
         seed=args.seed,
     )
     weights = np.asarray(winner["trained_params"], dtype=float)
-    test_metrics = evaluate(
-        qnn,
-        test_records,
-        weights,
+    validation_features, _ = records_to_arrays(validation_records)
+    test_features, _ = records_to_arrays(test_records)
+    qpu_validation_probabilities = probabilities(qnn, validation_features, weights)
+    qpu_test_probabilities = probabilities(qnn, test_features, weights)
+    qpu_validation_metrics = classification_metrics(
+        validation_records,
+        np.argmax(qpu_validation_probabilities, axis=1),
+        qpu_validation_probabilities,
         accuracy_sla=args.accuracy_sla,
         accuracy_tolerance=args.accuracy_tolerance,
     )
-    validation_metrics = winner["validation_metrics"]
+    qpu_test_metrics = classification_metrics(
+        test_records,
+        np.argmax(qpu_test_probabilities, axis=1),
+        qpu_test_probabilities,
+        accuracy_sla=args.accuracy_sla,
+        accuracy_tolerance=args.accuracy_tolerance,
+    )
+
+    from sklearn.ensemble import RandomForestClassifier
+
+    train_features, train_labels = records_to_arrays(train_records)
+    safety_model = RandomForestClassifier(
+        n_estimators=args.safety_trees,
+        min_samples_leaf=args.safety_min_samples_leaf,
+        class_weight="balanced_subsample",
+        random_state=args.seed,
+        n_jobs=1,
+    )
+    safety_model.fit(train_features, train_labels)
+    classical_validation_probabilities = dense_classical_probabilities(
+        safety_model, validation_records
+    )
+    classical_test_probabilities = dense_classical_probabilities(
+        safety_model, test_records
+    )
+    qpu_weight, validation_metrics = select_maximum_qpu_weight(
+        validation_records,
+        qpu_validation_probabilities,
+        classical_validation_probabilities,
+        accuracy_sla=args.accuracy_sla,
+        accuracy_tolerance=args.accuracy_tolerance,
+        min_reconciliation_accuracy=args.min_reconciliation_accuracy,
+        max_accuracy_regret=args.max_accuracy_regret,
+        min_acceptable_route_rate=args.min_acceptable_route_rate,
+    )
+    test_metrics, _ = blended_metrics(
+        test_records,
+        qpu_test_probabilities,
+        classical_test_probabilities,
+        qpu_weight,
+        accuracy_sla=args.accuracy_sla,
+        accuracy_tolerance=args.accuracy_tolerance,
+    )
 
     if (
         float(test_metrics["mean_selected_reconciliation_accuracy"])
@@ -727,12 +850,24 @@ def run_select(args: argparse.Namespace) -> None:
         "selected_at": utc_now(),
         "selection_rule": (
             "validation reconciliation accuracy, acceptable-route rate, lower "
-            "accuracy regret, present-class macro-F1, then lower GPU dispatch"
+            "accuracy regret, present-class macro-F1, then maximum validation-safe "
+            "VQC probability weight in the CPU safety ensemble"
         ),
         "candidate_count": len(candidates),
         "selected_start_index": winner["start_index"],
         "validation_metrics": validation_metrics,
         "test_metrics": test_metrics,
+        "qpu_only_validation_metrics": qpu_validation_metrics,
+        "qpu_only_test_metrics": qpu_test_metrics,
+        "hybrid_ensemble": {
+            "qpu_weight": qpu_weight,
+            "classical_weight": 1.0 - qpu_weight,
+            "classical_model": "RandomForestClassifier",
+            "n_estimators": args.safety_trees,
+            "min_samples_leaf": args.safety_min_samples_leaf,
+            "fit_split": "train",
+            "calibration_split": "validation",
+        },
         "test_evaluation": {
             "backend": args.backend,
             "shots": args.evaluation_shots,
@@ -765,6 +900,18 @@ def run_select(args: argparse.Namespace) -> None:
             "selection": selection_report,
         },
     )
+    import joblib
+
+    safety_model_path = model_path.with_suffix(".safety_rf.joblib")
+    safety_model_path.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(safety_model, safety_model_path)
+    selection_report["hybrid_ensemble"].update(
+        {
+            "classical_model_filename": safety_model_path.name,
+            "classical_model_sha256": file_sha256(safety_model_path),
+        }
+    )
+    model.metadata["selection"] = selection_report
     model.save(model_path)
     report_path = model_path.with_suffix(".selection.json")
     report_path.write_text(
@@ -786,11 +933,11 @@ def build_parser() -> argparse.ArgumentParser:
     train = subparsers.add_parser("train", help="Train one independent start")
     train.add_argument(
         "--oracle",
-        default="data/training/router_oracle_22500_v7_10pct_single.jsonl",
+        default="data/training/router_oracle_22500_v8_qwen_10pct_single.jsonl",
     )
     train.add_argument(
         "--output-dir",
-        default="data/training/qpu_router_multistart_v7_utility_single",
+        default="data/training/qpu_router_multistart_v8_qwen_utility_single",
     )
     train.add_argument("--start-index", type=int, required=True)
     train.add_argument(
@@ -830,15 +977,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     select.add_argument(
         "--oracle",
-        default="data/training/router_oracle_22500_v7_10pct_single.jsonl",
+        default="data/training/router_oracle_22500_v8_qwen_10pct_single.jsonl",
     )
     select.add_argument(
         "--candidates-dir",
-        default="data/training/qpu_router_multistart_v7_utility_single",
+        default="data/training/qpu_router_multistart_v8_qwen_utility_single",
     )
     select.add_argument(
         "--model-output",
-        default="configs/quantum_router_v7_utility_single.json",
+        default="configs/quantum_router_v8_qwen_utility_single.json",
     )
     select.add_argument("--expected-starts", type=int, default=10)
     select.add_argument(
@@ -859,6 +1006,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     select.add_argument("--max-accuracy-regret", type=float, default=0.05)
     select.add_argument("--min-acceptable-route-rate", type=float, default=0.80)
+    select.add_argument("--safety-trees", type=int, default=100)
+    select.add_argument("--safety-min-samples-leaf", type=int, default=2)
     return parser
 
 

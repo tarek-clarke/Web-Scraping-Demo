@@ -66,14 +66,14 @@ if not torch.cuda.is_available():
 print(f"LUMI accelerator preflight: {torch.cuda.device_count()} visible device(s)")
 PY
 
-ORACLE="${ORACLE:-data/training/router_oracle_22500_v7_10pct_${LUMI_GPU_PROFILE//-/_}.jsonl}"
+ORACLE="${ORACLE:-data/training/router_oracle_22500_v8_qwen_10pct_${LUMI_GPU_PROFILE//-/_}.jsonl}"
 ORACLE_STEM="${ORACLE%.jsonl}"
 SHARDS=()
 for ((rank=0; rank<EXPECTED_GCDS; rank++)); do
     SHARDS+=("${ORACLE_STEM}.part_${rank}.jsonl")
 done
 
-export PROJECT_ROOT ORACLE RAP_LUMI_PYTHON
+export PROJECT_ROOT ORACLE REUSE_ORACLE RAP_LUMI_PYTHON
 export ORACLE_SHARDS="$EXPECTED_GCDS"
 GPU_MAP="${SLURM_JOB_GPUS:-}"
 if [[ ! "$GPU_MAP" =~ ^[0-9]+(,[0-9]+)*$ ]]; then

@@ -2,7 +2,7 @@
 """Prepare, submit, retrieve, and summarize the consolidated QPU experiment.
 
 IBM execution uses exactly one ``SamplerV2.run`` call, one PUB, one canonical
-12-qubit ISA circuit, and an array of parameter bindings.  VLQ uses the same
+13-qubit ISA circuit, and an array of parameter bindings.  VLQ uses the same
 frozen circuit, weights, ordered workload, shots, and replicates in one QaaS
 submission.  No provider path silently falls back to CPU or a simulator.
 """
@@ -16,6 +16,7 @@ import json
 import math
 import os
 import resource
+import shutil
 import socket
 import subprocess
 import sys
@@ -265,6 +266,18 @@ def run_prepare(args: argparse.Namespace) -> None:
 
     frozen_model_path = run_dir / "frozen_model.json"
     model.save(frozen_model_path)
+    hybrid = model.metadata.get("selection", {}).get("hybrid_ensemble", {})
+    safety_filename = hybrid.get("classical_model_filename")
+    if safety_filename:
+        safety_source = model_path.with_name(str(safety_filename))
+        if not safety_source.exists():
+            raise FileNotFoundError(
+                f"Missing frozen classical safety model: {safety_source}"
+            )
+        expected_safety_sha = str(hybrid.get("classical_model_sha256", ""))
+        if expected_safety_sha and file_sha256(safety_source) != expected_safety_sha:
+            raise RuntimeError("Classical safety-model hash does not match the VQC artifact")
+        shutil.copy2(safety_source, run_dir / str(safety_filename))
     write_jsonl(run_dir / "workload.jsonl", records)
     np.savez_compressed(run_dir / "features.npz", features=features)
     sha = workload_hash(records, model.sha256)
@@ -283,6 +296,7 @@ def run_prepare(args: argparse.Namespace) -> None:
         "feature_count": model.feature_count,
         "class_names": list(model.class_names),
         "model_sha256": model.sha256,
+        "hybrid_ensemble": hybrid,
         "model_source": str(model_path),
         "oracle_source": str(oracle_path),
         "oracle_sha256": file_sha256(oracle_path),
@@ -933,12 +947,43 @@ def run_local(args: argparse.Namespace) -> None:
     )
 
 
+def load_classical_safety_probabilities(
+    run_dir: Path,
+    model: RouterModel,
+    records: Sequence[dict],
+) -> Tuple[np.ndarray | None, float]:
+    hybrid = model.metadata.get("selection", {}).get("hybrid_ensemble", {})
+    if not hybrid:
+        return None, 1.0
+    filename = hybrid.get("classical_model_filename")
+    if not filename:
+        raise RuntimeError("Hybrid model is missing classical_model_filename")
+    path = run_dir / str(filename)
+    expected_sha = str(hybrid.get("classical_model_sha256", ""))
+    if not path.exists() or (expected_sha and file_sha256(path) != expected_sha):
+        raise RuntimeError("Frozen classical safety model is missing or has changed")
+    import joblib
+
+    safety_model = joblib.load(path)
+    features = np.asarray([record["features"] for record in records], dtype=float)
+    raw = np.asarray(safety_model.predict_proba(features), dtype=float)
+    dense = np.zeros((len(records), len(DEFAULT_CLASS_NAMES) + 1), dtype=float)
+    for source_index, class_index in enumerate(safety_model.classes_):
+        dense[:, int(class_index)] = raw[:, source_index]
+    qpu_weight = float(hybrid.get("qpu_weight", 1.0))
+    if not 0.0 <= qpu_weight <= 1.0:
+        raise RuntimeError(f"Invalid frozen QPU ensemble weight: {qpu_weight}")
+    return dense, qpu_weight
+
+
 def prediction_rows(
     *,
     model: RouterModel,
     records: Sequence[dict],
     repetitions: int,
     counts: Sequence[Mapping[str, int]],
+    classical_probabilities: np.ndarray | None = None,
+    qpu_weight: float = 1.0,
 ) -> Tuple[List[dict], List[dict]]:
     expected = len(records) * repetitions
     if len(counts) != expected:
@@ -947,6 +992,11 @@ def prediction_rows(
     ensemble: List[dict] = []
     for record_index, record in enumerate(records):
         aggregate: Counter[str] = Counter()
+        classical_row = (
+            None
+            if classical_probabilities is None
+            else classical_probabilities[record_index]
+        )
         for repetition in range(1, repetitions + 1):
             flat_index = record_index * repetitions + (repetition - 1)
             current_counts = dict(counts[flat_index])
@@ -958,6 +1008,8 @@ def prediction_rows(
                     decoded,
                     repetition=str(repetition),
                     counts=current_counts,
+                    classical_probabilities=classical_row,
+                    qpu_weight=qpu_weight,
                 )
             )
         decoded_ensemble = counts_to_prediction(dict(aggregate), model.class_names)
@@ -967,6 +1019,8 @@ def prediction_rows(
                 decoded_ensemble,
                 repetition="ensemble",
                 counts=dict(aggregate),
+                classical_probabilities=classical_row,
+                qpu_weight=qpu_weight,
             )
         )
     return technical, ensemble
@@ -978,11 +1032,37 @@ def enrich_prediction(
     *,
     repetition: str,
     counts: Mapping[str, int],
+    classical_probabilities: np.ndarray | None = None,
+    qpu_weight: float = 1.0,
 ) -> dict:
-    selected = str(decoded["class_name"])
+    qpu_selected = str(decoded["class_name"])
+    qpu_probabilities = np.asarray(
+        list(decoded["probabilities"]) + [float(decoded["invalid_state_rate"])],
+        dtype=float,
+    )
+    if classical_probabilities is None:
+        combined_probabilities = qpu_probabilities
+    else:
+        combined_probabilities = (
+            float(qpu_weight) * qpu_probabilities
+            + (1.0 - float(qpu_weight))
+            * np.asarray(classical_probabilities, dtype=float)
+        )
+    combined_probabilities /= max(float(np.sum(combined_probabilities)), 1e-12)
+    selected_index = int(np.argmax(combined_probabilities))
+    selected = (
+        DEFAULT_CLASS_NAMES[selected_index]
+        if selected_index < len(DEFAULT_CLASS_NAMES)
+        else ABSTAIN_CLASS_NAME
+    )
     dispatched = None if selected == ABSTAIN_CLASS_NAME else selected
     selected_metrics = (
         None if dispatched is None else record["method_metrics"][dispatched]
+    )
+    qpu_metrics = (
+        None
+        if qpu_selected == ABSTAIN_CLASS_NAME
+        else record["method_metrics"][qpu_selected]
     )
     method_accuracies = {
         method: float(record["method_metrics"][method]["accuracy"])
@@ -1003,7 +1083,7 @@ def enrich_prediction(
     selected_accuracy = (
         0.0 if selected_metrics is None else float(selected_metrics["accuracy"])
     )
-    probabilities = list(decoded["probabilities"])
+    probabilities = combined_probabilities[: len(DEFAULT_CLASS_NAMES)].tolist()
     row = {
         "record_id": record["record_id"],
         "repetition": repetition,
@@ -1015,14 +1095,22 @@ def enrich_prediction(
         "oracle_label": int(record.get("oracle_label", DEFAULT_CLASS_NAMES.index(record.get("oracle_method", "minilm")) if record.get("oracle_method") in DEFAULT_CLASS_NAMES else 2)),
         "selected_method": selected,
         "dispatched_method": dispatched or ABSTAIN_CLASS_NAME,
-        "selected_label": int(decoded["class_index"]),
+        "selected_label": selected_index,
+        "qpu_selected_method": qpu_selected,
+        "qpu_selected_label": int(decoded["class_index"]),
+        "qpu_weight": float(qpu_weight),
         "routing_decision_match": selected == record["oracle_method"],
-        "confidence": float(decoded["confidence"]),
-        "abstain": bool(decoded.get("abstain", False)),
+        "confidence": float(combined_probabilities[selected_index]),
+        "qpu_confidence": float(decoded["confidence"]),
+        "abstain": selected == ABSTAIN_CLASS_NAME,
+        "qpu_abstain": bool(decoded.get("abstain", False)),
         "invalid_shots": int(decoded.get("invalid_shots", 0)),
         "invalid_state_rate": float(decoded.get("invalid_state_rate", 0.0)),
         "shots": int(decoded["shots"]),
         "selected_reconciliation_accuracy": selected_accuracy,
+        "qpu_selected_reconciliation_accuracy": (
+            0.0 if qpu_metrics is None else float(qpu_metrics["accuracy"])
+        ),
         "selected_reconciliation_latency_ms": (
             0.0 if selected_metrics is None else float(selected_metrics["latency_ms"])
         ),
@@ -1041,6 +1129,7 @@ def enrich_prediction(
     }
     for index, name in enumerate(DEFAULT_CLASS_NAMES):
         row[f"p_{name}"] = probabilities[index]
+        row[f"qpu_p_{name}"] = float(qpu_probabilities[index])
     return row
 
 
@@ -1079,6 +1168,19 @@ def metrics_for_rows(rows: Sequence[dict]) -> Dict[str, object]:
                 [float(row["selected_reconciliation_accuracy"]) for row in rows]
             )
         ),
+        "qpu_only_routing_accuracy": float(
+            np.mean(
+                [
+                    int(row["qpu_selected_label"]) == int(row["oracle_label"])
+                    for row in rows
+                ]
+            )
+        ),
+        "qpu_only_mean_selected_reconciliation_accuracy": float(
+            np.mean(
+                [float(row["qpu_selected_reconciliation_accuracy"]) for row in rows]
+            )
+        ),
         "mean_oracle_reconciliation_accuracy": float(
             np.mean([float(row["oracle_reconciliation_accuracy"]) for row in rows])
         ),
@@ -1094,7 +1196,7 @@ def metrics_for_rows(rows: Sequence[dict]) -> Dict[str, object]:
         "gpu_dispatch_rate": float(
             np.mean([
                 row.get("dispatched_method") in {
-                    "minilm", "gemma_e2b", "bge", "cross_encoder",
+                    "minilm", "qwen_1_5b", "bge", "cross_encoder",
                     "qwen_1_5b", "smollm2_1_7b",
                 }
                 for row in rows
@@ -1275,11 +1377,16 @@ def process_counts(
     output_prefix: str = "",
     update_primary_manifest: bool = True,
 ) -> None:
+    classical_probabilities, qpu_weight = load_classical_safety_probabilities(
+        run_dir, model, records
+    )
     technical, ensemble = prediction_rows(
         model=model,
         records=records,
         repetitions=repetitions,
         counts=counts,
+        classical_probabilities=classical_probabilities,
+        qpu_weight=qpu_weight,
     )
     all_rows = technical + ensemble
     overall: Dict[str, dict] = {}
@@ -1375,10 +1482,10 @@ def build_parser() -> argparse.ArgumentParser:
     prepare = commands.add_parser("prepare")
     prepare.add_argument(
         "--oracle",
-        default="data/training/router_oracle_22500_v7_10pct_single.jsonl",
+        default="data/training/router_oracle_22500_v8_qwen_10pct_single.jsonl",
     )
     prepare.add_argument(
-        "--model", default="configs/quantum_router_v7_utility_single.json"
+        "--model", default="configs/quantum_router_v8_qwen_utility_single.json"
     )
     prepare.add_argument("--split", choices=["validation", "test"], default="test")
     prepare.add_argument("--run-name", default="heldout_3rep")

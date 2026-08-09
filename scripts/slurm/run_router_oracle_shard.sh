@@ -48,14 +48,22 @@ if [ -n "${RAP_LUMI_PYTHON:-}" ]; then
 else
     PYTHON_COMMAND+=(python)
 fi
+PREFLIGHT_ARGS=()
+if [ -z "${REUSE_ORACLE:-}" ]; then
+    PREFLIGHT_ARGS+=(--require-cohere)
+fi
 "${PYTHON_COMMAND[@]}" scripts/preflight_accelerator.py \
     --expected-devices 1 \
     --profile oracle \
-    --require-cohere \
+    "${PREFLIGHT_ARGS[@]}" \
     --json-output "${ORACLE%.jsonl}.part_${RANK}.preflight.json"
 
-# Gemma generation is independently executed on each 64-GB GCD. Two workers
+# Qwen generation is independently executed on each 64-GB GCD. Two workers
 # share each physical 128-GB MI250X card and maximize aggregate throughput.
+REUSE_ARGS=()
+if [ -n "${REUSE_ORACLE:-}" ]; then
+    REUSE_ARGS+=(--reuse-methods-from "$REUSE_ORACLE")
+fi
 "${PYTHON_COMMAND[@]}" scripts/run_with_energy.py \
     --csv "${SHARD%.jsonl}.energy.csv" \
     --summary "${SHARD%.jsonl}.energy_summary.json" \
@@ -65,9 +73,10 @@ fi
         --output "$SHARD" \
         --max-packets-per-api 2500 \
         --seed 42 --drift-rate 0.10 \
-        --chunk-size 256 \
+        --chunk-size "${ORACLE_CHUNK_SIZE:-32}" \
         --batch-size 4 \
         --accuracy-sla 0.95 \
         --num-shards "$ORACLE_SHARDS" \
         --shard-index "$RANK" \
+        "${REUSE_ARGS[@]}" \
         --resume

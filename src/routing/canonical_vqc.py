@@ -31,13 +31,13 @@ from typing import Dict, Iterable, List, Mapping, Sequence, Tuple
 import numpy as np
 
 
-MODEL_SCHEMA_VERSION = 7
-CIRCUIT_ID = "rap-tree-vqc-13q-v7"
+MODEL_SCHEMA_VERSION = 8
+CIRCUIT_ID = "rap-tree-vqc-13q-v8-qwen"
 DEFAULT_CLASS_NAMES = (
     "levenshtein",
     "regex",
     "minilm",
-    "gemma_e2b",
+    "qwen_1_5b",
     "bge",
     "cohere_embed_v4",
 )

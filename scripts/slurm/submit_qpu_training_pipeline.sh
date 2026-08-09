@@ -29,14 +29,22 @@ source "$PROJECT_ROOT/scripts/lumi_cache_env.sh"
 RAP_LUMI_PYTHON="${RAP_LUMI_PYTHON:-$PROJECT_ROOT/.runtime/gemma4-venv/bin/python}"
 export RAP_LUMI_PYTHON
 
-ORACLE="${ORACLE:-data/training/router_oracle_22500_v7_10pct_${PROFILE//-/_}.jsonl}"
+ORACLE="${ORACLE:-data/training/router_oracle_22500_v8_qwen_10pct_${PROFILE//-/_}.jsonl}"
+if [ "${RAP_DISABLE_ORACLE_REUSE:-0}" = "1" ]; then
+    REUSE_ORACLE=""
+else
+    REUSE_ORACLE="${REUSE_ORACLE:-data/training/router_oracle_22500_v7_10pct_${PROFILE//-/_}.jsonl}"
+    if [ ! -s "$REUSE_ORACLE" ]; then
+        REUSE_ORACLE=""
+    fi
+fi
 MANIFEST="${ORACLE%.jsonl}.manifest.json"
 DEPENDENCY_ARGS=()
 if [ ! -s "$ORACLE" ] || ! grep -q '"status": "complete"' "$MANIFEST" 2>/dev/null; then
     ORACLE_JOB="$(sbatch --parsable \
         --partition="$LUMI_PARTITION" --gpus-per-node="$LUMI_GCDS" \
         --ntasks-per-node="$LUMI_GCDS" --cpus-per-task="$LUMI_WORKER_CPUS" --mem="$LUMI_MEM" \
-        --export=ALL,PROJECT_ROOT="$PROJECT_ROOT",LUMI_GPU_PROFILE="$PROFILE",ORACLE="$ORACLE",RAP_LUMI_PYTHON="$RAP_LUMI_PYTHON" \
+        --export=ALL,PROJECT_ROOT="$PROJECT_ROOT",LUMI_GPU_PROFILE="$PROFILE",ORACLE="$ORACLE",REUSE_ORACLE="$REUSE_ORACLE",RAP_LUMI_PYTHON="$RAP_LUMI_PYTHON" \
         scripts/slurm/build_router_oracle.slurm)"
     DEPENDENCY_ARGS=(--dependency="afterok:${ORACLE_JOB}")
     echo "Oracle job:    $ORACLE_JOB (runs once; resumable)"
