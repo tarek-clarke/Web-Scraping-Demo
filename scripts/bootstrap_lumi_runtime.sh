@@ -16,11 +16,21 @@ mkdir -p "$TARGET"
 # container are installed into the scratch-resident import layer.
 singularity run "$LUMI_SIF" python -m pip install \
     --upgrade --target "$TARGET" \
-    "python-Levenshtein>=0.23.0,<1.0.0"
+    "python-Levenshtein>=0.23.0,<1.0.0" \
+    "transformers>=4.51.0,<4.57.0" \
+    "tokenizers>=0.21.0,<0.22.0" \
+    "huggingface-hub>=0.30.0,<1.0.0" \
+    "accelerate>=1.0.0,<2.0.0" \
+    "safetensors>=0.4.0,<1.0.0"
 
 PYTHONPATH="$TARGET${PYTHONPATH:+:$PYTHONPATH}" \
 SINGULARITYENV_PYTHONPATH="$TARGET${PYTHONPATH:+:$PYTHONPATH}" \
 singularity run "$LUMI_SIF" python - <<'PY'
 import Levenshtein
-print("LUMI scratch dependency layer ready:", Levenshtein.__version__)
+import transformers
+print(
+    "LUMI scratch dependency layer ready:",
+    f"Levenshtein={Levenshtein.__version__}",
+    f"transformers={transformers.__version__}",
+)
 PY
