@@ -29,6 +29,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from src.routing.canonical_vqc import (
     ABSTAIN_CLASS_INDEX,
+    ABSTAIN_CLASS_NAME,
     CIRCUIT_ID,
     DEFAULT_CLASS_NAMES,
     DEFAULT_FEATURE_COUNT,
