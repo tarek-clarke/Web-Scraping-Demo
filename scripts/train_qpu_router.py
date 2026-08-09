@@ -598,11 +598,11 @@ def build_parser() -> argparse.ArgumentParser:
     train = subparsers.add_parser("train", help="Train one independent start")
     train.add_argument(
         "--oracle",
-        default="data/training/router_oracle_22500_v5.jsonl",
+        default="data/training/router_oracle_22500_v6.jsonl",
     )
     train.add_argument(
         "--output-dir",
-        default="data/training/qpu_router_multistart_v5",
+        default="data/training/qpu_router_multistart_v6",
     )
     train.add_argument("--start-index", type=int, required=True)
     train.add_argument(
@@ -630,15 +630,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     select.add_argument(
         "--oracle",
-        default="data/training/router_oracle_22500_v5.jsonl",
+        default="data/training/router_oracle_22500_v6.jsonl",
     )
     select.add_argument(
         "--candidates-dir",
-        default="data/training/qpu_router_multistart_v5",
+        default="data/training/qpu_router_multistart_v6",
     )
     select.add_argument(
         "--model-output",
-        default="configs/quantum_router_v5.json",
+        default="configs/quantum_router_v6.json",
     )
     select.add_argument("--expected-starts", type=int, default=10)
     select.add_argument(

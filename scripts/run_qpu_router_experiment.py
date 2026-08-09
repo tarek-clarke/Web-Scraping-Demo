@@ -1313,9 +1313,9 @@ def build_parser() -> argparse.ArgumentParser:
     prepare = commands.add_parser("prepare")
     prepare.add_argument(
         "--oracle",
-        default="data/training/router_oracle_22500_v5.jsonl",
+        default="data/training/router_oracle_22500_v6.jsonl",
     )
-    prepare.add_argument("--model", default="configs/quantum_router_v5.json")
+    prepare.add_argument("--model", default="configs/quantum_router_v6.json")
     prepare.add_argument("--split", choices=["validation", "test"], default="test")
     prepare.add_argument("--run-name", default="heldout_3rep")
     prepare.add_argument("--run-dir")

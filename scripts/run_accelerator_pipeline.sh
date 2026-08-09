@@ -50,10 +50,10 @@ if [ "${#GPU_TOKENS[@]}" -ne "$GPU_COUNT" ]; then
     exit 1
 fi
 
-ORACLE="${ORACLE:-data/training/router_oracle_22500_v5_${HARDWARE_TAG}.jsonl}"
+ORACLE="${ORACLE:-data/training/router_oracle_22500_v6_${HARDWARE_TAG}.jsonl}"
 ORACLE_STEM="${ORACLE%.jsonl}"
-CANDIDATES="data/training/qpu_router_multistart_v5_${HARDWARE_TAG}"
-MODEL="configs/quantum_router_v5_${HARDWARE_TAG}.json"
+CANDIDATES="data/training/qpu_router_multistart_v6_${HARDWARE_TAG}"
+MODEL="configs/quantum_router_v6_${HARDWARE_TAG}.json"
 mkdir -p data/training "$CANDIDATES" configs
 ENERGY_SUMMARIES=()
 

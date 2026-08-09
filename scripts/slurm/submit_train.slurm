@@ -84,8 +84,8 @@ python3 scripts/run_with_energy.py \
     --summary "data/training/energy_train_${LUMI_GPU_PROFILE//-/_}_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.json" \
     --label "lumi-vqc-train-${LUMI_GPU_PROFILE}-${SLURM_ARRAY_TASK_ID}" -- \
     python3 -u scripts/train_qpu_router.py train \
-        --oracle "${ORACLE:-data/training/router_oracle_22500_v5_${LUMI_GPU_PROFILE//-/_}.jsonl}" \
-        --output-dir "data/training/qpu_router_multistart_v5_${LUMI_GPU_PROFILE//-/_}" \
+        --oracle "${ORACLE:-data/training/router_oracle_22500_v6_${LUMI_GPU_PROFILE//-/_}.jsonl}" \
+        --output-dir "data/training/qpu_router_multistart_v6_${LUMI_GPU_PROFILE//-/_}" \
         --start-index "$SLURM_ARRAY_TASK_ID" \
         --backend aer_gpu \
         --training-shots 512 \

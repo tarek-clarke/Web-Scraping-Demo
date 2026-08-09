@@ -18,7 +18,7 @@ The Resilient RAP framework evaluates adaptive stream reconciliation across **9 
   1. *JSON Structural*: Dropped/null keys and key modification.
   2. *LLM-Generated Schema Reformulation (Qwen)*: LLM semantic field renaming preserving lexical stems.
   3. *Syntactic Field Truncation/Drift*: Type alterations and field truncation.
-- **Reconciliation Engine (6 Candidates)**: Levenshtein, Regex, MiniLM, Gemma 4 E2B, BGE, and Cohere Embed v4.
+- **Reconciliation Engine (6 Candidates)**: Levenshtein, Regex, MiniLM, BGE, Cohere Embed v4, and Qwen 2.5 1.5B Instruct.
 - **Routing Architectures**:
   1. *Multinomial Logistic Regression (CPU)*: Linear decision boundary baseline.
   2. *Random Forest Classifier (CPU)*: Non-linear tree ensemble baseline (100 trees, max depth 10).
@@ -29,9 +29,9 @@ The Resilient RAP framework evaluates adaptive stream reconciliation across **9 
 
 ---
 
-## Active v5 Rerun Protocol
+## Active v6 Rerun Protocol
 
-The active rerun starts from the committed 22,500-packet, nine-API corpus and produces 31,500 drift records: training identities receive one deterministic chaos family, while validation and test identities receive all three. Existing result tables later in this README describe archived experiments and must not be mixed with v5 results; the reporting scripts replace them after the v5 runs complete.
+The active rerun starts from the committed 22,500-packet, nine-API corpus and produces 31,500 drift records: training identities receive one deterministic chaos family, while validation and test identities receive all three. Existing result tables later in this README describe archived experiments and must not be mixed with v6 results; the reporting scripts replace them after the v6 runs complete.
 
 ### Six routing choices
 
@@ -42,11 +42,11 @@ The canonical class order is fixed in `src/routing/canonical_vqc.py` and in ever
 | 0 | `levenshtein` | CPU |
 | 1 | `regex` | CPU |
 | 2 | `minilm` | Local GPU |
-| 3 | `gemma_e2b` | Local GPU |
-| 4 | `bge` | Local GPU |
-| 5 | `cohere_embed_v4` | Cohere API |
+| 3 | `bge` | Local GPU |
+| 4 | `cohere_embed_v4` | Cohere API |
+| 5 | `qwen_1_5b` | Local GPU |
 
-These six choices use three measured output bits. The canonical circuit therefore uses 10 feature qubits plus 3 output qubits, for 13 logical qubits total. It fits both the 24-qubit VLQ QPU and IBM's 156-qubit Heron r2 backend without changing the logical circuit. The fixed state map is `000` Levenshtein, `001` Regex, `010` MiniLM, `011` Gemma E2B, `100` BGE, `101` Cohere Embed v4, `110` abstain, and `111` reserved (also decoded as abstain).
+These six choices use three measured output bits. The canonical circuit therefore uses 10 feature qubits plus 3 output qubits, for 13 logical qubits total. It fits both the 24-qubit VLQ QPU and IBM's 156-qubit Heron r2 backend without changing the logical circuit. The fixed state map is `000` Levenshtein, `001` Regex, `010` MiniLM, `011` BGE, `100` Cohere Embed v4, `101` Qwen 2.5 1.5B, `110` abstain, and `111` reserved (also decoded as abstain).
 
 ### Comparable ground-truth accuracy
 

@@ -31,15 +31,15 @@ from typing import Dict, Iterable, List, Mapping, Sequence, Tuple
 import numpy as np
 
 
-MODEL_SCHEMA_VERSION = 5
-CIRCUIT_ID = "rap-tree-vqc-13q-v5"
+MODEL_SCHEMA_VERSION = 6
+CIRCUIT_ID = "rap-tree-vqc-13q-v6"
 DEFAULT_CLASS_NAMES = (
     "levenshtein",
     "regex",
     "minilm",
-    "gemma_e2b",
     "bge",
     "cohere_embed_v4",
+    "qwen_1_5b",
 )
 DEFAULT_FEATURE_COUNT = 10
 DEFAULT_REPS = 2

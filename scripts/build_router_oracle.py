@@ -410,7 +410,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--output",
-        default="data/training/router_oracle_22500_v5.jsonl",
+        default="data/training/router_oracle_22500_v6.jsonl",
     )
     parser.add_argument("--seed", type=int, default=20260723)
     parser.add_argument("--max-packets-per-api", type=int, default=2500)
