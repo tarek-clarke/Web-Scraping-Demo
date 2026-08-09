@@ -18,7 +18,7 @@ The Resilient RAP framework evaluates adaptive stream reconciliation across **9 
   1. *JSON Structural*: Dropped/null keys and key modification.
   2. *LLM-Generated Schema Reformulation (Qwen)*: LLM semantic field renaming preserving lexical stems.
   3. *Syntactic Field Truncation/Drift*: Type alterations and field truncation.
-- **Reconciliation Engine (6 Candidates)**: Levenshtein, Regex, MiniLM, BGE, Cohere Embed v4, and Qwen 2.5 1.5B Instruct.
+- **Reconciliation Engine (6 Candidates)**: Levenshtein, Regex, MiniLM, Gemma E2B, BGE, and Cohere Embed v4.
 - **Routing Architectures**:
   1. *Multinomial Logistic Regression (CPU)*: Linear decision boundary baseline.
   2. *Random Forest Classifier (CPU)*: Non-linear tree ensemble baseline (100 trees, max depth 10).
@@ -29,9 +29,9 @@ The Resilient RAP framework evaluates adaptive stream reconciliation across **9 
 
 ---
 
-## Active v6 Rerun Protocol
+## Active v7 Utility-Aware Rerun Protocol
 
-The active rerun starts from the committed 22,500-packet, nine-API corpus and produces 31,500 drift records: training identities receive one deterministic chaos family, while validation and test identities receive all three. Existing result tables later in this README describe archived experiments and must not be mixed with v6 results; the reporting scripts replace them after the v6 runs complete.
+The active rerun starts from the committed 22,500-packet, nine-API corpus and deterministically selects 10% (2,250 records; 250 per API) for drift injection. The 2,250 records are assigned stable train, validation, and held-out test identities. Existing archived tables must not be mixed with v7 utility-aware results.
 
 ### Six routing choices
 
@@ -42,11 +42,11 @@ The canonical class order is fixed in `src/routing/canonical_vqc.py` and in ever
 | 0 | `levenshtein` | CPU |
 | 1 | `regex` | CPU |
 | 2 | `minilm` | Local GPU |
-| 3 | `bge` | Local GPU |
-| 4 | `cohere_embed_v4` | Cohere API |
-| 5 | `qwen_1_5b` | Local GPU |
+| 3 | `gemma_e2b` | Local GPU |
+| 4 | `bge` | Local GPU |
+| 5 | `cohere_embed_v4` | Cohere API |
 
-These six choices use three measured output bits. The canonical circuit therefore uses 10 feature qubits plus 3 output qubits, for 13 logical qubits total. It fits both the 24-qubit VLQ QPU and IBM's 156-qubit Heron r2 backend without changing the logical circuit. The fixed state map is `000` Levenshtein, `001` Regex, `010` MiniLM, `011` BGE, `100` Cohere Embed v4, `101` Qwen 2.5 1.5B, `110` abstain, and `111` reserved (also decoded as abstain).
+These six choices use three measured output bits. The canonical circuit therefore uses 10 feature qubits plus 3 output qubits, for 13 logical qubits total. It fits both the 24-qubit VLQ QPU and IBM's 156-qubit Heron r2 backend without changing the logical circuit. The fixed state map is `000` Levenshtein, `001` Regex, `010` MiniLM, `011` Gemma E2B, `100` BGE, `101` Cohere Embed v4, `110` abstain, and `111` reserved (also decoded as abstain).
 
 ### Comparable ground-truth accuracy
 
@@ -56,15 +56,27 @@ $$\operatorname{Acc}(m)=\frac{\text{exactly correct mapped or unmapped source-fi
 
 The oracle also records exact-record match, mapping precision, recall, and F1. A reconciler's native edit-distance or semantic-similarity score is retained as `native_score`, but it is never used as cross-method accuracy or to choose the oracle label.
 
+### Utility-aware VQC objective
+
+Exact oracle-label accuracy remains a diagnostic, but it is not the VQC training objective: many packets have several reconcilers with identical mapping accuracy, so treating every non-cheapest tie as completely wrong produces arbitrary class noise. For packet $i$, the acceptable set $A_i$ contains every route meeting the 0.95 accuracy SLA; if none meets the SLA, it contains every route within 0.01 of the best observed accuracy. The simulator minimizes
+
+$$
+\mathcal{L}_i=-\log\!\left(\sum_{m\in A_i}p_i(m)\right)
++2\sum_m p_i(m)\,\Delta\operatorname{Acc}_i(m)
++0.05\sum_m p_i(m)\,\widetilde{\operatorname{Cost}}(m),
+$$
+
+which rewards probability assigned to an accurate route, penalizes expected accuracy regret, and resolves acceptable ties toward cheaper methods. Model selection uses the untouched validation split; the held-out test gate requires at least 90% selected reconciliation accuracy, at most 5% mean accuracy regret, and at least 80% acceptable-route decisions. Exact class accuracy, present-class macro-F1, SLA compliance, abstention, latency, and GPU/API dispatch remain separately reported. A failed gate blocks physical-QPU submission.
+
 ### Unused quantum states and abstention
 
-Three output bits represent eight raw states. States `110` and `111` are aggregated into an explicit `abstain` outcome rather than silently discarded or clamped to a valid class. Simulator and physical-QPU reports include `invalid_shots`, `invalid_state_rate`, and `abstain_rate`. If the aggregate abstention probability exceeds the probability of every valid class, the raw router decision is recorded as `abstain` and dispatch fails safely to the deterministic CPU `schema_registry` reconciler. Reports retain both `selected_method=abstain` and `dispatched_method=schema_registry`, so the fallback cannot inflate routing-selection accuracy while its end-to-end reconciliation result remains measurable.
+Three output bits represent eight raw states. States `110` and `111` are aggregated into an explicit `abstain` outcome rather than silently discarded or clamped to a valid class. Simulator and physical-QPU reports include `invalid_shots`, `invalid_state_rate`, and `abstain_rate`. An abstention performs no reconciler dispatch and receives zero selected reconciliation accuracy; it can therefore never inflate end-to-end results.
 
 ### Fail-fast preflight
 
-Before any full oracle pass, each worker executes one real record through all six methods. The run stops immediately if a model cannot load, a cloud credential is missing, a CPU fallback occurs where an accelerator is required, or a method returns malformed mappings or latency. Models remain resident until their results are recorded; MiniLM and BGE are then released before autoregressive Qwen generation so it has dedicated VRAM. A smoke-test report is written into each shard manifest.
+Before any full oracle pass, each worker executes one real record through all six methods. The run stops immediately if a model cannot load, a cloud credential is missing, a CPU fallback occurs where an accelerator is required, or a method returns malformed mappings or latency. Models remain resident until their results are recorded; MiniLM and BGE are then released before autoregressive Gemma generation so it has dedicated VRAM. A smoke-test report is written into each shard manifest.
 
-The local Qwen route uses a compact structured-output protocol: source and target field names are indexed, and the model must return one JSON array of unique target indices or `null` values. The decoder rejects placeholders, duplicate targets, wrong-length arrays, and prose; it performs one deterministic retry and records `structured_output_valid` and `structured_output_retried` for every oracle decision. A failed retry stops preflight rather than silently becoming an empty mapping.
+The local Gemma route uses a compact structured-output protocol: source and target field names are indexed, and the model must return one JSON array of unique target indices or `null` values. The decoder rejects placeholders, duplicate targets, wrong-length arrays, and prose; it performs one deterministic retry and records `structured_output_valid` and `structured_output_retried` for every oracle decision. A failed retry stops preflight rather than silently becoming an empty mapping.
 
 To run only that validation locally or in an already configured accelerator environment:
 
@@ -193,7 +205,7 @@ Applies 3 drift/chaos families without leaking packet identities across split bo
 
 ### Stage 3: Feature Extraction & Cost-Aware Oracle Construction
 Extracts 10 pre-reconciliation feature dimensions ($x_0, \dots, x_9 \in [0, \pi]$) and establishes ground-truth oracle route labels:
-- **`scripts/build_router_oracle.py`**: Evaluates all candidate reconcilers per packet and assigns cost-aware ground-truth optimal route labels across 31,500 packets (80% train, 10% val, 10% test).
+- **`scripts/build_router_oracle.py`**: Evaluates all candidate reconcilers for the deterministic 2,250-record drift subset and assigns stable train, validation, and held-out test identities.
 - **`scripts/export_vqc_features_csv.py`**: Exports pre-extracted 10-dimensional feature vectors into CSV format for classical model training.
 - **Outputs**: `data/training/router_oracle_22500_v2.manifest.json`, `data/training/router_oracle_22500_v2.workload.jsonl.gz`, `data/vqc_input_features_22500.csv`.
 
@@ -206,9 +218,9 @@ $$\text{If no } m \text{ satisfies } \text{Acc}_i(m) \ge \tau, \quad y_i^* = \op
 
 $$\text{If } \text{Acc}_i(m) = 0 \quad \forall m \in \mathcal{M}, \quad y_i^* = \text{abstain}$$
 
-where $\mathcal{M} = \{\text{Levenshtein}, \text{Regex}, \text{BERT}, \text{BGE}, \text{Cohere}, \text{Gemma}\}$ is the set of candidate reconcilers, and $\operatorname{Cost}(m)$ is single-packet inference latency strictly ordered as:
+where $\mathcal{M} = \{\text{Levenshtein}, \text{Regex}, \text{MiniLM}, \text{Gemma E2B}, \text{BGE}, \text{Cohere Embed v4}\}$ is the set of candidate reconcilers, and $\operatorname{Cost}(m)$ is the fixed execution-tier order used by the oracle:
 
-$$\operatorname{Cost}(\text{Levenshtein}) < \operatorname{Cost}(\text{Regex}) < \operatorname{Cost}(\text{BERT}) < \operatorname{Cost}(\text{BGE}) < \operatorname{Cost}(\text{Cohere}) < \operatorname{Cost}(\text{Gemma})$$
+$$\operatorname{Cost}(\text{Levenshtein}) < \operatorname{Cost}(\text{Regex}) < \operatorname{Cost}(\text{MiniLM}) < \operatorname{Cost}(\text{Gemma E2B}) < \operatorname{Cost}(\text{BGE}) < \operatorname{Cost}(\text{Cohere Embed v4})$$
 
 ### Stage 4: Router Training & Multi-Architecture Evaluation
 Trains and evaluates router models across classical CPU, GPU statevector simulator, and physical QPU hardware:
@@ -216,7 +228,7 @@ Trains and evaluates router models across classical CPU, GPU statevector simulat
   - **`scripts/run_classical_router_experiment.py`**: Trains Multinomial Logistic Regression and Random Forest models across 10 random seeds ($80/10/10$ packet-identity splits) and Leave-One-API-Out (LOAO) cross-validation.
   - **Outputs**: `data/reports/classical_router_benchmark_results.json`.
 - **VQC Simulator Router (Aer GPU)**:
-  - **`scripts/train_router.py`**: Trains 12-qubit Variational Quantum Classifier (`ZZFeatureMap` + `RealAmplitudes` ansatz) on AMD Instinct MI250X GPUs.
+  - **`scripts/train_qpu_router.py`**: Trains the canonical 13-qubit, 10-feature/3-output utility-aware VQC on Aer GPU.
   - **`scripts/run_gpu_scalability_sweep.py`**: Benchmarks GPU execution throughput and scaling across 1 vs. 4 MI250X cards.
 - **Physical IBM QPU Router**:
   - **`scripts/run_qpu_router_experiment.py`**: Constructs 12-qubit VQC circuits for IBM Quantum execution.

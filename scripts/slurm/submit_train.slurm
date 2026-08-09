@@ -85,11 +85,13 @@ python3 scripts/run_with_energy.py \
     --label "lumi-vqc-train-${LUMI_GPU_PROFILE}-${SLURM_ARRAY_TASK_ID}" -- \
     python3 -u scripts/train_qpu_router.py train \
         --oracle "${ORACLE:-data/training/router_oracle_22500_v7_10pct_${LUMI_GPU_PROFILE//-/_}.jsonl}" \
-        --output-dir "data/training/qpu_router_multistart_v7_${LUMI_GPU_PROFILE//-/_}" \
+        --output-dir "data/training/qpu_router_multistart_v7_utility_${LUMI_GPU_PROFILE//-/_}" \
         --start-index "$SLURM_ARRAY_TASK_ID" \
         --backend aer_gpu \
-        --training-shots 512 \
-        --maxiter 200
+        --training-shots "${RAP_TRAIN_SHOTS:-1024}" \
+        --maxiter "${RAP_TRAIN_MAXITER:-600}" \
+        --accuracy-sla 0.95 --accuracy-tolerance 0.01 \
+        --cost-penalty 0.05 --regret-penalty 2.0
 
 echo "=== Training Start ${SLURM_ARRAY_TASK_ID} Complete ==="
 echo "End time: $(date)"

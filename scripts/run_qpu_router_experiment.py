@@ -171,21 +171,36 @@ def load_run(run_dir: Path) -> Tuple[dict, RouterModel, List[dict], np.ndarray]:
 def quality_gate_from_model(
     model: RouterModel,
     *,
-    min_macro_f1: float,
-    min_balanced_accuracy: float,
+    min_reconciliation_accuracy: float,
+    max_accuracy_regret: float,
+    min_acceptable_route_rate: float,
 ) -> Dict[str, float]:
     selection = model.metadata.get("selection", {})
     test_metrics = selection.get("test_metrics", {}) if isinstance(selection, dict) else {}
-    macro_f1 = float(test_metrics.get("macro_f1", -1.0))
-    balanced = float(test_metrics.get("balanced_accuracy", -1.0))
-    if macro_f1 < min_macro_f1 or balanced < min_balanced_accuracy:
+    reconciliation_accuracy = float(
+        test_metrics.get("mean_selected_reconciliation_accuracy", -1.0)
+    )
+    accuracy_regret = float(test_metrics.get("mean_accuracy_regret", 1.0))
+    acceptable_route_rate = float(test_metrics.get("acceptable_route_rate", -1.0))
+    if (
+        reconciliation_accuracy < min_reconciliation_accuracy
+        or accuracy_regret > max_accuracy_regret
+        or acceptable_route_rate < min_acceptable_route_rate
+    ):
         raise RuntimeError(
             "Frozen model has not passed the simulator held-out quality gate: "
-            f"macro-F1={macro_f1:.4f}, balanced_accuracy={balanced:.4f}; "
-            f"required {min_macro_f1:.4f}/{min_balanced_accuracy:.4f}. "
+            f"reconciliation_accuracy={reconciliation_accuracy:.4f}, "
+            f"accuracy_regret={accuracy_regret:.4f}, "
+            f"acceptable_route_rate={acceptable_route_rate:.4f}; required "
+            f">={min_reconciliation_accuracy:.4f}, <= {max_accuracy_regret:.4f}, "
+            f">={min_acceptable_route_rate:.4f}. "
             "Physical QPU submission is blocked."
         )
-    return {"macro_f1": macro_f1, "balanced_accuracy": balanced}
+    return {
+        "reconciliation_accuracy": reconciliation_accuracy,
+        "accuracy_regret": accuracy_regret,
+        "acceptable_route_rate": acceptable_route_rate,
+    }
 
 
 def run_prepare(args: argparse.Namespace) -> None:
@@ -226,8 +241,9 @@ def run_prepare(args: argparse.Namespace) -> None:
     )
     gate = quality_gate_from_model(
         model,
-        min_macro_f1=args.min_model_macro_f1,
-        min_balanced_accuracy=args.min_model_balanced_accuracy,
+        min_reconciliation_accuracy=args.min_model_reconciliation_accuracy,
+        max_accuracy_regret=args.max_model_accuracy_regret,
+        min_acceptable_route_rate=args.min_model_acceptable_route_rate,
     )
 
     if args.run_dir:
@@ -507,8 +523,9 @@ def run_submit_ibm(args: argparse.Namespace) -> None:
     )
     quality_gate_from_model(
         model,
-        min_macro_f1=args.min_model_macro_f1,
-        min_balanced_accuracy=args.min_model_balanced_accuracy,
+        min_reconciliation_accuracy=args.min_model_reconciliation_accuracy,
+        max_accuracy_regret=args.max_model_accuracy_regret,
+        min_acceptable_route_rate=args.min_model_acceptable_route_rate,
     )
 
     service = ibm_service()
@@ -719,8 +736,9 @@ def run_submit_vlq(args: argparse.Namespace) -> None:
         )
     quality_gate_from_model(
         model,
-        min_macro_f1=args.min_model_macro_f1,
-        min_balanced_accuracy=args.min_model_balanced_accuracy,
+        min_reconciliation_accuracy=args.min_model_reconciliation_accuracy,
+        max_accuracy_regret=args.max_model_accuracy_regret,
+        min_acceptable_route_rate=args.min_model_acceptable_route_rate,
     )
     wrapper, backend = init_vlq()
     abstract, feature_parameters, _ = build_measured_circuit(
@@ -962,8 +980,29 @@ def enrich_prediction(
     counts: Mapping[str, int],
 ) -> dict:
     selected = str(decoded["class_name"])
-    dispatched = "schema_registry" if selected == ABSTAIN_CLASS_NAME else selected
-    selected_metrics = record["method_metrics"][dispatched]
+    dispatched = None if selected == ABSTAIN_CLASS_NAME else selected
+    selected_metrics = (
+        None if dispatched is None else record["method_metrics"][dispatched]
+    )
+    method_accuracies = {
+        method: float(record["method_metrics"][method]["accuracy"])
+        for method in DEFAULT_CLASS_NAMES
+    }
+    meeting_sla = {
+        method for method, accuracy in method_accuracies.items() if accuracy >= 0.95
+    }
+    if meeting_sla:
+        acceptable_methods = meeting_sla
+    else:
+        best_accuracy = max(method_accuracies.values())
+        acceptable_methods = {
+            method
+            for method, accuracy in method_accuracies.items()
+            if best_accuracy - accuracy <= 0.01 + 1e-12
+        }
+    selected_accuracy = (
+        0.0 if selected_metrics is None else float(selected_metrics["accuracy"])
+    )
     probabilities = list(decoded["probabilities"])
     row = {
         "record_id": record["record_id"],
@@ -975,7 +1014,7 @@ def enrich_prediction(
         "oracle_method": record.get("oracle_method", "minilm"),
         "oracle_label": int(record.get("oracle_label", DEFAULT_CLASS_NAMES.index(record.get("oracle_method", "minilm")) if record.get("oracle_method") in DEFAULT_CLASS_NAMES else 2)),
         "selected_method": selected,
-        "dispatched_method": dispatched,
+        "dispatched_method": dispatched or ABSTAIN_CLASS_NAME,
         "selected_label": int(decoded["class_index"]),
         "routing_decision_match": selected == record["oracle_method"],
         "confidence": float(decoded["confidence"]),
@@ -983,11 +1022,20 @@ def enrich_prediction(
         "invalid_shots": int(decoded.get("invalid_shots", 0)),
         "invalid_state_rate": float(decoded.get("invalid_state_rate", 0.0)),
         "shots": int(decoded["shots"]),
-        "selected_reconciliation_accuracy": float(selected_metrics["accuracy"]),
-        "selected_reconciliation_latency_ms": float(selected_metrics["latency_ms"]),
+        "selected_reconciliation_accuracy": selected_accuracy,
+        "selected_reconciliation_latency_ms": (
+            0.0 if selected_metrics is None else float(selected_metrics["latency_ms"])
+        ),
         "oracle_reconciliation_accuracy": float(
             record["method_metrics"][record["oracle_method"]]["accuracy"]
         ),
+        "accuracy_regret": max(
+            float(record["method_metrics"][record["oracle_method"]]["accuracy"])
+            - selected_accuracy,
+            0.0,
+        ),
+        "acceptable_route": dispatched in acceptable_methods,
+        "sla_compliant": selected_accuracy >= 0.95,
         "counts": dict(counts),
         "features": record["features"],
     }
@@ -1033,6 +1081,15 @@ def metrics_for_rows(rows: Sequence[dict]) -> Dict[str, object]:
         ),
         "mean_oracle_reconciliation_accuracy": float(
             np.mean([float(row["oracle_reconciliation_accuracy"]) for row in rows])
+        ),
+        "mean_accuracy_regret": float(
+            np.mean([float(row["accuracy_regret"]) for row in rows])
+        ),
+        "acceptable_route_rate": float(
+            np.mean([bool(row["acceptable_route"]) for row in rows])
+        ),
+        "sla_compliance_rate": float(
+            np.mean([bool(row["sla_compliant"]) for row in rows])
         ),
         "gpu_dispatch_rate": float(
             np.mean([
@@ -1302,8 +1359,13 @@ def process_counts(
 
 
 def add_quality_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--min-model-macro-f1", type=float, default=0.70)
-    parser.add_argument("--min-model-balanced-accuracy", type=float, default=0.70)
+    parser.add_argument(
+        "--min-model-reconciliation-accuracy", type=float, default=0.90
+    )
+    parser.add_argument("--max-model-accuracy-regret", type=float, default=0.05)
+    parser.add_argument(
+        "--min-model-acceptable-route-rate", type=float, default=0.80
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1313,9 +1375,11 @@ def build_parser() -> argparse.ArgumentParser:
     prepare = commands.add_parser("prepare")
     prepare.add_argument(
         "--oracle",
-        default="data/training/router_oracle_22500_v6.jsonl",
+        default="data/training/router_oracle_22500_v7_10pct_single.jsonl",
     )
-    prepare.add_argument("--model", default="configs/quantum_router_v6.json")
+    prepare.add_argument(
+        "--model", default="configs/quantum_router_v7_utility_single.json"
+    )
     prepare.add_argument("--split", choices=["validation", "test"], default="test")
     prepare.add_argument("--run-name", default="heldout_3rep")
     prepare.add_argument("--run-dir")

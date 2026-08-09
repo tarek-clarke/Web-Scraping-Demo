@@ -50,10 +50,10 @@ if [ "${#GPU_TOKENS[@]}" -ne "$GPU_COUNT" ]; then
     exit 1
 fi
 
-ORACLE="${ORACLE:-data/training/router_oracle_22500_v6_${HARDWARE_TAG}.jsonl}"
+ORACLE="${ORACLE:-data/training/router_oracle_22500_v7_10pct_${HARDWARE_TAG}.jsonl}"
 ORACLE_STEM="${ORACLE%.jsonl}"
-CANDIDATES="data/training/qpu_router_multistart_v6_${HARDWARE_TAG}"
-MODEL="configs/quantum_router_v6_${HARDWARE_TAG}.json"
+CANDIDATES="data/training/qpu_router_multistart_v7_utility_${HARDWARE_TAG}"
+MODEL="configs/quantum_router_v7_utility_${HARDWARE_TAG}.json"
 mkdir -p data/training "$CANDIDATES" configs
 ENERGY_SUMMARIES=()
 
@@ -83,7 +83,7 @@ if [ ! -s "$ORACLE" ] || ! grep -q '"status": "complete"' "$MANIFEST" 2>/dev/nul
                 "$PYTHON_BIN" -u scripts/build_router_oracle.py \
                     --packets-file data/ingested/telemetry_clean_bench_22500.json \
                     --output "$SHARD" --max-packets-per-api 2500 \
-                    --chunk-size 31500 --batch-size 4 --accuracy-sla 0.95 \
+                    --chunk-size 2250 --batch-size 4 --accuracy-sla 0.95 \
                     --num-shards "$WORKERS" --shard-index "$rank" --resume
         ) >"oracle_${HARDWARE_TAG}_part_${rank}.out" \
           2>"oracle_${HARDWARE_TAG}_part_${rank}.err" &
@@ -98,7 +98,7 @@ if [ ! -s "$ORACLE" ] || ! grep -q '"status": "complete"' "$MANIFEST" 2>/dev/nul
         exit 1
     fi
     "$PYTHON_BIN" scripts/merge_router_oracle_shards.py \
-        --output "$ORACLE" --expected-records 31500 --shards "${SHARDS[@]}"
+        --output "$ORACLE" --expected-records 2250 --shards "${SHARDS[@]}"
 fi
 for ((rank=0; rank<WORKERS; rank++)); do
     SUMMARY_PATH="${ORACLE_STEM}.part_${rank}.energy_summary.json"
@@ -134,7 +134,10 @@ for ((batch_start=0; batch_start<10; batch_start+=WORKERS)); do
                 "$PYTHON_BIN" -u scripts/train_qpu_router.py train \
                     --oracle "$ORACLE" --output-dir "$CANDIDATES" \
                     --start-index "$START_INDEX" --backend aer_gpu \
-                    --training-shots 512 --maxiter "${RAP_TRAIN_MAXITER:-200}"
+                    --training-shots "${RAP_TRAIN_SHOTS:-1024}" \
+                    --maxiter "${RAP_TRAIN_MAXITER:-600}" \
+                    --accuracy-sla 0.95 --accuracy-tolerance 0.01 \
+                    --cost-penalty 0.05 --regret-penalty 2.0
         ) >"vqc_train_${HARDWARE_TAG}_${START_INDEX}.out" \
           2>"vqc_train_${HARDWARE_TAG}_${START_INDEX}.err" &
         PIDS+=("$!")
@@ -162,7 +165,9 @@ CUDA_VISIBLE_DEVICES="${GPU_TOKENS[0]}" "$PYTHON_BIN" scripts/run_with_energy.py
     "$PYTHON_BIN" -u scripts/train_qpu_router.py select \
         --oracle "$ORACLE" --candidates-dir "$CANDIDATES" \
         --model-output "$MODEL" --expected-starts 10 --backend aer_gpu \
-        --evaluation-shots 2048 --min-macro-f1 0.70 --min-balanced-accuracy 0.70
+        --evaluation-shots 2048 --accuracy-sla 0.95 --accuracy-tolerance 0.01 \
+        --min-reconciliation-accuracy 0.90 --max-accuracy-regret 0.05 \
+        --min-acceptable-route-rate 0.80
 ENERGY_SUMMARIES+=("data/training/energy_select_${HARDWARE_TAG}.json")
 "$PYTHON_BIN" scripts/summarize_energy.py \
     --output-prefix "data/training/energy_summary_${HARDWARE_TAG}" \

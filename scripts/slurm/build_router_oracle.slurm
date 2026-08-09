@@ -66,7 +66,7 @@ if not torch.cuda.is_available():
 print(f"LUMI accelerator preflight: {torch.cuda.device_count()} visible device(s)")
 PY
 
-ORACLE="${ORACLE:-data/training/router_oracle_22500_v6_${LUMI_GPU_PROFILE//-/_}.jsonl}"
+ORACLE="${ORACLE:-data/training/router_oracle_22500_v7_10pct_${LUMI_GPU_PROFILE//-/_}.jsonl}"
 ORACLE_STEM="${ORACLE%.jsonl}"
 SHARDS=()
 for ((rank=0; rank<EXPECTED_GCDS; rank++)); do

@@ -41,6 +41,12 @@ from src.routing.canonical_vqc import (
 )
 
 
+DEFAULT_ACCURACY_SLA = 0.95
+DEFAULT_ACCURACY_TOLERANCE = 0.01
+DEFAULT_COST_PENALTY = 0.05
+DEFAULT_REGRET_PENALTY = 2.0
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -110,6 +116,84 @@ def records_to_arrays(records: Sequence[dict]) -> Tuple[np.ndarray, np.ndarray]:
         np.asarray([record["features"] for record in records], dtype=float),
         np.asarray([record["oracle_label"] for record in records], dtype=int),
     )
+
+
+def acceptable_route_indices(
+    record: dict,
+    *,
+    accuracy_sla: float = DEFAULT_ACCURACY_SLA,
+    accuracy_tolerance: float = DEFAULT_ACCURACY_TOLERANCE,
+) -> List[int]:
+    """Return routes that satisfy the oracle's accuracy policy.
+
+    Several reconcilers frequently produce exactly the same mapping accuracy.
+    Treating every non-cheapest tie as a completely wrong route creates noisy,
+    arbitrary class labels.  Training instead accepts every route meeting the
+    SLA, or every near-best route when no method reaches the SLA.  A separate
+    cost term still teaches the VQC to prefer cheaper acceptable routes.
+    """
+    accuracies = np.asarray(
+        [
+            float(record["method_metrics"][method]["accuracy"])
+            for method in DEFAULT_CLASS_NAMES
+        ],
+        dtype=float,
+    )
+    meeting_sla = np.flatnonzero(accuracies >= accuracy_sla).astype(int).tolist()
+    if meeting_sla:
+        return meeting_sla
+    best = float(np.max(accuracies))
+    return np.flatnonzero(
+        best - accuracies <= accuracy_tolerance + 1e-12
+    ).astype(int).tolist()
+
+
+def utility_loss(
+    records: Sequence[dict],
+    predicted_probabilities: np.ndarray,
+    *,
+    accuracy_sla: float = DEFAULT_ACCURACY_SLA,
+    accuracy_tolerance: float = DEFAULT_ACCURACY_TOLERANCE,
+    cost_penalty: float = DEFAULT_COST_PENALTY,
+    regret_penalty: float = DEFAULT_REGRET_PENALTY,
+) -> float:
+    """Cost-aware differentiable objective for tied reconciliation outcomes."""
+    route_probs = np.asarray(predicted_probabilities, dtype=float)
+    if route_probs.shape != (len(records), ROUTING_OUTPUT_SHAPE):
+        raise ValueError(
+            "Probability matrix must have shape "
+            f"({len(records)}, {ROUTING_OUTPUT_SHAPE}); got {route_probs.shape}"
+        )
+    normalized_cost = np.linspace(0.0, 1.0, len(DEFAULT_CLASS_NAMES))
+    losses: List[float] = []
+    for index, record in enumerate(records):
+        acceptable = acceptable_route_indices(
+            record,
+            accuracy_sla=accuracy_sla,
+            accuracy_tolerance=accuracy_tolerance,
+        )
+        probabilities_row = route_probs[index]
+        acceptable_mass = float(np.sum(probabilities_row[acceptable]))
+        accuracies = np.asarray(
+            [
+                float(record["method_metrics"][method]["accuracy"])
+                for method in DEFAULT_CLASS_NAMES
+            ],
+            dtype=float,
+        )
+        accuracy_regret = np.maximum(float(np.max(accuracies)) - accuracies, 0.0)
+        expected_regret = float(
+            np.dot(probabilities_row[: len(DEFAULT_CLASS_NAMES)], accuracy_regret)
+        )
+        expected_cost = float(
+            np.dot(probabilities_row[: len(DEFAULT_CLASS_NAMES)], normalized_cost)
+        )
+        losses.append(
+            -np.log(max(acceptable_mass, 1e-9))
+            + regret_penalty * expected_regret
+            + cost_penalty * expected_cost
+        )
+    return float(np.mean(losses))
 
 
 def stratified_cap(records: Sequence[dict], cap: int, seed: int) -> List[dict]:
@@ -266,6 +350,9 @@ def classification_metrics(
     records: Sequence[dict],
     predicted: np.ndarray,
     predicted_probabilities: np.ndarray,
+    *,
+    accuracy_sla: float = DEFAULT_ACCURACY_SLA,
+    accuracy_tolerance: float = DEFAULT_ACCURACY_TOLERANCE,
 ) -> Dict[str, object]:
     from sklearn.metrics import (
         accuracy_score,
@@ -282,8 +369,12 @@ def classification_metrics(
     )
     selected_reconciliation_accuracies: List[float] = []
     oracle_reconciliation_accuracies: List[float] = []
+    selected_latencies: List[float] = []
+    oracle_latencies: List[float] = []
+    acceptable_predictions: List[bool] = []
+    sla_compliance: List[bool] = []
     dispatched_methods: List[str] = []
-    for record, predicted_label in zip(records, predicted):
+    for record_index, (record, predicted_label) in enumerate(zip(records, predicted)):
         selected_method = (
             DEFAULT_CLASS_NAMES[int(predicted_label)]
             if int(predicted_label) < len(DEFAULT_CLASS_NAMES)
@@ -296,8 +387,28 @@ def classification_metrics(
             if selected_method is None
             else float(record["method_metrics"][selected_method]["accuracy"])
         )
+        selected_latencies.append(
+            0.0
+            if selected_method is None
+            else float(record["method_metrics"][selected_method]["latency_ms"])
+        )
         oracle_reconciliation_accuracies.append(
             float(record["method_metrics"][oracle_method]["accuracy"])
+        )
+        oracle_latencies.append(
+            float(record["method_metrics"][oracle_method]["latency_ms"])
+        )
+        acceptable_predictions.append(
+            int(predicted_label)
+            in acceptable_route_indices(
+                record,
+                accuracy_sla=accuracy_sla,
+                accuracy_tolerance=accuracy_tolerance,
+            )
+        )
+        sla_compliance.append(
+            selected_method is not None
+            and selected_reconciliation_accuracies[record_index] >= accuracy_sla
         )
     confidence = predicted_probabilities[
         np.arange(len(predicted)), predicted.astype(int)
@@ -315,6 +426,15 @@ def classification_metrics(
                 zero_division=0,
             )
         ),
+        "present_class_macro_f1": float(
+            f1_score(
+                truth,
+                predicted,
+                labels=sorted(set(int(value) for value in truth)),
+                average="macro",
+                zero_division=0,
+            )
+        ),
         "confusion_matrix": matrix.astype(int).tolist(),
         "label_counts": dict(Counter(int(value) for value in truth)),
         "prediction_counts": dict(Counter(int(value) for value in predicted)),
@@ -326,6 +446,19 @@ def classification_metrics(
         "mean_oracle_reconciliation_accuracy": float(
             np.mean(oracle_reconciliation_accuracies)
         ),
+        "mean_accuracy_regret": float(
+            np.mean(
+                np.maximum(
+                    np.asarray(oracle_reconciliation_accuracies)
+                    - np.asarray(selected_reconciliation_accuracies),
+                    0.0,
+                )
+            )
+        ),
+        "acceptable_route_rate": float(np.mean(acceptable_predictions)),
+        "sla_compliance_rate": float(np.mean(sla_compliance)),
+        "mean_selected_latency_ms": float(np.mean(selected_latencies)),
+        "mean_oracle_latency_ms": float(np.mean(oracle_latencies)),
         "gpu_dispatch_rate": float(np.mean([
             method in {
                 "minilm", "gemma_e2b", "bge", "cross_encoder",
@@ -336,11 +469,24 @@ def classification_metrics(
     }
 
 
-def evaluate(qnn, records: Sequence[dict], weights: np.ndarray) -> Dict[str, object]:
+def evaluate(
+    qnn,
+    records: Sequence[dict],
+    weights: np.ndarray,
+    *,
+    accuracy_sla: float = DEFAULT_ACCURACY_SLA,
+    accuracy_tolerance: float = DEFAULT_ACCURACY_TOLERANCE,
+) -> Dict[str, object]:
     features, _ = records_to_arrays(records)
     probs = probabilities(qnn, features, weights)
     predicted = np.argmax(probs, axis=1)
-    return classification_metrics(records, predicted, probs)
+    return classification_metrics(
+        records,
+        predicted,
+        probs,
+        accuracy_sla=accuracy_sla,
+        accuracy_tolerance=accuracy_tolerance,
+    )
 
 
 def run_train(args: argparse.Namespace) -> None:
@@ -364,7 +510,6 @@ def run_train(args: argparse.Namespace) -> None:
     seed = args.seed + args.start_index * 10_007
     train_records = stratified_cap(train_records, args.max_train_records, seed)
     X_train, y_train = records_to_arrays(train_records)
-    sample_weights = class_balancing_weights(y_train)
     qnn, num_weights, device = create_qnn(
         backend_name=args.backend,
         shots=args.training_shots,
@@ -380,8 +525,14 @@ def run_train(args: argparse.Namespace) -> None:
         nonlocal evaluation_counter
         evaluation_counter += 1
         probs = probabilities(qnn, X_train, weights)
-        correct = np.clip(probs[np.arange(len(y_train)), y_train], 1e-9, 1.0)
-        loss = float(np.average(-np.log(correct), weights=sample_weights))
+        loss = utility_loss(
+            train_records,
+            probs,
+            accuracy_sla=args.accuracy_sla,
+            accuracy_tolerance=args.accuracy_tolerance,
+            cost_penalty=args.cost_penalty,
+            regret_penalty=args.regret_penalty,
+        )
         history.append(
             {
                 "evaluation": evaluation_counter,
@@ -408,7 +559,13 @@ def run_train(args: argparse.Namespace) -> None:
         },
     )
     weights = np.asarray(result.x, dtype=float)
-    validation_metrics = evaluate(qnn, validation_records, weights)
+    validation_metrics = evaluate(
+        qnn,
+        validation_records,
+        weights,
+        accuracy_sla=args.accuracy_sla,
+        accuracy_tolerance=args.accuracy_tolerance,
+    )
     candidate = {
         "created_at": utc_now(),
         "start_index": args.start_index,
@@ -433,7 +590,11 @@ def run_train(args: argparse.Namespace) -> None:
             "oracle_sha256": file_sha256(oracle_path),
             "records": len(train_records),
             "label_counts": dict(Counter(int(value) for value in y_train)),
-            "class_balancing": "inverse-frequency weighted cross-entropy",
+            "objective": "acceptable-route mass plus accuracy-regret and cost penalties",
+            "accuracy_sla": args.accuracy_sla,
+            "accuracy_tolerance": args.accuracy_tolerance,
+            "cost_penalty": args.cost_penalty,
+            "regret_penalty": args.regret_penalty,
             "backend": args.backend,
             "shots": args.training_shots,
             "device": device,
@@ -453,12 +614,13 @@ def run_train(args: argparse.Namespace) -> None:
     print(json.dumps(validation_metrics, indent=2, sort_keys=True))
 
 
-def candidate_rank(candidate: dict) -> Tuple[float, float, float, float]:
+def candidate_rank(candidate: dict) -> Tuple[float, float, float, float, float]:
     metrics = candidate["validation_metrics"]
     return (
-        float(metrics["macro_f1"]),
-        float(metrics["balanced_accuracy"]),
         float(metrics["mean_selected_reconciliation_accuracy"]),
+        float(metrics["acceptable_route_rate"]),
+        -float(metrics["mean_accuracy_regret"]),
+        float(metrics["present_class_macro_f1"]),
         -float(metrics["gpu_dispatch_rate"]),
     )
 
@@ -485,6 +647,15 @@ def write_latex_selection(path: Path, report: dict) -> None:
         f"Selected reconciliation accuracy (\\%) & "
         f"{100 * validation['mean_selected_reconciliation_accuracy']:.2f} & "
         f"{100 * test['mean_selected_reconciliation_accuracy']:.2f} \\\\\n"
+        f"Acceptable-route rate (\\%) & "
+        f"{100 * validation['acceptable_route_rate']:.2f} & "
+        f"{100 * test['acceptable_route_rate']:.2f} \\\\\n"
+        f"Mean accuracy regret (\\%) & "
+        f"{100 * validation['mean_accuracy_regret']:.2f} & "
+        f"{100 * test['mean_accuracy_regret']:.2f} \\\\\n"
+        f"SLA compliance rate (\\%) & "
+        f"{100 * validation['sla_compliance_rate']:.2f} & "
+        f"{100 * test['sla_compliance_rate']:.2f} \\\\\n"
         f"GPU dispatch rate (\\%) & {100 * validation['gpu_dispatch_rate']:.2f} & "
         f"{100 * test['gpu_dispatch_rate']:.2f} \\\\\n"
         "\\bottomrule\n"
@@ -527,25 +698,36 @@ def run_select(args: argparse.Namespace) -> None:
         seed=args.seed,
     )
     weights = np.asarray(winner["trained_params"], dtype=float)
-    test_metrics = evaluate(qnn, test_records, weights)
+    test_metrics = evaluate(
+        qnn,
+        test_records,
+        weights,
+        accuracy_sla=args.accuracy_sla,
+        accuracy_tolerance=args.accuracy_tolerance,
+    )
     validation_metrics = winner["validation_metrics"]
 
     if (
-        float(test_metrics["macro_f1"]) < args.min_macro_f1
-        or float(test_metrics["balanced_accuracy"]) < args.min_balanced_accuracy
+        float(test_metrics["mean_selected_reconciliation_accuracy"])
+        < args.min_reconciliation_accuracy
+        or float(test_metrics["mean_accuracy_regret"]) > args.max_accuracy_regret
+        or float(test_metrics["acceptable_route_rate"])
+        < args.min_acceptable_route_rate
     ):
         raise RuntimeError(
             "Selected model failed the held-out quality gate: "
-            f"macro-F1={test_metrics['macro_f1']:.4f}, "
-            f"balanced_accuracy={test_metrics['balanced_accuracy']:.4f}. "
+            "reconciliation_accuracy="
+            f"{test_metrics['mean_selected_reconciliation_accuracy']:.4f}, "
+            f"accuracy_regret={test_metrics['mean_accuracy_regret']:.4f}, "
+            f"acceptable_route_rate={test_metrics['acceptable_route_rate']:.4f}. "
             "Do not spend QPU time; improve labels/features or training."
         )
 
     selection_report = {
         "selected_at": utc_now(),
         "selection_rule": (
-            "validation macro-F1, then balanced accuracy, then reconciliation "
-            "accuracy, then lower GPU dispatch"
+            "validation reconciliation accuracy, acceptable-route rate, lower "
+            "accuracy regret, present-class macro-F1, then lower GPU dispatch"
         ),
         "candidate_count": len(candidates),
         "selected_start_index": winner["start_index"],
@@ -560,8 +742,11 @@ def run_select(args: argparse.Namespace) -> None:
         "oracle_path": str(oracle_path),
         "oracle_sha256": oracle_hash,
         "quality_gate": {
-            "min_macro_f1": args.min_macro_f1,
-            "min_balanced_accuracy": args.min_balanced_accuracy,
+            "min_reconciliation_accuracy": args.min_reconciliation_accuracy,
+            "max_accuracy_regret": args.max_accuracy_regret,
+            "min_acceptable_route_rate": args.min_acceptable_route_rate,
+            "accuracy_sla": args.accuracy_sla,
+            "accuracy_tolerance": args.accuracy_tolerance,
             "passed": True,
         },
         "candidate_ranking": [
@@ -601,11 +786,11 @@ def build_parser() -> argparse.ArgumentParser:
     train = subparsers.add_parser("train", help="Train one independent start")
     train.add_argument(
         "--oracle",
-        default="data/training/router_oracle_22500_v6.jsonl",
+        default="data/training/router_oracle_22500_v7_10pct_single.jsonl",
     )
     train.add_argument(
         "--output-dir",
-        default="data/training/qpu_router_multistart_v6",
+        default="data/training/qpu_router_multistart_v7_utility_single",
     )
     train.add_argument("--start-index", type=int, required=True)
     train.add_argument(
@@ -614,10 +799,22 @@ def build_parser() -> argparse.ArgumentParser:
         default="aer_gpu",
     )
     train.add_argument("--training-shots", type=int, default=512)
-    train.add_argument("--maxiter", type=int, default=200)
+    train.add_argument("--maxiter", type=int, default=600)
     train.add_argument("--rhobeg", type=float, default=0.5)
     train.add_argument("--tolerance", type=float, default=1e-3)
     train.add_argument("--initial-scale", type=float, default=0.25)
+    train.add_argument("--accuracy-sla", type=float, default=DEFAULT_ACCURACY_SLA)
+    train.add_argument(
+        "--accuracy-tolerance",
+        type=float,
+        default=DEFAULT_ACCURACY_TOLERANCE,
+    )
+    train.add_argument("--cost-penalty", type=float, default=DEFAULT_COST_PENALTY)
+    train.add_argument(
+        "--regret-penalty",
+        type=float,
+        default=DEFAULT_REGRET_PENALTY,
+    )
     train.add_argument("--seed", type=int, default=20260723)
     train.add_argument(
         "--max-train-records",
@@ -633,15 +830,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     select.add_argument(
         "--oracle",
-        default="data/training/router_oracle_22500_v6.jsonl",
+        default="data/training/router_oracle_22500_v7_10pct_single.jsonl",
     )
     select.add_argument(
         "--candidates-dir",
-        default="data/training/qpu_router_multistart_v6",
+        default="data/training/qpu_router_multistart_v7_utility_single",
     )
     select.add_argument(
         "--model-output",
-        default="configs/quantum_router_v6.json",
+        default="configs/quantum_router_v7_utility_single.json",
     )
     select.add_argument("--expected-starts", type=int, default=10)
     select.add_argument(
@@ -651,8 +848,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     select.add_argument("--evaluation-shots", type=int, default=2048)
     select.add_argument("--seed", type=int, default=20260723)
-    select.add_argument("--min-macro-f1", type=float, default=0.70)
-    select.add_argument("--min-balanced-accuracy", type=float, default=0.70)
+    select.add_argument("--accuracy-sla", type=float, default=DEFAULT_ACCURACY_SLA)
+    select.add_argument(
+        "--accuracy-tolerance",
+        type=float,
+        default=DEFAULT_ACCURACY_TOLERANCE,
+    )
+    select.add_argument(
+        "--min-reconciliation-accuracy", type=float, default=0.90
+    )
+    select.add_argument("--max-accuracy-regret", type=float, default=0.05)
+    select.add_argument("--min-acceptable-route-rate", type=float, default=0.80)
     return parser
 
 
