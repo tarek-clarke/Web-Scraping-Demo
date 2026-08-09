@@ -37,36 +37,88 @@ class GemmaE2BReconciler:
                 raise RuntimeError(f"Failed to load local LLM: {self.default_model_id}")
         return self._llm
 
-    def _parse_json(self, text: str) -> Dict[str, str]:
-        # Strip Gemma 4 reasoning tags.
+    @staticmethod
+    def _clean_output(text: str) -> str:
+        """Remove presentation wrappers without accepting arbitrary prose."""
         text = re.sub(r'<\|think\|>.*?<\|/think\|>', '', text, flags=re.DOTALL)
         text = re.sub(r'```(?:json)?\s*', '', text)
-        text = re.sub(r'```', '', text)
-        # Try to find JSON object
-        brace = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', text, re.DOTALL)
-        if brace:
-            try:
-                return json.loads(brace.group())
-            except:
-                pass
-        return {}
+        return re.sub(r'```', '', text).strip()
+
+    @staticmethod
+    def _field_spec(data: Dict) -> List[Dict[str, object]]:
+        return [
+            {"i": index, "name": str(name), "type": type(value).__name__}
+            for index, (name, value) in enumerate(data.items())
+        ]
+
+    def _mapping_messages(self, original: Dict, drifted: Dict) -> List[Dict[str, str]]:
+        """Return a compact, machine-verifiable schema-mapping request.
+
+        Index output avoids the former literal ``{"original":"drifted"}``
+        placeholder, reduces generated tokens, and makes invalid responses
+        observable rather than silently interpreted as an empty mapping.
+        """
+        original_spec = json.dumps(self._field_spec(original), separators=(",", ":"))
+        drifted_spec = json.dumps(self._field_spec(drifted), separators=(",", ":"))
+        return [{
+            "role": "user",
+            "content": (
+                "Match each original schema field to at most one drifted schema field.\n"
+                f"ORIGINAL_FIELDS={original_spec}\n"
+                f"DRIFTED_FIELDS={drifted_spec}\n"
+                "Return ONLY a valid JSON array with exactly one item per original field. "
+                "Each item must be a unique integer index from DRIFTED_FIELDS or null "
+                "when no match exists. Do not return field names, objects, Markdown, "
+                "explanations, or placeholder text."
+            ),
+        }]
+
+    def _parse_index_mapping(
+        self,
+        text: str,
+        original: Dict,
+        drifted: Dict,
+    ) -> Tuple[List[Tuple[str, str]], List[str], bool]:
+        source_keys = list(original.keys())
+        target_keys = list(drifted.keys())
+        match = re.search(r"\[[\s\S]*?\]", self._clean_output(text))
+        if not match:
+            return [], source_keys, False
+        try:
+            indices = json.loads(match.group(0))
+        except json.JSONDecodeError:
+            return [], source_keys, False
+        if not isinstance(indices, list) or len(indices) != len(source_keys):
+            return [], source_keys, False
+
+        used_targets = set()
+        mapped: List[Tuple[str, str]] = []
+        unmapped: List[str] = []
+        for source, target_index in zip(source_keys, indices):
+            if target_index is None:
+                unmapped.append(source)
+                continue
+            if (
+                isinstance(target_index, bool)
+                or not isinstance(target_index, int)
+                or target_index < 0
+                or target_index >= len(target_keys)
+                or target_index in used_targets
+            ):
+                return [], source_keys, False
+            used_targets.add(target_index)
+            mapped.append((source, target_keys[target_index]))
+        return mapped, unmapped, True
 
     def _infer(self, original: Dict, drifted: Dict) -> Dict[str, str]:
         manager = self._get_manager()
         if not manager or not manager.is_loaded:
             return {}
 
-        messages = [{
-            "role": "user",
-            "content": (
-                f"Map original fields to drifted fields.\n"
-                f"Original: {json.dumps(original)}\n"
-                f"Drifted: {json.dumps(drifted)}\n"
-                f"Output ONLY: {{\"original\": \"drifted\"}}"
-            )
-        }]
+        messages = self._mapping_messages(original, drifted)
         response = manager.generate_response(messages, max_new_tokens=self.max_new_tokens, temperature=0.0, top_p=1.0)
-        return self._parse_json(response)
+        mapped, _, valid = self._parse_index_mapping(response, original, drifted)
+        return dict(mapped) if valid else {}
 
     def reconcile_batch(self, pairs: List[Tuple[Dict, Dict]], progress_cb=None) -> List[Dict]:
         manager = self._get_manager()
@@ -93,17 +145,9 @@ class GemmaE2BReconciler:
         chunk_size = max(1, self.batch_size)
         for chunk_idx in range(0, total, chunk_size):
             chunk_pairs = pairs[chunk_idx:chunk_idx + chunk_size]
-            batch_messages = []
-            for orig, drift in chunk_pairs:
-                batch_messages.append([{
-                    "role": "user",
-                    "content": (
-                        f"Map original fields to drifted fields.\n"
-                        f"Original: {json.dumps(orig)}\n"
-                        f"Drifted: {json.dumps(drift)}\n"
-                        f"Output ONLY: {{\"original\": \"drifted\"}}"
-                    )
-                }])
+            batch_messages = [
+                self._mapping_messages(orig, drift) for orig, drift in chunk_pairs
+            ]
 
             responses = manager.generate_batch_responses(batch_messages, max_new_tokens=self.max_new_tokens, temperature=0.0, top_p=1.0)
             
@@ -113,16 +157,37 @@ class GemmaE2BReconciler:
                     progress_cb(idx, total)
                 
                 resp_text = responses[offset] if offset < len(responses) else ""
-                parsed = self._parse_json(resp_text)
-                mapped = [(k, v) for k, v in parsed.items()]
-                unmapped = [k for k in orig.keys() if k not in parsed]
+                mapped, unmapped, valid = self._parse_index_mapping(
+                    resp_text, orig, drift
+                )
+                retried = False
+                if not valid:
+                    retried = True
+                    retry_messages = [{
+                        "role": "user",
+                        "content": (
+                            batch_messages[offset][0]["content"]
+                            + "\nYour previous response was invalid. Return the JSON array only."
+                        ),
+                    }]
+                    retry_text = manager.generate_response(
+                        retry_messages,
+                        max_new_tokens=self.max_new_tokens,
+                        temperature=0.0,
+                        top_p=1.0,
+                    )
+                    mapped, unmapped, valid = self._parse_index_mapping(
+                        retry_text, orig, drift
+                    )
                 accuracy = len(mapped) / len(orig.keys()) if orig.keys() else 0.0
                 results.append({
                     "accuracy": accuracy,
                     "latency_ms": 0.0,
                     "mapped_fields": mapped,
                     "unmapped_fields": unmapped,
-                    "batch_size": self.batch_size
+                    "batch_size": self.batch_size,
+                    "structured_output_valid": valid,
+                    "structured_output_retried": retried,
                 })
 
         total_time = (time.perf_counter() - start) * 1000

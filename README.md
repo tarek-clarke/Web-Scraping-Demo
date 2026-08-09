@@ -62,7 +62,9 @@ Three output bits represent eight raw states. States `110` and `111` are aggrega
 
 ### Fail-fast preflight
 
-Before any full oracle pass, each worker executes one real record through all six methods. The run stops immediately if a model cannot load, a cloud credential is missing, a CPU fallback occurs where an accelerator is required, or a method returns malformed mappings or latency. Models remain resident for their worker's full pass, avoiding per-chunk reload overhead; they are released when the worker exits. A smoke-test report is written into each shard manifest.
+Before any full oracle pass, each worker executes one real record through all six methods. The run stops immediately if a model cannot load, a cloud credential is missing, a CPU fallback occurs where an accelerator is required, or a method returns malformed mappings or latency. Models remain resident until their results are recorded; MiniLM and BGE are then released before autoregressive Qwen generation so it has dedicated VRAM. A smoke-test report is written into each shard manifest.
+
+The local Qwen route uses a compact structured-output protocol: source and target field names are indexed, and the model must return one JSON array of unique target indices or `null` values. The decoder rejects placeholders, duplicate targets, wrong-length arrays, and prose; it performs one deterministic retry and records `structured_output_valid` and `structured_output_retried` for every oracle decision. A failed retry stops preflight rather than silently becoming an empty mapping.
 
 To run only that validation locally or in an already configured accelerator environment:
 

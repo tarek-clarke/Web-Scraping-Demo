@@ -351,12 +351,23 @@ def preflight_methods(
             raise RuntimeError(f"{method} returned invalid latency: {latency}")
         if not isinstance(result.get("mapped_fields"), (list, tuple, dict)):
             raise RuntimeError(f"{method} returned invalid mapped_fields")
+        if method in {"gemma_e2b", "qwen_1_5b", "smollm2_1_7b"} and not bool(
+            result.get("structured_output_valid", False)
+        ):
+            raise RuntimeError(
+                f"{method} did not return a valid indexed JSON mapping after retry"
+            )
         metrics = exact_mapping_metrics(
             record["ground_truth_mapping"],
             result.get("mapped_fields", []),
             result.get("unmapped_fields", []),
         )
-        report[method] = {"latency_ms": latency, **metrics}
+        report[method] = {
+            "latency_ms": latency,
+            "structured_output_valid": result.get("structured_output_valid"),
+            "structured_output_retried": result.get("structured_output_retried"),
+            **metrics,
+        }
         print(f"  PASS {method}: exact accuracy={metrics['accuracy']:.3f}", flush=True)
     return report
 
@@ -582,6 +593,8 @@ def main() -> None:
                         "latency_ms": float(result["latency_ms"]),
                         "mapped_fields": result.get("mapped_fields", []),
                         "unmapped_fields": result.get("unmapped_fields", []),
+                        "structured_output_valid": result.get("structured_output_valid"),
+                        "structured_output_retried": result.get("structured_output_retried"),
                     }
                 oracle_method, oracle_reason = choose_oracle(
                     method_metrics,
