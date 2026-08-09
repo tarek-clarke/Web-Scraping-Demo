@@ -22,7 +22,7 @@ singularity run "$LUMI_SIF" python -m pip install \
     "python-Levenshtein>=0.23.0,<1.0.0" \
     "transformers>=5.5.0,<6.0.0" \
     "tokenizers==0.22.1" \
-    "huggingface-hub>=0.30.0,<1.0.0" \
+    "huggingface-hub>=1.4.0,<2.0.0" \
     "safetensors>=0.4.0,<1.0.0"
 
 PYTHONPATH="$TARGET${PYTHONPATH:+:$PYTHONPATH}" \
