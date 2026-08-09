@@ -32,9 +32,12 @@ mkdir -p \
     "$MPLCONFIGDIR" "$NUMBA_CACHE_DIR" "$JUPYTER_CONFIG_DIR" "$TMPDIR"
 
 # Singularity imports variables prefixed with SINGULARITYENV_ into the
-# container. Explicitly propagate every cache location and HOME override.
+# container. Do not pass HOME this way: current LUMI Singularity rejects an
+# explicit HOME override. The host-side HOME remains scratch-backed and the
+# individual cache paths below are propagated explicitly.
+unset SINGULARITYENV_HOME
 for name in \
-    HOME XDG_CACHE_HOME PIP_CACHE_DIR HF_HOME HF_DATASETS_CACHE \
+    XDG_CACHE_HOME PIP_CACHE_DIR HF_HOME HF_DATASETS_CACHE \
     TRANSFORMERS_CACHE TORCH_HOME TORCH_EXTENSIONS_DIR TRITON_CACHE_DIR \
     AMD_COMGR_CACHE CCACHE_DIR MPLCONFIGDIR NUMBA_CACHE_DIR \
     JUPYTER_CONFIG_DIR TMPDIR PYTHONNOUSERSITE; do
