@@ -255,7 +255,7 @@ def build_samples(
 
 
 def require_accelerator(methods: Sequence[str], allow_cpu: bool) -> Dict[str, object]:
-    gpu_methods = {"minilm", "gemma_e2b", "bge", "cross_encoder", "qwen_1_5b", "smollm2_1_7b"}
+    gpu_methods = {"minilm", "gemma_e2b", "bge", "cross_encoder", "qwen_1_5b", "phi_4_mini", "smollm2_1_7b"}
     needs_gpu = bool(gpu_methods.intersection(methods))
     diagnostics: Dict[str, object] = {"required": needs_gpu, "allow_cpu": allow_cpu}
     if not needs_gpu:
@@ -309,14 +309,14 @@ def reconcile_chunk(
         # generation exhausts a 64-GB MI250X GCD even with a small batch.  The
         # workload uses one full shard per chunk, so releasing them here does
         # not cause a reload loop and leaves Qwen its required VRAM headroom.
-        if method == "qwen_1_5b":
+        if method in {"qwen_1_5b", "phi_4_mini", "smollm2_1_7b"}:
             for resident_method in ("minilm", "bge"):
                 if resident_method in engine.reconcilers:
                     engine.release_method(resident_method)
         started = time.perf_counter()
         if method == "minilm":
             results = engine.reconcile_bert_batch(pairs)
-        elif method in {"gemma_e2b", "qwen_1_5b", "smollm2_1_7b"}:
+        elif method in {"gemma_e2b", "qwen_1_5b", "phi_4_mini", "smollm2_1_7b"}:
             results = engine.reconcile_llm_batch(method, pairs)
         elif method == "levenshtein":
             results = engine.reconcile_levenshtein_batch(pairs)
@@ -351,7 +351,7 @@ def preflight_methods(
             raise RuntimeError(f"{method} returned invalid latency: {latency}")
         if not isinstance(result.get("mapped_fields"), (list, tuple, dict)):
             raise RuntimeError(f"{method} returned invalid mapped_fields")
-        if method in {"gemma_e2b", "qwen_1_5b", "smollm2_1_7b"} and not bool(
+        if method in {"gemma_e2b", "qwen_1_5b", "phi_4_mini", "smollm2_1_7b"} and not bool(
             result.get("structured_output_valid", False)
         ):
             raise RuntimeError(
@@ -439,7 +439,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--methods",
         nargs="+",
-        choices=list(DEFAULT_CLASS_NAMES),
+        choices=[*DEFAULT_CLASS_NAMES, "phi_4_mini"],
         default=list(DEFAULT_CLASS_NAMES),
     )
     parser.add_argument("--accuracy-sla", type=float, default=0.95)
