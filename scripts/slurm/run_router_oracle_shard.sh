@@ -48,7 +48,7 @@ singularity run "$LUMI_SIF" python scripts/preflight_accelerator.py \
     --require-cohere \
     --json-output "${ORACLE%.jsonl}.part_${RANK}.preflight.json"
 
-# Qwen generation is independently executed on each 64-GB GCD. Two workers
+# Gemma generation is independently executed on each 64-GB GCD. Two workers
 # share each physical 128-GB MI250X card and maximize aggregate throughput.
 singularity run "$LUMI_SIF" python scripts/run_with_energy.py \
     --csv "${SHARD%.jsonl}.energy.csv" \
@@ -58,7 +58,8 @@ singularity run "$LUMI_SIF" python scripts/run_with_energy.py \
         --packets-file data/ingested/telemetry_clean_bench_22500.json \
         --output "$SHARD" \
         --max-packets-per-api 2500 \
-        --chunk-size 31500 \
+        --seed 42 --drift-rate 0.10 \
+        --chunk-size 256 \
         --batch-size 4 \
         --accuracy-sla 0.95 \
         --num-shards "$ORACLE_SHARDS" \

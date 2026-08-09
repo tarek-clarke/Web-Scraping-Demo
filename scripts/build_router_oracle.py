@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Build the packet-level, cost-aware routing oracle.
 
-This is the classical/GPU prerequisite for VQC training.  It uses every packet
-in the committed nine-API corpus without leaking packets across splits:
+This is the classical/GPU prerequisite for VQC training. It uses a
+deterministic drifted subset of the committed nine-API corpus without leaking
+packets across splits:
 
 * 80% of packet identities are assigned to training and receive one balanced
   chaos method;
@@ -180,6 +181,7 @@ def build_samples(
     seed: int,
     max_attempts: int,
     max_records: int,
+    drift_rate: float,
 ) -> Tuple[List[dict], Dict[str, object]]:
     extractor = FeatureExtractor()
     records: List[dict] = []
@@ -188,17 +190,24 @@ def build_samples(
     for api in ACTIVE_APIS:
         packets = packet_groups[api]
         splits = split_indices(len(packets), api, seed)
+        selected_count = max(1, round(len(packets) * drift_rate))
+        selected_indices = set(sorted(
+            range(len(packets)),
+            key=lambda index: stable_seed(seed, api, index, "drift-selection"),
+        )[:selected_count])
         for packet_index, packet in enumerate(packets):
+            # The benchmark protocol injects drift into a deterministic 10%
+            # of the committed packets.  Selection is per API, preserving
+            # balanced domain coverage while keeping the routed workload
+            # comparable with the paper's fast-path benchmark.
+            if packet_index not in selected_indices:
+                continue
             split = next(name for name, members in splits.items() if packet_index in members)
-            if split == "train":
-                # Stable, approximately balanced one-method assignment.  The
-                # held-out splits exercise every method on every packet.
-                method_index = stable_seed(seed, api, packet_index, "method") % len(
-                    CHAOS_METHODS
-                )
-                methods: Sequence[str] = (CHAOS_METHODS[method_index],)
-            else:
-                methods = CHAOS_METHODS
+            # One balanced chaos scenario per selected packet matches the
+            # 10%-drift matrix benchmark and avoids multiplying the workload
+            # by three merely for oracle generation.
+            method_index = stable_seed(seed, api, packet_index, "method") % len(CHAOS_METHODS)
+            methods: Sequence[str] = (CHAOS_METHODS[method_index],)
 
             for method in methods:
                 drift_seed = stable_seed(seed, api, packet_index, method)
@@ -245,6 +254,7 @@ def build_samples(
 
     summary = {
         "records": len(records),
+        "drift_rate": drift_rate,
         "split_counts": dict(Counter(record["split"] for record in records)),
         "api_counts": dict(Counter(record["api"] for record in records)),
         "chaos_counts": dict(Counter(record["chaos_method"] for record in records)),
@@ -309,7 +319,7 @@ def reconcile_chunk(
         # generation exhausts a 64-GB MI250X GCD even with a small batch.  The
         # workload uses one full shard per chunk, so releasing them here does
         # not cause a reload loop and leaves Qwen its required VRAM headroom.
-        if method in {"qwen_1_5b", "phi_4_mini", "smollm2_1_7b"}:
+        if method in {"gemma_e2b", "qwen_1_5b", "phi_4_mini", "smollm2_1_7b"}:
             for resident_method in ("minilm", "bge"):
                 if resident_method in engine.reconcilers:
                     engine.release_method(resident_method)
@@ -434,6 +444,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--seed", type=int, default=20260723)
     parser.add_argument("--max-packets-per-api", type=int, default=2500)
+    parser.add_argument("--drift-rate", type=float, default=0.10)
     parser.add_argument("--max-drift-attempts", type=int, default=64)
     parser.add_argument("--chunk-size", type=int, default=64)
     parser.add_argument(
@@ -470,6 +481,8 @@ def main() -> None:
         raise SystemExit("--chunk-size and --batch-size must be positive")
     if not 0.0 <= args.accuracy_sla <= 1.0:
         raise SystemExit("--accuracy-sla must be in [0, 1]")
+    if not 0.0 < args.drift_rate <= 1.0:
+        raise SystemExit("--drift-rate must be in (0, 1]")
     if args.num_shards < 1 or not 0 <= args.shard_index < args.num_shards:
         raise SystemExit("Require 0 <= --shard-index < --num-shards")
 
@@ -488,6 +501,7 @@ def main() -> None:
         seed=args.seed,
         max_attempts=args.max_drift_attempts,
         max_records=args.max_records,
+        drift_rate=args.drift_rate,
     )
     all_record_count = len(records)
     records = [

@@ -26,7 +26,7 @@ PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 cd "$PROJECT_ROOT"
 source "$PROJECT_ROOT/scripts/lumi_cache_env.sh"
 
-ORACLE="${ORACLE:-data/training/router_oracle_22500_v6_${PROFILE//-/_}.jsonl}"
+ORACLE="${ORACLE:-data/training/router_oracle_22500_v7_10pct_${PROFILE//-/_}.jsonl}"
 MANIFEST="${ORACLE%.jsonl}.manifest.json"
 DEPENDENCY_ARGS=()
 if [ ! -s "$ORACLE" ] || ! grep -q '"status": "complete"' "$MANIFEST" 2>/dev/null; then

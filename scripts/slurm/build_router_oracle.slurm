@@ -99,5 +99,5 @@ srun \
 
 "${PYTHON_BIN[@]}" scripts/merge_router_oracle_shards.py \
     --output "$ORACLE" \
-    --expected-records 31500 \
+    --expected-records 2250 \
     --shards "${SHARDS[@]}"
