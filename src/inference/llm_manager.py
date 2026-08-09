@@ -89,7 +89,7 @@ class LLMManager:
             return True
         try:
             import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer
+            from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
             model_path = self.local_path or self.model_id
 
@@ -124,16 +124,24 @@ class LLMManager:
 
             mode = "4bit" if (self.load_in_4bit and quantized) else "8bit" if (self.load_in_8bit and quantized) else "full"
             print(f"[LLM] Loading {model_path} on {self.device} ({mode}, dtype={self.torch_dtype})")
+            config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
+            model_class = AutoModelForCausalLM
+            if getattr(config, "model_type", "") == "gemma4":
+                # Gemma4 is a multimodal conditional-generation architecture;
+                # text-only schema prompts remain valid inputs.
+                from transformers import AutoModelForMultimodalLM
+                model_class = AutoModelForMultimodalLM
+
             if quantized:
                 try:
-                    self.model = AutoModelForCausalLM.from_pretrained(model_path, **load_kwargs)
+                    self.model = model_class.from_pretrained(model_path, **load_kwargs)
                 except Exception as e:
                     print(f"[LLM] 4/8-bit failed ({e}), retrying full precision...")
                     load_kwargs.pop("quantization_config", None)
                     load_kwargs["device_map"] = self.device if self.device != "mps" else "mps"
-                    self.model = AutoModelForCausalLM.from_pretrained(model_path, **load_kwargs)
+                    self.model = model_class.from_pretrained(model_path, **load_kwargs)
             else:
-                self.model = AutoModelForCausalLM.from_pretrained(model_path, **load_kwargs)
+                self.model = model_class.from_pretrained(model_path, **load_kwargs)
 
             tok_kwargs = {"trust_remote_code": True}
             if self.hf_token:

@@ -15,11 +15,12 @@ mkdir -p "$TARGET"
 # Keep the vendor ROCm stack immutable.  In particular, never let pip
 # resolve ``torch`` here: a generic wheel would pull a CUDA build and shadow
 # the container's validated ROCm build.  These are pure Python/tokenizer
-# compatibility updates required by Phi-4-mini.
+# compatibility updates required by Gemma4.  Gemma4 support landed in the
+# Transformers 5.5 release series.
 singularity run "$LUMI_SIF" python -m pip install \
     --upgrade --no-deps --target "$TARGET" \
     "python-Levenshtein>=0.23.0,<1.0.0" \
-    "transformers>=4.51.0,<4.57.0" \
+    "transformers>=5.5.0,<6.0.0" \
     "tokenizers==0.22.1" \
     "huggingface-hub>=0.30.0,<1.0.0" \
     "safetensors>=0.4.0,<1.0.0"
