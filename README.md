@@ -158,6 +158,15 @@ RAP_HARDWARE_TAG=gh200 bash scripts/run_accelerator_pipeline.sh
 
 The bootstrap creates a `--system-site-packages` environment, installs the RAP, quantum, telemetry, and NVIDIA dependencies without replacing the vendor PyTorch build, runs `pip check`, and executes real PyTorch and Aer GPU circuits. It also requires live NVML power and temperature telemetry. It builds Qiskit Aer against the installed CUDA toolkit when a compatible GPU build is not already present; this is required on ARM Grace systems and recommended for B300/GB300. The build automatically targets the detected compute capability, including three-digit `sm_103`. CPU Aer and CPU reconciler fallbacks are forbidden.
 
+The measured Spheron entry points are `scripts/run_gh200_spheron.py` and `scripts/run_b300_spheron.py`. Both call the shared `scripts/run_nvidia_v8_benchmark.py`; they no longer scale archived MI250X numbers. They require CUDA, execute the v8 oracle's six reconcilers on the selected split, record host energy, and generate `benchmark.json`, `summary.csv`, `summary.tex`, `packet_results.jsonl`, and `energy.csv`. For a smoke-sized measured run use `--split test --max-records 32`; for the full held-out split use `--split test`; add `--repetitions 3` for repeated measurements. Missing CUDA, model, Cohere credentials, or power telemetry fails the run.
+
+Example from an activated Spheron environment:
+
+```bash
+python scripts/run_gh200_spheron.py --split test --max-records 32
+python scripts/run_b300_spheron.py --split test --max-records 32
+```
+
 The NVIDIA launcher uses all visible GPUs by default. Set `RAP_GPU_WORKERS=1` for a controlled one-GPU run, or set it to the allocated GPU count for data-parallel oracle construction and concurrent independent optimizer starts. Model caches default to the checkout's `.cache` directory; override `RAP_CACHE_ROOT` when the provider exposes a larger persistent volume, and use `RAP_BUILD_TMPDIR` if Aer compilation needs a larger temporary filesystem. Outputs are hardware-tagged and never overwrite the LUMI artifacts. Each run writes a JSON preflight manifest before loading a model; absence of that manifest means the run is not paper-valid.
 
 Dependency checks are workload-specific: `oracle` validates the local/cloud reconcilers, `training` validates Qiskit/Scikit-learn and a real GPU Aer circuit, and `full` validates both. This prevents a valid simulator environment from failing because it intentionally lacks LLM packages, while still stopping every benchmark on a missing dependency in its own execution path.
