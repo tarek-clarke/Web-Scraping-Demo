@@ -46,6 +46,9 @@ singularity run "$LUMI_SIF" python scripts/preflight_accelerator.py \
     --require-cohere \
     --json-output "${ORACLE%.jsonl}.part_${RANK}.preflight.json"
 
+# Qwen generation must stay within one 64-GB GCD. The physical MI250X card
+# has 128 GB across two GCDs, but those memories are not one pool for a
+# single process in this data-parallel launcher.
 singularity run "$LUMI_SIF" python scripts/run_with_energy.py \
     --csv "${SHARD%.jsonl}.energy.csv" \
     --summary "${SHARD%.jsonl}.energy_summary.json" \
@@ -55,7 +58,7 @@ singularity run "$LUMI_SIF" python scripts/run_with_energy.py \
         --output "$SHARD" \
         --max-packets-per-api 2500 \
         --chunk-size 31500 \
-        --batch-size 64 \
+        --batch-size 4 \
         --accuracy-sla 0.95 \
         --num-shards "$ORACLE_SHARDS" \
         --shard-index "$RANK" \

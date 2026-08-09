@@ -83,7 +83,7 @@ if [ ! -s "$ORACLE" ] || ! grep -q '"status": "complete"' "$MANIFEST" 2>/dev/nul
                 "$PYTHON_BIN" -u scripts/build_router_oracle.py \
                     --packets-file data/ingested/telemetry_clean_bench_22500.json \
                     --output "$SHARD" --max-packets-per-api 2500 \
-                    --chunk-size 31500 --batch-size 64 --accuracy-sla 0.95 \
+                    --chunk-size 31500 --batch-size 4 --accuracy-sla 0.95 \
                     --num-shards "$WORKERS" --shard-index "$rank" --resume
         ) >"oracle_${HARDWARE_TAG}_part_${rank}.out" \
           2>"oracle_${HARDWARE_TAG}_part_${rank}.err" &
