@@ -66,12 +66,17 @@ class GemmaE2BReconciler:
                 "Match each original schema field to at most one drifted schema field.\n"
                 f"ORIGINAL_FIELDS={original_spec}\n"
                 f"DRIFTED_FIELDS={drifted_spec}\n"
-                "Return ONLY a valid JSON array with exactly one item per original field. "
+                f"Return ONLY a valid JSON array of length {len(original)} with exactly "
+                "one item per original field. "
                 "Each item must be a unique integer index from DRIFTED_FIELDS or null "
                 "when no match exists. Do not return field names, objects, Markdown, "
                 "explanations, or placeholder text."
             ),
         }]
+
+    def _token_budget(self, original: Dict) -> int:
+        """Provide enough room for wide schemas without permitting long prose."""
+        return max(self.max_new_tokens, min(256, 16 + 8 * len(original)))
 
     def _parse_index_mapping(
         self,
@@ -116,7 +121,13 @@ class GemmaE2BReconciler:
             return {}
 
         messages = self._mapping_messages(original, drifted)
-        response = manager.generate_response(messages, max_new_tokens=self.max_new_tokens, temperature=0.0, top_p=1.0)
+        response = manager.generate_response(
+            messages,
+            max_new_tokens=self._token_budget(original),
+            temperature=0.0,
+            top_p=1.0,
+            json_array_only=True,
+        )
         mapped, _, valid = self._parse_index_mapping(response, original, drifted)
         return dict(mapped) if valid else {}
 
@@ -149,7 +160,16 @@ class GemmaE2BReconciler:
                 self._mapping_messages(orig, drift) for orig, drift in chunk_pairs
             ]
 
-            responses = manager.generate_batch_responses(batch_messages, max_new_tokens=self.max_new_tokens, temperature=0.0, top_p=1.0)
+            chunk_token_budget = max(
+                self._token_budget(orig) for orig, _drift in chunk_pairs
+            )
+            responses = manager.generate_batch_responses(
+                batch_messages,
+                max_new_tokens=chunk_token_budget,
+                temperature=0.0,
+                top_p=1.0,
+                json_array_only=True,
+            )
             
             for offset, (orig, drift) in enumerate(chunk_pairs):
                 idx = chunk_idx + offset
@@ -161,23 +181,33 @@ class GemmaE2BReconciler:
                     resp_text, orig, drift
                 )
                 retried = False
-                if not valid:
+                attempts = 0
+                while not valid and attempts < 2:
                     retried = True
+                    attempts += 1
                     retry_messages = [{
                         "role": "user",
                         "content": (
                             batch_messages[offset][0]["content"]
-                            + "\nYour previous response was invalid. Return the JSON array only."
+                            + f"\nThe prior response failed validation. Return exactly "
+                            f"{len(orig)} entries using only integers, null, commas, and brackets."
                         ),
                     }]
                     retry_text = manager.generate_response(
                         retry_messages,
-                        max_new_tokens=self.max_new_tokens,
+                        max_new_tokens=self._token_budget(orig),
                         temperature=0.0,
                         top_p=1.0,
+                        json_array_only=True,
                     )
                     mapped, unmapped, valid = self._parse_index_mapping(
                         retry_text, orig, drift
+                    )
+                if not valid:
+                    preview = self._clean_output(retry_text if retried else resp_text)[:160]
+                    print(
+                        f"[LLM] Invalid indexed mapping after retries: {preview!r}",
+                        flush=True,
                     )
                 accuracy = len(mapped) / len(orig.keys()) if orig.keys() else 0.0
                 results.append({

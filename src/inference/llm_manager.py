@@ -78,6 +78,7 @@ class LLMManager:
 
         self.model = None
         self.tokenizer = None
+        self._json_array_token_ids: Optional[List[int]] = None
         self.is_loaded = False
         self._initialized = True
 
@@ -166,6 +167,7 @@ class LLMManager:
         temperature: float = 0.1,
         top_p: float = 0.8,
         do_sample: bool = False,
+        json_array_only: bool = False,
     ) -> str:
         if not self.is_loaded:
             if not self.load():
@@ -190,6 +192,10 @@ class LLMManager:
             if do_sample:
                 gen_kwargs["temperature"] = temperature
                 gen_kwargs["top_p"] = top_p
+            if json_array_only:
+                gen_kwargs["prefix_allowed_tokens_fn"] = (
+                    self._json_array_prefix_constraint(inputs["input_ids"].shape[1])
+                )
 
             with torch.no_grad():
                 outputs = self.model.generate(**inputs, **gen_kwargs)
@@ -210,6 +216,7 @@ class LLMManager:
         temperature: float = 0.1,
         top_p: float = 0.8,
         do_sample: bool = False,
+        json_array_only: bool = False,
     ) -> List[str]:
         if not self.is_loaded:
             if not self.load():
@@ -242,6 +249,10 @@ class LLMManager:
             if do_sample:
                 gen_kwargs["temperature"] = temperature
                 gen_kwargs["top_p"] = top_p
+            if json_array_only:
+                gen_kwargs["prefix_allowed_tokens_fn"] = (
+                    self._json_array_prefix_constraint(inputs["input_ids"].shape[1])
+                )
 
             with torch.no_grad():
                 outputs = self.model.generate(**inputs, **gen_kwargs)
@@ -258,8 +269,82 @@ class LLMManager:
             print(f"[LLM] Batch generation error ({e}), falling back to single generation...")
             responses = []
             for msgs in batch_messages:
-                responses.append(self.generate_response(msgs, max_new_tokens=max_new_tokens, temperature=temperature, top_p=top_p, do_sample=do_sample))
+                responses.append(self.generate_response(
+                    msgs,
+                    max_new_tokens=max_new_tokens,
+                    temperature=temperature,
+                    top_p=top_p,
+                    do_sample=do_sample,
+                    json_array_only=json_array_only,
+                ))
             return responses
+
+    def _get_json_array_token_ids(self) -> List[int]:
+        """Return tokenizer IDs whose decoded text is valid JSON-array syntax.
+
+        The schema reconciler emits only arrays containing non-negative integer
+        indices and ``null``. Restricting decoding to that alphabet prevents
+        Markdown and explanatory prose while the reconciler's parser continues
+        to enforce length, range, type, and uniqueness constraints.
+        """
+        if self._json_array_token_ids is not None:
+            return self._json_array_token_ids
+        if self.tokenizer is None:
+            raise RuntimeError("Tokenizer must be loaded before constrained decoding")
+
+        allowed_chars = frozenset("[]0123456789,null \t\r\n")
+        allowed_ids: List[int] = []
+        vocab_size = len(self.tokenizer)
+        special_ids = {
+            token_id
+            for token_id in (
+                self.tokenizer.eos_token_id,
+                self.tokenizer.pad_token_id,
+            )
+            if token_id is not None
+        }
+        for token_id in range(vocab_size):
+            if token_id in special_ids:
+                continue
+            piece = self.tokenizer.decode(
+                [token_id],
+                skip_special_tokens=False,
+                clean_up_tokenization_spaces=False,
+            )
+            if piece and all(char in allowed_chars for char in piece):
+                allowed_ids.append(token_id)
+        if not allowed_ids:
+            raise RuntimeError("Tokenizer exposes no JSON-array-compatible tokens")
+        self._json_array_token_ids = allowed_ids
+        return allowed_ids
+
+    def _json_array_prefix_constraint(self, prompt_length: int):
+        """Stop a constrained response immediately after its closing bracket."""
+        allowed_ids = self._get_json_array_token_ids()
+        terminal_ids = list(dict.fromkeys(
+            token_id
+            for token_id in (
+                self.tokenizer.eos_token_id,
+                self.tokenizer.pad_token_id,
+            )
+            if token_id is not None
+        ))
+        if not terminal_ids:
+            raise RuntimeError("Tokenizer has no terminal token for JSON decoding")
+
+        def constrain(_batch_id, input_ids):
+            suffix_ids = input_ids[prompt_length:].tolist()
+            if suffix_ids:
+                suffix = self.tokenizer.decode(
+                    suffix_ids,
+                    skip_special_tokens=False,
+                    clean_up_tokenization_spaces=False,
+                )
+                if "]" in suffix:
+                    return terminal_ids
+            return allowed_ids
+
+        return constrain
 
     def generate_stream(
         self,
