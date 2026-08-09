@@ -83,22 +83,23 @@ class GemmaE2BReconciler:
         text: str,
         original: Dict,
         drifted: Dict,
-    ) -> Tuple[List[Tuple[str, str]], List[str], bool]:
+    ) -> Tuple[List[Tuple[str, str]], List[str], bool, bool]:
         source_keys = list(original.keys())
         target_keys = list(drifted.keys())
         match = re.search(r"\[[\s\S]*?\]", self._clean_output(text))
         if not match:
-            return [], source_keys, False
+            return [], source_keys, False, False
         try:
             indices = json.loads(match.group(0))
         except json.JSONDecodeError:
-            return [], source_keys, False
+            return [], source_keys, False, False
         if not isinstance(indices, list) or len(indices) != len(source_keys):
-            return [], source_keys, False
+            return [], source_keys, False, False
 
         used_targets = set()
         mapped: List[Tuple[str, str]] = []
         unmapped: List[str] = []
+        mapping_valid = True
         for source, target_index in zip(source_keys, indices):
             if target_index is None:
                 unmapped.append(source)
@@ -110,10 +111,14 @@ class GemmaE2BReconciler:
                 or target_index >= len(target_keys)
                 or target_index in used_targets
             ):
-                return [], source_keys, False
+                mapping_valid = False
+                unmapped.append(source)
+                continue
             used_targets.add(target_index)
             mapped.append((source, target_keys[target_index]))
-        return mapped, unmapped, True
+        # Preserve partial mappings so a low-quality LLM response is measured
+        # rather than aborting the entire oracle sweep.
+        return mapped, unmapped, True, mapping_valid
 
     def _infer(self, original: Dict, drifted: Dict) -> Dict[str, str]:
         manager = self._get_manager()
@@ -128,8 +133,10 @@ class GemmaE2BReconciler:
             top_p=1.0,
             json_array_only=True,
         )
-        mapped, _, valid = self._parse_index_mapping(response, original, drifted)
-        return dict(mapped) if valid else {}
+        mapped, _, output_valid, _mapping_valid = self._parse_index_mapping(
+            response, original, drifted
+        )
+        return dict(mapped) if output_valid else {}
 
     def reconcile_batch(self, pairs: List[Tuple[Dict, Dict]], progress_cb=None) -> List[Dict]:
         manager = self._get_manager()
@@ -177,12 +184,12 @@ class GemmaE2BReconciler:
                     progress_cb(idx, total)
                 
                 resp_text = responses[offset] if offset < len(responses) else ""
-                mapped, unmapped, valid = self._parse_index_mapping(
+                mapped, unmapped, output_valid, mapping_valid = self._parse_index_mapping(
                     resp_text, orig, drift
                 )
                 retried = False
                 attempts = 0
-                while not valid and attempts < 2:
+                while (not output_valid or not mapping_valid) and attempts < 2:
                     retried = True
                     attempts += 1
                     retry_messages = [{
@@ -200,13 +207,19 @@ class GemmaE2BReconciler:
                         top_p=1.0,
                         json_array_only=True,
                     )
-                    mapped, unmapped, valid = self._parse_index_mapping(
+                    mapped, unmapped, output_valid, mapping_valid = self._parse_index_mapping(
                         retry_text, orig, drift
                     )
-                if not valid:
+                if not output_valid:
                     preview = self._clean_output(retry_text if retried else resp_text)[:160]
                     print(
                         f"[LLM] Invalid indexed mapping after retries: {preview!r}",
+                        flush=True,
+                    )
+                elif not mapping_valid:
+                    print(
+                        "[LLM] Indexed JSON was valid but mapping constraints "
+                        "were violated after retries; recording partial accuracy",
                         flush=True,
                     )
                 accuracy = len(mapped) / len(orig.keys()) if orig.keys() else 0.0
@@ -216,7 +229,8 @@ class GemmaE2BReconciler:
                     "mapped_fields": mapped,
                     "unmapped_fields": unmapped,
                     "batch_size": self.batch_size,
-                    "structured_output_valid": valid,
+                    "structured_output_valid": output_valid,
+                    "structured_mapping_valid": mapping_valid,
                     "structured_output_retried": retried,
                 })
 

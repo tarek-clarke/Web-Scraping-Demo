@@ -375,6 +375,7 @@ def preflight_methods(
         report[method] = {
             "latency_ms": latency,
             "structured_output_valid": result.get("structured_output_valid"),
+            "structured_mapping_valid": result.get("structured_mapping_valid"),
             "structured_output_retried": result.get("structured_output_retried"),
             **metrics,
         }
