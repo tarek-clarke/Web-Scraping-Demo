@@ -22,8 +22,12 @@ source "$PROJECT_ROOT/scripts/lumi_cache_env.sh"
 
 LUMI_SITE_PACKAGES="${RAP_LUMI_SITE_PACKAGES:-${PROJECT_ROOT}/.runtime/lumi/site-packages}"
 test -d "$LUMI_SITE_PACKAGES" || { echo "Missing LUMI runtime; run bootstrap first." >&2; exit 1; }
-export PYTHONPATH="$LUMI_SITE_PACKAGES${PYTHONPATH:+:$PYTHONPATH}"
-export SINGULARITYENV_PYTHONPATH="$PYTHONPATH"
+if [ -z "${RAP_LUMI_PYTHON:-}" ]; then
+    export PYTHONPATH="$LUMI_SITE_PACKAGES${PYTHONPATH:+:$PYTHONPATH}"
+    export SINGULARITYENV_PYTHONPATH="$PYTHONPATH"
+else
+    unset PYTHONPATH SINGULARITYENV_PYTHONPATH
+fi
 export HF_TORCH_DTYPE=bfloat16
 export TOKENIZERS_PARALLELISM=false
 export PYTORCH_ALLOC_CONF=expandable_segments:True
@@ -34,7 +38,13 @@ module load lumi-aif-singularity-bindings
 LUMI_SIF="${LUMI_SIF:-/appl/local/laifs/containers/lumi-multitorch-u24r70f21m50t210-20260731_122833/lumi-multitorch-full-u24r70f21m50t210-20260731_122833.sif}"
 test -r "$LUMI_SIF" || { echo "LUMI container is unavailable." >&2; exit 1; }
 
-singularity run "$LUMI_SIF" python scripts/build_router_oracle.py \
+PYTHON_COMMAND=(singularity exec "$LUMI_SIF")
+if [ -n "${RAP_LUMI_PYTHON:-}" ]; then
+    PYTHON_COMMAND+=("$RAP_LUMI_PYTHON")
+else
+    PYTHON_COMMAND+=(python)
+fi
+"${PYTHON_COMMAND[@]}" scripts/build_router_oracle.py \
   --packets-file data/ingested/telemetry_clean_bench_22500.json \
   --output "data/training/${METHOD}_preflight.jsonl" \
   --methods "$METHOD" \
