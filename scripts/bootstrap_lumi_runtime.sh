@@ -20,7 +20,7 @@ singularity run "$LUMI_SIF" python -m pip install \
     --upgrade --no-deps --target "$TARGET" \
     "python-Levenshtein>=0.23.0,<1.0.0" \
     "transformers>=4.51.0,<4.57.0" \
-    "tokenizers>=0.22.0,<0.24.0" \
+    "tokenizers==0.22.1" \
     "huggingface-hub>=0.30.0,<1.0.0" \
     "safetensors>=0.4.0,<1.0.0"
 
