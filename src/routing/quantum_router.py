@@ -1,7 +1,7 @@
 """
 quantum_router.py — Quantum-accelerated packet router for resilient-rap-framework.
 
-Selects one of the eleven versioned reconciliation paths
+Selects one of the six versioned reconciliation paths
 for each drifted data packet using Variational Quantum Classifier (VQC)
 circuits or, optionally, QAOA-based batch optimization.
 
@@ -24,13 +24,14 @@ from .canonical_vqc import (
     RouterModel,
     build_measured_circuit,
     model_from_weights,
+    output_qubit_count,
 )
 
 
 class QuantumRouter:
     """
-    Quantum-accelerated router that selects the optimal reconciler
-    (levenshtein, regex, or bert) for each drifted packet.
+    Quantum-accelerated router that selects the optimal reconciler for each
+    drifted packet.
 
     Uses VQC (per-packet classification) or QAOA (batch optimization).
     Gemma is supported but disabled by default (too slow per MI250X benchmarks).
@@ -82,10 +83,11 @@ class QuantumRouter:
         self.shots: int = shots
         self.feature_count: int = feature_count
         
-        # The versioned paper protocol uses eleven classes encoded in four bits.
-        # Legacy four-class artifacts are rejected by RouterModel.load().
+        # The versioned paper protocol uses six routes and one abstention state
+        # encoded by three output bits.  Older artifacts are not interchangeable
+        # with this protocol because their class mapping is different.
         self.num_classes: int = len(DEFAULT_CLASS_NAMES)
-        self.num_output_qubits: int = 4
+        self.num_output_qubits: int = output_qubit_count(self.num_classes)
         self.circuit_reps: int = DEFAULT_REPS
         self.class_names: Tuple[str, ...] = tuple(
             self.RECONCILER_CLASSES[index] for index in range(self.num_classes)
@@ -616,7 +618,7 @@ class QuantumRouter:
         ~~~~~~~~~~~~~~
         * Low edit distance + no structural / type changes → **levenshtein**
         * Few removed fields + no structural changes → **regex**
-        * Everything else → **bert** (highest-capability reconciler)
+        * Everything else → **minilm** (highest-capability local fallback)
         """
         # Denormalise key features from [0, π] back to [0, 1]
         key_edit_dist: float = features[6] / math.pi    # index 6: key_edit_distance_mean
@@ -633,7 +635,7 @@ class QuantumRouter:
         elif fields_removed < 0.1 and has_structural < 0.5:
             return "regex", 0.7
         else:
-            return "bert", 0.9
+            return "minilm", 0.9
 
     # ------------------------------------------------------------------
     # Training
@@ -718,7 +720,7 @@ class QuantumRouter:
         self.feature_count = model.feature_count
         self.circuit_reps = model.reps
         self.class_names = model.class_names
-        self.num_output_qubits = int(math.ceil(math.log2(self.num_classes)))
+        self.num_output_qubits = output_qubit_count(self.num_classes)
 
     # ------------------------------------------------------------------
     # Diagnostics

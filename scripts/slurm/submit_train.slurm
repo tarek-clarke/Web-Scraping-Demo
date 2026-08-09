@@ -77,15 +77,15 @@ if [ "${RAP_PREFLIGHT_ONLY:-0}" = "1" ]; then
 fi
 
 # Train one independent start per GCD. The array can therefore use up to ten
-# GCDs concurrently without pretending a small 14-qubit statevector scales
+# GCDs concurrently without pretending a small 13-qubit statevector scales
 # efficiently across an entire multi-GPU node.
 python3 scripts/run_with_energy.py \
     --csv "data/training/energy_train_${LUMI_GPU_PROFILE//-/_}_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.csv" \
     --summary "data/training/energy_train_${LUMI_GPU_PROFILE//-/_}_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.json" \
     --label "lumi-vqc-train-${LUMI_GPU_PROFILE}-${SLURM_ARRAY_TASK_ID}" -- \
     python3 -u scripts/train_qpu_router.py train \
-        --oracle "${ORACLE:-data/training/router_oracle_22500_v4_${LUMI_GPU_PROFILE//-/_}.jsonl}" \
-        --output-dir "data/training/qpu_router_multistart_v4_${LUMI_GPU_PROFILE//-/_}" \
+        --oracle "${ORACLE:-data/training/router_oracle_22500_v5_${LUMI_GPU_PROFILE//-/_}.jsonl}" \
+        --output-dir "data/training/qpu_router_multistart_v5_${LUMI_GPU_PROFILE//-/_}" \
         --start-index "$SLURM_ARRAY_TASK_ID" \
         --backend aer_gpu \
         --training-shots 512 \

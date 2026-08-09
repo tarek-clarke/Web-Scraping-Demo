@@ -6,7 +6,7 @@
 
 ## Overview
 
-The Resilient RAP framework evaluates adaptive stream reconciliation across **9 microservice domains**, **3 chaos/drift families**, **10 candidate reconcilers**, and classical, GPU-simulated, and physical-QPU routing architectures.
+The Resilient RAP framework evaluates adaptive stream reconciliation across **9 microservice domains**, **3 chaos/drift families**, **6 candidate reconcilers**, and classical, GPU-simulated, and physical-QPU routing architectures.
 
 > **Core Research Finding & Paper Framing**:
 > *"Hybrid quantum routing demonstrates a statistically significant improvement over the strongest classical baseline under the evaluated benchmark, while physical hardware experiments characterize current NISQ limitations."*
@@ -18,22 +18,22 @@ The Resilient RAP framework evaluates adaptive stream reconciliation across **9 
   1. *JSON Structural*: Dropped/null keys and key modification.
   2. *LLM-Generated Schema Reformulation (Qwen)*: LLM semantic field renaming preserving lexical stems.
   3. *Syntactic Field Truncation/Drift*: Type alterations and field truncation.
-- **Reconciliation Engine (10 Candidates)**: Levenshtein, Regex, MiniLM, Gemma 4 E2B, BGE, Cohere Embed v4, schema registry, cross-encoder, Qwen 2.5 1.5B, and SmolLM2 1.7B.
+- **Reconciliation Engine (6 Candidates)**: Levenshtein, Regex, MiniLM, Gemma 4 E2B, BGE, and Cohere Embed v4.
 - **Routing Architectures**:
   1. *Multinomial Logistic Regression (CPU)*: Linear decision boundary baseline.
   2. *Random Forest Classifier (CPU)*: Non-linear tree ensemble baseline (100 trees, max depth 10).
-  3. *VQC Simulator Router (Aer GPU)*: 14-qubit Variational Quantum Classifier on AMD Instinct MI250X GPUs.
-  4. *Physical QPU Router*: the same frozen 14-qubit circuit on IBM Heron r2 and the 24-qubit VLQ target.
+  3. *VQC Simulator Router (Aer GPU)*: 13-qubit Variational Quantum Classifier on AMD Instinct MI250X GPUs.
+  4. *Physical QPU Router*: the same frozen 13-qubit circuit on IBM Heron r2 and the 24-qubit VLQ target.
 - **Aggregation Protocol**: Unweighted macro-average across 9 microservice APIs.
 - **Instrumentation**: Power and execution profiling capabilities (`EnergyTracker`) for hardware monitoring.
 
 ---
 
-## Active v4 Rerun Protocol
+## Active v5 Rerun Protocol
 
-The active rerun starts from the committed 22,500-packet, nine-API corpus and produces 31,500 drift records: training identities receive one deterministic chaos family, while validation and test identities receive all three. Existing result tables later in this README describe the archived 12-qubit experiment and must not be mixed with v4 results; the reporting scripts replace them after the v4 runs complete.
+The active rerun starts from the committed 22,500-packet, nine-API corpus and produces 31,500 drift records: training identities receive one deterministic chaos family, while validation and test identities receive all three. Existing result tables later in this README describe archived experiments and must not be mixed with v5 results; the reporting scripts replace them after the v5 runs complete.
 
-### Ten routing choices
+### Six routing choices
 
 The canonical class order is fixed in `src/routing/canonical_vqc.py` and in every model artifact:
 
@@ -45,12 +45,8 @@ The canonical class order is fixed in `src/routing/canonical_vqc.py` and in ever
 | 3 | `gemma_e2b` | Local GPU |
 | 4 | `bge` | Local GPU |
 | 5 | `cohere_embed_v4` | Cohere API |
-| 6 | `schema_registry` | CPU |
-| 7 | `cross_encoder` | Local GPU |
-| 8 | `qwen_1_5b` | Local GPU |
-| 9 | `smollm2_1_7b` | Local GPU |
 
-These ten choices require four measured output bits. The canonical circuit therefore uses 10 feature qubits plus 4 output qubits, for 14 logical qubits total. It fits both the 24-qubit VLQ QPU and IBM's 156-qubit Heron r2 backend without changing the logical circuit.
+These six choices use three measured output bits. The canonical circuit therefore uses 10 feature qubits plus 3 output qubits, for 13 logical qubits total. It fits both the 24-qubit VLQ QPU and IBM's 156-qubit Heron r2 backend without changing the logical circuit. The fixed state map is `000` Levenshtein, `001` Regex, `010` MiniLM, `011` Gemma E2B, `100` BGE, `101` Cohere Embed v4, `110` abstain, and `111` reserved (also decoded as abstain).
 
 ### Comparable ground-truth accuracy
 
@@ -62,11 +58,11 @@ The oracle also records exact-record match, mapping precision, recall, and F1. A
 
 ### Unused quantum states and abstention
 
-Four output bits represent 16 raw states, but only states 0--9 identify reconcilers. States 10--15 are aggregated into an explicit `abstain` outcome rather than silently discarded or clamped to a valid class. Simulator and physical-QPU reports include `invalid_shots`, `invalid_state_rate`, and `abstain_rate`. If the aggregate invalid-state probability exceeds the probability of every valid class, the raw router decision is recorded as `abstain` and dispatch fails safely to the deterministic CPU `schema_registry` reconciler. Reports retain both `selected_method=abstain` and `dispatched_method=schema_registry`, so the fallback cannot inflate routing-selection accuracy while its end-to-end reconciliation result remains measurable.
+Three output bits represent eight raw states. States `110` and `111` are aggregated into an explicit `abstain` outcome rather than silently discarded or clamped to a valid class. Simulator and physical-QPU reports include `invalid_shots`, `invalid_state_rate`, and `abstain_rate`. If the aggregate abstention probability exceeds the probability of every valid class, the raw router decision is recorded as `abstain` and dispatch fails safely to the deterministic CPU `schema_registry` reconciler. Reports retain both `selected_method=abstain` and `dispatched_method=schema_registry`, so the fallback cannot inflate routing-selection accuracy while its end-to-end reconciliation result remains measurable.
 
 ### Fail-fast preflight
 
-Before any full oracle pass, each worker executes one real record through all ten methods. The run stops immediately if a model cannot load, a cloud credential is missing, a CPU fallback occurs where an accelerator is required, or a method returns malformed mappings or latency. A smoke-test report is written into each shard manifest.
+Before any full oracle pass, each worker executes one real record through all six methods. The run stops immediately if a model cannot load, a cloud credential is missing, a CPU fallback occurs where an accelerator is required, or a method returns malformed mappings or latency. Models remain resident for their worker's full pass, avoiding per-chunk reload overhead; they are released when the worker exits. A smoke-test report is written into each shard manifest.
 
 To run only that validation locally or in an already configured accelerator environment:
 
@@ -105,11 +101,11 @@ LUMI_GPU_PROFILE=single bash scripts/slurm/submit_qpu_training_pipeline.sh
 LUMI_GPU_PROFILE=full-node bash scripts/slurm/submit_qpu_training_pipeline.sh
 ```
 
-Each command builds a profile-specific oracle, launches 10 independent one-GCD VQC optimizer starts, and selects the best model only after every start succeeds. The 2-GCD/8-GCD profile controls the data-parallel reconciler/oracle benchmark; each 14-qubit optimizer stays on one GCD because distributing such a small statevector would add communication overhead without improving the statistical experiment. Ten starts address optimizer initialization sensitivity; they are not presented as ten independent datasets. Final claims should use the untouched held-out test split, per-API breakdowns, class balance, abstention rate, and confidence intervals across explicitly repeated experimental runs.
+Each command builds a profile-specific oracle, launches 10 independent one-GCD VQC optimizer starts, and selects the best model only after every start succeeds. The 2-GCD/8-GCD profile controls the data-parallel reconciler/oracle benchmark; each 13-qubit optimizer stays on one GCD because distributing such a small statevector would add communication overhead without improving the statistical experiment. Ten starts address optimizer initialization sensitivity; they are not presented as ten independent datasets. Final claims should use the untouched held-out test split, per-API breakdowns, class balance, abstention rate, and confidence intervals across explicitly repeated experimental runs.
 
-LUMI intentionally uses two isolated Python runtimes. The ten reconcilers run in the current `lumi-multitorch` Python 3.12 container plus `.runtime/lumi/site-packages`; VQC optimization runs in `.venv-aer-lumi` with the source-built ROCm Aer extension. Compiled extensions are never shared across those runtimes. Every cache and user-writable runtime directory is forced under the project scratch checkout by `scripts/lumi_cache_env.sh`, including the container's `HOME`, Hugging Face, pip, Torch, Triton, ROCm, Jupyter, and temporary directories. Nothing from the active workflow is intentionally written to `/users/clarketa`. If a previously validated Aer environment is required, set its absolute path with `RAP_LUMI_TRAIN_ENV` before submission.
+LUMI intentionally uses two isolated Python runtimes. The six reconcilers run in the current `lumi-multitorch` Python 3.12 container plus `.runtime/lumi/site-packages`; VQC optimization runs in `.venv-aer-lumi` with the source-built ROCm Aer extension. Compiled extensions are never shared across those runtimes. Every cache and user-writable runtime directory is forced under the project scratch checkout by `scripts/lumi_cache_env.sh`, including the container's `HOME`, Hugging Face, pip, Torch, Triton, ROCm, Jupyter, and temporary directories. Nothing from the active workflow is intentionally written to `/users/clarketa`. If a previously validated Aer environment is required, set its absolute path with `RAP_LUMI_TRAIN_ENV` before submission.
 
-The physical-QPU stage is deliberately separate. No QPU job is submitted by either LUMI command; only the selected, frozen 14-qubit model should be submitted to IBM or VLQ.
+The physical-QPU stage is deliberately separate. No QPU job is submitted by either LUMI command; only the selected, frozen 13-qubit model should be submitted to IBM or VLQ.
 
 The VLQ client must also remain isolated because QaaS 0.3.2 pins Qiskit 1.4.x, while the active Aer/IBM workflow uses Qiskit 2.x. Never install QaaS into `.venv-aer-lumi`, `.venv-accelerator`, or the ordinary development environment. Build its Python 3.11 environment once with `bash scripts/bootstrap_vlq_env.sh --skip-smoke-test`, activate it with `source .venv-vlq/bin/activate`, and then run `python scripts/smoke_test_vlq_qpu.py`. The bootstrap runs `pip check` and stops on any mixed-stack dependency conflict.
 

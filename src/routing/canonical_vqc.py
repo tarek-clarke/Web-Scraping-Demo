@@ -8,8 +8,8 @@ describe the circuit that was executed on the QPU.
 This module is the single source of truth for:
 
 * the 10 feature parameters;
-* the shallow 14-qubit unitary;
-* the four measured output qubits and eleven-state class encoding;
+* the shallow 13-qubit unitary;
+* the three measured output qubits and seven-state class encoding;
 * model artifact validation; and
 * provider-independent decoding.
 
@@ -31,8 +31,8 @@ from typing import Dict, Iterable, List, Mapping, Sequence, Tuple
 import numpy as np
 
 
-MODEL_SCHEMA_VERSION = 4
-CIRCUIT_ID = "rap-tree-vqc-14q-v4"
+MODEL_SCHEMA_VERSION = 5
+CIRCUIT_ID = "rap-tree-vqc-13q-v5"
 DEFAULT_CLASS_NAMES = (
     "levenshtein",
     "regex",
@@ -40,10 +40,6 @@ DEFAULT_CLASS_NAMES = (
     "gemma_e2b",
     "bge",
     "cohere_embed_v4",
-    "schema_registry",
-    "cross_encoder",
-    "qwen_1_5b",
-    "smollm2_1_7b",
 )
 DEFAULT_FEATURE_COUNT = 10
 DEFAULT_REPS = 2
@@ -64,32 +60,30 @@ def logical_qubit_count(feature_count: int, num_classes: int) -> int:
 
 
 def _tree_edges(feature_count: int, output_qubits: Sequence[int]) -> List[Tuple[int, int]]:
-    """Return the fixed degree-3 fan-in tree used by the 10+4 model.
+    """Return the fixed degree-3 interaction graph used by the 10+3 model.
 
     Its maximum logical degree is three, which maps naturally to IBM's
     heavy-hex fabric while remaining shallow on VLQ's star-connected system.
     """
-    if feature_count != 10 or len(output_qubits) != 4:
+    if feature_count != 10 or len(output_qubits) != 3:
         raise ValueError(
-            f"{CIRCUIT_ID} requires exactly 10 feature and 4 output qubits"
+            f"{CIRCUIT_ID} requires exactly 10 feature and 3 output qubits"
         )
-    left, middle, right, extra = output_qubits
+    left, middle, right = output_qubits
     return [
-        (0, 1),
-        (2, 3),
-        (1, 4),
-        (3, 4),
-        (4, left),
-        (5, 6),
-        (7, 8),
-        (6, 9),
-        (8, 9),
-        (9, middle),
-        (1, right),
-        (7, extra),
-        (left, middle),
-        (middle, right),
-        (right, extra),
+        # Each measured output has three direct feature inputs.  Feature 9
+        # joins the first feature subtree, so all ten dimensions participate
+        # while the maximum logical degree remains three.
+        (0, left),
+        (1, left),
+        (2, left),
+        (3, middle),
+        (4, middle),
+        (5, middle),
+        (6, right),
+        (7, right),
+        (8, right),
+        (9, 0),
     ]
 
 
@@ -110,9 +104,9 @@ def build_unitary_circuit(
         raise ValueError("reps must be at least one")
     num_outputs = output_qubit_count(num_classes)
     num_qubits = feature_count + num_outputs
-    if num_qubits != 14:
+    if num_qubits != 13:
         raise ValueError(
-            f"{CIRCUIT_ID} is the eleven-state 14-qubit protocol; requested "
+            f"{CIRCUIT_ID} is the seven-state 13-qubit protocol; requested "
             f"{feature_count} features and {num_classes} classes ({num_qubits} qubits)"
         )
 
@@ -162,7 +156,7 @@ def build_measured_circuit(
     num_classes: int = len(DEFAULT_CLASS_NAMES),
     reps: int = DEFAULT_REPS,
 ):
-    """Return the canonical circuit with frozen weights and four output bits."""
+    """Return the canonical circuit with frozen weights and three output bits."""
     circuit, feature_parameters, weight_parameters, output_qubits = (
         build_unitary_circuit(
             feature_count=feature_count,
@@ -190,7 +184,7 @@ def build_measured_circuit(
 
 
 def qnn_interpret(output_qubits: Sequence[int]):
-    """Map six unused four-bit states to one explicit abstention outcome."""
+    """Map the reserved three-bit state to the explicit abstention outcome."""
     qubits = tuple(int(q) for q in output_qubits)
 
     def interpret(bitstring_as_int: int) -> int:
@@ -229,7 +223,12 @@ def counts_to_prediction(
     counts: Mapping[str, int],
     class_names: Sequence[str] = DEFAULT_CLASS_NAMES,
 ) -> Dict[str, object]:
-    """Decode output counts into a class, confidence, and dense probabilities."""
+    """Decode output counts into a class, confidence, and dense probabilities.
+
+    State ``110`` is the explicit abstention outcome and ``111`` is reserved;
+    both are reported as abstention instead of being silently clamped to a
+    reconciler route.
+    """
     total = int(sum(int(value) for value in counts.values()))
     if total <= 0:
         raise ValueError("Cannot decode empty QPU counts")
@@ -368,9 +367,19 @@ class RouterModel:
         data = json.loads(source.read_text(encoding="utf-8"))
         schema_version = data.get("model_schema_version", MODEL_SCHEMA_VERSION)
         circuit_id = data.get("circuit_id", CIRCUIT_ID)
+        if int(schema_version) != MODEL_SCHEMA_VERSION or circuit_id != CIRCUIT_ID:
+            raise ValueError(
+                f"{source} is not a {CIRCUIT_ID} model artifact. "
+                "Archived router models must not be evaluated under the current protocol."
+            )
         if "trained_params" not in data:
             raise ValueError(f"{source} missing trained_params")
         class_names = tuple(data.get("class_names") or DEFAULT_CLASS_NAMES)
+        if class_names != DEFAULT_CLASS_NAMES:
+            raise ValueError(
+                f"{source} class order {class_names!r} does not match the canonical "
+                f"six-route protocol {DEFAULT_CLASS_NAMES!r}"
+            )
         feature_count = int(data.get("feature_count", DEFAULT_FEATURE_COUNT))
         weights = np.asarray(data.get("trained_params"), dtype=float)
         qubits = logical_qubit_count(feature_count, len(class_names))

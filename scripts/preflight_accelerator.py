@@ -266,7 +266,7 @@ def validate_aer_gpu(expected_devices: int) -> Dict[str, object]:
 
 
 def validate_router_qnn() -> Dict[str, object]:
-    print("[preflight] executing the canonical 14-qubit SamplerQNN...", flush=True)
+    print("[preflight] executing the canonical 13-qubit SamplerQNN...", flush=True)
     import numpy as np
 
     from scripts.train_qpu_router import create_qnn

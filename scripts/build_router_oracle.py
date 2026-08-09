@@ -303,11 +303,7 @@ def reconcile_chunk(
         (record["original_data"], record["drifted_data"]) for record in records
     ]
     outputs: Dict[str, List[dict]] = {}
-    llm_methods = {"minilm", "gemma_e2b", "bge", "cross_encoder", "qwen_1_5b", "smollm2_1_7b"}
-    previous_llm_method = None
     for method in methods:
-        if previous_llm_method is not None:
-            engine.release_method(previous_llm_method)
         started = time.perf_counter()
         if method == "minilm":
             results = engine.reconcile_bert_batch(pairs)
@@ -322,17 +318,11 @@ def reconcile_chunk(
                 f"{method} returned {len(results)} results for {len(records)} records"
             )
         outputs[method] = results
-        if method in llm_methods:
-            previous_llm_method = method
-        else:
-            previous_llm_method = None
         elapsed = time.perf_counter() - started
         print(
             f"  {method}: {len(records)} records in {elapsed:.2f}s",
             flush=True,
         )
-    if previous_llm_method is not None:
-        engine.release_method(previous_llm_method)
     return outputs
 
 
@@ -420,7 +410,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--output",
-        default="data/training/router_oracle_22500_v2.jsonl",
+        default="data/training/router_oracle_22500_v5.jsonl",
     )
     parser.add_argument("--seed", type=int, default=20260723)
     parser.add_argument("--max-packets-per-api", type=int, default=2500)

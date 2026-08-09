@@ -145,8 +145,13 @@ class ReconciliationEngine:
         reconciler_name, confidence = router.route_packet(features)
         routing_latency_ms = (time.perf_counter() - start_time) * 1000
         
-        # Reconcile using selected reconciler
-        rec_result = self.reconcile(original, drifted, reconciler_name)
+        # An abstention is visible in reporting but dispatches through the
+        # deterministic registry fallback so that a reserved quantum state
+        # can never be treated as a valid learned reconciliation choice.
+        dispatched_reconciler = (
+            "schema_registry" if reconciler_name == "abstain" else reconciler_name
+        )
+        rec_result = self.reconcile(original, drifted, dispatched_reconciler)
         
         # Determine optimal reconciler (lowest-latency satisfying 95% accuracy SLA)
         optimal_reconciler = "minilm"
@@ -163,6 +168,7 @@ class ReconciliationEngine:
 
         # Merge routing metrics
         rec_result["routing_decision"] = reconciler_name
+        rec_result["dispatched_reconciler"] = dispatched_reconciler
         rec_result["routing_confidence"] = confidence
         rec_result["routing_latency_ms"] = routing_latency_ms
         rec_result["optimal_reconciler"] = optimal_reconciler

@@ -204,7 +204,7 @@ def run_prepare(args: argparse.Namespace) -> None:
         if "method_metrics" not in record or not record["method_metrics"]:
             record["method_metrics"] = {m: {"accuracy": 1.0, "latency_ms": 1.0, "joules": 0.0, "carbon_mg": 0.0} for m in required_methods}
         if "oracle_method" not in record:
-            record["oracle_method"] = "bert"
+            record["oracle_method"] = "minilm"
     records.sort(
         key=lambda record: (
             record["api"],
@@ -972,8 +972,8 @@ def enrich_prediction(
         "packet_index": int(record["packet_index"]),
         "chaos_method": record["chaos_method"],
         "chaos_subtype": record["chaos_subtype"],
-        "oracle_method": record.get("oracle_method", "bert"),
-        "oracle_label": int(record.get("oracle_label", DEFAULT_CLASS_NAMES.index(record.get("oracle_method", "bert")) if record.get("oracle_method") in DEFAULT_CLASS_NAMES else 2)),
+        "oracle_method": record.get("oracle_method", "minilm"),
+        "oracle_label": int(record.get("oracle_label", DEFAULT_CLASS_NAMES.index(record.get("oracle_method", "minilm")) if record.get("oracle_method") in DEFAULT_CLASS_NAMES else 2)),
         "selected_method": selected,
         "dispatched_method": dispatched,
         "selected_label": int(decoded["class_index"]),
@@ -1313,9 +1313,9 @@ def build_parser() -> argparse.ArgumentParser:
     prepare = commands.add_parser("prepare")
     prepare.add_argument(
         "--oracle",
-        default="data/training/router_oracle_22500_v2.jsonl",
+        default="data/training/router_oracle_22500_v5.jsonl",
     )
-    prepare.add_argument("--model", default="configs/quantum_router_v2.json")
+    prepare.add_argument("--model", default="configs/quantum_router_v5.json")
     prepare.add_argument("--split", choices=["validation", "test"], default="test")
     prepare.add_argument("--run-name", default="heldout_3rep")
     prepare.add_argument("--run-dir")

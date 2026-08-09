@@ -61,9 +61,9 @@ python3 scripts/run_with_energy.py \
     --summary "data/training/energy_select_${LUMI_GPU_PROFILE//-/_}_${SLURM_JOB_ID}.json" \
     --label "lumi-vqc-select-${LUMI_GPU_PROFILE}" -- \
     python3 -u scripts/train_qpu_router.py select \
-        --oracle "${ORACLE:-data/training/router_oracle_22500_v4_${LUMI_GPU_PROFILE//-/_}.jsonl}" \
-        --candidates-dir "data/training/qpu_router_multistart_v4_${LUMI_GPU_PROFILE//-/_}" \
-        --model-output "configs/quantum_router_v4_${LUMI_GPU_PROFILE//-/_}.json" \
+        --oracle "${ORACLE:-data/training/router_oracle_22500_v5_${LUMI_GPU_PROFILE//-/_}.jsonl}" \
+        --candidates-dir "data/training/qpu_router_multistart_v5_${LUMI_GPU_PROFILE//-/_}" \
+        --model-output "configs/quantum_router_v5_${LUMI_GPU_PROFILE//-/_}.json" \
         --expected-starts 10 \
         --backend aer_gpu \
         --evaluation-shots 2048 \
@@ -71,7 +71,7 @@ python3 scripts/run_with_energy.py \
         --min-balanced-accuracy 0.70
 
 shopt -s nullglob
-ORACLE_STEM="${ORACLE:-data/training/router_oracle_22500_v4_${LUMI_GPU_PROFILE//-/_}.jsonl}"
+ORACLE_STEM="${ORACLE:-data/training/router_oracle_22500_v5_${LUMI_GPU_PROFILE//-/_}.jsonl}"
 ORACLE_STEM="${ORACLE_STEM%.jsonl}"
 ENERGY_INPUTS=(
     "${ORACLE_STEM}".part_*.energy_summary.json
