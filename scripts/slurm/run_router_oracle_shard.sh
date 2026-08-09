@@ -8,6 +8,7 @@ set -euo pipefail
 : "${SLURM_PROCID:?This launcher must run under srun}"
 : "${SLURM_LOCALID:?This launcher must run under srun}"
 : "${RAP_SLURM_GPU_MAP:?The allocation-derived GPU map is required}"
+: "${RAP_GCDS_PER_TASK:?The GCDs-per-card allocation is required}"
 
 cd "$PROJECT_ROOT"
 source "$PROJECT_ROOT/scripts/lumi_cache_env.sh"
@@ -15,11 +16,14 @@ RANK="$SLURM_PROCID"
 SHARD="${ORACLE%.jsonl}.part_${RANK}.jsonl"
 export RAP_CPU_WORKERS="${SLURM_CPUS_PER_TASK:-1}"
 IFS=',' read -r -a ALLOCATED_GPU_IDS <<< "$RAP_SLURM_GPU_MAP"
-if [ "${#ALLOCATED_GPU_IDS[@]}" -ne "$ORACLE_SHARDS" ] || [ -z "${ALLOCATED_GPU_IDS[$SLURM_LOCALID]:-}" ]; then
-    echo "ERROR: cannot resolve physical GCD for local rank ${SLURM_LOCALID:-unset}" >&2
+EXPECTED_ALLOCATED_GCDS=$((ORACLE_SHARDS * RAP_GCDS_PER_TASK))
+if [ "${#ALLOCATED_GPU_IDS[@]}" -ne "$EXPECTED_ALLOCATED_GCDS" ]; then
+    echo "ERROR: expected $EXPECTED_ALLOCATED_GCDS allocated GCD IDs, got ${#ALLOCATED_GPU_IDS[@]}" >&2
     exit 1
 fi
-export RAP_ASSIGNED_GPU_ID="${ALLOCATED_GPU_IDS[$SLURM_LOCALID]}"
+GPU_START=$((SLURM_LOCALID * RAP_GCDS_PER_TASK))
+export RAP_ASSIGNED_GPU_ID="${ALLOCATED_GPU_IDS[$GPU_START]}"
+export RAP_ASSIGNED_GPU_IDS="${ALLOCATED_GPU_IDS[*]:$GPU_START:$RAP_GCDS_PER_TASK}"
 export RAP_REQUIRE_GPU_TELEMETRY=1
 export IS_LUMI=1
 if (( RAP_ASSIGNED_GPU_ID % 2 == 0 )); then
@@ -41,7 +45,7 @@ env | sort | sed -n '/GPU/p;/VISIBLE_DEVICES/p'
 # LUMI GCD identifiers are allocation-specific. The preflight records each
 # task's physical PCI/UUID identity so duplicate assignments fail review.
 singularity run "$LUMI_SIF" python scripts/preflight_accelerator.py \
-    --expected-devices 1 \
+    --expected-devices "$RAP_GCDS_PER_TASK" \
     --profile oracle \
     --require-cohere \
     --json-output "${ORACLE%.jsonl}.part_${RANK}.preflight.json"

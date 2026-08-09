@@ -297,7 +297,7 @@ def validate_router_qnn() -> Dict[str, object]:
     if not np.all(np.isfinite(output)) or not np.isclose(output.sum(), 1.0):
         raise RuntimeError("Canonical SamplerQNN returned invalid probabilities")
     return {
-        "logical_qubits": 14,
+        "logical_qubits": 13,
         "feature_count": DEFAULT_FEATURE_COUNT,
         "output_shape": ROUTING_OUTPUT_SHAPE,
         "weight_count": weight_count,

@@ -41,13 +41,14 @@ export HF_TORCH_DTYPE=bfloat16
 export TOKENIZERS_PARALLELISM=false
 
 EXPECTED_GCDS=2
-[ "${LUMI_GPU_PROFILE:-single}" = "full-node" ] && EXPECTED_GCDS=8
+EXPECTED_CARDS=1
+[ "${LUMI_GPU_PROFILE:-single}" = "full-node" ] && EXPECTED_GCDS=8 && EXPECTED_CARDS=4
 if [ "${SLURM_GPUS_ON_NODE:-}" != "$EXPECTED_GCDS" ]; then
     echo "ERROR: expected $EXPECTED_GCDS LUMI GCDs for profile ${LUMI_GPU_PROFILE:-single}, got '${SLURM_GPUS_ON_NODE:-unset}'" >&2
     exit 1
 fi
-if [ "${SLURM_NTASKS:-}" != "$EXPECTED_GCDS" ]; then
-    echo "ERROR: expected $EXPECTED_GCDS Slurm tasks, got '${SLURM_NTASKS:-unset}'" >&2
+if [ "${SLURM_NTASKS:-}" != "$EXPECTED_CARDS" ]; then
+    echo "ERROR: expected $EXPECTED_CARDS one-process-per-card tasks, got '${SLURM_NTASKS:-unset}'" >&2
     exit 1
 fi
 "${PYTHON_BIN[@]}" - <<'PY'
@@ -65,7 +66,8 @@ for ((rank=0; rank<EXPECTED_GCDS; rank++)); do
 done
 
 export PROJECT_ROOT ORACLE
-export ORACLE_SHARDS="$EXPECTED_GCDS"
+export ORACLE_SHARDS="$EXPECTED_CARDS"
+export RAP_GCDS_PER_TASK=2
 GPU_MAP="${SLURM_JOB_GPUS:-}"
 if [[ ! "$GPU_MAP" =~ ^[0-9]+(,[0-9]+)*$ ]]; then
     echo "ERROR: unsupported SLURM_JOB_GPUS value: '$GPU_MAP'" >&2
@@ -89,10 +91,10 @@ for ((rank=0; rank<EXPECTED_GCDS; rank++)); do
     fi
     LOCAL_GPU_MAP+="$rank"
 done
-echo "Launching $EXPECTED_GCDS scheduler-bound workers (one Slurm task per GCD)"
+echo "Launching $EXPECTED_CARDS scheduler-bound workers (one process per physical MI250X card; two GCDs / 128 GB each)"
 srun \
-    --ntasks="$EXPECTED_GCDS" \
-    --gpus-per-task=1 \
+    --ntasks="$EXPECTED_CARDS" \
+    --gpus-per-task=2 \
     --gpu-bind="map_gpu:$LOCAL_GPU_MAP" \
     --kill-on-bad-exit=1 \
     bash "$PROJECT_ROOT/scripts/slurm/run_router_oracle_shard.sh"
