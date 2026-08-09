@@ -286,12 +286,14 @@ def classification_metrics(
         selected_method = (
             DEFAULT_CLASS_NAMES[int(predicted_label)]
             if int(predicted_label) < len(DEFAULT_CLASS_NAMES)
-            else "schema_registry"
+            else None
         )
         oracle_method = record["oracle_method"]
-        dispatched_methods.append(selected_method)
+        dispatched_methods.append(selected_method or ABSTAIN_CLASS_NAME)
         selected_reconciliation_accuracies.append(
-            float(record["method_metrics"][selected_method]["accuracy"])
+            0.0
+            if selected_method is None
+            else float(record["method_metrics"][selected_method]["accuracy"])
         )
         oracle_reconciliation_accuracies.append(
             float(record["method_metrics"][oracle_method]["accuracy"])
