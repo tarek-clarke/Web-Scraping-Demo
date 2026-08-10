@@ -54,9 +54,9 @@ class GemmaE2BReconciler:
     def _mapping_messages(self, original: Dict, drifted: Dict) -> List[Dict[str, str]]:
         """Return a compact, machine-verifiable schema-mapping request.
 
-        Index output avoids the former literal ``{"original":"drifted"}``
-        placeholder, reduces generated tokens, and makes invalid responses
-        observable rather than silently interpreted as an empty mapping.
+        Explicit source/target index pairs remain unambiguous if a small model
+        omits one source.  A positional array cannot identify the omitted
+        position and would shift every subsequent mapping.
         """
         original_spec = json.dumps(self._field_spec(original), separators=(",", ":"))
         drifted_spec = json.dumps(self._field_spec(drifted), separators=(",", ":"))
@@ -66,11 +66,12 @@ class GemmaE2BReconciler:
                 "Match each original schema field to at most one drifted schema field.\n"
                 f"ORIGINAL_FIELDS={original_spec}\n"
                 f"DRIFTED_FIELDS={drifted_spec}\n"
-                f"Return ONLY a valid JSON array of length {len(original)} with exactly "
-                "one item per original field. "
-                "Each item must be a unique integer index from DRIFTED_FIELDS or null "
-                "when no match exists. Do not return field names, objects, Markdown, "
-                "explanations, or placeholder text."
+                f"Return ONLY a valid JSON array containing exactly {len(original)} pairs, "
+                "one for every ORIGINAL_FIELDS index in ascending order. "
+                "Each pair must be [original_index,drifted_index]. Use null as the "
+                "drifted_index when no match exists. Example for three original fields: "
+                "[[0,2],[1,null],[2,0]]. Drifted indices must be unique. Do not return "
+                "field names, objects, Markdown, explanations, or placeholder text."
             ),
         }]
 
@@ -86,23 +87,51 @@ class GemmaE2BReconciler:
     ) -> Tuple[List[Tuple[str, str]], List[str], bool, bool]:
         source_keys = list(original.keys())
         target_keys = list(drifted.keys())
-        match = re.search(r"\[[\s\S]*?\]", self._clean_output(text))
-        if not match:
+        cleaned = self._clean_output(text)
+        array_start = cleaned.find("[")
+        array_end = cleaned.rfind("]")
+        if array_start < 0 or array_end < array_start:
             return [], source_keys, False, False
         try:
-            indices = json.loads(match.group(0))
+            indices = json.loads(cleaned[array_start:array_end + 1])
         except json.JSONDecodeError:
             return [], source_keys, False, False
-        if not isinstance(indices, list) or len(indices) != len(source_keys):
+        if not isinstance(indices, list):
             return [], source_keys, False, False
 
+        # Canonical format: explicit [source_index, target_index] pairs.  The
+        # legacy positional format is still accepted for archived model tests,
+        # but only when its length is exact because shorter positional output
+        # cannot identify which source was omitted.
+        explicit_pairs = bool(indices) and all(
+            isinstance(item, list) and len(item) == 2 for item in indices
+        )
+        if explicit_pairs:
+            assignments = indices
+        elif len(indices) == len(source_keys):
+            assignments = [[source_index, target_index]
+                           for source_index, target_index in enumerate(indices)]
+        else:
+            return [], source_keys, False, False
+
+        used_sources = set()
         used_targets = set()
         mapped: List[Tuple[str, str]] = []
-        unmapped: List[str] = []
+        unmapped_indices = set(range(len(source_keys)))
         mapping_valid = True
-        for source, target_index in zip(source_keys, indices):
+        for source_index, target_index in assignments:
+            if (
+                isinstance(source_index, bool)
+                or not isinstance(source_index, int)
+                or source_index < 0
+                or source_index >= len(source_keys)
+                or source_index in used_sources
+            ):
+                mapping_valid = False
+                continue
+            used_sources.add(source_index)
+            source = source_keys[source_index]
             if target_index is None:
-                unmapped.append(source)
                 continue
             if (
                 isinstance(target_index, bool)
@@ -112,10 +141,13 @@ class GemmaE2BReconciler:
                 or target_index in used_targets
             ):
                 mapping_valid = False
-                unmapped.append(source)
                 continue
             used_targets.add(target_index)
+            unmapped_indices.discard(source_index)
             mapped.append((source, target_keys[target_index]))
+        if len(used_sources) != len(source_keys):
+            mapping_valid = False
+        unmapped = [source_keys[index] for index in sorted(unmapped_indices)]
         # Preserve partial mappings so a low-quality LLM response is measured
         # rather than aborting the entire oracle sweep.
         return mapped, unmapped, True, mapping_valid
@@ -197,7 +229,9 @@ class GemmaE2BReconciler:
                         "content": (
                             batch_messages[offset][0]["content"]
                             + f"\nThe prior response failed validation. Return exactly "
-                            f"{len(orig)} entries using only integers, null, commas, and brackets."
+                            f"{len(orig)} [original_index,drifted_index] pairs, covering "
+                            f"original indices 0 through {max(0, len(orig) - 1)} exactly once, "
+                            "using only integers, null, commas, and brackets."
                         ),
                     }]
                     retry_text = manager.generate_response(
