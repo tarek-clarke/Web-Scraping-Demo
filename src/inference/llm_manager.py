@@ -319,7 +319,12 @@ class LLMManager:
         return allowed_ids
 
     def _json_array_prefix_constraint(self, prompt_length: int):
-        """Stop a constrained response immediately after its closing bracket."""
+        """Stop only after the outer JSON array's closing bracket.
+
+        Structured schema mappings may contain nested ``[source, target]``
+        pairs.  Stopping at the first ``]`` truncates such output after one
+        pair, so completion must be based on balanced bracket depth.
+        """
         allowed_ids = self._get_json_array_token_ids()
         terminal_ids = list(dict.fromkeys(
             token_id
@@ -340,11 +345,28 @@ class LLMManager:
                     skip_special_tokens=False,
                     clean_up_tokenization_spaces=False,
                 )
-                if "]" in suffix:
+                if self._json_array_complete(suffix):
                     return terminal_ids
             return allowed_ids
 
         return constrain
+
+    @staticmethod
+    def _json_array_complete(text: str) -> bool:
+        """Return true once the first outer array is bracket-balanced."""
+        depth = 0
+        started = False
+        for char in text:
+            if char == "[":
+                started = True
+                depth += 1
+            elif char == "]" and started:
+                depth -= 1
+                if depth == 0:
+                    return True
+                if depth < 0:
+                    return False
+        return False
 
     def generate_stream(
         self,
