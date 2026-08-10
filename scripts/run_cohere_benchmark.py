@@ -346,6 +346,11 @@ def main() -> None:
         help="Request timeout in seconds",
     )
     parser.add_argument(
+        "--fail-on-api-error",
+        action="store_true",
+        help="Abort immediately after recording the first failed Cohere API request",
+    )
+    parser.add_argument(
         "--client-name",
         default="resilient-rap-framework",
         help="X-Client-Name header value",
@@ -678,6 +683,14 @@ def main() -> None:
                             }
                             writer.writerow(row)
                             jsonl_fh.write(json.dumps(row) + "\n")
+                            csv_fh.flush()
+                            jsonl_fh.flush()
+
+                            if error and args.fail_on_api_error:
+                                raise RuntimeError(
+                                    f"Cohere API request failed for {api}/{method}: {error}. "
+                                    f"See {rows_path} for the recorded failure."
+                                )
 
     finally:
         if tracker is not None:
@@ -760,6 +773,13 @@ def main() -> None:
         "overall_accuracy": (total_correct / total_calls) if total_calls else 0.0,
         "summary_rows": summary_rows,
     }
+
+    if total_calls == 0:
+        raise RuntimeError(
+            "No successful Cohere API calls were recorded. "
+            "The run is invalid; check COHERE_API_KEY, model availability, "
+            "container environment propagation, and the Cohere API response logs."
+        )
 
     with summary_path.open("w", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2)
