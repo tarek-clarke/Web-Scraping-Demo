@@ -239,7 +239,17 @@ def _call_cohere_stream(
                         first_token_at = time.perf_counter()
                     response_text += delta
                     delta_count += 1
+            elif event_type == "message-start":
+                response_id = str(event.get("id", ""))
+            elif event_type == "message-end":
+                # Cohere v2 Chat streams usage and finish metadata in the final
+                # message-end delta (not in the v1 stream-end response object).
+                delta = event.get("delta", {}) or {}
+                finish_reason = str(delta.get("finish_reason", ""))
+                usage = delta.get("usage", {}) or {}
+                billed_units = usage.get("billed_units", {}) if isinstance(usage, dict) else {}
             elif event_type == "stream-end":
+                # Keep v1-compatible parsing for older/private deployments.
                 finish_reason = str(event.get("finish_reason", ""))
                 response = event.get("response", {}) or {}
                 response_id = str(response.get("id", ""))
