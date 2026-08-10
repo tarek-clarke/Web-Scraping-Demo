@@ -21,11 +21,16 @@ fi
 
 TAG="${RAP_HARDWARE_TAG:-nvidia}"
 RATE="${RAP_STREAM_RATE_PPS:-0}"
-BATCH="${RAP_STREAM_BATCH_SIZE:-16}"
+BATCH="${RAP_STREAM_BATCH_SIZE:-256}"
 REPETITIONS="${RAP_STREAM_REPETITIONS:-3}"
 METHODS="${RAP_STREAM_METHODS:-minilm qwen_1_5b bge}"
+LIMIT="${RAP_STREAM_LIMIT:-0}"
 STAMP="$(date -u +%Y%m%d_%H%M%S)"
 OUTPUT="${RAP_STREAM_OUTPUT_DIR:-data/reports/frozen_stream_${TAG}_${STAMP}}"
+LIMIT_ARGS=()
+if [ "$LIMIT" -gt 0 ]; then
+    LIMIT_ARGS=(--limit "$LIMIT")
+fi
 
 # shellcheck disable=SC2086
 "$PYTHON" scripts/run_frozen_telemetry_stream.py \
@@ -34,6 +39,7 @@ OUTPUT="${RAP_STREAM_OUTPUT_DIR:-data/reports/frozen_stream_${TAG}_${STAMP}}"
     --rate-pps "$RATE" \
     --consumer-batch-size "$BATCH" \
     --repetitions "$REPETITIONS" \
+    "${LIMIT_ARGS[@]}" \
     --hardware-profile cuda \
     --require-accelerator \
     --require-energy-telemetry \

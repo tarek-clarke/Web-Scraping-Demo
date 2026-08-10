@@ -337,16 +337,38 @@ class LLMManager:
         if not terminal_ids:
             raise RuntimeError("Tokenizer has no terminal token for JSON decoding")
 
+        token_pieces = {
+            token_id: self.tokenizer.decode(
+                [token_id],
+                skip_special_tokens=False,
+                clean_up_tokenization_spaces=False,
+            )
+            for token_id in allowed_ids
+        }
+
         def constrain(_batch_id, input_ids):
             suffix_ids = input_ids[prompt_length:].tolist()
+            suffix = ""
             if suffix_ids:
                 suffix = self.tokenizer.decode(
                     suffix_ids,
                     skip_special_tokens=False,
                     clean_up_tokenization_spaces=False,
                 )
-                if self._json_array_complete(suffix):
+                if suffix.lstrip().startswith("[[") and self._json_array_complete(suffix):
                     return terminal_ids
+            # The canonical mapping grammar is an outer array containing
+            # [source_index, target_index] pairs.  Prevent a small model from
+            # omitting the outer bracket and producing ``[0,2],[1,1],...``.
+            stripped = suffix.lstrip()
+            if not stripped.startswith("[["):
+                constrained = []
+                for token_id, piece in token_pieces.items():
+                    prospective = (suffix + piece).lstrip()
+                    if "[[".startswith(prospective) or prospective.startswith("[["):
+                        constrained.append(token_id)
+                if constrained:
+                    return constrained
             return allowed_ids
 
         return constrain

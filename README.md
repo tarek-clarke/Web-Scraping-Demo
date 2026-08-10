@@ -90,7 +90,7 @@ Run MiniLM, Qwen, and BGE on a scheduler-bound MI250X GCD:
 sbatch scripts/slurm/submit_frozen_stream_lumi.slurm
 ```
 
-The LUMI GPU script requires ROCm, exactly one visible scheduler-bound GCD, and a readable AMD power sensor. CPU fallback and missing energy telemetry fail loudly. Three repetitions are used by default. Override the replay without editing the script:
+The LUMI GPU script requires ROCm, exactly one visible scheduler-bound GCD, and a readable AMD power sensor. CPU fallback and missing energy telemetry fail loudly. Three repetitions and a 256-packet accelerator consumer batch are used by default. Qwen retries are generated as batches; they must not be serialized per record. Use the same batch size on GH200 and B300 for hardware comparisons. Override the replay without editing the script:
 
 ```bash
 RAP_STREAM_RATE_PPS=100 \

@@ -35,11 +35,16 @@ LUMI_SIF="${LUMI_SIF:-/appl/local/laifs/containers/lumi-multitorch-u24r70f21m50t
 
 STREAM="${RAP_STREAM_FILE:-data/replay/telemetry_frozen_22500_v8.jsonl}"
 RATE="${RAP_STREAM_RATE_PPS:-0}"
-BATCH="${RAP_STREAM_BATCH_SIZE:-16}"
+BATCH="${RAP_STREAM_BATCH_SIZE:-256}"
 REPETITIONS="${RAP_STREAM_REPETITIONS:-3}"
 METHODS="${RAP_STREAM_METHODS:-minilm qwen_1_5b bge}"
+LIMIT="${RAP_STREAM_LIMIT:-0}"
 TAG="${RAP_HARDWARE_TAG:-mi250x_one_gcd}"
 OUTPUT="${RAP_STREAM_OUTPUT_DIR:-data/reports/frozen_stream_${TAG}_${SLURM_JOB_ID}}"
+LIMIT_ARGS=()
+if [ "$LIMIT" -gt 0 ]; then
+    LIMIT_ARGS=(--limit "$LIMIT")
+fi
 
 if [ ! -f "$STREAM" ]; then
     singularity exec "$LUMI_SIF" python scripts/build_frozen_telemetry_stream.py --output "$STREAM"
@@ -61,6 +66,7 @@ singularity exec "$LUMI_SIF" python scripts/run_frozen_telemetry_stream.py \
     --rate-pps "$RATE" \
     --consumer-batch-size "$BATCH" \
     --repetitions "$REPETITIONS" \
+    "${LIMIT_ARGS[@]}" \
     --hardware-profile rocm \
     --require-accelerator \
     --require-energy-telemetry \

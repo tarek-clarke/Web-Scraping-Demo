@@ -209,22 +209,34 @@ class GemmaE2BReconciler:
                 top_p=1.0,
                 json_array_only=True,
             )
-            
-            for offset, (orig, drift) in enumerate(chunk_pairs):
-                idx = chunk_idx + offset
-                if progress_cb:
-                    progress_cb(idx, total)
-                
-                resp_text = responses[offset] if offset < len(responses) else ""
-                mapped, unmapped, output_valid, mapping_valid = self._parse_index_mapping(
-                    resp_text, orig, drift
-                )
-                retried = False
-                attempts = 0
-                while (not output_valid or not mapping_valid) and attempts < 2:
-                    retried = True
-                    attempts += 1
-                    retry_messages = [{
+
+            response_texts = [
+                responses[offset] if offset < len(responses) else ""
+                for offset in range(len(chunk_pairs))
+            ]
+            parsed = [
+                self._parse_index_mapping(response_texts[offset], orig, drift)
+                for offset, (orig, drift) in enumerate(chunk_pairs)
+            ]
+            retried = [False] * len(chunk_pairs)
+
+            # Retry all invalid records together.  The former per-record retry
+            # loop serialized thousands of accelerator calls on sparse-drift
+            # streams and dominated the eight-hour wall-clock budget.
+            for _attempt in range(2):
+                invalid_offsets = [
+                    offset
+                    for offset, (_mapped, _unmapped, output_valid, mapping_valid)
+                    in enumerate(parsed)
+                    if not output_valid or not mapping_valid
+                ]
+                if not invalid_offsets:
+                    break
+                retry_batches = []
+                for offset in invalid_offsets:
+                    orig, _drift = chunk_pairs[offset]
+                    retried[offset] = True
+                    retry_batches.append([{
                         "role": "user",
                         "content": (
                             batch_messages[offset][0]["content"]
@@ -233,19 +245,34 @@ class GemmaE2BReconciler:
                             f"original indices 0 through {max(0, len(orig) - 1)} exactly once, "
                             "using only integers, null, commas, and brackets."
                         ),
-                    }]
-                    retry_text = manager.generate_response(
-                        retry_messages,
-                        max_new_tokens=self._token_budget(orig),
-                        temperature=0.0,
-                        top_p=1.0,
-                        json_array_only=True,
+                    }])
+                retry_responses = manager.generate_batch_responses(
+                    retry_batches,
+                    max_new_tokens=max(
+                        self._token_budget(chunk_pairs[offset][0])
+                        for offset in invalid_offsets
+                    ),
+                    temperature=0.0,
+                    top_p=1.0,
+                    json_array_only=True,
+                )
+                for retry_index, offset in enumerate(invalid_offsets):
+                    orig, drift = chunk_pairs[offset]
+                    response_texts[offset] = (
+                        retry_responses[retry_index]
+                        if retry_index < len(retry_responses) else ""
                     )
-                    mapped, unmapped, output_valid, mapping_valid = self._parse_index_mapping(
-                        retry_text, orig, drift
+                    parsed[offset] = self._parse_index_mapping(
+                        response_texts[offset], orig, drift
                     )
+
+            for offset, (orig, _drift) in enumerate(chunk_pairs):
+                idx = chunk_idx + offset
+                if progress_cb:
+                    progress_cb(idx, total)
+                mapped, unmapped, output_valid, mapping_valid = parsed[offset]
                 if not output_valid:
-                    preview = self._clean_output(retry_text if retried else resp_text)[:160]
+                    preview = self._clean_output(response_texts[offset])[:160]
                     print(
                         f"[LLM] Invalid indexed mapping after retries: {preview!r}",
                         flush=True,
@@ -265,7 +292,7 @@ class GemmaE2BReconciler:
                     "batch_size": self.batch_size,
                     "structured_output_valid": output_valid,
                     "structured_mapping_valid": mapping_valid,
-                    "structured_output_retried": retried,
+                    "structured_output_retried": retried[offset],
                 })
 
         total_time = (time.perf_counter() - start) * 1000
