@@ -29,6 +29,7 @@ COHERE_OUTPUT_DIR="${COHERE_OUTPUT_DIR:-data/reports/cohere_full_stream_22500_20
 COHERE_MAX_PACKETS_PER_API="${COHERE_MAX_PACKETS_PER_API:-2500}"
 COHERE_DRIFT_RATE="${COHERE_DRIFT_RATE:-0.10}"
 COHERE_METHODS="${COHERE_METHODS:-qwen json_manip schema_alter}"
+COHERE_MAX_OUTPUT_TOKENS="${COHERE_MAX_OUTPUT_TOKENS:-256}"
 : "${COHERE_MODEL:=command-a-plus-05-2026}"
 mkdir -p "$COHERE_OUTPUT_DIR"
 echo "Cohere chat model: $COHERE_MODEL"
@@ -42,5 +43,6 @@ singularity exec "$LUMI_SIF" python scripts/run_cohere_benchmark.py \
   --max-packets-per-api "$COHERE_MAX_PACKETS_PER_API" \
   --repetitions 1 \
   --model "$COHERE_MODEL" \
+  --max-output-tokens "$COHERE_MAX_OUTPUT_TOKENS" \
   --fail-on-api-error \
   --output-dir "$COHERE_OUTPUT_DIR"

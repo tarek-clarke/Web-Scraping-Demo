@@ -185,12 +185,15 @@ def _call_cohere_stream(
     messages: List[Dict[str, str]],
     timeout_s: float,
     client_name: str,
+    max_output_tokens: int,
 ) -> Dict[str, Any]:
     payload = {
         "model": model,
         "messages": messages,
         "stream": True,
         "temperature": 0.0,
+        "max_tokens": max_output_tokens,
+        "response_format": {"type": "json_object"},
     }
 
     req = urllib.request.Request(
@@ -346,6 +349,12 @@ def main() -> None:
         help="Request timeout in seconds",
     )
     parser.add_argument(
+        "--max-output-tokens",
+        type=int,
+        default=256,
+        help="Maximum generated tokens for each structured JSON repair",
+    )
+    parser.add_argument(
         "--fail-on-api-error",
         action="store_true",
         help="Abort immediately after recording the first failed Cohere API request",
@@ -399,6 +408,7 @@ def main() -> None:
     print(f"Run number:    {args.run_number}")
     print(f"Drift rate:    {args.drift_rate:.2%}")
     print(f"Methods:       {', '.join(args.methods)}")
+    print(f"Max output:    {args.max_output_tokens} tokens")
     print()
 
     groups = _load_corpus(packets_path, args.max_packets_per_api)
@@ -584,6 +594,7 @@ def main() -> None:
                                     messages=prompt,
                                     timeout_s=args.timeout,
                                     client_name=args.client_name,
+                                    max_output_tokens=args.max_output_tokens,
                                 )
                                 response_text = result["response_text"]
                                 response_id = result["response_id"]
