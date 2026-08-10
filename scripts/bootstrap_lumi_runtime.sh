@@ -35,9 +35,9 @@ find "$TARGET" -maxdepth 1 -type d \( \
 singularity run "$LUMI_SIF" python -m pip install \
     --upgrade --no-deps --target "$TARGET" \
     "python-Levenshtein>=0.23.0,<1.0.0" \
-    "transformers==5.5.3" \
+    "transformers==4.57.1" \
     "tokenizers==0.22.1" \
-    "huggingface-hub==0.35.3" \
+    "huggingface-hub==0.34.4" \
     "safetensors>=0.4.0,<1.0.0"
 
 PYTHONPATH="$TARGET${PYTHONPATH:+:$PYTHONPATH}" \

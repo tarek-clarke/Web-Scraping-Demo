@@ -81,6 +81,8 @@ class SentenceTransformerSemanticReconciler:
         self.batch_size = batch_size
         self.hardware_profile = hardware_profile
         self.device = "cuda" if hardware_profile in {"cuda", "rocm"} else "cpu"
+        from ..inference.huggingface_compat import install_hub_compat
+        install_hub_compat()
         from sentence_transformers import SentenceTransformer
         self.model = SentenceTransformer(os.environ.get(self.env_name, self.model_id), device=self.device)
         if hardware_profile in {"cuda", "rocm"}:
@@ -146,6 +148,8 @@ class CrossEncoderReconciler(SentenceTransformerSemanticReconciler):
         self.batch_size = batch_size
         self.hardware_profile = hardware_profile
         self.device = "cuda" if hardware_profile in {"cuda", "rocm"} else "cpu"
+        from ..inference.huggingface_compat import install_hub_compat
+        install_hub_compat()
         from sentence_transformers import CrossEncoder
         self.model = CrossEncoder(os.environ.get(self.env_name, self.model_id), device=self.device)
         if hardware_profile in {"cuda", "rocm"}:

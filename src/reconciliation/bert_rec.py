@@ -27,6 +27,8 @@ class BERTReconciler:
 
     def _load_model(self):
         try:
+            from ..inference.huggingface_compat import install_hub_compat
+            install_hub_compat()
             from sentence_transformers import SentenceTransformer
             model_path = str(ROOT / "models" / "bert-minilm-v2")
             if os.path.exists(model_path):
