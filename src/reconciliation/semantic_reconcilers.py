@@ -188,17 +188,24 @@ class CohereEmbedV4Reconciler:
         if not self.api_key:
             raise RuntimeError("Cohere Embed v4 requested but COHERE_API_KEY is not set")
         self.cache = {}
+        self.cache_enabled = os.environ.get("RAP_COHERE_EMBED_CACHE", "1").lower() not in {
+            "0", "false", "no"
+        }
 
     def _encode(self, texts):
-        missing = [text for text in texts if text not in self.cache]
+        # A no-cache mode is required for honest end-to-end stream latency.
+        # Deduplication remains local to one request batch, but no embedding is
+        # reused across packet batches.
+        target_cache = self.cache if self.cache_enabled else {}
+        missing = list(dict.fromkeys(text for text in texts if text not in target_cache))
         for start in range(0, len(missing), self.batch_size):
             batch = missing[start:start + self.batch_size]
             payload = json.dumps({"model": self.model_id, "input_type": "classification", "embedding_types": ["float"], "output_dimension": 1024, "texts": batch}).encode()
             request = urllib.request.Request(self.url, data=payload, headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}, method="POST")
             with urllib.request.urlopen(request, timeout=120) as response:
                 values = json.loads(response.read().decode())["embeddings"]["float"]
-            self.cache.update(dict(zip(batch, np.asarray(values))))
-        return np.asarray([self.cache[text] for text in texts])
+            target_cache.update(dict(zip(batch, np.asarray(values))))
+        return np.asarray([target_cache[text] for text in texts])
 
     def reconcile_batch(self, pairs):
         helper = SentenceTransformerSemanticReconciler.__new__(SentenceTransformerSemanticReconciler)

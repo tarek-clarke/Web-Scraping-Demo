@@ -45,6 +45,8 @@ vlq_submit_run*.sh
 # Large workload jsonl files
 data/training/*.jsonl
 !data/training/*.jsonl.gz
+# Deterministic replay artifacts are rebuilt from the committed corpus/oracle.
+data/replay/
 .venv/
 .venv-*/
 .runtime/
