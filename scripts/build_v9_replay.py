@@ -68,6 +68,20 @@ def load_qwen(path: Path) -> dict[tuple[str, int], dict]:
     return result
 
 
+def force_structural_drift(data: dict, method: str, seed: int) -> tuple[str, dict]:
+    """Apply a deterministic top-level key rename when a chaos operator no-ops."""
+    result = copy.deepcopy(data)
+    if not result:
+        raise RuntimeError(f"{method} cannot force drift on an empty object")
+    keys = list(result)
+    original_key = keys[seed % len(keys)]
+    replacement_key = f"{original_key}_drift"
+    while replacement_key in result:
+        replacement_key = f"{replacement_key}_drift"
+    result[replacement_key] = result.pop(original_key)
+    return f"{method}_forced_key_rename", result
+
+
 def inject_rule(data: dict, method: str, seed: int) -> tuple[str, dict]:
     random.seed(seed)
     if method == "json_manip":
@@ -77,7 +91,7 @@ def inject_rule(data: dict, method: str, seed: int) -> tuple[str, dict]:
     else:
         raise ValueError(f"Unsupported rule chaos method: {method}")
     if schemas_match(data, drifted):
-        raise RuntimeError(f"{method} did not create structural drift")
+        return force_structural_drift(data, method, seed)
     return subtype, drifted
 
 
