@@ -271,7 +271,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=20260723)
     parser.add_argument("--drift-rate", type=float, default=0.10)
     parser.add_argument("--batch-size", type=int, default=16)
-    parser.add_argument("--max-new-tokens", type=int, default=768)
+    parser.add_argument("--max-new-tokens", type=int, default=256)
     parser.add_argument("--max-retries", type=int, default=2)
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
@@ -380,6 +380,7 @@ def main() -> None:
         "schema_version": 1, "created_at": datetime.now(timezone.utc).isoformat(),
         "packets": str(packets_path), "packets_sha256": hashlib.sha256(packets_path.read_bytes()).hexdigest(),
         "model": args.model, "seed": args.seed, "drift_rate": args.drift_rate,
+        "max_new_tokens": args.max_new_tokens,
         "max_retries": args.max_retries,
         "records": written, "output": str(output), "output_sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
         "mapping_repair_policy": (
