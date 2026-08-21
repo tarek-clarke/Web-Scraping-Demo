@@ -16,11 +16,23 @@ PROJECT_ROOT="${PROJECT_ROOT:-${SLURM_SUBMIT_DIR:?submit from the project direct
 cd "$PROJECT_ROOT"
 OUTPUT="${RAP_STREAM_OUTPUT_DIR:-data/reports/frozen_stream_mi250x_4card_${SLURM_JOB_ID}}"
 export PROJECT_ROOT RAP_STREAM_OUTPUT_DIR="$OUTPUT"
+STREAM="${RAP_STREAM_FILE:-data/replay/telemetry_frozen_22500_v9.jsonl}"
+export RAP_STREAM_FILE="$STREAM"
 export RAP_STREAM_METHODS="${RAP_STREAM_METHODS:-minilm qwen_1_5b bge cross_encoder}"
 export RAP_STREAM_BATCH_SIZE="${RAP_STREAM_BATCH_SIZE:-256}"
 export RAP_STREAM_REPETITIONS="${RAP_STREAM_REPETITIONS:-3}"
 
 mkdir -p "$OUTPUT/shards"
+
+if [ ! -f "$STREAM" ]; then
+    source "$PROJECT_ROOT/scripts/lumi_cache_env.sh"
+    module purge
+    module use /appl/local/laifs/modules
+    module load lumi-aif-singularity-bindings
+    LUMI_SIF="${LUMI_SIF:-/appl/local/laifs/containers/lumi-multitorch-u24r70f21m50t210-20260731_122833/lumi-multitorch-full-u24r70f21m50t210-20260731_122833.sif}"
+    singularity exec "$LUMI_SIF" python scripts/build_v9_replay.py --output "$STREAM"
+fi
+
 srun --ntasks=8 --gpus-per-task=1 "$PROJECT_ROOT/scripts/slurm/run_frozen_stream_lumi_shard.sh"
 
 source "$PROJECT_ROOT/scripts/lumi_cache_env.sh"

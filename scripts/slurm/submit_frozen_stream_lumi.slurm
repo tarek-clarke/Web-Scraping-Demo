@@ -47,7 +47,7 @@ if [ "$LIMIT" -gt 0 ]; then
 fi
 
 if [ ! -f "$STREAM" ]; then
-    singularity exec "$LUMI_SIF" python scripts/build_frozen_telemetry_stream.py --output "$STREAM"
+    singularity exec "$LUMI_SIF" python scripts/build_v9_replay.py --output "$STREAM"
 fi
 
 singularity exec "$LUMI_SIF" python - <<'PY'

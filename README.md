@@ -87,6 +87,10 @@ sacct -j JOB_ID --format=JobID,State,Elapsed,ExitCode
 cat data/training/qwen_model_chaos_22500_v1.manifest.json
 ```
 
+The stream launchers build `data/replay/telemetry_frozen_22500_v9.jsonl`
+automatically from the real snapshot and this frozen Qwen artifact when the
+replay is absent. They do not call Qwen or any source API during benchmarking.
+
 Run the eight-method oracle and ten independent VQC training starts. Cohere is a route, so load its key without echoing or writing it to disk:
 
 ```bash

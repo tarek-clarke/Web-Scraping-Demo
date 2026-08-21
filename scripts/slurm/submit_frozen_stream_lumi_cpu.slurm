@@ -38,7 +38,7 @@ METHODS="${RAP_STREAM_METHODS:-levenshtein regex schema_registry}"
 OUTPUT="${RAP_STREAM_OUTPUT_DIR:-data/reports/frozen_stream_lumi_cpu_${SLURM_JOB_ID}}"
 
 if [ ! -f "$STREAM" ]; then
-    singularity exec "$LUMI_SIF" python scripts/build_frozen_telemetry_stream.py --output "$STREAM"
+    singularity exec "$LUMI_SIF" python scripts/build_v9_replay.py --output "$STREAM"
 fi
 
 # shellcheck disable=SC2086
