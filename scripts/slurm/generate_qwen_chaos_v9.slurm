@@ -36,6 +36,6 @@ singularity exec "$LUMI_SIF" python scripts/build_qwen_chaos_snapshot.py \
   --packets "$PACKETS" \
   --output "$OUTPUT" \
   --batch-size "${RAP_QWEN_CHAOS_BATCH_SIZE:-16}" \
-  --max-new-tokens "${RAP_QWEN_CHAOS_MAX_NEW_TOKENS:-256}" \
+  --max-new-tokens "${RAP_QWEN_CHAOS_MAX_NEW_TOKENS:-768}" \
   --max-retries "${RAP_QWEN_CHAOS_MAX_RETRIES:-2}" \
   --overwrite

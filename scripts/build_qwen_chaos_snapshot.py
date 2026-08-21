@@ -374,7 +374,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=20260723)
     parser.add_argument("--drift-rate", type=float, default=0.10)
     parser.add_argument("--batch-size", type=int, default=16)
-    parser.add_argument("--max-new-tokens", type=int, default=256)
+    parser.add_argument("--max-new-tokens", type=int, default=768)
     parser.add_argument("--max-retries", type=int, default=2)
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
