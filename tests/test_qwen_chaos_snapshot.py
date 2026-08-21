@@ -268,3 +268,46 @@ def test_partial_camel_case_openfda_response_uses_canonical_names():
     assert len(set(mapping.values())) == len(original)
     assert response_format == "replacement_to_original_partial"
     assert any("partial_reverse" in repair["reason"] for repair in repairs)
+
+
+def test_equal_canonical_coverage_follows_direct_contract():
+    original = {
+        "safetyreportid": 1,
+        "transmissiondateformat": 2,
+        "transmissiondate": 3,
+        "serious": 4,
+        "seriousnessdeath": 5,
+        "receivedateformat": 6,
+        "receivedate": 7,
+        "receiptdateformat": 8,
+        "receiptdate": 9,
+        "fulfillexpeditecriteria": 10,
+        "companynumb": 11,
+        "primarysource": 12,
+        "sender": 13,
+        "receiver": 14,
+        "patient": 15,
+    }
+    candidate = {
+        "safety_report_id": "transmission_date_format",
+        "transmission_date_format": "transmission_date",
+        "transmission_date": "seriousness_death",
+        "serious": "receivedate_format",
+        "seriousness_death": "receivedate",
+        "receivedate": "fulfillexpedite_criteria",
+        "receivedate_format": "company_numb",
+        "fulfillexpedite_criteria": "primary_source",
+        "company_numb": "sender",
+        "primary_source": "receiver",
+        "sender": "patient",
+    }
+
+    mapping, repairs, response_format = salvage_partial_mapping(original, candidate)
+
+    assert mapping["safetyreportid"] == "transmission_date_format"
+    assert mapping["transmissiondateformat"] == "transmission_date"
+    assert response_format == "original_to_replacement_partial"
+    assert any(
+        repair["reason"] == "partial_orientation_contract_tiebreak_direct"
+        for repair in repairs
+    )

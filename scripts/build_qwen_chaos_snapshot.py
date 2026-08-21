@@ -302,35 +302,16 @@ def salvage_partial_mapping(
             "direct=0 reverse=0"
         )
     if direct_score == reverse_score:
-        direct_style = sum(
-            bool(re.fullmatch(r"[a-z][a-z0-9]*(?:_[a-z0-9]+)+", str(value)))
-            for value in candidate.values()
-        )
-        reverse_style = sum(
-            bool(re.fullmatch(r"[a-z][a-z0-9]*(?:_[a-z0-9]+)+", str(key)))
-            for key in candidate
-        )
-        if direct_style == reverse_style:
-            raise ValueError(
-                "partial mapping orientation is ambiguous or has zero exact coverage: "
-                f"direct={direct_score} reverse={reverse_score}"
-            )
-        if reverse_style > direct_style:
-            direct_score = 0
-            orientation_repair.append({
-                "original_key": "*",
-                "model_replacement": "",
-                "resolved_replacement": "",
-                "reason": "partial_orientation_style_tiebreak_reverse",
-            })
-        else:
-            reverse_score = 0
-            orientation_repair.append({
-                "original_key": "*",
-                "model_replacement": "",
-                "resolved_replacement": "",
-                "reason": "partial_orientation_style_tiebreak_direct",
-            })
+        # The generation contract is direct original->replacement. When the
+        # two sides have equal canonical coverage, follow that contract and
+        # record the deterministic choice rather than infer semantics.
+        reverse_score = 0
+        orientation_repair.append({
+            "original_key": "*",
+            "model_replacement": "",
+            "resolved_replacement": "",
+            "reason": "partial_orientation_contract_tiebreak_direct",
+        })
     if direct_score > reverse_score:
         proposals = canonical_direct
         orientation = "original_to_replacement_partial"
