@@ -68,13 +68,11 @@ def schema_prompt(source: str, data: dict) -> str:
     schema = [{"key": str(key), "type": type(value).__name__} for key, value in data.items()]
     return (
         "You generate realistic API schema drift for a reproducible research benchmark. "
-        "Return only one JSON object. Each JSON key must be a unique new snake_case field "
-        "name and its value must be the exact corresponding original field name. Include "
-        "every original field exactly once, add nothing, and change at least one name. "
-        "Example: {\"event_date\":\"date\",\"race_session_id\":\"session_key\"}. "
-        "Copy every JSON value character-for-character from a Schema key below; only the "
-        "JSON keys are new names. Preserve meaning. Never reuse an original field value "
-        "or a new JSON key. "
+        "Return only one JSON object mapping every exact input Schema key to one unique "
+        "replacement snake_case key. Copy every Schema key character-for-character onto "
+        "the left side, include every field exactly once, add nothing, and change at least "
+        "one name. Example: {\"date\":\"event_date\",\"session_key\":\"race_session_id\"}. "
+        "Preserve meaning and never reuse a replacement name. "
         "Source domain: " + source + ". Schema: " + stable_json(schema)
     )
 
@@ -240,6 +238,31 @@ def normalize_mapping(
     return normalized, repairs, "nested_key_pairs"
 
 
+def corrective_prompt(source: str, data: dict, validation_error: str) -> str:
+    required_keys = [str(key) for key in data]
+    return (
+        "Correct an invalid schema-renaming response for a reproducible benchmark. "
+        "Return JSON only: no Markdown and no explanation. The JSON object must have "
+        f"exactly {len(required_keys)} pairs. Its left-side keys must be exactly this list, "
+        "in this order, copied character-for-character: "
+        f"{stable_json(required_keys)}. Give every key one unique, meaningful snake_case "
+        "replacement value; change at least one value and add or omit nothing. "
+        f"Source domain: {source}. Previous validation error: {validation_error}."
+    )
+
+
+def generate_responses(model, tokenizer, prompts: list[str], max_new_tokens: int) -> list[str]:
+    encoded = tokenizer(prompts, return_tensors="pt", padding=True).to("cuda")
+    generated = model.generate(
+        **encoded,
+        do_sample=False,
+        max_new_tokens=max_new_tokens,
+        pad_token_id=tokenizer.pad_token_id,
+    )
+    prompt_width = encoded["input_ids"].shape[1]
+    return tokenizer.batch_decode(generated[:, prompt_width:], skip_special_tokens=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--packets", default=DEFAULT_SNAPSHOT_PATH)
@@ -249,10 +272,11 @@ def main() -> None:
     parser.add_argument("--drift-rate", type=float, default=0.10)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--max-new-tokens", type=int, default=768)
+    parser.add_argument("--max-retries", type=int, default=2)
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
-    if not 0 < args.drift_rate <= 1 or args.batch_size < 1:
-        raise SystemExit("invalid drift rate or batch size")
+    if not 0 < args.drift_rate <= 1 or args.batch_size < 1 or args.max_retries < 0:
+        raise SystemExit("invalid drift rate, batch size, or retry count")
     output = (REPO_ROOT / args.output).resolve()
     if output.exists() and not args.overwrite:
         raise SystemExit(f"Refusing to overwrite frozen Qwen chaos: {output}")
@@ -276,6 +300,8 @@ def main() -> None:
     written = 0
     repaired_records = 0
     repaired_fields = 0
+    retried_records = 0
+    generation_attempts = 0
     response_formats: defaultdict[str, int] = defaultdict(int)
     with temporary.open("w", encoding="utf-8") as stream, torch.inference_mode():
         for start in range(0, len(selected), args.batch_size):
@@ -287,31 +313,60 @@ def main() -> None:
                     raise RuntimeError(f"{source} contains a non-object/empty packet")
                 message = [{"role": "user", "content": schema_prompt(source, data)}]
                 prompts.append(tokenizer.apply_chat_template(message, tokenize=False, add_generation_prompt=True))
-            encoded = tokenizer(prompts, return_tensors="pt", padding=True).to("cuda")
-            generated = model.generate(**encoded, do_sample=False, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id)
-            prompt_width = encoded["input_ids"].shape[1]
-            responses = tokenizer.batch_decode(generated[:, prompt_width:], skip_special_tokens=True)
+            responses = generate_responses(model, tokenizer, prompts, args.max_new_tokens)
             for (source, packet_index, packet), response in zip(batch, responses):
                 original = packet["data"]
-                try:
-                    mapping, repairs, response_format = normalize_mapping(
-                        original,
-                        extract_json_object(response),
-                    )
-                except Exception as exc:
-                    raise RuntimeError(f"Invalid Qwen mapping for {source}[{packet_index}]: {exc}; response={response[:500]!r}") from exc
+                attempts = 1
+                validation_errors: list[str] = []
+                while True:
+                    generation_attempts += 1
+                    try:
+                        mapping, repairs, response_format = normalize_mapping(
+                            original,
+                            extract_json_object(response),
+                        )
+                        break
+                    except Exception as exc:
+                        validation_errors.append(str(exc))
+                        if attempts > args.max_retries:
+                            raise RuntimeError(
+                                f"Invalid Qwen mapping for {source}[{packet_index}] after "
+                                f"{attempts} attempts: {validation_errors}; "
+                                f"response={response[:500]!r}"
+                            ) from exc
+                        repair_message = [{
+                            "role": "user",
+                            "content": corrective_prompt(source, original, str(exc)),
+                        }]
+                        repair_prompt = tokenizer.apply_chat_template(
+                            repair_message,
+                            tokenize=False,
+                            add_generation_prompt=True,
+                        )
+                        response = generate_responses(
+                            model,
+                            tokenizer,
+                            [repair_prompt],
+                            args.max_new_tokens,
+                        )[0]
+                        attempts += 1
                 drifted = {mapping[str(key)]: value for key, value in original.items()}
                 if len(drifted) != len(original):
                     raise RuntimeError(f"Postprocessed Qwen mapping lost fields for {source}[{packet_index}]")
                 if repairs:
                     repaired_records += 1
                     repaired_fields += len(repairs)
+                if attempts > 1:
+                    retried_records += 1
                 response_formats[response_format] += 1
                 row = {
                     "source": source, "packet_index": packet_index,
                     "source_record_id": packet.get("source_record_id"),
                     "model": args.model, "generation": {"do_sample": False, "max_new_tokens": args.max_new_tokens},
                     "original_sha256": sha(original), "mapping": mapping,
+                    "mapping_generation_attempts": attempts,
+                    "mapping_validation_errors": validation_errors,
+                    "model_response_sha256": hashlib.sha256(response.encode()).hexdigest(),
                     "mapping_response_format": response_format,
                     "mapping_repairs": repairs,
                     "drifted_data": drifted, "drifted_sha256": sha(drifted),
@@ -325,9 +380,14 @@ def main() -> None:
         "schema_version": 1, "created_at": datetime.now(timezone.utc).isoformat(),
         "packets": str(packets_path), "packets_sha256": hashlib.sha256(packets_path.read_bytes()).hexdigest(),
         "model": args.model, "seed": args.seed, "drift_rate": args.drift_rate,
+        "max_retries": args.max_retries,
         "records": written, "output": str(output), "output_sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
-        "mapping_repair_policy": "duplicate replacement names receive a deterministic original-key suffix",
+        "mapping_repair_policy": (
+            "duplicate replacements receive deterministic original-key suffixes; "
+            "one unmatched reverse-map value may be recovered by exact set elimination"
+        ),
         "repaired_records": repaired_records, "repaired_fields": repaired_fields,
+        "retried_records": retried_records, "generation_attempts": generation_attempts,
         "mapping_response_formats": dict(sorted(response_formats.items())),
         "deterministic_generation": True, "cpu_fallback": False,
     }
