@@ -1,4 +1,8 @@
-from scripts.build_qwen_chaos_snapshot import normalize_mapping, salvage_partial_mapping
+from scripts.build_qwen_chaos_snapshot import (
+    extract_partial_json_object,
+    normalize_mapping,
+    salvage_partial_mapping,
+)
 
 
 def test_duplicate_replacements_are_resolved_and_audited():
@@ -311,3 +315,28 @@ def test_equal_canonical_coverage_follows_direct_contract():
         repair["reason"] == "partial_orientation_contract_tiebreak_direct"
         for repair in repairs
     )
+
+
+def test_truncated_json_recovers_only_complete_pairs():
+    original = {
+        "safety_report_id": 1,
+        "transmission_date": 2,
+        "serious": 3,
+        "patient": 4,
+    }
+    response = (
+        '```json\n'
+        '{\n'
+        '  "safety_report_id": "safety_report_id",\n'
+        '  "transmission_date": "transmission_date",\n'
+        '  "serious": "seriousness",\n'
+        '  "patient"'
+    )
+
+    candidate = extract_partial_json_object(response)
+    mapping, repairs, response_format = salvage_partial_mapping(original, candidate)
+
+    assert mapping["serious"] == "seriousness"
+    assert mapping["patient"] == "patient"
+    assert response_format == "original_to_replacement_partial"
+    assert any(repair["original_key"] == "patient" for repair in repairs)

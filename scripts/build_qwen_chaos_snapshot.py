@@ -89,6 +89,31 @@ def extract_json_object(text: str) -> dict:
     return value
 
 
+def extract_partial_json_object(text: str) -> dict[str, str]:
+    """Extract only complete quoted scalar pairs from truncated JSON.
+
+    This is deliberately narrower than a JSON repair library: it does not
+    invent delimiters, keys, values, or positional relationships. The caller
+    still applies canonical-schema orientation checks and audited identity
+    preservation through ``salvage_partial_mapping``.
+    """
+    start = text.find("{")
+    fragment = text[start:] if start >= 0 else text
+    pairs = re.findall(
+        r'"((?:\\.|[^"\\])*)"\s*:\s*"((?:\\.|[^"\\])*)"',
+        fragment,
+        flags=re.DOTALL,
+    )
+    if not pairs:
+        raise ValueError("Qwen response contains no complete quoted JSON pairs")
+    result: dict[str, str] = {}
+    for raw_key, raw_value in pairs:
+        key = json.loads(f'"{raw_key}"')
+        value = json.loads(f'"{raw_value}"')
+        result[str(key)] = str(value)
+    return result
+
+
 def validate_mapping(data: dict, mapping: dict) -> dict[str, str]:
     expected = {str(key) for key in data}
     normalized = {str(key): str(value) for key, value in mapping.items()}
@@ -439,9 +464,16 @@ def main() -> None:
                         validation_errors_by_record[index].append(str(exc))
                         if attempt_counts[index] >= args.max_retries + 1:
                             try:
+                                try:
+                                    salvage_candidate = extract_json_object(responses[index])
+                                except Exception as parse_exc:
+                                    salvage_candidate = extract_partial_json_object(responses[index])
+                                    validation_errors_by_record[index].append(
+                                        f"partial JSON salvage: {parse_exc}"
+                                    )
                                 parsed_results[index] = salvage_partial_mapping(
                                     original,
-                                    extract_json_object(responses[index]),
+                                    salvage_candidate,
                                 )
                             except Exception as salvage_exc:
                                 raise RuntimeError(
