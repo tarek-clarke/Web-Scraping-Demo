@@ -68,10 +68,11 @@ def schema_prompt(source: str, data: dict) -> str:
     schema = [{"key": str(key), "type": type(value).__name__} for key, value in data.items()]
     return (
         "You generate realistic API schema drift for a reproducible research benchmark. "
-        "Return only one JSON object mapping every input key to one unique replacement key. "
-        "Preserve meaning, use plausible snake_case API names, do not add or omit keys, and "
-        "change at least one key. Never reuse a replacement name; if two fields are similar, "
-        "make their replacements distinct by including the original field meaning. "
+        "Return only one JSON object. Each JSON key must be a unique new snake_case field "
+        "name and its value must be the exact corresponding original field name. Include "
+        "every original field exactly once, add nothing, and change at least one name. "
+        "Example: {\"event_date\":\"date\",\"race_session_id\":\"session_key\"}. "
+        "Preserve meaning. Never reuse an original field value or a new JSON key. "
         "Source domain: " + source + ". Schema: " + stable_json(schema)
     )
 
@@ -171,8 +172,11 @@ def disambiguate_mapping(
     return validate_mapping(data, resolved), repairs
 
 
-def normalize_mapping(data: dict, candidate: dict) -> tuple[dict[str, str], list[dict[str, str]]]:
-    """Accept the direct map or Qwen's explicit nested key-pair form.
+def normalize_mapping(
+    data: dict,
+    candidate: dict,
+) -> tuple[dict[str, str], list[dict[str, str]], str]:
+    """Accept validated reverse, direct, or explicit nested map forms.
 
     Qwen occasionally returns ``{"field_alias": {"original_key": ...,
     "replacement_key": ...}}`` despite the direct-map instruction.  This is
@@ -182,9 +186,16 @@ def normalize_mapping(data: dict, candidate: dict) -> tuple[dict[str, str], list
     expected = {str(key) for key in data}
     if set(map(str, candidate)) == expected:
         direct = {str(key): str(value) for key, value in candidate.items()}
-        return disambiguate_mapping(data, direct)
+        mapping, repairs = disambiguate_mapping(data, direct)
+        return mapping, repairs, "original_to_replacement"
+    if candidate and all(not isinstance(value, (dict, list)) for value in candidate.values()):
+        original_values = [str(value) for value in candidate.values()]
+        if set(original_values) == expected and len(original_values) == len(expected):
+            reverse = {str(original): str(replacement) for replacement, original in candidate.items()}
+            mapping, repairs = disambiguate_mapping(data, reverse)
+            return mapping, repairs, "replacement_to_original"
     if not candidate or not all(isinstance(value, dict) for value in candidate.values()):
-        raise ValueError("response is neither a direct map nor an explicit nested key-pair map")
+        raise ValueError("response is not a complete reverse, direct, or explicit nested map")
     mapping: dict[str, str] = {}
     for value in candidate.values():
         original = value.get("original_key")
@@ -195,7 +206,8 @@ def normalize_mapping(data: dict, candidate: dict) -> tuple[dict[str, str], list
         if original_key in mapping:
             raise ValueError(f"duplicate original key in nested map: {original_key}")
         mapping[original_key] = str(replacement)
-    return disambiguate_mapping(data, mapping)
+    normalized, repairs = disambiguate_mapping(data, mapping)
+    return normalized, repairs, "nested_key_pairs"
 
 
 def main() -> None:
@@ -234,6 +246,7 @@ def main() -> None:
     written = 0
     repaired_records = 0
     repaired_fields = 0
+    response_formats: defaultdict[str, int] = defaultdict(int)
     with temporary.open("w", encoding="utf-8") as stream, torch.inference_mode():
         for start in range(0, len(selected), args.batch_size):
             batch = selected[start:start + args.batch_size]
@@ -251,7 +264,10 @@ def main() -> None:
             for (source, packet_index, packet), response in zip(batch, responses):
                 original = packet["data"]
                 try:
-                    mapping, repairs = normalize_mapping(original, extract_json_object(response))
+                    mapping, repairs, response_format = normalize_mapping(
+                        original,
+                        extract_json_object(response),
+                    )
                 except Exception as exc:
                     raise RuntimeError(f"Invalid Qwen mapping for {source}[{packet_index}]: {exc}; response={response[:500]!r}") from exc
                 drifted = {mapping[str(key)]: value for key, value in original.items()}
@@ -260,11 +276,13 @@ def main() -> None:
                 if repairs:
                     repaired_records += 1
                     repaired_fields += len(repairs)
+                response_formats[response_format] += 1
                 row = {
                     "source": source, "packet_index": packet_index,
                     "source_record_id": packet.get("source_record_id"),
                     "model": args.model, "generation": {"do_sample": False, "max_new_tokens": args.max_new_tokens},
                     "original_sha256": sha(original), "mapping": mapping,
+                    "mapping_response_format": response_format,
                     "mapping_repairs": repairs,
                     "drifted_data": drifted, "drifted_sha256": sha(drifted),
                 }
@@ -280,6 +298,7 @@ def main() -> None:
         "records": written, "output": str(output), "output_sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
         "mapping_repair_policy": "duplicate replacement names receive a deterministic original-key suffix",
         "repaired_records": repaired_records, "repaired_fields": repaired_fields,
+        "mapping_response_formats": dict(sorted(response_formats.items())),
         "deterministic_generation": True, "cpu_fallback": False,
     }
     output.with_suffix(".manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
