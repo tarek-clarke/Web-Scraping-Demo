@@ -65,3 +65,65 @@ def test_reverse_map_is_inverted_with_complete_coverage():
     }
     assert repairs == []
     assert response_format == "replacement_to_original"
+
+
+def test_one_decorated_reverse_value_is_recovered_and_audited():
+    original = {
+        "open_time": 1,
+        "open": 2,
+        "high": 3,
+        "low": 4,
+        "close": 5,
+        "volume": 6,
+        "quote_volume": 7,
+        "trade_count": 8,
+        "taker_buy_base": 9,
+        "taker_buy_quote": 10,
+    }
+
+    mapping, repairs, response_format = normalize_mapping(
+        original,
+        {
+            "timestamp": "open_time_ms",
+            "symbol": "open",
+            "highestBid": "high",
+            "lowestAsk": "low",
+            "lastTradePrice": "close",
+            "totalTradedVolume": "volume",
+            "totalQuoteVolume": "quote_volume",
+            "numberOfTrades": "trade_count",
+            "makerFeeAmount": "taker_buy_base",
+            "makerFeeRate": "taker_buy_quote",
+        },
+    )
+
+    assert mapping["open_time"] == "timestamp"
+    assert len(mapping) == len(original)
+    assert len(set(mapping.values())) == len(original)
+    assert repairs == [
+        {
+            "original_key": "open_time",
+            "reported_original_key": "open_time_ms",
+            "replacement_key": "timestamp",
+            "reason": "reverse_original_key_recovered_by_elimination",
+        }
+    ]
+    assert response_format == "replacement_to_original_repaired"
+
+
+def test_multiple_decorated_reverse_values_fail_loudly():
+    original = {"open_time": 1, "open": 2, "high": 3}
+
+    try:
+        normalize_mapping(
+            original,
+            {
+                "timestamp": "open_time_ms",
+                "openingPrice": "open_price",
+                "highestBid": "high",
+            },
+        )
+    except ValueError as exc:
+        assert "not a complete reverse" in str(exc)
+    else:
+        raise AssertionError("ambiguous reverse map should fail loudly")

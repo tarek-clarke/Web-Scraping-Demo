@@ -72,7 +72,9 @@ def schema_prompt(source: str, data: dict) -> str:
         "name and its value must be the exact corresponding original field name. Include "
         "every original field exactly once, add nothing, and change at least one name. "
         "Example: {\"event_date\":\"date\",\"race_session_id\":\"session_key\"}. "
-        "Preserve meaning. Never reuse an original field value or a new JSON key. "
+        "Copy every JSON value character-for-character from a Schema key below; only the "
+        "JSON keys are new names. Preserve meaning. Never reuse an original field value "
+        "or a new JSON key. "
         "Source domain: " + source + ". Schema: " + stable_json(schema)
     )
 
@@ -194,6 +196,34 @@ def normalize_mapping(
             reverse = {str(original): str(replacement) for replacement, original in candidate.items()}
             mapping, repairs = disambiguate_mapping(data, reverse)
             return mapping, repairs, "replacement_to_original"
+        # Qwen can decorate one reverse-map value even though values are
+        # required to be copied verbatim. If every other original is present,
+        # the final pair is recoverable by set elimination without semantic
+        # guessing. Record the repair so downstream audits can separate it
+        # from an exactly compliant response. More than one mismatch remains
+        # ambiguous and therefore fails below.
+        if len(candidate) == len(expected) and len(set(original_values)) == len(expected):
+            reverse: dict[str, str] = {}
+            unmatched_pairs: list[tuple[str, str]] = []
+            for replacement, reported_original in candidate.items():
+                original_key = str(reported_original)
+                if original_key in expected and original_key not in reverse:
+                    reverse[original_key] = str(replacement)
+                else:
+                    unmatched_pairs.append((str(replacement), original_key))
+            missing_originals = expected - set(reverse)
+            if len(unmatched_pairs) == 1 and len(missing_originals) == 1:
+                replacement, reported_original = unmatched_pairs[0]
+                recovered_original = next(iter(missing_originals))
+                reverse[recovered_original] = replacement
+                repair = {
+                    "original_key": recovered_original,
+                    "reported_original_key": reported_original,
+                    "replacement_key": replacement,
+                    "reason": "reverse_original_key_recovered_by_elimination",
+                }
+                mapping, repairs = disambiguate_mapping(data, reverse)
+                return mapping, [repair, *repairs], "replacement_to_original_repaired"
     if not candidate or not all(isinstance(value, dict) for value in candidate.values()):
         raise ValueError("response is not a complete reverse, direct, or explicit nested map")
     mapping: dict[str, str] = {}
