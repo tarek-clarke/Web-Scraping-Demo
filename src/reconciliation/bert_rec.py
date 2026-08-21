@@ -66,16 +66,14 @@ class BERTReconciler:
         pooling_source = hub_snapshot / "1_Pooling"
         if pooling_source.is_dir():
             shutil.copytree(pooling_source, target / "1_Pooling", dirs_exist_ok=True)
-        transformer_target = target / "0_Transformer"
-        transformer_target.mkdir(parents=True, exist_ok=True)
         for source in transformer_snapshot.iterdir():
             if source.is_file():
-                shutil.copy2(source, transformer_target / source.name)
+                shutil.copy2(source, target / source.name)
         required = (
             target / "modules.json",
             target / "1_Pooling" / "config.json",
-            transformer_target / "config.json",
-            transformer_target / "model.safetensors",
+            target / "config.json",
+            target / "model.safetensors",
         )
         if all(path.is_file() for path in required):
             print(f"BERT assembled from scratch Hugging Face cache: {target}", flush=True)
@@ -88,7 +86,7 @@ class BERTReconciler:
             install_hub_compat()
             from sentence_transformers import SentenceTransformer
             model_path = str(ROOT / "models" / "bert-minilm-v2")
-            if not os.path.exists(model_path):
+            if not (Path(model_path) / "model.safetensors").is_file():
                 self._materialize_cached_minilm(model_path)
             if os.path.exists(model_path) and os.listdir(model_path):
                 self.model = SentenceTransformer(model_path, device=self.device)
