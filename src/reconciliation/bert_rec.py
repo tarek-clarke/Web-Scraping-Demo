@@ -8,6 +8,7 @@ if 'amdsmi' not in sys.modules:
     sys.modules['amdsmi'] = dummy
 
 import os
+import shutil
 import time
 import threading
 from typing import Dict, List, Tuple
@@ -25,13 +26,71 @@ class BERTReconciler:
         self._lock = threading.Lock()
         self._load_model()
 
+    def _materialize_cached_minilm(self, model_path: str) -> bool:
+        """Assemble split Hugging Face caches into the local model directory."""
+        hf_home = os.environ.get("HF_HOME")
+        transformer_cache = os.environ.get("TRANSFORMERS_CACHE")
+        if not hf_home and not transformer_cache:
+            return False
+
+        hub_root = Path(hf_home) / "hub" if hf_home else None
+        transformer_root = Path(transformer_cache) if transformer_cache else None
+        model_dir_name = "models--sentence-transformers--all-MiniLM-L6-v2"
+        hub_model_root = hub_root / model_dir_name if hub_root else None
+        transformer_model_root = (
+            transformer_root / model_dir_name if transformer_root else None
+        )
+
+        def newest_snapshot(root: Path | None) -> Path | None:
+            if root is None:
+                return None
+            snapshots = root / "snapshots"
+            if not snapshots.is_dir():
+                return None
+            candidates = [path for path in snapshots.iterdir() if path.is_dir()]
+            return max(candidates, key=lambda path: path.stat().st_mtime) if candidates else None
+
+        hub_snapshot = newest_snapshot(hub_model_root)
+        transformer_snapshot = newest_snapshot(transformer_model_root)
+        if hub_snapshot is None or transformer_snapshot is None:
+            return False
+        if not (transformer_snapshot / "model.safetensors").is_file():
+            return False
+
+        target = Path(model_path)
+        target.mkdir(parents=True, exist_ok=True)
+        for name in ("modules.json", "config_sentence_transformers.json", "sentence_bert_config.json"):
+            source = hub_snapshot / name
+            if source.is_file():
+                shutil.copy2(source, target / name)
+        pooling_source = hub_snapshot / "1_Pooling"
+        if pooling_source.is_dir():
+            shutil.copytree(pooling_source, target / "1_Pooling", dirs_exist_ok=True)
+        transformer_target = target / "0_Transformer"
+        transformer_target.mkdir(parents=True, exist_ok=True)
+        for source in transformer_snapshot.iterdir():
+            if source.is_file():
+                shutil.copy2(source, transformer_target / source.name)
+        required = (
+            target / "modules.json",
+            target / "1_Pooling" / "config.json",
+            transformer_target / "config.json",
+            transformer_target / "model.safetensors",
+        )
+        if all(path.is_file() for path in required):
+            print(f"BERT assembled from scratch Hugging Face cache: {target}", flush=True)
+            return True
+        return False
+
     def _load_model(self):
         try:
             from ..inference.huggingface_compat import install_hub_compat
             install_hub_compat()
             from sentence_transformers import SentenceTransformer
             model_path = str(ROOT / "models" / "bert-minilm-v2")
-            if os.path.exists(model_path):
+            if not os.path.exists(model_path):
+                self._materialize_cached_minilm(model_path)
+            if os.path.exists(model_path) and os.listdir(model_path):
                 self.model = SentenceTransformer(model_path, device=self.device)
                 print(f"BERT loaded from: {model_path}")
                 return
