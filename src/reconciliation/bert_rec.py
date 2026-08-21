@@ -44,11 +44,18 @@ class BERTReconciler:
                 args=(result_queue,)
             )
             p.start()
-            p.join(timeout=30)
+            download_timeout = int(os.environ.get("RAP_BERT_DOWNLOAD_TIMEOUT_SECONDS", "600"))
+            print(
+                f"Waiting up to {download_timeout}s for the scratch-cached MiniLM download...",
+                flush=True,
+            )
+            p.join(timeout=download_timeout)
             if p.is_alive():
                 p.terminate()
                 p.join()
-                raise TimeoutError("BERT download timed out")
+                raise TimeoutError(
+                    f"BERT download timed out after {download_timeout}s"
+                )
             if os.path.exists(model_path) and os.listdir(model_path):
                 self.model = SentenceTransformer(model_path, device=self.device)
                 print(f"BERT loaded from: {model_path}")
