@@ -95,6 +95,32 @@ def validate_mapping(data: dict, mapping: dict) -> dict[str, str]:
     return normalized
 
 
+def normalize_mapping(data: dict, candidate: dict) -> dict[str, str]:
+    """Accept the direct map or Qwen's explicit nested key-pair form.
+
+    Qwen occasionally returns ``{"field_alias": {"original_key": ...,
+    "replacement_key": ...}}`` despite the direct-map instruction.  This is
+    safe to normalize only when every nested entry is explicit and the final
+    mapping passes the same one-to-one/full-schema validation.
+    """
+    expected = {str(key) for key in data}
+    if set(map(str, candidate)) == expected:
+        return validate_mapping(data, candidate)
+    if not candidate or not all(isinstance(value, dict) for value in candidate.values()):
+        raise ValueError("response is neither a direct map nor an explicit nested key-pair map")
+    mapping: dict[str, str] = {}
+    for value in candidate.values():
+        original = value.get("original_key")
+        replacement = value.get("replacement_key")
+        if original is None or replacement is None:
+            raise ValueError("nested map entries require original_key and replacement_key")
+        original_key = str(original)
+        if original_key in mapping:
+            raise ValueError(f"duplicate original key in nested map: {original_key}")
+        mapping[original_key] = str(replacement)
+    return validate_mapping(data, mapping)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--packets", default=DEFAULT_SNAPSHOT_PATH)
@@ -103,7 +129,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=20260723)
     parser.add_argument("--drift-rate", type=float, default=0.10)
     parser.add_argument("--batch-size", type=int, default=16)
-    parser.add_argument("--max-new-tokens", type=int, default=256)
+    parser.add_argument("--max-new-tokens", type=int, default=768)
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
     if not 0 < args.drift_rate <= 1 or args.batch_size < 1:
@@ -146,7 +172,7 @@ def main() -> None:
             for (source, packet_index, packet), response in zip(batch, responses):
                 original = packet["data"]
                 try:
-                    mapping = validate_mapping(original, extract_json_object(response))
+                    mapping = normalize_mapping(original, extract_json_object(response))
                 except Exception as exc:
                     raise RuntimeError(f"Invalid Qwen mapping for {source}[{packet_index}]: {exc}; response={response[:500]!r}") from exc
                 drifted = {mapping[str(key)]: value for key, value in original.items()}
