@@ -26,7 +26,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from src.benchmark_protocol import ACTIVE_API_SOURCES, DEFAULT_SNAPSHOT_PATH
 from src.chaos.json_chaos import JSONChaos
 from src.chaos.schema_chaos import SchemaChaos
-from src.chaos.schema_fast_path import schemas_match
+from src.routing.schema_fast_path import schemas_match
 from src.reconciliation.mapping_metrics import derive_ground_truth_mapping
 
 
