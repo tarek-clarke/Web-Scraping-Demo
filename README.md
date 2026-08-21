@@ -20,7 +20,7 @@ The v9 corpus is an immutable snapshot of exactly 22,500 real API records: 2,500
 
 The API snapshot is historical/frozen and is replayed as a stream. It is not represented as nine simultaneously captured live feeds. OpenFDA is a pharmacovigilance source and must not be described as ICU monitoring.
 
-Ten percent of records are selected deterministically for drift. The `json_manip` and `schema_alter` families are seeded rule-based transformations. The `qwen` family is generated once on LUMI-G by `Qwen/Qwen2.5-1.5B-Instruct`, validated, saved, and reused. Qwen is never rerun independently on each hardware platform.
+Ten percent of records are selected deterministically for drift. The `json_manip` and `schema_alter` families are seeded rule-based transformations. The `qwen` family is generated once on LUMI-G by `Qwen/Qwen2.5-1.5B-Instruct`, validated, saved, and reused. Duplicate model-proposed field names are deterministically disambiguated and recorded in each artifact row and manifest; incomplete or malformed mappings still fail loudly. Qwen is never rerun independently on each hardware platform.
 
 All eight three-bit states are used:
 

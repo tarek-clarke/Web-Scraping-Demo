@@ -4,8 +4,10 @@
 Only packets deterministically assigned to the `qwen` chaos family are sent to
 the model. Qwen returns a one-to-one top-level key-renaming map; values are
 copied byte-for-byte from the real source packet. Invalid, identity, partial,
-or duplicate mappings fail loudly. The saved JSONL is reused by every oracle
-and hardware run, so Qwen is never called independently per platform.
+or malformed mappings fail loudly. Duplicate replacement names are resolved
+by a deterministic, audited suffix policy so no source field is overwritten.
+The saved JSONL is reused by every oracle and hardware run, so Qwen is never
+called independently per platform.
 """
 
 from __future__ import annotations
@@ -14,6 +16,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -67,7 +70,9 @@ def schema_prompt(source: str, data: dict) -> str:
         "You generate realistic API schema drift for a reproducible research benchmark. "
         "Return only one JSON object mapping every input key to one unique replacement key. "
         "Preserve meaning, use plausible snake_case API names, do not add or omit keys, and "
-        "change at least one key. Source domain: " + source + ". Schema: " + stable_json(schema)
+        "change at least one key. Never reuse a replacement name; if two fields are similar, "
+        "make their replacements distinct by including the original field meaning. "
+        "Source domain: " + source + ". Schema: " + stable_json(schema)
     )
 
 
@@ -95,7 +100,78 @@ def validate_mapping(data: dict, mapping: dict) -> dict[str, str]:
     return normalized
 
 
-def normalize_mapping(data: dict, candidate: dict) -> dict[str, str]:
+def _suffix_component(value: str) -> str:
+    component = re.sub(r"[^a-zA-Z0-9]+", "_", value).strip("_").lower()
+    return component or "field"
+
+
+def disambiguate_mapping(
+    data: dict,
+    mapping: dict[str, str],
+) -> tuple[dict[str, str], list[dict[str, str]]]:
+    """Make replacement names one-to-one without hiding model collisions."""
+    expected = {str(key) for key in data}
+    normalized = {str(key): str(value).strip() for key, value in mapping.items()}
+    if set(normalized) != expected:
+        raise ValueError(
+            f"mapping keys differ from schema: expected={sorted(expected)} "
+            f"got={sorted(normalized)}"
+        )
+    if any(not value for value in normalized.values()):
+        raise ValueError("replacement key is empty")
+
+    resolved: dict[str, str] = {}
+    used: set[str] = set()
+    repairs: list[dict[str, str]] = []
+    for original_key in map(str, data):
+        proposed = normalized[original_key]
+        replacement = proposed
+        if replacement in used:
+            stem = f"{proposed}_{_suffix_component(original_key)}"
+            replacement = stem
+            suffix = 2
+            while replacement in used:
+                replacement = f"{stem}_{suffix}"
+                suffix += 1
+            repairs.append(
+                {
+                    "original_key": original_key,
+                    "model_replacement": proposed,
+                    "resolved_replacement": replacement,
+                    "reason": "duplicate_replacement",
+                }
+            )
+        resolved[original_key] = replacement
+        used.add(replacement)
+
+    # A pure permutation leaves the top-level key set unchanged and is not
+    # structural schema drift. Make one deterministic, explicitly logged
+    # adjustment while retaining the model's proposed semantic stem.
+    if set(resolved.values()) == expected:
+        original_key = next(iter(map(str, data)))
+        proposed = resolved[original_key]
+        stem = f"{proposed}_drift"
+        replacement = stem
+        suffix = 2
+        while replacement in used:
+            replacement = f"{stem}_{suffix}"
+            suffix += 1
+        used.remove(proposed)
+        resolved[original_key] = replacement
+        used.add(replacement)
+        repairs.append(
+            {
+                "original_key": original_key,
+                "model_replacement": proposed,
+                "resolved_replacement": replacement,
+                "reason": "unchanged_output_schema",
+            }
+        )
+
+    return validate_mapping(data, resolved), repairs
+
+
+def normalize_mapping(data: dict, candidate: dict) -> tuple[dict[str, str], list[dict[str, str]]]:
     """Accept the direct map or Qwen's explicit nested key-pair form.
 
     Qwen occasionally returns ``{"field_alias": {"original_key": ...,
@@ -105,7 +181,8 @@ def normalize_mapping(data: dict, candidate: dict) -> dict[str, str]:
     """
     expected = {str(key) for key in data}
     if set(map(str, candidate)) == expected:
-        return validate_mapping(data, candidate)
+        direct = {str(key): str(value) for key, value in candidate.items()}
+        return disambiguate_mapping(data, direct)
     if not candidate or not all(isinstance(value, dict) for value in candidate.values()):
         raise ValueError("response is neither a direct map nor an explicit nested key-pair map")
     mapping: dict[str, str] = {}
@@ -118,7 +195,7 @@ def normalize_mapping(data: dict, candidate: dict) -> dict[str, str]:
         if original_key in mapping:
             raise ValueError(f"duplicate original key in nested map: {original_key}")
         mapping[original_key] = str(replacement)
-    return validate_mapping(data, mapping)
+    return disambiguate_mapping(data, mapping)
 
 
 def main() -> None:
@@ -155,6 +232,8 @@ def main() -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = output.with_name(f".{output.name}.{os.getpid()}.tmp")
     written = 0
+    repaired_records = 0
+    repaired_fields = 0
     with temporary.open("w", encoding="utf-8") as stream, torch.inference_mode():
         for start in range(0, len(selected), args.batch_size):
             batch = selected[start:start + args.batch_size]
@@ -172,15 +251,21 @@ def main() -> None:
             for (source, packet_index, packet), response in zip(batch, responses):
                 original = packet["data"]
                 try:
-                    mapping = normalize_mapping(original, extract_json_object(response))
+                    mapping, repairs = normalize_mapping(original, extract_json_object(response))
                 except Exception as exc:
                     raise RuntimeError(f"Invalid Qwen mapping for {source}[{packet_index}]: {exc}; response={response[:500]!r}") from exc
                 drifted = {mapping[str(key)]: value for key, value in original.items()}
+                if len(drifted) != len(original):
+                    raise RuntimeError(f"Postprocessed Qwen mapping lost fields for {source}[{packet_index}]")
+                if repairs:
+                    repaired_records += 1
+                    repaired_fields += len(repairs)
                 row = {
                     "source": source, "packet_index": packet_index,
                     "source_record_id": packet.get("source_record_id"),
                     "model": args.model, "generation": {"do_sample": False, "max_new_tokens": args.max_new_tokens},
                     "original_sha256": sha(original), "mapping": mapping,
+                    "mapping_repairs": repairs,
                     "drifted_data": drifted, "drifted_sha256": sha(drifted),
                 }
                 stream.write(stable_json(row) + "\n")
@@ -193,6 +278,8 @@ def main() -> None:
         "packets": str(packets_path), "packets_sha256": hashlib.sha256(packets_path.read_bytes()).hexdigest(),
         "model": args.model, "seed": args.seed, "drift_rate": args.drift_rate,
         "records": written, "output": str(output), "output_sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
+        "mapping_repair_policy": "duplicate replacement names receive a deterministic original-key suffix",
+        "repaired_records": repaired_records, "repaired_fields": repaired_fields,
         "deterministic_generation": True, "cpu_fallback": False,
     }
     output.with_suffix(".manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
