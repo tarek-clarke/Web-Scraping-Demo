@@ -108,6 +108,10 @@ def _suffix_component(value: str) -> str:
     return component or "field"
 
 
+def canonical_schema_name(value: object) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(value).lower())
+
+
 def disambiguate_mapping(
     data: dict,
     mapping: dict[str, str],
@@ -257,31 +261,78 @@ def salvage_partial_mapping(
 
     expected_order = [str(key) for key in data]
     expected = set(expected_order)
+    expected_by_canonical: dict[str, str] = {}
+    for original in expected_order:
+        canonical = canonical_schema_name(original)
+        if canonical in expected_by_canonical:
+            raise ValueError(f"schema names collide after canonicalization: {canonical}")
+        expected_by_canonical[canonical] = original
     direct = {
         original: str(candidate[original])
         for original in expected_order
         if original in candidate
     }
+    canonical_direct_occurrences: defaultdict[str, list[str]] = defaultdict(list)
+    for original, replacement in candidate.items():
+        canonical_original = canonical_schema_name(original)
+        if canonical_original in expected_by_canonical:
+            canonical_direct_occurrences[expected_by_canonical[canonical_original]].append(str(replacement))
+    canonical_direct = {
+        original: replacements[0]
+        for original, replacements in canonical_direct_occurrences.items()
+        if len(replacements) == 1
+    }
     reverse_occurrences: defaultdict[str, list[str]] = defaultdict(list)
     for replacement, reported_original in candidate.items():
-        original = str(reported_original)
-        if original in expected:
-            reverse_occurrences[original].append(str(replacement))
+        canonical_original = canonical_schema_name(reported_original)
+        if canonical_original in expected_by_canonical:
+            reverse_occurrences[expected_by_canonical[canonical_original]].append(str(replacement))
     reverse = {
         original: replacements[0]
         for original, replacements in reverse_occurrences.items()
         if len(replacements) == 1
     }
 
-    direct_score = sum(str(key) in expected for key in candidate)
-    reverse_score = sum(str(value) in expected for value in candidate.values())
-    if direct_score == reverse_score:
+    direct_score = sum(canonical_schema_name(key) in expected_by_canonical for key in candidate)
+    reverse_score = sum(canonical_schema_name(value) in expected_by_canonical for value in candidate.values())
+    orientation_repair: list[dict[str, str]] = []
+    if direct_score == 0 and reverse_score == 0:
         raise ValueError(
             "partial mapping orientation is ambiguous or has zero exact coverage: "
-            f"direct={direct_score} reverse={reverse_score}"
+            "direct=0 reverse=0"
         )
+    if direct_score == reverse_score:
+        direct_style = sum(
+            bool(re.fullmatch(r"[a-z][a-z0-9]*(?:_[a-z0-9]+)+", str(value)))
+            for value in candidate.values()
+        )
+        reverse_style = sum(
+            bool(re.fullmatch(r"[a-z][a-z0-9]*(?:_[a-z0-9]+)+", str(key)))
+            for key in candidate
+        )
+        if direct_style == reverse_style:
+            raise ValueError(
+                "partial mapping orientation is ambiguous or has zero exact coverage: "
+                f"direct={direct_score} reverse={reverse_score}"
+            )
+        if reverse_style > direct_style:
+            direct_score = 0
+            orientation_repair.append({
+                "original_key": "*",
+                "model_replacement": "",
+                "resolved_replacement": "",
+                "reason": "partial_orientation_style_tiebreak_reverse",
+            })
+        else:
+            reverse_score = 0
+            orientation_repair.append({
+                "original_key": "*",
+                "model_replacement": "",
+                "resolved_replacement": "",
+                "reason": "partial_orientation_style_tiebreak_direct",
+            })
     if direct_score > reverse_score:
-        proposals = direct
+        proposals = canonical_direct
         orientation = "original_to_replacement_partial"
         reason = "partial_direct_original_preserved"
     else:
@@ -306,7 +357,7 @@ def salvage_partial_mapping(
     if all(original == replacement for original, replacement in mapping.items()):
         raise ValueError("partial mapping contains no usable schema rename")
     normalized, collision_repairs = disambiguate_mapping(data, mapping)
-    return normalized, [*repairs, *collision_repairs], orientation
+    return normalized, [*orientation_repair, *repairs, *collision_repairs], orientation
 
 
 def corrective_prompt(source: str, data: dict, validation_error: str) -> str:

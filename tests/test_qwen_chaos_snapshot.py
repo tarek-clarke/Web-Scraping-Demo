@@ -218,3 +218,53 @@ def test_partial_direct_mapping_preserves_omitted_originals():
         }
     ]
     assert response_format == "original_to_replacement_partial"
+
+
+def test_partial_camel_case_openfda_response_uses_canonical_names():
+    original = {
+        "safetyreportid": 1,
+        "transmissiondateformat": 2,
+        "transmissiondate": 3,
+        "serious": 4,
+        "seriousnessdeath": 5,
+        "receivedateformat": 6,
+        "receivedate": 7,
+        "receiptdateformat": 8,
+        "receiptdate": 9,
+        "fulfillexpeditecriteria": 10,
+        "companynumb": 11,
+        "primarysource": 12,
+        "sender": 13,
+        "receiver": 14,
+        "patient": 15,
+    }
+    candidate = {
+        "safety_report_id": "safetyReportId",
+        "transmission_date_format": "transmissionDateFormat",
+        "transmission_date": "transmissionDate",
+        "serious": "seriousnessDeath",
+        "seriousness_death": "seriousnessDeath",
+        "receivedate_format": "receivedateFormat",
+        "receivedate": "receivedate",
+        "receipt_date_format": "receiptdateFormat",
+        "receiptdate": "receiptdate",
+        "fulfill_expedite_criteria": "fulfillexpediteCriteria",
+        "company_numb": "companynumb",
+        "primary_source": "primarySource",
+        "sender": "sender",
+        "sender_format": "sender",
+        "receiver": "receiver",
+        "receiver_format": "receiver",
+        "patient": "patient",
+    }
+
+    mapping, repairs, response_format = salvage_partial_mapping(original, candidate)
+
+    assert mapping["safetyreportid"] == "safety_report_id"
+    assert mapping["transmissiondate"] == "transmission_date"
+    assert mapping["companynumb"] == "company_numb"
+    assert mapping["seriousnessdeath"] == "seriousnessdeath"
+    assert len(mapping) == len(original)
+    assert len(set(mapping.values())) == len(original)
+    assert response_format == "replacement_to_original_partial"
+    assert any("partial_reverse" in repair["reason"] for repair in repairs)
