@@ -314,42 +314,72 @@ def main() -> None:
                 message = [{"role": "user", "content": schema_prompt(source, data)}]
                 prompts.append(tokenizer.apply_chat_template(message, tokenize=False, add_generation_prompt=True))
             responses = generate_responses(model, tokenizer, prompts, args.max_new_tokens)
-            for (source, packet_index, packet), response in zip(batch, responses):
-                original = packet["data"]
-                attempts = 1
-                validation_errors: list[str] = []
-                while True:
-                    generation_attempts += 1
+            generation_attempts += len(responses)
+            parsed_results: list[tuple[dict[str, str], list[dict[str, str]], str] | None] = [
+                None for _ in batch
+            ]
+            attempt_counts = [1 for _ in batch]
+            validation_errors_by_record: list[list[str]] = [[] for _ in batch]
+            pending = list(range(len(batch)))
+            while pending:
+                retry_indices: list[int] = []
+                for index in pending:
+                    source, packet_index, packet = batch[index]
+                    original = packet["data"]
                     try:
-                        mapping, repairs, response_format = normalize_mapping(
+                        parsed_results[index] = normalize_mapping(
                             original,
-                            extract_json_object(response),
+                            extract_json_object(responses[index]),
                         )
-                        break
                     except Exception as exc:
-                        validation_errors.append(str(exc))
-                        if attempts > args.max_retries:
+                        validation_errors_by_record[index].append(str(exc))
+                        if attempt_counts[index] >= args.max_retries + 1:
                             raise RuntimeError(
                                 f"Invalid Qwen mapping for {source}[{packet_index}] after "
-                                f"{attempts} attempts: {validation_errors}; "
-                                f"response={response[:500]!r}"
+                                f"{attempt_counts[index]} attempts: "
+                                f"{validation_errors_by_record[index]}; "
+                                f"response={responses[index][:500]!r}"
                             ) from exc
-                        repair_message = [{
-                            "role": "user",
-                            "content": corrective_prompt(source, original, str(exc)),
-                        }]
-                        repair_prompt = tokenizer.apply_chat_template(
-                            repair_message,
-                            tokenize=False,
-                            add_generation_prompt=True,
-                        )
-                        response = generate_responses(
-                            model,
-                            tokenizer,
-                            [repair_prompt],
-                            args.max_new_tokens,
-                        )[0]
-                        attempts += 1
+                        retry_indices.append(index)
+                if not retry_indices:
+                    break
+                retry_prompts: list[str] = []
+                for index in retry_indices:
+                    source, _, packet = batch[index]
+                    repair_message = [{
+                        "role": "user",
+                        "content": corrective_prompt(
+                            source,
+                            packet["data"],
+                            validation_errors_by_record[index][-1],
+                        ),
+                    }]
+                    retry_prompts.append(tokenizer.apply_chat_template(
+                        repair_message,
+                        tokenize=False,
+                        add_generation_prompt=True,
+                    ))
+                retry_responses = generate_responses(
+                    model,
+                    tokenizer,
+                    retry_prompts,
+                    args.max_new_tokens,
+                )
+                generation_attempts += len(retry_responses)
+                for index, retry_response in zip(retry_indices, retry_responses):
+                    responses[index] = retry_response
+                    attempt_counts[index] += 1
+                pending = retry_indices
+
+            for index, (source, packet_index, packet) in enumerate(batch):
+                result = parsed_results[index]
+                if result is None:
+                    raise RuntimeError(f"Internal error: no parsed Qwen mapping for {source}[{packet_index}]")
+                mapping, repairs, response_format = result
+                response = responses[index]
+                attempts = attempt_counts[index]
+                validation_errors = validation_errors_by_record[index]
+                original = packet["data"]
                 drifted = {mapping[str(key)]: value for key, value in original.items()}
                 if len(drifted) != len(original):
                     raise RuntimeError(f"Postprocessed Qwen mapping lost fields for {source}[{packet_index}]")
@@ -382,6 +412,7 @@ def main() -> None:
         "model": args.model, "seed": args.seed, "drift_rate": args.drift_rate,
         "max_new_tokens": args.max_new_tokens,
         "max_retries": args.max_retries,
+        "retry_batching": True,
         "records": written, "output": str(output), "output_sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
         "mapping_repair_policy": (
             "duplicate replacements receive deterministic original-key suffixes; "
