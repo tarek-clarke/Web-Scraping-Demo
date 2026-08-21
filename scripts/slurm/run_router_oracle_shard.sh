@@ -49,7 +49,8 @@ else
     PYTHON_COMMAND+=(python)
 fi
 PREFLIGHT_ARGS=()
-if [ -z "${REUSE_ORACLE:-}" ]; then
+read -r -a ORACLE_METHOD_ARRAY <<< "${ORACLE_METHODS:-levenshtein regex schema_registry minilm qwen_1_5b bge cross_encoder cohere_embed_v4}"
+if [ -z "${REUSE_ORACLE:-}" ] && [[ " ${ORACLE_METHOD_ARRAY[*]} " == *" cohere_embed_v4 "* ]]; then
     PREFLIGHT_ARGS+=(--require-cohere)
 fi
 "${PYTHON_COMMAND[@]}" scripts/preflight_accelerator.py \
@@ -69,12 +70,14 @@ fi
     --summary "${SHARD%.jsonl}.energy_summary.json" \
     --label "lumi-oracle-${LUMI_GPU_PROFILE:-unknown}-shard-${RANK}" -- \
     python -u scripts/build_router_oracle.py \
-        --packets-file data/ingested/telemetry_clean_bench_22500.json \
+        --packets-file "${RAP_REAL_SNAPSHOT:-data/ingested/telemetry_real_api_22500_v1.json}" \
+        --qwen-chaos-file "${RAP_QWEN_CHAOS_FILE:-data/training/qwen_model_chaos_22500_v1.jsonl}" \
         --output "$SHARD" \
         --max-packets-per-api 2500 \
         --seed 42 --drift-rate 0.10 \
         --chunk-size "${ORACLE_CHUNK_SIZE:-32}" \
         --batch-size 4 \
+        --methods "${ORACLE_METHOD_ARRAY[@]}" \
         --accuracy-sla 0.95 \
         --num-shards "$ORACLE_SHARDS" \
         --shard-index "$RANK" \

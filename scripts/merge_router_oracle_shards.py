@@ -5,17 +5,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT))
 
-API_ORDER = {
-    name: index for index, name in enumerate((
-        "openf1", "finnhub", "spacex", "openweather", "clinical",
-        "hockey_nhl", "aviation_opensky", "football_uefa", "smartcity_transit",
-    ))
-}
+from src.benchmark_protocol import ACTIVE_API_SOURCES
+
+
+API_ORDER = {name: index for index, name in enumerate(ACTIVE_API_SOURCES)}
 CHAOS_ORDER = {name: index for index, name in enumerate(("qwen", "json_manip", "schema_alter"))}
 
 

@@ -14,7 +14,7 @@ else
     exit 1
 fi
 
-STREAM="${RAP_STREAM_FILE:-data/replay/telemetry_frozen_22500_v8.jsonl}"
+STREAM="${RAP_STREAM_FILE:-data/replay/telemetry_frozen_22500_v9.jsonl}"
 if [ ! -f "$STREAM" ]; then
     "$PYTHON" scripts/build_frozen_telemetry_stream.py --output "$STREAM"
 fi
@@ -23,7 +23,7 @@ TAG="${RAP_HARDWARE_TAG:-nvidia}"
 RATE="${RAP_STREAM_RATE_PPS:-0}"
 BATCH="${RAP_STREAM_BATCH_SIZE:-256}"
 REPETITIONS="${RAP_STREAM_REPETITIONS:-3}"
-METHODS="${RAP_STREAM_METHODS:-minilm qwen_1_5b bge}"
+METHODS="${RAP_STREAM_METHODS:-minilm qwen_1_5b bge cross_encoder}"
 LIMIT="${RAP_STREAM_LIMIT:-0}"
 STAMP="$(date -u +%Y%m%d_%H%M%S)"
 OUTPUT="${RAP_STREAM_OUTPUT_DIR:-data/reports/frozen_stream_${TAG}_${STAMP}}"

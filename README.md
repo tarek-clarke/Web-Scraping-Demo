@@ -1,179 +1,189 @@
 # Resilient RAP Framework
 
-Resilient API Adaptation Protocol (RAP) is a two-stage telemetry reconciliation framework. Clean packets use a CPU schema fast path. Packets with structural drift are sent to a selected reconciliation method, with optional classical, GPU, cloud, simulator, and physical-QPU routing experiments.
+Resilient API Adaptation Protocol (RAP) is a two-stage schema-reconciliation framework. Clean records use a CPU fast path. Structurally drifted records are routed to one of eight CPU, local-accelerator, or cloud reconciliation methods by a 13-qubit VQC.
 
-The active benchmark corpus contains 22,500 packets from nine API domains. It is a controlled historical replay workload, not a live production capture.
+## Active publication protocol (v9)
 
-## Current benchmark contract
+The v9 corpus is an immutable snapshot of exactly 22,500 real API records: 2,500 distinct payloads from each source. Mock records, repeated padding, API fallback data, and silently partial pulls are forbidden.
 
-- 22,500 ordered ingested packets, 2,500 per API domain.
-- 20,250 clean packets and 2,250 drifted packets.
-- Three deterministic chaos families: `json_manip`, `qwen`, and `schema_alter`.
-- Six candidate reconcilers: Levenshtein, Regex, MiniLM, Qwen2.5-1.5B, BGE, and Cohere Embed v4.
-- Ten structural features, six route classes, and three VQC output bits.
-- The canonical VQC is 13 logical qubits: 10 feature qubits plus 3 output qubits.
-- Clean packets bypass reconciliation and are counted separately from drift accuracy.
-- All hardware runs must report observed device identity, latency, throughput, energy provenance, and the frozen workload SHA-256.
+| Source ID | Public API data |
+|---|---|
+| `openf1` | Historical Formula 1 car data |
+| `binance_market` | Historical BTC/USDT minute bars |
+| `noaa_space_weather` | NOAA SWPC solar-wind plasma observations |
+| `openmeteo_weather` | Historical hourly weather observations |
+| `openfda_adverse_events` | FDA adverse-event reports (FAERS; not ICU telemetry) |
+| `hockey_nhl` | NHL play-by-play events |
+| `aviation_opensky` | OpenSky aircraft state vectors |
+| `football_openligadb` | OpenLigaDB football matches |
+| `smartcity_mbta` | MBTA transit stop records |
 
-The canonical route order is fixed in [canonical_vqc.py](src/routing/canonical_vqc.py):
+The API snapshot is historical/frozen and is replayed as a stream. It is not represented as nine simultaneously captured live feeds. OpenFDA is a pharmacovigilance source and must not be described as ICU monitoring.
 
-| Class | Method | Tier |
-|---:|---|---|
-| 0 | `levenshtein` | CPU |
-| 1 | `regex` | CPU |
-| 2 | `minilm` | Local GPU |
-| 3 | `qwen_1_5b` | Local GPU |
-| 4 | `bge` | Local GPU |
-| 5 | `cohere_embed_v4` | External Cohere API |
+Ten percent of records are selected deterministically for drift. The `json_manip` and `schema_alter` families are seeded rule-based transformations. The `qwen` family is generated once on LUMI-G by `Qwen/Qwen2.5-1.5B-Instruct`, validated, saved, and reused. Qwen is never rerun independently on each hardware platform.
 
-## Deterministic stream replay
+All eight three-bit states are used:
 
-The source APIs are not called during benchmarking. The committed packet corpus and frozen chaos oracle are combined into one immutable replay artifact. This makes every CPU, GPU, cloud, simulator, and QPU experiment receive the same ordered events and exact ground truth.
+| Bits | Route | Tier |
+|---|---|---|
+| `000` | `levenshtein` | CPU |
+| `001` | `regex` | CPU |
+| `010` | `schema_registry` | CPU |
+| `011` | `minilm` | Local GPU |
+| `100` | `qwen_1_5b` | Local GPU |
+| `101` | `bge` | Local GPU |
+| `110` | `cross_encoder` | Local GPU |
+| `111` | `cohere_embed_v4` | External API |
 
-Build or rebuild the replay:
+The VQC remains 13 logical qubits: ten feature qubits and three measured output qubits. Abstention is an optional confidence threshold applied after decoding; it does not consume an output state.
+
+## Stage 1 — pull and freeze the real API corpus
+
+Run this once on a networked workstation. `OPENFDA_API_KEY` is optional but improves FDA rate limits. The command refuses to overwrite an existing snapshot unless `--overwrite` is supplied.
 
 ```bash
-python scripts/build_frozen_telemetry_stream.py \
-  --output data/replay/telemetry_frozen_22500_v8.jsonl
+git clone --branch tkde git@github.com:tarek-clarke/resilient-rap-framework.git
+cd resilient-rap-framework
+
+python3 scripts/pull_real_api_snapshot.py \
+  --output data/ingested/telemetry_real_api_22500_v1.json
 ```
 
-The generated replay is intentionally ignored by Git and can be rebuilt from the committed corpus and oracle. Its manifest records both source hashes and the workload hash. The current validated workload is:
+The adjacent manifest records record counts, per-source uniqueness, source IDs, and the snapshot SHA-256. A publication run is valid only when `publication_ready` is `true` and every source has 2,500 distinct IDs and payload hashes.
+
+The independently captured openFDA component is stored as:
 
 ```text
-events:        22,500
-clean:         20,250
-drifted:        2,250
-json_manip:       737
-qwen:             746
-schema_alter:    767
-SHA-256: 9656427b10370559ac4b5ddcfcb1edd97e7cf3a904496d0491275a47ac8f97b3
+data/ingested/openfda_adverse_events_2500_v1.json
+data/ingested/openfda_adverse_events_2500_v1.manifest.json
 ```
 
-The runner supports two distinct modes:
+## Stage 2 — LUMI-G Qwen drift, oracle, and MI250X runs
 
-- `--rate-pps 0`: saturation/capacity replay.
-- `--rate-pps N`: paced replay at a declared arrival rate.
-
-These modes must be reported separately. Each method is replayed independently with the same event file. Startup and two warm-up drift packets are timed separately. Steady-state output includes queue wait, service time, end-to-end latency percentiles, backlog, throughput, mapping accuracy, exact-record rate, per-API/per-chaos breakdowns, and host-observed energy.
-
-## Local CPU smoke test
+Copy the immutable corpus to LUMI scratch; do not store model caches or benchmark data in `$HOME`.
 
 ```bash
-cd /Users/tarekclarke/Documents/RAP/resilient-rap-framework
-RAP_CPU_WORKERS=1 .venv/bin/python scripts/run_frozen_telemetry_stream.py \
-  --stream data/replay/telemetry_frozen_22500_v8.jsonl \
-  --methods levenshtein regex schema_registry \
-  --rate-pps 100 \
-  --consumer-batch-size 1 \
-  --limit 200 \
-  --output-dir data/reports/frozen_stream_cpu_smoke
-```
+# On the Mac
+scp data/ingested/telemetry_real_api_22500_v1.json* \
+  clarketa@lumi.csc.fi:/scratch/project_465002996/clarketa/resilient-rap-tkde-aer-20260722/data/ingested/
 
-## LUMI execution
-
-Keep caches and runtime state in the project scratch directory:
-
-```bash
+# Connect to LUMI
+ssh -i ~/.ssh/id_ed25519 clarketa@lumi.csc.fi
 cd /scratch/project_465002996/clarketa/resilient-rap-tkde-aer-20260722
+git pull --ff-only origin tkde
 bash scripts/bootstrap_lumi_runtime.sh
 ```
 
-Run CPU methods without allocating an idle GPU:
+Generate model-backed Qwen chaos once on a scheduler-bound MI250X GCD:
 
 ```bash
-sbatch scripts/slurm/submit_frozen_stream_lumi_cpu.slurm
+sbatch scripts/slurm/generate_qwen_chaos_v9.slurm
 ```
 
-Run MiniLM, Qwen, and BGE on a scheduler-bound MI250X GCD:
+Check that it completed before training:
 
 ```bash
-sbatch scripts/slurm/submit_frozen_stream_lumi.slurm
+sacct -j JOB_ID --format=JobID,State,Elapsed,ExitCode
+cat data/training/qwen_model_chaos_22500_v1.manifest.json
 ```
 
-The LUMI GPU script requires ROCm, exactly one visible scheduler-bound GCD, and a readable AMD power sensor. CPU fallback and missing energy telemetry fail loudly. Three repetitions and a 256-packet accelerator consumer batch are used by default. Qwen retries are generated as batches; they must not be serialized per record. Use the same batch size on GH200 and B300 for hardware comparisons. Override the replay without editing the script:
-
-```bash
-RAP_STREAM_RATE_PPS=100 \
-RAP_STREAM_REPETITIONS=3 \
-RAP_STREAM_OUTPUT_DIR=data/reports/frozen_stream_mi250x_100pps \
-sbatch --export=ALL,RAP_STREAM_RATE_PPS,RAP_STREAM_REPETITIONS,RAP_STREAM_OUTPUT_DIR \
-  scripts/slurm/submit_frozen_stream_lumi.slurm
-```
-
-## NVIDIA GH200 and B300 execution
-
-Run inside the vendor CUDA/PyTorch environment after `scripts/bootstrap_accelerator_env.sh` has completed:
-
-```bash
-RAP_HARDWARE_TAG=gh200 bash scripts/run_frozen_stream_nvidia.sh
-RAP_HARDWARE_TAG=b300 bash scripts/run_frozen_stream_nvidia.sh
-```
-
-The launcher requires CUDA and live NVML power/temperature telemetry. It defaults to MiniLM, Qwen, and BGE; CPU methods should be run through the CPU launcher so their measurements are not mixed with an allocated GPU. Use a paced replay when testing an arrival SLA:
-
-```bash
-RAP_HARDWARE_TAG=gh200 \
-RAP_STREAM_RATE_PPS=100 \
-RAP_STREAM_OUTPUT_DIR=data/reports/frozen_stream_gh200_100pps \
-bash scripts/run_frozen_stream_nvidia.sh
-```
-
-## Cohere Embed v4
-
-Cohere is an independent cloud baseline and is not a local GPU or QPU measurement. Set the key only in the process environment; never place it in the repository, shell history, README, logs, or `sbatch` command text.
+Run the eight-method oracle and ten independent VQC training starts. Cohere is a route, so load its key without echoing or writing it to disk:
 
 ```bash
 read -rs COHERE_API_KEY
 export COHERE_API_KEY
-RAP_COHERE_EMBED_CACHE=0 .venv/bin/python scripts/run_frozen_telemetry_stream.py \
-  --stream data/replay/telemetry_frozen_22500_v8.jsonl \
-  --methods cohere_embed_v4 \
-  --rate-pps 0 \
-  --consumer-batch-size 16 \
-  --repetitions 3 \
-  --hardware-profile cpu \
-  --output-dir data/reports/frozen_stream_cohere_embed_v4
+export ORACLE_METHODS="levenshtein regex schema_registry minilm qwen_1_5b bge cross_encoder cohere_embed_v4"
+LUMI_GPU_PROFILE=single bash scripts/slurm/submit_qpu_training_pipeline.sh
 unset COHERE_API_KEY
 ```
 
-Cross-batch Cohere embedding caching is disabled by default so network latency is measured on the stream. `--allow-cohere-cache` is a separate deployment-cache experiment and must be labeled separately. Client-side network latency and host energy are observable; Cohere server-side energy is not available through the API and must not be inferred.
+After the oracle is complete, build the one frozen replay used everywhere:
 
-## Artifacts
-
-Every completed replay writes:
-
-- `benchmark.json`: run identity, hardware, workload hash, configuration, summary, and energy provenance.
-- `packet_results.jsonl`: one row per packet and method, including queue and end-to-end timings.
-- `summary.csv`: aggregate method metrics.
-- `breakdown.csv`: API and chaos-family metrics.
-- `summary.tex`: LaTeX-compatible aggregate table.
-- `energy_<method>_rep<N>.csv`: host power samples for each method repetition.
-
-Only artifacts with `status: complete`, the expected workload hash, explicit hardware identity, and energy measurement provenance are publication-ready.
-
-## Routing and quantum execution
-
-The reconciliation stream benchmark is separate from router evaluation. Once the method artifacts are complete, the same frozen workload and selected model can be used for:
-
-- Aer simulation on ROCm or CUDA.
-- IBM Heron r2 execution through the existing QPU runner.
-- VLQ execution after the LEXIS/HEAppE service is operational.
-
-The physical QPU result must use the canonical 13-qubit circuit and must not be described as comparable to older 12-qubit IBM runs. QPU server-side energy is not observable through the provider API. Router-selection accuracy and routed end-to-end reconciliation accuracy must be reported as separate metrics.
-
-## Data and code layout
-
-```text
-data/ingested/telemetry_clean_bench_22500.json   # retained source corpus
-data/training/router_oracle_22500_v8_qwen_10pct_single.jsonl
-scripts/build_frozen_telemetry_stream.py          # deterministic workload builder
-scripts/run_frozen_telemetry_stream.py            # event-driven benchmark
-scripts/run_frozen_stream_nvidia.sh               # GH200/B300 launcher
-scripts/slurm/submit_frozen_stream_lumi.slurm     # LUMI GPU launcher
-scripts/slurm/submit_frozen_stream_lumi_cpu.slurm # LUMI CPU launcher
-src/reconciliation/                                # method implementations
-src/routing/canonical_vqc.py                       # 13-qubit protocol
-src/telemetry/metrics_logger.py                    # host energy telemetry
+```bash
+python scripts/build_frozen_telemetry_stream.py \
+  --packets data/ingested/telemetry_real_api_22500_v1.json \
+  --oracle data/training/router_oracle_22500_v9_eight_route_10pct_single.jsonl \
+  --output data/replay/telemetry_frozen_22500_v9.jsonl
 ```
 
-Historical experiments and superseded result tables are not part of the active README. The ingested corpus is retained; generated replay outputs and benchmark reports are rebuilt per run.
+Run CPU routes on a CPU allocation and accelerator routes on MI250X. CPU fallback and missing GPU telemetry fail loudly.
+
+```bash
+sbatch scripts/slurm/submit_frozen_stream_lumi_cpu.slurm
+sbatch scripts/slurm/submit_frozen_stream_lumi.slurm
+```
+
+The default local-GPU methods are MiniLM, Qwen, BGE, and the cross-encoder. For a four-card/8-GCD data-parallel measurement, use the sharded launcher and label it separately from the one-GCD run:
+
+```bash
+RAP_STREAM_FILE=data/replay/telemetry_frozen_22500_v9.jsonl \
+RAP_STREAM_METHODS="minilm qwen_1_5b bge cross_encoder" \
+RAP_STREAM_OUTPUT_DIR=data/reports/v9_mi250x_4card \
+sbatch --export=ALL,RAP_STREAM_FILE,RAP_STREAM_METHODS,RAP_STREAM_OUTPUT_DIR \
+  scripts/slurm/submit_frozen_stream_lumi_4card.slurm
+```
+
+## Stage 3 — GH200 and B300 on Spheron
+
+Use the same repository commit, frozen JSONL, manifest, model artifact, batch size, repetitions, and software versions on both NVIDIA machines. Do not regenerate chaos or repull APIs.
+
+```bash
+# On each Spheron instance
+git clone --branch tkde git@github.com:tarek-clarke/resilient-rap-framework.git
+cd resilient-rap-framework
+bash scripts/bootstrap_accelerator_env.sh
+```
+
+Copy the frozen workload from the Mac or LUMI results download:
+
+```bash
+# On the Mac; replace HOST and USER as needed
+scp data/replay/telemetry_frozen_22500_v9.jsonl* USER@HOST:/path/to/resilient-rap-framework/data/replay/
+```
+
+Run one GPU per instance:
+
+```bash
+# GH200
+RAP_HARDWARE_TAG=gh200 \
+RAP_STREAM_BATCH_SIZE=256 \
+RAP_STREAM_REPETITIONS=3 \
+bash scripts/run_frozen_stream_nvidia.sh
+
+# B300
+RAP_HARDWARE_TAG=b300 \
+RAP_STREAM_BATCH_SIZE=256 \
+RAP_STREAM_REPETITIONS=3 \
+bash scripts/run_frozen_stream_nvidia.sh
+```
+
+CPU methods must be run separately and identified by host CPU; their values are not GPU measurements. Cohere is also run separately because it measures client/network behavior, not GH200, B300, or MI250X compute.
+
+## Publication checks
+
+Every publishable run must contain:
+
+- the same frozen-workload SHA-256;
+- exactly 22,500 events and 2,250 deterministic drift cases;
+- explicit device and host identities;
+- no CPU fallback for GPU methods;
+- three or more repetitions with identical configuration;
+- latency, throughput, accuracy, queueing, and host-observed energy provenance;
+- a complete status marker and generated CSV/JSON/LaTeX summaries.
+
+All v8 results derived from `telemetry_clean_bench_22500.json` are archived and must not be mixed with v9 tables. The manuscript must be updated from six routes plus abstention to eight routes, replace the old nine-domain list, remove ICU claims, and regenerate every accuracy, routing-distribution, statistical, energy, and hardware-comparison table from v9 outputs.
+
+## Active files
+
+```text
+src/benchmark_protocol.py                         # source contract
+src/routing/canonical_vqc.py                     # 13q / eight-route VQC
+scripts/pull_real_api_snapshot.py                # strict real API snapshot
+scripts/build_qwen_chaos_snapshot.py             # one-time model-backed chaos
+scripts/build_router_oracle.py                   # eight-method oracle
+scripts/build_frozen_telemetry_stream.py          # immutable replay
+scripts/run_frozen_telemetry_stream.py            # hardware benchmark
+scripts/slurm/generate_qwen_chaos_v9.slurm       # LUMI Qwen generation
+scripts/slurm/submit_frozen_stream_lumi.slurm     # MI250X
+scripts/run_frozen_stream_nvidia.sh               # GH200/B300
+```

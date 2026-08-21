@@ -17,6 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 cd "$PROJECT_ROOT" || exit 1
 source "$PROJECT_ROOT/scripts/lumi_cache_env.sh"
+VQC_TAG="${RAP_VQC_RUN_TAG:-v9_eight_route}"
 
 echo "=== Starting VQC Router Training on Compute Node ==="
 echo "Node: ${SLURM_NODENAME:-${SLURMD_NODENAME:-unknown}}"
@@ -84,8 +85,8 @@ python3 scripts/run_with_energy.py \
     --summary "data/training/energy_train_${LUMI_GPU_PROFILE//-/_}_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.json" \
     --label "lumi-vqc-train-${LUMI_GPU_PROFILE}-${SLURM_ARRAY_TASK_ID}" -- \
     python3 -u scripts/train_qpu_router.py train \
-        --oracle "${ORACLE:-data/training/router_oracle_22500_v8_qwen_10pct_${LUMI_GPU_PROFILE//-/_}.jsonl}" \
-        --output-dir "data/training/qpu_router_multistart_v8_qwen_utility_${LUMI_GPU_PROFILE//-/_}" \
+        --oracle "${ORACLE:-data/training/router_oracle_22500_v9_eight_route_10pct_${LUMI_GPU_PROFILE//-/_}.jsonl}" \
+        --output-dir "data/training/qpu_router_multistart_${VQC_TAG}_${LUMI_GPU_PROFILE//-/_}" \
         --start-index "$SLURM_ARRAY_TASK_ID" \
         --backend aer_gpu \
         --training-shots "${RAP_TRAIN_SHOTS:-1024}" \

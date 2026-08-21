@@ -1,0 +1,94 @@
+{
+  "created_at": "2026-08-21T03:37:36.338745+00:00",
+  "description": "Immutable real-API snapshot for deterministic replay; no mock, padding, or duplicate payloads",
+  "packets_per_source": 2500,
+  "publication_ready": true,
+  "schema_version": 1,
+  "snapshot_sha256": "7f93ef0b5ace3f42b3025ee36b169f515d2ac849d0082cd1509989312b05823d",
+  "source_order": [
+    "openf1",
+    "binance_market",
+    "noaa_space_weather",
+    "openmeteo_weather",
+    "openfda_adverse_events",
+    "hockey_nhl",
+    "aviation_opensky",
+    "football_openligadb",
+    "smartcity_mbta"
+  ],
+  "sources": {
+    "aviation_opensky": {
+      "api_endpoint": "https://opensky-network.org/api/states/all",
+      "first_id": "00b1f4:1787283245",
+      "last_id": "e80632:1787283349",
+      "payload_set_sha256": "78b8813e8097fd12bcc82c7cc12dc71e7bd4c817be14640e44402f8c1e8c9b77",
+      "records": 2500,
+      "source_cache": "data/ingested/source_cache_v1/aviation_opensky_2500.json"
+    },
+    "binance_market": {
+      "api_endpoint": "https://api.binance.com/api/v3/klines (BTCUSDT, 1m, fixed start)",
+      "first_id": "1704067200000",
+      "last_id": "1704217140000",
+      "payload_set_sha256": "bf68dca3139b943b7ccc52bf16d808f8eb683d34d364fe6838587ae2c1814ef6",
+      "records": 2500,
+      "source_cache": "data/ingested/source_cache_v1/binance_market_2500.json"
+    },
+    "football_openligadb": {
+      "api_endpoint": "https://api.openligadb.de/getmatchdata/bl1/{season}",
+      "first_id": "33236",
+      "last_id": "66682",
+      "payload_set_sha256": "284019e949010460c70e3ab174e10bc376b3c47bb4671fb3bdf3de115b027b11",
+      "records": 2500,
+      "source_cache": "data/ingested/source_cache_v1/football_openligadb_2500.json"
+    },
+    "hockey_nhl": {
+      "api_endpoint": "https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play",
+      "first_id": "2024010010:10",
+      "last_id": "2024020015:998",
+      "payload_set_sha256": "84dea7aa64392fed48dabb5ad21a41a653179df694795b66e3913e07300c3bb0",
+      "records": 2500,
+      "source_cache": "data/ingested/source_cache_v1/hockey_nhl_2500.json"
+    },
+    "noaa_space_weather": {
+      "api_endpoint": "https://services.swpc.noaa.gov/products/geospace/propagated-solar-wind.json",
+      "first_id": "2026-08-14T03:33:00Z",
+      "last_id": "2026-08-15T21:19:00Z",
+      "payload_set_sha256": "4b842ddd9bd48c688e796198a09e4376808d0370c453d0e7d49b938e0163108d",
+      "records": 2500,
+      "source_cache": "data/ingested/source_cache_v1/noaa_space_weather_2500.json"
+    },
+    "openf1": {
+      "api_endpoint": "https://api.openf1.org/v1/car_data?session_key=9159",
+      "first_id": "9159:10:2023-09-15T12:45:02.318000+00:00",
+      "last_id": "9159:81:2023-09-15T12:45:37.639000+00:00",
+      "payload_set_sha256": "51b2d92cd7bc05454d90065cdab8d5f649f227a74d9008854abffbd334022110",
+      "records": 2500,
+      "source_cache": "data/ingested/source_cache_v1/openf1_2500.json"
+    },
+    "openfda_adverse_events": {
+      "api_endpoint": "https://api.fda.gov/drug/event.json (receivedate ascending)",
+      "first_id": "3030787",
+      "last_id": "9515997",
+      "payload_set_sha256": "d4877493fd7aff824c5adb8681c83a1ab4397928ca40038e041b712037468920",
+      "records": 2500,
+      "source_cache": "data/ingested/source_cache_v1/openfda_adverse_events_2500.json"
+    },
+    "openmeteo_weather": {
+      "api_endpoint": "https://archive-api.open-meteo.com/v1/archive (Tallinn, fixed 2024 interval)",
+      "first_id": "2024-01-01T00:00",
+      "last_id": "2024-04-14T03:00",
+      "payload_set_sha256": "42ab0935e78e5a907ec147cfa9d97a08ba38ddee51beb3eafaaa95b946024db4",
+      "records": 2500,
+      "source_cache": "data/ingested/source_cache_v1/openmeteo_weather_2500.json"
+    },
+    "smartcity_mbta": {
+      "api_endpoint": "https://api-v3.mbta.com/stops",
+      "first_id": "10003",
+      "last_id": "place-wtcst",
+      "payload_set_sha256": "14cb583cf193507da91ca72db53966546d03d1f9e59dc1e51336bd13f38b7c76",
+      "records": 2500,
+      "source_cache": "data/ingested/source_cache_v1/smartcity_mbta_2500.json"
+    }
+  },
+  "total_packets": 22500
+}

@@ -9,7 +9,7 @@ This module is the single source of truth for:
 
 * the 10 feature parameters;
 * the shallow 13-qubit unitary;
-* the three measured output qubits and seven-state class encoding;
+* the three measured output qubits and complete eight-state class encoding;
 * model artifact validation; and
 * provider-independent decoding.
 
@@ -31,22 +31,26 @@ from typing import Dict, Iterable, List, Mapping, Sequence, Tuple
 import numpy as np
 
 
-MODEL_SCHEMA_VERSION = 8
-CIRCUIT_ID = "rap-tree-vqc-13q-v8-qwen"
+MODEL_SCHEMA_VERSION = 9
+CIRCUIT_ID = "rap-tree-vqc-13q-v9-eight-route"
 DEFAULT_CLASS_NAMES = (
     "levenshtein",
     "regex",
+    "schema_registry",
     "minilm",
     "qwen_1_5b",
     "bge",
+    "cross_encoder",
     "cohere_embed_v4",
 )
 DEFAULT_FEATURE_COUNT = 10
 DEFAULT_REPS = 2
 IBM_MAX_EXECUTIONS = 10_000_000
+# Abstention remains available as a confidence policy applied after decoding;
+# it no longer consumes either of the two previously unused three-bit states.
 ABSTAIN_CLASS_NAME = "abstain"
 ABSTAIN_CLASS_INDEX = len(DEFAULT_CLASS_NAMES)
-ROUTING_OUTPUT_SHAPE = len(DEFAULT_CLASS_NAMES) + 1
+ROUTING_OUTPUT_SHAPE = len(DEFAULT_CLASS_NAMES)
 
 
 def output_qubit_count(num_classes: int) -> int:
@@ -106,7 +110,7 @@ def build_unitary_circuit(
     num_qubits = feature_count + num_outputs
     if num_qubits != 13:
         raise ValueError(
-            f"{CIRCUIT_ID} is the seven-state 13-qubit protocol; requested "
+            f"{CIRCUIT_ID} is the eight-route 13-qubit protocol; requested "
             f"{feature_count} features and {num_classes} classes ({num_qubits} qubits)"
         )
 
@@ -184,14 +188,14 @@ def build_measured_circuit(
 
 
 def qnn_interpret(output_qubits: Sequence[int]):
-    """Map the reserved three-bit state to the explicit abstention outcome."""
+    """Map all three-bit measurement states to the eight route classes."""
     qubits = tuple(int(q) for q in output_qubits)
 
     def interpret(bitstring_as_int: int) -> int:
         class_index = 0
         for classical_position, qubit in enumerate(qubits):
             class_index |= ((int(bitstring_as_int) >> qubit) & 1) << classical_position
-        return class_index if class_index < len(DEFAULT_CLASS_NAMES) else ABSTAIN_CLASS_INDEX
+        return class_index
 
     return interpret
 
@@ -222,12 +226,13 @@ def parameter_mapping(feature_parameters, feature_matrix: np.ndarray) -> Mapping
 def counts_to_prediction(
     counts: Mapping[str, int],
     class_names: Sequence[str] = DEFAULT_CLASS_NAMES,
+    *,
+    confidence_threshold: float = 0.0,
 ) -> Dict[str, object]:
     """Decode output counts into a class, confidence, and dense probabilities.
 
-    State ``110`` is the explicit abstention outcome and ``111`` is reserved;
-    both are reported as abstention instead of being silently clamped to a
-    reconciler route.
+    Every three-bit state maps to a real reconciler. Optional abstention is a
+    post-measurement confidence policy and therefore does not waste a state.
     """
     total = int(sum(int(value) for value in counts.values()))
     if total <= 0:
@@ -243,11 +248,12 @@ def counts_to_prediction(
             invalid_shots += int(count)
     invalid_state_rate = invalid_shots / total
     class_index = int(np.argmax(probabilities))
-    abstain = invalid_state_rate >= float(probabilities[class_index])
+    confidence = float(probabilities[class_index])
+    abstain = confidence < float(confidence_threshold)
     return {
         "class_index": ABSTAIN_CLASS_INDEX if abstain else class_index,
         "class_name": ABSTAIN_CLASS_NAME if abstain else class_names[class_index],
-        "confidence": invalid_state_rate if abstain else float(probabilities[class_index]),
+        "confidence": confidence,
         "probabilities": probabilities.tolist(),
         "shots": total,
         "abstain": abstain,
@@ -378,7 +384,7 @@ class RouterModel:
         if class_names != DEFAULT_CLASS_NAMES:
             raise ValueError(
                 f"{source} class order {class_names!r} does not match the canonical "
-                f"six-route protocol {DEFAULT_CLASS_NAMES!r}"
+                f"eight-route protocol {DEFAULT_CLASS_NAMES!r}"
             )
         feature_count = int(data.get("feature_count", DEFAULT_FEATURE_COUNT))
         weights = np.asarray(data.get("trained_params"), dtype=float)

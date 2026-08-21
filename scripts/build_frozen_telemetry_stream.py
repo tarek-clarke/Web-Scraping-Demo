@@ -40,9 +40,9 @@ def _digest(value: object) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--packets", default="data/ingested/telemetry_clean_bench_22500.json")
-    parser.add_argument("--oracle", default="data/training/router_oracle_22500_v8_qwen_10pct_single.jsonl")
-    parser.add_argument("--output", default="data/replay/telemetry_frozen_22500_v8.jsonl")
+    parser.add_argument("--packets", default="data/ingested/telemetry_real_api_22500_v1.json")
+    parser.add_argument("--oracle", default="data/training/router_oracle_22500_v9_eight_route_10pct.jsonl")
+    parser.add_argument("--output", default="data/replay/telemetry_frozen_22500_v9.jsonl")
     parser.add_argument("--limit", type=int, default=0, help="Development-only prefix limit")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()

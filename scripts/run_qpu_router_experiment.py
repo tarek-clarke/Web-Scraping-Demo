@@ -35,6 +35,7 @@ from src.routing.canonical_vqc import (
     ABSTAIN_CLASS_NAME,
     CIRCUIT_ID,
     DEFAULT_CLASS_NAMES,
+    ROUTING_OUTPUT_SHAPE,
     RouterModel,
     bind_features,
     build_measured_circuit,
@@ -967,7 +968,7 @@ def load_classical_safety_probabilities(
     safety_model = joblib.load(path)
     features = np.asarray([record["features"] for record in records], dtype=float)
     raw = np.asarray(safety_model.predict_proba(features), dtype=float)
-    dense = np.zeros((len(records), len(DEFAULT_CLASS_NAMES) + 1), dtype=float)
+    dense = np.zeros((len(records), ROUTING_OUTPUT_SHAPE), dtype=float)
     for source_index, class_index in enumerate(safety_model.classes_):
         dense[:, int(class_index)] = raw[:, source_index]
     qpu_weight = float(hybrid.get("qpu_weight", 1.0))
@@ -1036,10 +1037,7 @@ def enrich_prediction(
     qpu_weight: float = 1.0,
 ) -> dict:
     qpu_selected = str(decoded["class_name"])
-    qpu_probabilities = np.asarray(
-        list(decoded["probabilities"]) + [float(decoded["invalid_state_rate"])],
-        dtype=float,
-    )
+    qpu_probabilities = np.asarray(decoded["probabilities"], dtype=float)
     if classical_probabilities is None:
         combined_probabilities = qpu_probabilities
     else:
@@ -1482,7 +1480,7 @@ def build_parser() -> argparse.ArgumentParser:
     prepare = commands.add_parser("prepare")
     prepare.add_argument(
         "--oracle",
-        default="data/training/router_oracle_22500_v8_qwen_10pct_single.jsonl",
+        default="data/training/router_oracle_22500_v9_eight_route_10pct_single.jsonl",
     )
     prepare.add_argument(
         "--model", default="configs/quantum_router_v8_qwen_utility_single.json"

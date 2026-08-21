@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Tuple
 
 import numpy as np
 
+from src.benchmark_protocol import SOURCE_ENCODING
+
 try:
     import Levenshtein as _levenshtein
 
@@ -36,17 +38,7 @@ except ModuleNotFoundError:
 
 
 # Ordinal encoding map for known data sources.
-_SOURCE_ENCODING: Dict[str, float] = {
-    "openf1": 0.10,
-    "finnhub": 0.20,
-    "spacex": 0.30,
-    "openweather": 0.40,
-    "clinical": 0.50,
-    "hockey_nhl": 0.60,
-    "aviation_opensky": 0.70,
-    "football_uefa": 0.80,
-    "smartcity_transit": 0.90,
-}
+_SOURCE_ENCODING: Dict[str, float] = dict(SOURCE_ENCODING)
 
 # Number of features produced by the extractor.
 NUM_FEATURES: int = 10

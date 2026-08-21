@@ -132,20 +132,29 @@ def acceptable_route_indices(
     SLA, or every near-best route when no method reaches the SLA.  A separate
     cost term still teaches the VQC to prefer cheaper acceptable routes.
     """
+    metrics = record["method_metrics"]
+    available = [
+        index for index, method in enumerate(DEFAULT_CLASS_NAMES) if method in metrics
+    ]
+    if not available:
+        raise ValueError(f"{record.get('record_id', 'record')} has no route metrics")
     accuracies = np.asarray(
-        [
-            float(record["method_metrics"][method]["accuracy"])
-            for method in DEFAULT_CLASS_NAMES
-        ],
+        [float(metrics[DEFAULT_CLASS_NAMES[index]]["accuracy"]) for index in available],
         dtype=float,
     )
-    meeting_sla = np.flatnonzero(accuracies >= accuracy_sla).astype(int).tolist()
+    meeting_sla = [
+        available[index]
+        for index in np.flatnonzero(accuracies >= accuracy_sla).astype(int).tolist()
+    ]
     if meeting_sla:
         return meeting_sla
     best = float(np.max(accuracies))
-    return np.flatnonzero(
-        best - accuracies <= accuracy_tolerance + 1e-12
-    ).astype(int).tolist()
+    return [
+        available[index]
+        for index in np.flatnonzero(
+            best - accuracies <= accuracy_tolerance + 1e-12
+        ).astype(int).tolist()
+    ]
 
 
 def utility_loss(
@@ -174,14 +183,27 @@ def utility_loss(
         )
         probabilities_row = route_probs[index]
         acceptable_mass = float(np.sum(probabilities_row[acceptable]))
+        metrics = record["method_metrics"]
+        available = [
+            index for index, method in enumerate(DEFAULT_CLASS_NAMES) if method in metrics
+        ]
+        best_accuracy = max(
+            float(metrics[DEFAULT_CLASS_NAMES[index]]["accuracy"]) for index in available
+        )
+        # A route absent from the oracle (for example the independently
+        # benchmarked Cohere baseline) is never acceptable and receives the
+        # maximum accuracy regret. This preserves the canonical eight-route
+        # output space without fabricating an unavailable method metric.
         accuracies = np.asarray(
             [
-                float(record["method_metrics"][method]["accuracy"])
+                float(metrics[method]["accuracy"])
+                if method in metrics
+                else 0.0
                 for method in DEFAULT_CLASS_NAMES
             ],
             dtype=float,
         )
-        accuracy_regret = np.maximum(float(np.max(accuracies)) - accuracies, 0.0)
+        accuracy_regret = np.maximum(best_accuracy - accuracies, 0.0)
         expected_regret = float(
             np.dot(probabilities_row[: len(DEFAULT_CLASS_NAMES)], accuracy_regret)
         )
@@ -380,6 +402,8 @@ def classification_metrics(
             if int(predicted_label) < len(DEFAULT_CLASS_NAMES)
             else None
         )
+        if selected_method not in record["method_metrics"]:
+            selected_method = None
         oracle_method = record["oracle_method"]
         dispatched_methods.append(selected_method or ABSTAIN_CLASS_NAME)
         selected_reconciliation_accuracies.append(
@@ -933,11 +957,11 @@ def build_parser() -> argparse.ArgumentParser:
     train = subparsers.add_parser("train", help="Train one independent start")
     train.add_argument(
         "--oracle",
-        default="data/training/router_oracle_22500_v8_qwen_10pct_single.jsonl",
+        default="data/training/router_oracle_22500_v9_eight_route_10pct_single.jsonl",
     )
     train.add_argument(
         "--output-dir",
-        default="data/training/qpu_router_multistart_v8_qwen_utility_single",
+        default="data/training/qpu_router_multistart_v9_eight_route_single",
     )
     train.add_argument("--start-index", type=int, required=True)
     train.add_argument(
@@ -977,15 +1001,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     select.add_argument(
         "--oracle",
-        default="data/training/router_oracle_22500_v8_qwen_10pct_single.jsonl",
+        default="data/training/router_oracle_22500_v9_eight_route_10pct_single.jsonl",
     )
     select.add_argument(
         "--candidates-dir",
-        default="data/training/qpu_router_multistart_v8_qwen_utility_single",
+        default="data/training/qpu_router_multistart_v9_eight_route_single",
     )
     select.add_argument(
         "--model-output",
-        default="configs/quantum_router_v8_qwen_utility_single.json",
+        default="configs/quantum_router_v9_eight_route_single.json",
     )
     select.add_argument("--expected-starts", type=int, default=10)
     select.add_argument(

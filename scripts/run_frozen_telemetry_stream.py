@@ -275,8 +275,8 @@ def _aggregate(repetitions: list[dict]) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--stream", default="data/replay/telemetry_frozen_22500_v8.jsonl")
-    parser.add_argument("--methods", nargs="+", default=["levenshtein", "regex", "minilm", "qwen_1_5b", "bge", "cohere_embed_v4"])
+    parser.add_argument("--stream", default="data/replay/telemetry_frozen_22500_v9.jsonl")
+    parser.add_argument("--methods", nargs="+", default=["levenshtein", "regex", "schema_registry", "minilm", "qwen_1_5b", "bge", "cross_encoder", "cohere_embed_v4"])
     parser.add_argument("--rate-pps", type=float, default=0.0, help="0 means saturation replay")
     parser.add_argument("--consumer-batch-size", type=int, default=16)
     parser.add_argument("--queue-capacity", type=int, default=22500)
@@ -284,6 +284,8 @@ def main() -> None:
     parser.add_argument("--require-accelerator", action="store_true")
     parser.add_argument("--require-energy-telemetry", action="store_true")
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--shard-index", type=int, default=0, help="Zero-based data-parallel shard index")
+    parser.add_argument("--shard-count", type=int, default=1, help="Total data-parallel shards")
     parser.add_argument("--repetitions", type=int, default=1)
     parser.add_argument("--warmup-drift-packets", type=int, default=2)
     parser.add_argument("--allow-cohere-cache", action="store_true", help="Allow cross-batch Cohere embedding reuse")
@@ -292,6 +294,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.rate_pps < 0 or args.consumer_batch_size < 1 or args.queue_capacity < 1 or args.repetitions < 1:
         raise SystemExit("rate must be non-negative and batch/queue sizes must be positive")
+    if args.shard_count < 1 or not 0 <= args.shard_index < args.shard_count:
+        raise SystemExit("shard-index must be in [0, shard-count)")
     unknown = set(args.methods) - SUPPORTED_METHODS
     if unknown:
         raise SystemExit(f"Unsupported methods: {sorted(unknown)}")
@@ -306,7 +310,10 @@ def main() -> None:
     stream_path = (REPO_ROOT / args.stream).resolve()
     output_dir = (REPO_ROOT / args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    events = _load_jsonl(stream_path, args.limit)
+    full_events = _load_jsonl(stream_path, args.limit)
+    events = full_events[args.shard_index::args.shard_count]
+    if not events:
+        raise SystemExit("Selected shard contains no events")
     profile = args.hardware_profile
     if profile == "auto":
         try:
@@ -392,7 +399,8 @@ def main() -> None:
         "\\midrule",
     ]
     for method, row in summaries.items():
-        tex.append(f"\\texttt{{{method.replace('_', r'\_')}}} & {100*row['drift_mapping_accuracy']:.2f} & {100*row['drift_exact_record_rate']:.2f} & {row['mean_service_ms']:.3f} & {row['p95_end_to_end_ms']:.3f} & {row['throughput_pps']:.2f} & {row['max_backlog_packets']} \\\\")
+        method_tex = method.replace("_", "\\_")
+        tex.append(f"\\texttt{{{method_tex}}} & {100*row['drift_mapping_accuracy']:.2f} & {100*row['drift_exact_record_rate']:.2f} & {row['mean_service_ms']:.3f} & {row['p95_end_to_end_ms']:.3f} & {row['throughput_pps']:.2f} & {row['max_backlog_packets']} \\\\")
     tex += ["\\bottomrule", "\\end{tabular}", "\\caption{Deterministic replay of the frozen 22,500-packet historical telemetry stream. Clean packets use the Stage-1 fast path.}", "\\label{tab:frozen-stream-replay}", "\\end{table*}", ""]
     (output_dir / "summary.tex").write_text("\n".join(tex), encoding="utf-8")
 
@@ -403,6 +411,9 @@ def main() -> None:
         "not_live_capture": True,
         "stream_path": str(stream_path),
         "stream_sha256": hashlib.sha256(stream_path.read_bytes()).hexdigest(),
+        "stream_events_before_sharding": len(full_events),
+        "shard_index": args.shard_index,
+        "shard_count": args.shard_count,
         "hostname": socket.gethostname(),
         "platform": platform.platform(),
         "hardware": hardware,

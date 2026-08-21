@@ -25,29 +25,26 @@ def _record(accuracies, oracle_method="levenshtein"):
 
 
 def test_acceptable_routes_include_all_methods_meeting_sla():
-    record = _record([1.0, 1.0, 0.96, 0.90, 0.80, 0.70])
+    record = _record([1.0, 1.0, 0.96, 0.90, 0.80, 0.70, 0.60, 0.50])
     assert acceptable_route_indices(record) == [0, 1, 2]
 
 
 def test_acceptable_routes_use_near_best_when_sla_is_unmet():
-    record = _record([0.80, 0.79, 0.70, 0.60, 0.50, 0.40])
+    record = _record([0.80, 0.79, 0.70, 0.60, 0.50, 0.40, 0.30, 0.20])
     assert acceptable_route_indices(record) == [0, 1]
 
 
 def test_utility_loss_rewards_accurate_low_cost_routes():
-    record = _record([1.0, 1.0, 0.70, 0.60, 0.50, 0.40])
+    record = _record([1.0, 1.0, 0.70, 0.60, 0.50, 0.40, 0.30, 0.20])
     cheap = np.zeros((1, ROUTING_OUTPUT_SHAPE))
     cheap[0, 0] = 1.0
     inaccurate = np.zeros((1, ROUTING_OUTPUT_SHAPE))
     inaccurate[0, 5] = 1.0
-    abstain = np.zeros((1, ROUTING_OUTPUT_SHAPE))
-    abstain[0, -1] = 1.0
     assert utility_loss([record], cheap) < utility_loss([record], inaccurate)
-    assert utility_loss([record], cheap) < utility_loss([record], abstain)
 
 
 def test_metrics_distinguish_exact_label_from_acceptable_route():
-    record = _record([1.0, 1.0, 0.70, 0.60, 0.50, 0.40])
+    record = _record([1.0, 1.0, 0.70, 0.60, 0.50, 0.40, 0.30, 0.20])
     probabilities = np.zeros((1, ROUTING_OUTPUT_SHAPE))
     probabilities[0, 1] = 1.0
     metrics = classification_metrics(
@@ -61,8 +58,8 @@ def test_metrics_distinguish_exact_label_from_acceptable_route():
 
 def test_hybrid_calibration_selects_largest_safe_qpu_weight():
     records = [
-        _record([1.0, 0.4, 0.3, 0.2, 0.1, 0.0]),
-        _record([1.0, 0.4, 0.3, 0.2, 0.1, 0.0]),
+        _record([1.0, 0.4, 0.3, 0.2, 0.1, 0.0, 0.0, 0.0]),
+        _record([1.0, 0.4, 0.3, 0.2, 0.1, 0.0, 0.0, 0.0]),
     ]
     qpu = np.zeros((2, ROUTING_OUTPUT_SHAPE))
     qpu[:, 1] = 1.0
@@ -93,7 +90,7 @@ def test_hybrid_calibration_selects_largest_safe_qpu_weight():
 
 def test_physical_counts_use_frozen_hybrid_weight_transparently():
     record = {
-        **_record([1.0, 0.4, 0.3, 0.2, 0.1, 0.0]),
+        **_record([1.0, 0.4, 0.3, 0.2, 0.1, 0.0, 0.0, 0.0]),
         "record_id": "example",
         "api": "openf1",
         "packet_index": 1,
@@ -104,7 +101,7 @@ def test_physical_counts_use_frozen_hybrid_weight_transparently():
     decoded = {
         "class_name": "regex",
         "class_index": 1,
-        "probabilities": [0.1, 0.9, 0.0, 0.0, 0.0, 0.0],
+        "probabilities": [0.1, 0.9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         "invalid_state_rate": 0.0,
         "confidence": 0.9,
         "abstain": False,

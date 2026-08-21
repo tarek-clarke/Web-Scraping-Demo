@@ -1,7 +1,7 @@
 """
 quantum_router.py — Quantum-accelerated packet router for resilient-rap-framework.
 
-Selects one of the six versioned reconciliation paths
+Selects one of the eight versioned reconciliation paths
 for each drifted data packet using Variational Quantum Classifier (VQC)
 circuits or, optionally, QAOA-based batch optimization.
 
@@ -83,8 +83,8 @@ class QuantumRouter:
         self.shots: int = shots
         self.feature_count: int = feature_count
         
-        # The versioned paper protocol uses six routes and one abstention state
-        # encoded by three output bits.  Older artifacts are not interchangeable
+        # The versioned paper protocol uses all eight routes encoded by three
+        # output bits. Older artifacts are not interchangeable
         # with this protocol because their class mapping is different.
         self.num_classes: int = len(DEFAULT_CLASS_NAMES)
         self.num_output_qubits: int = output_qubit_count(self.num_classes)

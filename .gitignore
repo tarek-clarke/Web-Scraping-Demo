@@ -28,6 +28,9 @@ tasks.json
 data/reports/
 data/ingested/telemetry_clean_bench_25000.json
 data/ingested/telemetry_clean_bench_12500.json
+data/ingested/source_cache_v1/
+data/ingested/openfda_adverse_events_2500_v1.json
+data/ingested/openfda_adverse_events_2500_v1.manifest.json
 archive_logs/
 .DS_Store
 

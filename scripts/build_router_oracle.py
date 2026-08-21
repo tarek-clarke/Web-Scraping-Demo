@@ -41,6 +41,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from src.chaos.json_chaos import JSONChaos
 from src.chaos.qwen_chaos import QwenChaos
 from src.chaos.schema_chaos import SchemaChaos
+from src.benchmark_protocol import ACTIVE_API_SOURCES, DEFAULT_SNAPSHOT_PATH
 from src.reconciliation.engine import ReconciliationEngine
 from src.reconciliation.mapping_metrics import (
     derive_ground_truth_mapping,
@@ -51,17 +52,7 @@ from src.routing.feature_extractor import FeatureExtractor
 from src.routing.schema_fast_path import schemas_match
 
 
-ACTIVE_APIS = (
-    "openf1",
-    "finnhub",
-    "spacex",
-    "openweather",
-    "clinical",
-    "hockey_nhl",
-    "aviation_opensky",
-    "football_uefa",
-    "smartcity_transit",
-)
+ACTIVE_APIS = ACTIVE_API_SOURCES
 CHAOS_METHODS = ("qwen", "json_manip", "schema_alter")
 COST_ORDER = {name: index for index, name in enumerate(DEFAULT_CLASS_NAMES)}
 
@@ -182,6 +173,7 @@ def build_samples(
     max_attempts: int,
     max_records: int,
     drift_rate: float,
+    qwen_chaos: Dict[Tuple[str, int], dict],
 ) -> Tuple[List[dict], Dict[str, object]]:
     extractor = FeatureExtractor()
     records: List[dict] = []
@@ -211,12 +203,32 @@ def build_samples(
 
             for method in methods:
                 drift_seed = stable_seed(seed, api, packet_index, method)
-                subtype, drifted_data, used_attempts = inject_schema_drift(
-                    packet.get("data", {}),
-                    method,
-                    seed=drift_seed,
-                    max_attempts=max_attempts,
-                )
+                if method == "qwen":
+                    frozen = qwen_chaos.get((api, packet_index))
+                    if frozen is None:
+                        raise RuntimeError(
+                            f"Missing frozen model-backed Qwen chaos for {api}[{packet_index}]"
+                        )
+                    original_hash = hashlib.sha256(
+                        json.dumps(
+                            packet.get("data", {}), sort_keys=True,
+                            separators=(",", ":"), ensure_ascii=False,
+                        ).encode()
+                    ).hexdigest()
+                    if frozen.get("original_sha256") != original_hash:
+                        raise RuntimeError(f"Frozen Qwen source mismatch for {api}[{packet_index}]")
+                    subtype = "qwen_model_semantic_key_rename"
+                    drifted_data = frozen["drifted_data"]
+                    used_attempts = 1
+                    if schemas_match(packet.get("data", {}), drifted_data):
+                        raise RuntimeError(f"Frozen Qwen output did not alter schema for {api}[{packet_index}]")
+                else:
+                    subtype, drifted_data, used_attempts = inject_schema_drift(
+                        packet.get("data", {}),
+                        method,
+                        seed=drift_seed,
+                        max_attempts=max_attempts,
+                    )
                 features = extractor.extract(
                     packet.get("data", {}),
                     drifted_data,
@@ -464,15 +476,20 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--packets-file",
-        default="data/ingested/telemetry_clean_bench_22500.json",
+        default=DEFAULT_SNAPSHOT_PATH,
     )
     parser.add_argument(
         "--output",
-        default="data/training/router_oracle_22500_v6.jsonl",
+        default="data/training/router_oracle_22500_v9_eight_route_10pct.jsonl",
     )
     parser.add_argument("--seed", type=int, default=20260723)
     parser.add_argument("--max-packets-per-api", type=int, default=2500)
     parser.add_argument("--drift-rate", type=float, default=0.10)
+    parser.add_argument(
+        "--qwen-chaos-file",
+        default="data/training/qwen_model_chaos_22500_v1.jsonl",
+        help="Immutable model-backed Qwen drift generated once on LUMI-G",
+    )
     parser.add_argument("--max-drift-attempts", type=int, default=64)
     parser.add_argument("--chunk-size", type=int, default=64)
     parser.add_argument(
@@ -533,12 +550,29 @@ def main() -> None:
     print(f"Corpus: {packets_path}")
     print(f"Output: {output_path}")
     packet_groups = load_packets(packets_path, args.max_packets_per_api)
+    qwen_path = (REPO_ROOT / args.qwen_chaos_file).resolve()
+    if not qwen_path.exists():
+        raise RuntimeError(
+            f"Frozen Qwen chaos is required: {qwen_path}. Run "
+            "scripts/build_qwen_chaos_snapshot.py on LUMI-G first."
+        )
+    qwen_chaos: Dict[Tuple[str, int], dict] = {}
+    with qwen_path.open(encoding="utf-8") as stream:
+        for line_number, line in enumerate(stream, 1):
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            key = (str(row["source"]), int(row["packet_index"]))
+            if key in qwen_chaos:
+                raise RuntimeError(f"Duplicate Qwen chaos key at line {line_number}: {key}")
+            qwen_chaos[key] = row
     records, workload_summary = build_samples(
         packet_groups,
         seed=args.seed,
         max_attempts=args.max_drift_attempts,
         max_records=args.max_records,
         drift_rate=args.drift_rate,
+        qwen_chaos=qwen_chaos,
     )
     all_record_count = len(records)
     records = [
@@ -588,6 +622,8 @@ def main() -> None:
         "hostname": socket.gethostname(),
         "corpus_path": str(packets_path),
         "corpus_sha256": file_sha256(packets_path),
+        "qwen_chaos_path": str(qwen_path),
+        "qwen_chaos_sha256": file_sha256(qwen_path),
         "output_path": str(output_path),
         "workload_path": str(workload_path),
         "seed": args.seed,
@@ -605,7 +641,7 @@ def main() -> None:
         "class_names": list(DEFAULT_CLASS_NAMES),
         "accuracy_sla": args.accuracy_sla,
         "accuracy_tolerance": args.accuracy_tolerance,
-        "split_protocol": "packet-identity 80/10/10; train=one chaos, validation/test=all chaos",
+        "split_protocol": "packet-identity 80/10/10; deterministic 10% drift; one balanced chaos family per selected packet",
         "workload_summary": workload_summary,
         "accelerator": accelerator,
         "git": git_metadata(),

@@ -33,11 +33,11 @@ module load lumi-aif-singularity-bindings
 LUMI_SIF="${LUMI_SIF:-/appl/local/laifs/containers/lumi-multitorch-u24r70f21m50t210-20260731_122833/lumi-multitorch-full-u24r70f21m50t210-20260731_122833.sif}"
 [ -r "$LUMI_SIF" ] || { echo "ERROR: LUMI container unavailable: $LUMI_SIF" >&2; exit 1; }
 
-STREAM="${RAP_STREAM_FILE:-data/replay/telemetry_frozen_22500_v8.jsonl}"
+STREAM="${RAP_STREAM_FILE:-data/replay/telemetry_frozen_22500_v9.jsonl}"
 RATE="${RAP_STREAM_RATE_PPS:-0}"
 BATCH="${RAP_STREAM_BATCH_SIZE:-256}"
 REPETITIONS="${RAP_STREAM_REPETITIONS:-3}"
-METHODS="${RAP_STREAM_METHODS:-minilm qwen_1_5b bge}"
+METHODS="${RAP_STREAM_METHODS:-minilm qwen_1_5b bge cross_encoder}"
 LIMIT="${RAP_STREAM_LIMIT:-0}"
 TAG="${RAP_HARDWARE_TAG:-mi250x_one_gcd}"
 OUTPUT="${RAP_STREAM_OUTPUT_DIR:-data/reports/frozen_stream_${TAG}_${SLURM_JOB_ID}}"
