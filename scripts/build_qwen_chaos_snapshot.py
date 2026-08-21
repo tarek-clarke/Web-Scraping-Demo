@@ -3,9 +3,11 @@
 
 Only packets deterministically assigned to the `qwen` chaos family are sent to
 the model. Qwen returns a one-to-one top-level key-renaming map; values are
-copied byte-for-byte from the real source packet. Invalid, identity, partial,
-or malformed mappings fail loudly. Duplicate replacement names are resolved
-by a deterministic, audited suffix policy so no source field is overwritten.
+copied byte-for-byte from the real source packet. Invalid responses receive
+bounded corrective retries; after those, only exact partial pairs may be
+salvaged while unresolved fields remain unchanged and audited. Identity,
+ambiguous, or unrelated mappings fail loudly. Duplicate replacement names are
+resolved by a deterministic, audited suffix policy so no field is overwritten.
 The saved JSONL is reused by every oracle and hardware run, so Qwen is never
 called independently per platform.
 """
@@ -238,6 +240,75 @@ def normalize_mapping(
     return normalized, repairs, "nested_key_pairs"
 
 
+def salvage_partial_mapping(
+    data: dict,
+    candidate: dict,
+) -> tuple[dict[str, str], list[dict[str, str]], str]:
+    """Recover only exact, unambiguous pairs after all model retries fail.
+
+    Orientation is selected by exact schema-name coverage. Unresolved fields
+    retain their original names; no semantic or positional correspondence is
+    guessed. A tie, zero exact coverage, or an identity result still fails.
+    """
+    if not candidate or not all(
+        not isinstance(value, (dict, list)) for value in candidate.values()
+    ):
+        raise ValueError("partial salvage requires a scalar JSON object")
+
+    expected_order = [str(key) for key in data]
+    expected = set(expected_order)
+    direct = {
+        original: str(candidate[original])
+        for original in expected_order
+        if original in candidate
+    }
+    reverse_occurrences: defaultdict[str, list[str]] = defaultdict(list)
+    for replacement, reported_original in candidate.items():
+        original = str(reported_original)
+        if original in expected:
+            reverse_occurrences[original].append(str(replacement))
+    reverse = {
+        original: replacements[0]
+        for original, replacements in reverse_occurrences.items()
+        if len(replacements) == 1
+    }
+
+    direct_score = sum(str(key) in expected for key in candidate)
+    reverse_score = sum(str(value) in expected for value in candidate.values())
+    if direct_score == reverse_score:
+        raise ValueError(
+            "partial mapping orientation is ambiguous or has zero exact coverage: "
+            f"direct={direct_score} reverse={reverse_score}"
+        )
+    if direct_score > reverse_score:
+        proposals = direct
+        orientation = "original_to_replacement_partial"
+        reason = "partial_direct_original_preserved"
+    else:
+        proposals = reverse
+        orientation = "replacement_to_original_partial"
+        reason = "partial_reverse_original_preserved"
+
+    mapping: dict[str, str] = {}
+    repairs: list[dict[str, str]] = []
+    for original in expected_order:
+        if original in proposals:
+            mapping[original] = proposals[original]
+            continue
+        mapping[original] = original
+        model_candidates = reverse_occurrences.get(original, []) if proposals is reverse else []
+        repairs.append({
+            "original_key": original,
+            "model_replacement": "|".join(model_candidates),
+            "resolved_replacement": original,
+            "reason": reason,
+        })
+    if all(original == replacement for original, replacement in mapping.items()):
+        raise ValueError("partial mapping contains no usable schema rename")
+    normalized, collision_repairs = disambiguate_mapping(data, mapping)
+    return normalized, [*repairs, *collision_repairs], orientation
+
+
 def corrective_prompt(source: str, data: dict, validation_error: str) -> str:
     required_keys = [str(key) for key in data]
     return (
@@ -301,6 +372,7 @@ def main() -> None:
     repaired_records = 0
     repaired_fields = 0
     retried_records = 0
+    salvaged_records = 0
     generation_attempts = 0
     response_formats: defaultdict[str, int] = defaultdict(int)
     with temporary.open("w", encoding="utf-8") as stream, torch.inference_mode():
@@ -334,12 +406,20 @@ def main() -> None:
                     except Exception as exc:
                         validation_errors_by_record[index].append(str(exc))
                         if attempt_counts[index] >= args.max_retries + 1:
-                            raise RuntimeError(
-                                f"Invalid Qwen mapping for {source}[{packet_index}] after "
-                                f"{attempt_counts[index]} attempts: "
-                                f"{validation_errors_by_record[index]}; "
-                                f"response={responses[index][:500]!r}"
-                            ) from exc
+                            try:
+                                parsed_results[index] = salvage_partial_mapping(
+                                    original,
+                                    extract_json_object(responses[index]),
+                                )
+                            except Exception as salvage_exc:
+                                raise RuntimeError(
+                                    f"Invalid Qwen mapping for {source}[{packet_index}] after "
+                                    f"{attempt_counts[index]} attempts: "
+                                    f"{validation_errors_by_record[index]}; "
+                                    f"salvage_error={salvage_exc}; "
+                                    f"response={responses[index][:500]!r}"
+                                ) from salvage_exc
+                            continue
                         retry_indices.append(index)
                 if not retry_indices:
                     break
@@ -388,6 +468,8 @@ def main() -> None:
                     repaired_fields += len(repairs)
                 if attempts > 1:
                     retried_records += 1
+                if response_format.endswith("_partial"):
+                    salvaged_records += 1
                 response_formats[response_format] += 1
                 row = {
                     "source": source, "packet_index": packet_index,
@@ -397,6 +479,7 @@ def main() -> None:
                     "mapping_generation_attempts": attempts,
                     "mapping_validation_errors": validation_errors,
                     "model_response_sha256": hashlib.sha256(response.encode()).hexdigest(),
+                    "model_response": response,
                     "mapping_response_format": response_format,
                     "mapping_repairs": repairs,
                     "drifted_data": drifted, "drifted_sha256": sha(drifted),
@@ -416,10 +499,13 @@ def main() -> None:
         "records": written, "output": str(output), "output_sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
         "mapping_repair_policy": (
             "duplicate replacements receive deterministic original-key suffixes; "
-            "one unmatched reverse-map value may be recovered by exact set elimination"
+            "one unmatched reverse-map value may be recovered by exact set elimination; "
+            "after bounded retries, exact partial pairs may be retained while unresolved "
+            "originals remain unchanged"
         ),
         "repaired_records": repaired_records, "repaired_fields": repaired_fields,
         "retried_records": retried_records, "generation_attempts": generation_attempts,
+        "salvaged_records": salvaged_records,
         "mapping_response_formats": dict(sorted(response_formats.items())),
         "deterministic_generation": True, "cpu_fallback": False,
     }
